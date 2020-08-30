@@ -59,9 +59,6 @@
     <Compile Include="Records\Group.cs">
       <DependentUpon>Group.xml</DependentUpon>
     </Compile>
-    <Compile Include="Records\ListGroup.cs">
-      <DependentUpon>Group.xml</DependentUpon>
-    </Compile>
     <Compile Include="Records\Major Records\AClothing.cs">
       <DependentUpon>AClothing.xml</DependentUpon>
     </Compile>
@@ -96,12 +93,6 @@
       <DependentUpon>Book.xml</DependentUpon>
     </Compile>
     <Compile Include="Records\Major Records\Cell.cs">
-      <DependentUpon>Cell.xml</DependentUpon>
-    </Compile>
-    <Compile Include="Records\Major Records\CellBlock.cs">
-      <DependentUpon>Cell.xml</DependentUpon>
-    </Compile>
-    <Compile Include="Records\Major Records\CellSubBlock.cs">
       <DependentUpon>Cell.xml</DependentUpon>
     </Compile>
     <Compile Include="Records\Major Records\Class.cs">
@@ -312,9 +303,6 @@
     <Compile Include="Records\Group_Generated.cs">
       <DependentUpon>Group.xml</DependentUpon>
     </Compile>
-    <Compile Include="Records\ListGroup_Generated.cs">
-      <DependentUpon>Group.xml</DependentUpon>
-    </Compile>
     <Compile Include="Records\ModStats_Generated.cs">
       <DependentUpon>OblivionModHeader.xml</DependentUpon>
     </Compile>
@@ -425,12 +413,6 @@
     </Compile>
     <Compile Include="Records\Major Records\BookData_Generated.cs">
       <DependentUpon>Book.xml</DependentUpon>
-    </Compile>
-    <Compile Include="Records\Major Records\CellBlock_Generated.cs">
-      <DependentUpon>Cell.xml</DependentUpon>
-    </Compile>
-    <Compile Include="Records\Major Records\CellSubBlock_Generated.cs">
-      <DependentUpon>Cell.xml</DependentUpon>
     </Compile>
     <Compile Include="Records\Major Records\Cell_Generated.cs">
       <DependentUpon>Cell.xml</DependentUpon>

@@ -414,11 +414,13 @@ namespace Mutagen.Bethesda.Oblivion
         IGroupGetter<IRegionGetter> IOblivionModGetter.Regions => _Regions_Object;
         #endregion
         #region Cells
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private readonly ListGroup<CellBlock> _Cells_Object = new ListGroup<CellBlock>();
-        public ListGroup<CellBlock> Cells => _Cells_Object;
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        IListGroupGetter<ICellBlockGetter> IOblivionModGetter.Cells => _Cells_Object;
+        private readonly Dictionary<P2Int, Cell> _Cells = new Dictionary<P2Int, Cell>();
+        public IDictionary<P2Int, Cell> Cells => _Cells;
+        #region Interface Members
+        IDictionary<P2Int, Cell> IOblivionMod.Cells => _Cells;
+        IReadOnlyDictionary<P2Int, ICellGetter> IOblivionModGetter.Cells => _Cells.Covariant<P2Int, Cell, ICellGetter>();
+        #endregion
+
         #endregion
         #region Worldspaces
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -580,7 +582,7 @@ namespace Mutagen.Bethesda.Oblivion
                 this.Weathers = new MaskItem<TItem, Group.Mask<TItem>?>(initialValue, new Group.Mask<TItem>(initialValue));
                 this.Climates = new MaskItem<TItem, Group.Mask<TItem>?>(initialValue, new Group.Mask<TItem>(initialValue));
                 this.Regions = new MaskItem<TItem, Group.Mask<TItem>?>(initialValue, new Group.Mask<TItem>(initialValue));
-                this.Cells = new MaskItem<TItem, ListGroup.Mask<TItem>?>(initialValue, new ListGroup.Mask<TItem>(initialValue));
+                this.Cells = new MaskItem<TItem, IEnumerable<MaskItemIndexed<P2Int, TItem, Cell.Mask<TItem>?>>?>(initialValue, null);
                 this.Worldspaces = new MaskItem<TItem, Group.Mask<TItem>?>(initialValue, new Group.Mask<TItem>(initialValue));
                 this.DialogTopics = new MaskItem<TItem, Group.Mask<TItem>?>(initialValue, new Group.Mask<TItem>(initialValue));
                 this.Quests = new MaskItem<TItem, Group.Mask<TItem>?>(initialValue, new Group.Mask<TItem>(initialValue));
@@ -698,7 +700,7 @@ namespace Mutagen.Bethesda.Oblivion
                 this.Weathers = new MaskItem<TItem, Group.Mask<TItem>?>(Weathers, new Group.Mask<TItem>(Weathers));
                 this.Climates = new MaskItem<TItem, Group.Mask<TItem>?>(Climates, new Group.Mask<TItem>(Climates));
                 this.Regions = new MaskItem<TItem, Group.Mask<TItem>?>(Regions, new Group.Mask<TItem>(Regions));
-                this.Cells = new MaskItem<TItem, ListGroup.Mask<TItem>?>(Cells, new ListGroup.Mask<TItem>(Cells));
+                this.Cells = new MaskItem<TItem, IEnumerable<MaskItemIndexed<P2Int, TItem, Cell.Mask<TItem>?>>?>(Cells, null);
                 this.Worldspaces = new MaskItem<TItem, Group.Mask<TItem>?>(Worldspaces, new Group.Mask<TItem>(Worldspaces));
                 this.DialogTopics = new MaskItem<TItem, Group.Mask<TItem>?>(DialogTopics, new Group.Mask<TItem>(DialogTopics));
                 this.Quests = new MaskItem<TItem, Group.Mask<TItem>?>(Quests, new Group.Mask<TItem>(Quests));
@@ -766,7 +768,7 @@ namespace Mutagen.Bethesda.Oblivion
             public MaskItem<TItem, Group.Mask<TItem>?>? Weathers { get; set; }
             public MaskItem<TItem, Group.Mask<TItem>?>? Climates { get; set; }
             public MaskItem<TItem, Group.Mask<TItem>?>? Regions { get; set; }
-            public MaskItem<TItem, ListGroup.Mask<TItem>?>? Cells { get; set; }
+            public MaskItem<TItem, IEnumerable<MaskItemIndexed<P2Int, TItem, Cell.Mask<TItem>?>>?>? Cells;
             public MaskItem<TItem, Group.Mask<TItem>?>? Worldspaces { get; set; }
             public MaskItem<TItem, Group.Mask<TItem>?>? DialogTopics { get; set; }
             public MaskItem<TItem, Group.Mask<TItem>?>? Quests { get; set; }
@@ -1142,10 +1144,20 @@ namespace Mutagen.Bethesda.Oblivion
                     if (!eval(this.Regions.Overall)) return false;
                     if (this.Regions.Specific != null && !this.Regions.Specific.All(eval)) return false;
                 }
-                if (Cells != null)
+                if (this.Cells != null)
                 {
                     if (!eval(this.Cells.Overall)) return false;
-                    if (this.Cells.Specific != null && !this.Cells.Specific.All(eval)) return false;
+                    if (this.Cells.Specific != null)
+                    {
+                        foreach (var item in this.Cells.Specific)
+                        {
+                            if (item.Specific != null)
+                            {
+                                if (!eval(item.Overall)) return false;
+                                if (!item.Specific?.All(eval) ?? false) return false;
+                            }
+                        }
+                    }
                 }
                 if (Worldspaces != null)
                 {
@@ -1434,10 +1446,20 @@ namespace Mutagen.Bethesda.Oblivion
                     if (eval(this.Regions.Overall)) return true;
                     if (this.Regions.Specific != null && this.Regions.Specific.Any(eval)) return true;
                 }
-                if (Cells != null)
+                if (this.Cells != null)
                 {
                     if (eval(this.Cells.Overall)) return true;
-                    if (this.Cells.Specific != null && this.Cells.Specific.Any(eval)) return true;
+                    if (this.Cells.Specific != null)
+                    {
+                        foreach (var item in this.Cells.Specific)
+                        {
+                            if (item.Specific != null)
+                            {
+                                if (eval(item.Overall)) return true;
+                                if (item.Specific?.Any(eval) ?? false) return true;
+                            }
+                        }
+                    }
                 }
                 if (Worldspaces != null)
                 {
@@ -1553,7 +1575,19 @@ namespace Mutagen.Bethesda.Oblivion
                 obj.Weathers = this.Weathers == null ? null : new MaskItem<R, Group.Mask<R>?>(eval(this.Weathers.Overall), this.Weathers.Specific?.Translate(eval));
                 obj.Climates = this.Climates == null ? null : new MaskItem<R, Group.Mask<R>?>(eval(this.Climates.Overall), this.Climates.Specific?.Translate(eval));
                 obj.Regions = this.Regions == null ? null : new MaskItem<R, Group.Mask<R>?>(eval(this.Regions.Overall), this.Regions.Specific?.Translate(eval));
-                obj.Cells = this.Cells == null ? null : new MaskItem<R, ListGroup.Mask<R>?>(eval(this.Cells.Overall), this.Cells.Specific?.Translate(eval));
+                if (Cells != null)
+                {
+                    obj.Cells = new MaskItem<R, IEnumerable<MaskItemIndexed<P2Int, R, Cell.Mask<R>?>>?>(eval(this.Cells.Overall), default);
+                    if (Cells.Specific != null)
+                    {
+                        List<MaskItemIndexed<P2Int, R, Cell.Mask<R>?>> l = new List<MaskItemIndexed<P2Int, R, Cell.Mask<R>?>>();
+                        obj.Cells.Specific = l;
+                        foreach (var item in Cells.Specific)
+                        {
+                            throw new NotImplementedException();
+                        }
+                    }
+                }
                 obj.Worldspaces = this.Worldspaces == null ? null : new MaskItem<R, Group.Mask<R>?>(eval(this.Worldspaces.Overall), this.Worldspaces.Specific?.Translate(eval));
                 obj.DialogTopics = this.DialogTopics == null ? null : new MaskItem<R, Group.Mask<R>?>(eval(this.DialogTopics.Overall), this.DialogTopics.Specific?.Translate(eval));
                 obj.Quests = this.Quests == null ? null : new MaskItem<R, Group.Mask<R>?>(eval(this.Quests.Overall), this.Quests.Specific?.Translate(eval));
@@ -1769,7 +1803,42 @@ namespace Mutagen.Bethesda.Oblivion
                     }
                     if (printMask?.Cells?.Overall ?? true)
                     {
-                        Cells?.ToString(fg);
+                        fg.AppendLine("Cells =>");
+                        fg.AppendLine("[");
+                        using (new DepthWrapper(fg))
+                        {
+                            if (Cells != null)
+                            {
+                                if (Cells.Overall != null)
+                                {
+                                    fg.AppendLine(Cells.Overall.ToString());
+                                }
+                                if (Cells.Specific != null)
+                                {
+                                    foreach (var subItem in Cells.Specific)
+                                    {
+                                        fg.AppendLine("[");
+                                        using (new DepthWrapper(fg))
+                                        {
+                                            fg.AppendLine("Key => [");
+                                            using (new DepthWrapper(fg))
+                                            {
+                                                fg.AppendItem(subItem.Index);
+                                            }
+                                            fg.AppendLine("]");
+                                            fg.AppendLine("Value => [");
+                                            using (new DepthWrapper(fg))
+                                            {
+                                                subItem.Specific?.ToString(fg);
+                                            }
+                                            fg.AppendLine("]");
+                                        }
+                                        fg.AppendLine("]");
+                                    }
+                                }
+                            }
+                        }
+                        fg.AppendLine("]");
                     }
                     if (printMask?.Worldspaces?.Overall ?? true)
                     {
@@ -1885,7 +1954,7 @@ namespace Mutagen.Bethesda.Oblivion
             public MaskItem<Exception?, Group.ErrorMask<Weather.ErrorMask>?>? Weathers;
             public MaskItem<Exception?, Group.ErrorMask<Climate.ErrorMask>?>? Climates;
             public MaskItem<Exception?, Group.ErrorMask<Region.ErrorMask>?>? Regions;
-            public MaskItem<Exception?, ListGroup.ErrorMask<CellBlock.ErrorMask>?>? Cells;
+            public MaskItem<Exception?, IEnumerable<MaskItemIndexed<P2Int, Exception?, Cell.ErrorMask?>>?>? Cells;
             public MaskItem<Exception?, Group.ErrorMask<Worldspace.ErrorMask>?>? Worldspaces;
             public MaskItem<Exception?, Group.ErrorMask<DialogTopic.ErrorMask>?>? DialogTopics;
             public MaskItem<Exception?, Group.ErrorMask<Quest.ErrorMask>?>? Quests;
@@ -2165,7 +2234,7 @@ namespace Mutagen.Bethesda.Oblivion
                         this.Regions = new MaskItem<Exception?, Group.ErrorMask<Region.ErrorMask>?>(ex, null);
                         break;
                     case OblivionMod_FieldIndex.Cells:
-                        this.Cells = new MaskItem<Exception?, ListGroup.ErrorMask<CellBlock.ErrorMask>?>(ex, null);
+                        this.Cells = new MaskItem<Exception?, IEnumerable<MaskItemIndexed<P2Int, Exception?, Cell.ErrorMask?>>?>(ex, null);
                         break;
                     case OblivionMod_FieldIndex.Worldspaces:
                         this.Worldspaces = new MaskItem<Exception?, Group.ErrorMask<Worldspace.ErrorMask>?>(ex, null);
@@ -2346,7 +2415,7 @@ namespace Mutagen.Bethesda.Oblivion
                         this.Regions = (MaskItem<Exception?, Group.ErrorMask<Region.ErrorMask>?>?)obj;
                         break;
                     case OblivionMod_FieldIndex.Cells:
-                        this.Cells = (MaskItem<Exception?, ListGroup.ErrorMask<CellBlock.ErrorMask>?>?)obj;
+                        this.Cells = (MaskItem<Exception?, IEnumerable<MaskItemIndexed<P2Int, Exception?, Cell.ErrorMask?>>?>)obj;
                         break;
                     case OblivionMod_FieldIndex.Worldspaces:
                         this.Worldspaces = (MaskItem<Exception?, Group.ErrorMask<Worldspace.ErrorMask>?>?)obj;
@@ -2525,7 +2594,42 @@ namespace Mutagen.Bethesda.Oblivion
                 Weathers?.ToString(fg);
                 Climates?.ToString(fg);
                 Regions?.ToString(fg);
-                Cells?.ToString(fg);
+                fg.AppendLine("Cells =>");
+                fg.AppendLine("[");
+                using (new DepthWrapper(fg))
+                {
+                    if (Cells != null)
+                    {
+                        if (Cells.Overall != null)
+                        {
+                            fg.AppendLine(Cells.Overall.ToString());
+                        }
+                        if (Cells.Specific != null)
+                        {
+                            foreach (var subItem in Cells.Specific)
+                            {
+                                fg.AppendLine("[");
+                                using (new DepthWrapper(fg))
+                                {
+                                    fg.AppendLine("Key => [");
+                                    using (new DepthWrapper(fg))
+                                    {
+                                        fg.AppendItem(subItem.Index);
+                                    }
+                                    fg.AppendLine("]");
+                                    fg.AppendLine("Value => [");
+                                    using (new DepthWrapper(fg))
+                                    {
+                                        subItem.Specific?.ToString(fg);
+                                    }
+                                    fg.AppendLine("]");
+                                }
+                                fg.AppendLine("]");
+                            }
+                        }
+                    }
+                }
+                fg.AppendLine("]");
                 Worldspaces?.ToString(fg);
                 DialogTopics?.ToString(fg);
                 Quests?.ToString(fg);
@@ -2590,7 +2694,7 @@ namespace Mutagen.Bethesda.Oblivion
                 ret.Weathers = this.Weathers.Combine(rhs.Weathers, (l, r) => l.Combine(r));
                 ret.Climates = this.Climates.Combine(rhs.Climates, (l, r) => l.Combine(r));
                 ret.Regions = this.Regions.Combine(rhs.Regions, (l, r) => l.Combine(r));
-                ret.Cells = this.Cells.Combine(rhs.Cells, (l, r) => l.Combine(r));
+                ret.Cells = new MaskItem<Exception?, IEnumerable<MaskItemIndexed<P2Int, Exception?, Cell.ErrorMask?>>?>(ExceptionExt.Combine(this.Cells?.Overall, rhs.Cells?.Overall), ExceptionExt.Combine(this.Cells?.Specific, rhs.Cells?.Specific));
                 ret.Worldspaces = this.Worldspaces.Combine(rhs.Worldspaces, (l, r) => l.Combine(r));
                 ret.DialogTopics = this.DialogTopics.Combine(rhs.DialogTopics, (l, r) => l.Combine(r));
                 ret.Quests = this.Quests.Combine(rhs.Quests, (l, r) => l.Combine(r));
@@ -2669,7 +2773,7 @@ namespace Mutagen.Bethesda.Oblivion
             public Group.TranslationMask<Weather.TranslationMask>? Weathers;
             public Group.TranslationMask<Climate.TranslationMask>? Climates;
             public Group.TranslationMask<Region.TranslationMask>? Regions;
-            public ListGroup.TranslationMask<CellBlock.TranslationMask>? Cells;
+            public Cell.TranslationMask? Cells;
             public Group.TranslationMask<Worldspace.TranslationMask>? Worldspaces;
             public Group.TranslationMask<DialogTopic.TranslationMask>? DialogTopics;
             public Group.TranslationMask<Quest.TranslationMask>? Quests;
@@ -3032,13 +3136,6 @@ namespace Mutagen.Bethesda.Oblivion
             {
                 this.Regions.RecordCache.Set(rhsMod.Regions.RecordCache.Items);
             }
-            if (mask?.Cells ?? true)
-            {
-                if (rhsMod.Cells.Records.Count > 0)
-                {
-                    throw new NotImplementedException("Cell additions need implementing");
-                }
-            }
             if (mask?.Worldspaces ?? true)
             {
                 this.Worldspaces.RecordCache.Set(rhsMod.Worldspaces.RecordCache.Items);
@@ -3398,13 +3495,6 @@ namespace Mutagen.Bethesda.Oblivion
                         .Select(i => i.Duplicate(this.GetNextFormKey, duppedRecords))
                         .Cast<Region>());
             }
-            if (mask?.Cells ?? true)
-            {
-                this.Cells.Records.AddRange(
-                    rhs.Cells.Records
-                        .Select(i => i.Duplicate(this.GetNextFormKey, duppedRecords))
-                        .Cast<CellBlock>());
-            }
             if (mask?.Worldspaces ?? true)
             {
                 this.Worldspaces.RecordCache.Set(
@@ -3545,7 +3635,6 @@ namespace Mutagen.Bethesda.Oblivion
             count += Weathers.RecordCache.Count > 0 ? 1 : default(uint);
             count += Climates.RecordCache.Count > 0 ? 1 : default(uint);
             count += Regions.RecordCache.Count > 0 ? 1 : default(uint);
-            count += Cells.Records.Count > 0 ? 1 : default(uint);
             count += Worldspaces.RecordCache.Count > 0 ? 1 : default(uint);
             count += DialogTopics.RecordCache.Count > 0 ? 1 : default(uint);
             count += Quests.RecordCache.Count > 0 ? 1 : default(uint);
@@ -3777,7 +3866,7 @@ namespace Mutagen.Bethesda.Oblivion
         new Group<Weather> Weathers { get; }
         new Group<Climate> Climates { get; }
         new Group<Region> Regions { get; }
-        new ListGroup<CellBlock> Cells { get; }
+        new IDictionary<P2Int, Cell> Cells { get; }
         new Group<Worldspace> Worldspaces { get; }
         new Group<DialogTopic> DialogTopics { get; }
         new Group<Quest> Quests { get; }
@@ -3850,7 +3939,7 @@ namespace Mutagen.Bethesda.Oblivion
         IGroupGetter<IWeatherGetter> Weathers { get; }
         IGroupGetter<IClimateGetter> Climates { get; }
         IGroupGetter<IRegionGetter> Regions { get; }
-        IListGroupGetter<ICellBlockGetter> Cells { get; }
+        IReadOnlyDictionary<P2Int, ICellGetter> Cells { get; }
         IGroupGetter<IWorldspaceGetter> Worldspaces { get; }
         IGroupGetter<IDialogTopicGetter> DialogTopics { get; }
         IGroupGetter<IQuestGetter> Quests { get; }
@@ -4525,7 +4614,6 @@ namespace Mutagen.Bethesda.Oblivion.Internals
                 case OblivionMod_FieldIndex.Weathers:
                 case OblivionMod_FieldIndex.Climates:
                 case OblivionMod_FieldIndex.Regions:
-                case OblivionMod_FieldIndex.Cells:
                 case OblivionMod_FieldIndex.Worldspaces:
                 case OblivionMod_FieldIndex.DialogTopics:
                 case OblivionMod_FieldIndex.Quests:
@@ -4538,6 +4626,8 @@ namespace Mutagen.Bethesda.Oblivion.Internals
                 case OblivionMod_FieldIndex.Waters:
                 case OblivionMod_FieldIndex.EffectShaders:
                     return true;
+                case OblivionMod_FieldIndex.Cells:
+                    return false;
                 default:
                     throw new ArgumentException($"Index is out of range: {index}");
             }
@@ -4593,7 +4683,6 @@ namespace Mutagen.Bethesda.Oblivion.Internals
                 case OblivionMod_FieldIndex.Weathers:
                 case OblivionMod_FieldIndex.Climates:
                 case OblivionMod_FieldIndex.Regions:
-                case OblivionMod_FieldIndex.Cells:
                 case OblivionMod_FieldIndex.Worldspaces:
                 case OblivionMod_FieldIndex.DialogTopics:
                 case OblivionMod_FieldIndex.Quests:
@@ -4606,6 +4695,8 @@ namespace Mutagen.Bethesda.Oblivion.Internals
                 case OblivionMod_FieldIndex.Waters:
                 case OblivionMod_FieldIndex.EffectShaders:
                     return true;
+                case OblivionMod_FieldIndex.Cells:
+                    return false;
                 default:
                     throw new ArgumentException($"Index is out of range: {index}");
             }
@@ -4809,7 +4900,6 @@ namespace Mutagen.Bethesda.Oblivion.Internals
             switch (enu)
             {
                 case OblivionMod_FieldIndex.ModHeader:
-                case OblivionMod_FieldIndex.Cells:
                     return true;
                 case OblivionMod_FieldIndex.GameSettings:
                 case OblivionMod_FieldIndex.Globals:
@@ -4855,6 +4945,7 @@ namespace Mutagen.Bethesda.Oblivion.Internals
                 case OblivionMod_FieldIndex.Weathers:
                 case OblivionMod_FieldIndex.Climates:
                 case OblivionMod_FieldIndex.Regions:
+                case OblivionMod_FieldIndex.Cells:
                 case OblivionMod_FieldIndex.Worldspaces:
                 case OblivionMod_FieldIndex.DialogTopics:
                 case OblivionMod_FieldIndex.Quests:
@@ -4968,7 +5059,7 @@ namespace Mutagen.Bethesda.Oblivion.Internals
                 case OblivionMod_FieldIndex.Regions:
                     return typeof(Group<Region>);
                 case OblivionMod_FieldIndex.Cells:
-                    return typeof(ListGroup<CellBlock>);
+                    return typeof(Dictionary<P2Int, Cell>);
                 case OblivionMod_FieldIndex.Worldspaces:
                     return typeof(Group<Worldspace>);
                 case OblivionMod_FieldIndex.DialogTopics:
@@ -5083,6 +5174,7 @@ namespace Mutagen.Bethesda.Oblivion.Internals
             item.Weathers.Clear();
             item.Climates.Clear();
             item.Regions.Clear();
+            item.Cells.Clear();
             item.Worldspaces.Clear();
             item.DialogTopics.Clear();
             item.Quests.Clear();
@@ -5206,7 +5298,11 @@ namespace Mutagen.Bethesda.Oblivion.Internals
             ret.Weathers = MaskItemExt.Factory(item.Weathers.GetEqualsMask(rhs.Weathers, include), include);
             ret.Climates = MaskItemExt.Factory(item.Climates.GetEqualsMask(rhs.Climates, include), include);
             ret.Regions = MaskItemExt.Factory(item.Regions.GetEqualsMask(rhs.Regions, include), include);
-            ret.Cells = MaskItemExt.Factory(item.Cells.GetEqualsMask(rhs.Cells, include), include);
+            ret.Cells = EqualsMaskHelper.DictEqualsHelper(
+                lhs: item.Cells,
+                rhs: rhs.Cells,
+                maskGetter: (k, l, r) => l.GetEqualsMask(r, include),
+                include: include);
             ret.Worldspaces = MaskItemExt.Factory(item.Worldspaces.GetEqualsMask(rhs.Worldspaces, include), include);
             ret.DialogTopics = MaskItemExt.Factory(item.DialogTopics.GetEqualsMask(rhs.DialogTopics, include), include);
             ret.Quests = MaskItemExt.Factory(item.Quests.GetEqualsMask(rhs.Quests, include), include);
@@ -5444,9 +5540,25 @@ namespace Mutagen.Bethesda.Oblivion.Internals
             {
                 item.Regions?.ToString(fg, "Regions");
             }
-            if (printMask?.Cells?.Overall ?? true)
+            if ((printMask?.Cells?.Overall ?? true)
+                && item.Cells.TryGet(out var CellsItem))
             {
-                item.Cells?.ToString(fg, "Cells");
+                fg.AppendLine("Cells =>");
+                fg.AppendLine("[");
+                using (new DepthWrapper(fg))
+                {
+                    foreach (var subItem in CellsItem)
+                    {
+                        fg.AppendLine("[");
+                        using (new DepthWrapper(fg))
+                        {
+                            fg.AppendItem(subItem.Key);
+                            subItem.Value?.ToString(fg, "Value");
+                        }
+                        fg.AppendLine("]");
+                    }
+                }
+                fg.AppendLine("]");
             }
             if (printMask?.Worldspaces?.Overall ?? true)
             {
@@ -5546,7 +5658,7 @@ namespace Mutagen.Bethesda.Oblivion.Internals
             if (!object.Equals(lhs.Weathers, rhs.Weathers)) return false;
             if (!object.Equals(lhs.Climates, rhs.Climates)) return false;
             if (!object.Equals(lhs.Regions, rhs.Regions)) return false;
-            if (!object.Equals(lhs.Cells, rhs.Cells)) return false;
+            if (!lhs.Cells.SequenceEqual(rhs.Cells)) return false;
             if (!object.Equals(lhs.Worldspaces, rhs.Worldspaces)) return false;
             if (!object.Equals(lhs.DialogTopics, rhs.DialogTopics)) return false;
             if (!object.Equals(lhs.Quests, rhs.Quests)) return false;
@@ -5858,10 +5970,6 @@ namespace Mutagen.Bethesda.Oblivion.Internals
                 case "IRegion":
                 case "IRegionInternal":
                     return obj.Regions.RecordCache;
-                case "CellBlock":
-                case "ICellBlockGetter":
-                case "ICellBlock":
-                    return obj.Cells.Records;
                 case "Worldspace":
                 case "IWorldspaceGetter":
                 case "IWorldspace":
@@ -5937,7 +6045,7 @@ namespace Mutagen.Bethesda.Oblivion.Internals
                 mod: item,
                 modHeader: item.ModHeader.DeepCopy(),
                 modKey: modKey);
-            Stream[] outputStreams = new Stream[56];
+            Stream[] outputStreams = new Stream[55];
             List<Action> toDo = new List<Action>();
             toDo.Add(() => WriteGroupParallel(item.GameSettings, writer.MetaData.MasterReferences!, 0, outputStreams));
             toDo.Add(() => WriteGroupParallel(item.Globals, writer.MetaData.MasterReferences!, 1, outputStreams));
@@ -5983,18 +6091,17 @@ namespace Mutagen.Bethesda.Oblivion.Internals
             toDo.Add(() => WriteGroupParallel(item.Weathers, writer.MetaData.MasterReferences!, 41, outputStreams));
             toDo.Add(() => WriteGroupParallel(item.Climates, writer.MetaData.MasterReferences!, 42, outputStreams));
             toDo.Add(() => WriteGroupParallel(item.Regions, writer.MetaData.MasterReferences!, 43, outputStreams));
-            toDo.Add(() => WriteCellsParallel(item.Cells, writer.MetaData.MasterReferences!, 44, outputStreams));
-            toDo.Add(() => WriteWorldspacesParallel(item.Worldspaces, writer.MetaData.MasterReferences!, 45, outputStreams));
-            toDo.Add(() => WriteDialogTopicsParallel(item.DialogTopics, writer.MetaData.MasterReferences!, 46, outputStreams));
-            toDo.Add(() => WriteGroupParallel(item.Quests, writer.MetaData.MasterReferences!, 47, outputStreams));
-            toDo.Add(() => WriteGroupParallel(item.IdleAnimations, writer.MetaData.MasterReferences!, 48, outputStreams));
-            toDo.Add(() => WriteGroupParallel(item.AIPackages, writer.MetaData.MasterReferences!, 49, outputStreams));
-            toDo.Add(() => WriteGroupParallel(item.CombatStyles, writer.MetaData.MasterReferences!, 50, outputStreams));
-            toDo.Add(() => WriteGroupParallel(item.LoadScreens, writer.MetaData.MasterReferences!, 51, outputStreams));
-            toDo.Add(() => WriteGroupParallel(item.LeveledSpells, writer.MetaData.MasterReferences!, 52, outputStreams));
-            toDo.Add(() => WriteGroupParallel(item.AnimatedObjects, writer.MetaData.MasterReferences!, 53, outputStreams));
-            toDo.Add(() => WriteGroupParallel(item.Waters, writer.MetaData.MasterReferences!, 54, outputStreams));
-            toDo.Add(() => WriteGroupParallel(item.EffectShaders, writer.MetaData.MasterReferences!, 55, outputStreams));
+            toDo.Add(() => WriteWorldspacesParallel(item.Worldspaces, writer.MetaData.MasterReferences!, 44, outputStreams));
+            toDo.Add(() => WriteDialogTopicsParallel(item.DialogTopics, writer.MetaData.MasterReferences!, 45, outputStreams));
+            toDo.Add(() => WriteGroupParallel(item.Quests, writer.MetaData.MasterReferences!, 46, outputStreams));
+            toDo.Add(() => WriteGroupParallel(item.IdleAnimations, writer.MetaData.MasterReferences!, 47, outputStreams));
+            toDo.Add(() => WriteGroupParallel(item.AIPackages, writer.MetaData.MasterReferences!, 48, outputStreams));
+            toDo.Add(() => WriteGroupParallel(item.CombatStyles, writer.MetaData.MasterReferences!, 49, outputStreams));
+            toDo.Add(() => WriteGroupParallel(item.LoadScreens, writer.MetaData.MasterReferences!, 50, outputStreams));
+            toDo.Add(() => WriteGroupParallel(item.LeveledSpells, writer.MetaData.MasterReferences!, 51, outputStreams));
+            toDo.Add(() => WriteGroupParallel(item.AnimatedObjects, writer.MetaData.MasterReferences!, 52, outputStreams));
+            toDo.Add(() => WriteGroupParallel(item.Waters, writer.MetaData.MasterReferences!, 53, outputStreams));
+            toDo.Add(() => WriteGroupParallel(item.EffectShaders, writer.MetaData.MasterReferences!, 54, outputStreams));
             Parallel.Invoke(toDo.ToArray());
             UtilityTranslation.CompileStreamsInto(
                 outputStreams.NotNull(),
@@ -6350,10 +6457,6 @@ namespace Mutagen.Bethesda.Oblivion.Internals
                     yield return item;
                 }
             }
-            foreach (var item in obj.Cells.LinkFormKeys)
-            {
-                yield return item;
-            }
             if (obj.Worldspaces is ILinkedFormKeyContainerGetter WorldspaceslinkCont)
             {
                 foreach (var item in WorldspaceslinkCont.LinkFormKeys)
@@ -6610,10 +6713,6 @@ namespace Mutagen.Bethesda.Oblivion.Internals
                 yield return item;
             }
             foreach (var item in obj.Regions.EnumerateMajorRecords())
-            {
-                yield return item;
-            }
-            foreach (var item in obj.Cells.EnumerateMajorRecords())
             {
                 yield return item;
             }
@@ -7085,14 +7184,6 @@ namespace Mutagen.Bethesda.Oblivion.Internals
                         yield return item;
                     }
                     yield break;
-                case "CellBlock":
-                case "ICellBlockGetter":
-                case "ICellBlock":
-                    foreach (var item in obj.Cells.EnumerateMajorRecords(type, throwIfUnknown: throwIfUnknown))
-                    {
-                        yield return item;
-                    }
-                    yield break;
                 case "Worldspace":
                 case "IWorldspaceGetter":
                 case "IWorldspace":
@@ -7192,14 +7283,19 @@ namespace Mutagen.Bethesda.Oblivion.Internals
                         yield return item;
                     }
                     yield break;
+                case "Road":
+                case "IRoadGetter":
+                case "IRoad":
+                case "IRoadInternal":
+                    foreach (var item in obj.Worldspaces.EnumerateMajorRecords(type, throwIfUnknown: throwIfUnknown))
+                    {
+                        yield return item;
+                    }
+                    yield break;
                 case "Cell":
                 case "ICellGetter":
                 case "ICell":
                 case "ICellInternal":
-                    foreach (var item in obj.Cells.EnumerateMajorRecords(type, throwIfUnknown: throwIfUnknown))
-                    {
-                        yield return item;
-                    }
                     foreach (var item in obj.Worldspaces.EnumerateMajorRecords(type, throwIfUnknown: throwIfUnknown))
                     {
                         yield return item;
@@ -7209,10 +7305,6 @@ namespace Mutagen.Bethesda.Oblivion.Internals
                 case "IPathGridGetter":
                 case "IPathGrid":
                 case "IPathGridInternal":
-                    foreach (var item in obj.Cells.EnumerateMajorRecords(type, throwIfUnknown: throwIfUnknown))
-                    {
-                        yield return item;
-                    }
                     foreach (var item in obj.Worldspaces.EnumerateMajorRecords(type, throwIfUnknown: throwIfUnknown))
                     {
                         yield return item;
@@ -7222,10 +7314,6 @@ namespace Mutagen.Bethesda.Oblivion.Internals
                 case "ILandscapeGetter":
                 case "ILandscape":
                 case "ILandscapeInternal":
-                    foreach (var item in obj.Cells.EnumerateMajorRecords(type, throwIfUnknown: throwIfUnknown))
-                    {
-                        yield return item;
-                    }
                     foreach (var item in obj.Worldspaces.EnumerateMajorRecords(type, throwIfUnknown: throwIfUnknown))
                     {
                         yield return item;
@@ -7235,10 +7323,6 @@ namespace Mutagen.Bethesda.Oblivion.Internals
                 case "IPlacedCreatureGetter":
                 case "IPlacedCreature":
                 case "IPlacedCreatureInternal":
-                    foreach (var item in obj.Cells.EnumerateMajorRecords(type, throwIfUnknown: throwIfUnknown))
-                    {
-                        yield return item;
-                    }
                     foreach (var item in obj.Worldspaces.EnumerateMajorRecords(type, throwIfUnknown: throwIfUnknown))
                     {
                         yield return item;
@@ -7248,10 +7332,6 @@ namespace Mutagen.Bethesda.Oblivion.Internals
                 case "IPlacedNpcGetter":
                 case "IPlacedNpc":
                 case "IPlacedNpcInternal":
-                    foreach (var item in obj.Cells.EnumerateMajorRecords(type, throwIfUnknown: throwIfUnknown))
-                    {
-                        yield return item;
-                    }
                     foreach (var item in obj.Worldspaces.EnumerateMajorRecords(type, throwIfUnknown: throwIfUnknown))
                     {
                         yield return item;
@@ -7261,19 +7341,6 @@ namespace Mutagen.Bethesda.Oblivion.Internals
                 case "IPlacedObjectGetter":
                 case "IPlacedObject":
                 case "IPlacedObjectInternal":
-                    foreach (var item in obj.Cells.EnumerateMajorRecords(type, throwIfUnknown: throwIfUnknown))
-                    {
-                        yield return item;
-                    }
-                    foreach (var item in obj.Worldspaces.EnumerateMajorRecords(type, throwIfUnknown: throwIfUnknown))
-                    {
-                        yield return item;
-                    }
-                    yield break;
-                case "Road":
-                case "IRoadGetter":
-                case "IRoad":
-                case "IRoadInternal":
                     foreach (var item in obj.Worldspaces.EnumerateMajorRecords(type, throwIfUnknown: throwIfUnknown))
                     {
                         yield return item;
@@ -7316,10 +7383,6 @@ namespace Mutagen.Bethesda.Oblivion.Internals
                 case "IPlaced":
                 {
                     if (!OblivionMod_Registration.SetterType.IsAssignableFrom(obj.GetType())) yield break;
-                    foreach (var item in obj.Cells.EnumerateMajorRecords(type, throwIfUnknown: throwIfUnknown))
-                    {
-                        yield return item;
-                    }
                     foreach (var item in obj.Worldspaces.EnumerateMajorRecords(type, throwIfUnknown: throwIfUnknown))
                     {
                         yield return item;
@@ -7328,10 +7391,6 @@ namespace Mutagen.Bethesda.Oblivion.Internals
                 }
                 case "IPlacedGetter":
                 {
-                    foreach (var item in obj.Cells.EnumerateMajorRecords(type, throwIfUnknown: throwIfUnknown))
-                    {
-                        yield return item;
-                    }
                     foreach (var item in obj.Worldspaces.EnumerateMajorRecords(type, throwIfUnknown: throwIfUnknown))
                     {
                         yield return item;
@@ -8267,23 +8326,15 @@ namespace Mutagen.Bethesda.Oblivion.Internals
             }
             if ((copyMask?.GetShouldTranslate((int)OblivionMod_FieldIndex.Cells) ?? true))
             {
-                errorMask?.PushIndex((int)OblivionMod_FieldIndex.Cells);
-                try
-                {
-                    item.Cells.DeepCopyIn(
-                        rhs: rhs.Cells,
-                        errorMask: errorMask,
-                        copyMask: copyMask?.GetSubCrystal((int)OblivionMod_FieldIndex.Cells));
-                }
-                catch (Exception ex)
-                when (errorMask != null)
-                {
-                    errorMask.ReportException(ex);
-                }
-                finally
-                {
-                    errorMask?.PopIndex();
-                }
+                item.Cells.SetTo(
+                    rhs.Cells
+                        .Select((r) =>
+                        {
+                            var value = (Cell)r.Value.DeepCopy(
+                                copyMask: default(TranslationCrystal),
+                                errorMask: errorMask);
+                            return new KeyValuePair<P2Int, Cell>(r.Key, value);
+                        }));
             }
             if ((copyMask?.GetShouldTranslate((int)OblivionMod_FieldIndex.Worldspaces) ?? true))
             {
@@ -8639,7 +8690,6 @@ namespace Mutagen.Bethesda.Oblivion
         public bool Weathers;
         public bool Climates;
         public bool Regions;
-        public bool Cells;
         public bool Worldspaces;
         public bool DialogTopics;
         public bool Quests;
@@ -8700,7 +8750,6 @@ namespace Mutagen.Bethesda.Oblivion
             Weathers = defaultValue;
             Climates = defaultValue;
             Regions = defaultValue;
-            Cells = defaultValue;
             Worldspaces = defaultValue;
             DialogTopics = defaultValue;
             Quests = defaultValue;
@@ -8728,6 +8777,19 @@ namespace Mutagen.Bethesda.Oblivion.Internals
     public partial class OblivionModBinaryWriteTranslation
     {
         public readonly static OblivionModBinaryWriteTranslation Instance = new OblivionModBinaryWriteTranslation();
+
+        static partial void WriteBinaryCellsCustom(
+            MutagenWriter writer,
+            IOblivionModGetter item);
+
+        public static void WriteBinaryCells(
+            MutagenWriter writer,
+            IOblivionModGetter item)
+        {
+            WriteBinaryCellsCustom(
+                writer: writer,
+                item: item);
+        }
 
         public static void WriteRecordTypes(
             IOblivionModGetter item,
@@ -9219,17 +9281,9 @@ namespace Mutagen.Bethesda.Oblivion.Internals
                         recordTypeConverter: recordTypeConverter);
                 }
             }
-            if (importMask?.Cells ?? true)
-            {
-                var CellsItem = item.Cells;
-                if (CellsItem.Records.Count > 0)
-                {
-                    ((ListGroupBinaryWriteTranslation)((IBinaryItem)CellsItem).BinaryWriteTranslator).Write<ICellBlockGetter>(
-                        item: CellsItem,
-                        writer: writer,
-                        recordTypeConverter: recordTypeConverter);
-                }
-            }
+            OblivionModBinaryWriteTranslation.WriteBinaryCells(
+                writer: writer,
+                item: item);
             if (importMask?.Worldspaces ?? true)
             {
                 var WorldspacesItem = item.Worldspaces;
@@ -10035,16 +10089,9 @@ namespace Mutagen.Bethesda.Oblivion.Internals
                 }
                 case RecordTypeInts.CELL:
                 {
-                    if (importMask?.Cells ?? true)
-                    {
-                        item.Cells.CopyInFromBinary(
-                            frame: frame,
-                            recordTypeConverter: null);
-                    }
-                    else
-                    {
-                        frame.Position += contentLength;
-                    }
+                    OblivionModBinaryCreateTranslation.FillBinaryCellsCustom(
+                        frame: frame.SpawnWithLength(frame.MetaData.Constants.SubConstants.HeaderLength + contentLength),
+                        item: item);
                     return (int)OblivionMod_FieldIndex.Cells;
                 }
                 case RecordTypeInts.WRLD:
@@ -10206,6 +10253,10 @@ namespace Mutagen.Bethesda.Oblivion.Internals
                     return default(int?);
             }
         }
+
+        static partial void FillBinaryCellsCustom(
+            MutagenFrame frame,
+            IOblivionMod item);
 
     }
 
@@ -10564,11 +10615,6 @@ namespace Mutagen.Bethesda.Oblivion.Internals
         private RangeInt64? _RegionsLocation;
         private IGroupGetter<IRegionGetter>? _Regions => _RegionsLocation.HasValue ? GroupBinaryOverlay<IRegionGetter>.GroupFactory(new OverlayStream(BinaryOverlay.LockExtractMemory(_data, _RegionsLocation!.Value.Min, _RegionsLocation!.Value.Max), _package), _package) : default;
         public IGroupGetter<IRegionGetter> Regions => _Regions ?? new Group<Region>(this);
-        #endregion
-        #region Cells
-        private RangeInt64? _CellsLocation;
-        private IListGroupGetter<ICellBlockGetter>? _Cells => _CellsLocation.HasValue ? ListGroupBinaryOverlay<ICellBlockGetter>.ListGroupFactory(new OverlayStream(BinaryOverlay.LockExtractMemory(_data, _CellsLocation!.Value.Min, _CellsLocation!.Value.Max), _package), _package) : default;
-        public IListGroupGetter<ICellBlockGetter> Cells => _Cells ?? new ListGroup<CellBlock>();
         #endregion
         #region Worldspaces
         private RangeInt64? _WorldspacesLocation;
@@ -10936,7 +10982,10 @@ namespace Mutagen.Bethesda.Oblivion.Internals
                 }
                 case RecordTypeInts.CELL:
                 {
-                    _CellsLocation = new RangeInt64((stream.Position - offset), finalPos);
+                    CellsCustomParse(
+                        stream: stream,
+                        finalPos: finalPos,
+                        offset: offset);
                     return (int)OblivionMod_FieldIndex.Cells;
                 }
                 case RecordTypeInts.WRLD:
