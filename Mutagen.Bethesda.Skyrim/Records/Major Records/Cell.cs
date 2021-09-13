@@ -373,7 +373,7 @@ namespace Mutagen.Bethesda.Skyrim
 
             public static int[] ParseRecordLocations(OverlayStream stream, BinaryOverlayFactoryPackage package)
             {
-                List<int> ret = new List<int>();
+                var ret = new List<int>();
                 var startingPos = stream.Position;
                 while (!stream.Complete)
                 {
@@ -382,7 +382,7 @@ namespace Mutagen.Bethesda.Skyrim
                     ret.Add(stream.Position - startingPos);
                     stream.Position += (int)cellMeta.TotalLength;
                     if (stream.Complete) break;
-                    if (stream.TryGetGroup(out var groupMeta)
+                    while (stream.TryGetGroup(out var groupMeta)
                         && groupMeta.GroupType == (int)GroupTypeEnum.CellChildren)
                     {
                         stream.Position += (int)groupMeta.TotalLength;

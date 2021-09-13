@@ -67,7 +67,7 @@ namespace Mutagen.Bethesda.Skyrim
                             var subType = HeaderTranslation.GetNextSubrecordType(frame.Reader, out var subLen);
                             switch (subType.TypeInt)
                             {
-                                case 0x4C4C4543: // "CELL":
+                                case RecordTypeInts.CELL:
                                     if (LoquiBinaryTranslation<Cell>.Instance.Parse(subFrame, out var topCell))
                                     {
                                         obj.TopCell = topCell;
@@ -77,7 +77,7 @@ namespace Mutagen.Bethesda.Skyrim
                                         obj.TopCell = default;
                                     }
                                     break;
-                                case 0x50555247: // "GRUP":
+                                case RecordTypeInts.GRUP:
                                     obj.SubCells.SetTo(
                                         ListBinaryTranslation<WorldspaceBlock>.Instance.Parse(
                                             reader: frame,
@@ -172,19 +172,29 @@ namespace Mutagen.Bethesda.Skyrim
                         var varMeta = stream.GetVariableHeader();
                         switch (varMeta.RecordTypeInt)
                         {
-                            case 0x4C4C4543: // "CELL":
+                            case RecordTypeInts.CELL:
                                 this._TopCellLocation = checked((int)stream.Position);
                                 stream.Position += checked((int)varMeta.TotalLength);
-                                if (!stream.Complete)
+                                while (!stream.Complete)
                                 {
                                     var subCellGroup = stream.GetGroup();
                                     if (subCellGroup.IsGroup && subCellGroup.GroupType == (int)GroupTypeEnum.CellChildren)
                                     {
                                         stream.Position += checked((int)subCellGroup.TotalLength);
                                     }
+                                    else
+                                    {
+                                        break;
+                                    }
                                 }
                                 break;
-                            case 0x50555247: // "GRUP":
+                            case RecordTypeInts.GRUP:
+                                var subgroupHeader = stream.GetGroup();
+                                if (subgroupHeader.GroupType != (int)GroupTypeEnum.ExteriorCellBlock
+                                    && subgroupHeader.GroupType != (int)GroupTypeEnum.ExteriorCellSubBlock)
+                                {
+                                    break;
+                                }
                                 this.SubCells = BinaryOverlayList.FactoryByArray<IWorldspaceBlockGetter>(
                                     stream.RemainingMemory,
                                     _package,
