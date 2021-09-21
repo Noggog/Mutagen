@@ -6391,7 +6391,15 @@ namespace Mutagen.Bethesda.Oblivion.Internals
             yield return obj.Climates;
             yield return obj.Regions;
             yield return obj.Cells;
+            foreach (var item in obj.Cells.EnumerateGroups())
+            {
+                yield return item;
+            }
             yield return obj.Worldspaces;
+            foreach (var item in obj.Worldspaces.EnumerateGroups())
+            {
+                yield return item;
+            }
             yield return obj.DialogTopics;
             yield return obj.Quests;
             yield return obj.IdleAnimations;

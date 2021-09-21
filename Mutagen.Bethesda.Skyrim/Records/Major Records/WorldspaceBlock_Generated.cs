@@ -882,12 +882,6 @@ namespace Mutagen.Bethesda.Skyrim
 
         #region Mutagen
         [DebuggerStepThrough]
-        public static IEnumerable<IGroupCommonGetter> EnumerateGroups(this IWorldspaceBlockGetter obj)
-        {
-            return ((WorldspaceBlockCommon)((IWorldspaceBlockGetter)obj).CommonInstance()!).EnumerateGroups(obj: obj);
-        }
-
-        [DebuggerStepThrough]
         public static IEnumerable<IMajorRecordCommonGetter> EnumerateMajorRecords(this IWorldspaceBlockGetter obj)
         {
             return ((WorldspaceBlockCommon)((IWorldspaceBlockGetter)obj).CommonInstance()!).EnumerateMajorRecords(obj: obj);
@@ -1613,14 +1607,6 @@ namespace Mutagen.Bethesda.Skyrim.Internals
         }
         
         #region Mutagen
-        public IEnumerable<IGroupCommonGetter> EnumerateGroups(IWorldspaceBlockGetter obj)
-        {
-            foreach (var subItem in obj.Items)
-            {
-                yield return subItem;
-            }
-        }
-        
         public IEnumerable<IFormLinkGetter> GetContainedFormLinks(IWorldspaceBlockGetter obj)
         {
             foreach (var item in obj.Items.SelectMany(f => f.ContainedFormLinks))

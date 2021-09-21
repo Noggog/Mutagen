@@ -824,7 +824,7 @@ namespace Mutagen.Bethesda.Generation.Modules.Plugin
             }
 
             if (loquiType.TargetObjectGeneration != null
-                && await loquiType.TargetObjectGeneration.IsMajorRecord()
+                && loquiType.TargetObjectGeneration.GetObjectType() == ObjectType.Group
                 && (targetObj == null || targetObj == loquiType.TargetObjectGeneration))
             {
                 if (checkType)
@@ -838,12 +838,26 @@ namespace Mutagen.Bethesda.Generation.Modules.Plugin
                 }
             }
 
-            if (!await HasGroups(loquiType, includeBaseClass: true))
+            var target = loquiType.TargetObjectGeneration;
+            if (loquiType.TargetObjectGeneration.GetObjectType() == ObjectType.Group)
+            {
+                var groupTarget = loquiType.GetGroupTarget();
+                if (groupTarget != null)
+                {
+                    target = groupTarget;
+                }
+            }
+            
+            if (!await HasGroups(target, includeBaseClass: true, includeSelf: false))
             {
                 return;
             }
 
-            fg.AppendLine($"yield return {loquiAccessor};");
+            fg.AppendLine($"foreach (var item in {loquiAccessor}.EnumerateGroups({(generic == null ? null : "type, throwIfUnknown: false")}))");
+            using (new BraceWrapper(fg))
+            {
+                fg.AppendLine($"yield return item;");
+            }
         }
     }
 }

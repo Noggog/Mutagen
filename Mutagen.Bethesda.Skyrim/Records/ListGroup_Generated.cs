@@ -423,13 +423,6 @@ namespace Mutagen.Bethesda.Skyrim
 
         #region Mutagen
         [DebuggerStepThrough]
-        public static IEnumerable<IGroupCommonGetter> EnumerateGroups<T>(this IListGroupGetter<T> obj)
-            where T : class, ICellBlockGetter, IBinaryItem
-        {
-            return ((ListGroupCommon<T>)((IListGroupGetter<T>)obj).CommonInstance(typeof(T))!).EnumerateGroups(obj: obj);
-        }
-
-        [DebuggerStepThrough]
         public static IEnumerable<IMajorRecordCommonGetter> EnumerateMajorRecords<T>(this IListGroupGetter<T> obj)
             where T : class, ICellBlockGetter, IBinaryItem
         {
@@ -1056,14 +1049,6 @@ namespace Mutagen.Bethesda.Skyrim.Internals
         }
         
         #region Mutagen
-        public IEnumerable<IGroupCommonGetter> EnumerateGroups(IListGroupGetter<T> obj)
-        {
-            foreach (var subItem in obj.Records)
-            {
-                yield return subItem;
-            }
-        }
-        
         public IEnumerable<IFormLinkGetter> GetContainedFormLinks(IListGroupGetter<T> obj)
         {
             foreach (var item in obj.Records.SelectMany(f => f.ContainedFormLinks))

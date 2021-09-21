@@ -6697,12 +6697,6 @@ namespace Mutagen.Bethesda.Skyrim
         }
 
         [DebuggerStepThrough]
-        public static IEnumerable<IGroupCommonGetter> EnumerateGroups(this ISkyrimModGetter obj)
-        {
-            return ((SkyrimModCommon)((ISkyrimModGetter)obj).CommonInstance()!).EnumerateGroups(obj: obj).Catch(e => throw RecordException.Enrich(e, obj.ModKey));
-        }
-
-        [DebuggerStepThrough]
         public static IEnumerable<IMajorRecordCommonGetter> EnumerateMajorRecords(this ISkyrimModGetter obj)
         {
             return ((SkyrimModCommon)((ISkyrimModGetter)obj).CommonInstance()!).EnumerateMajorRecords(obj: obj).Catch(e => throw RecordException.Enrich(e, obj.ModKey));
@@ -11312,123 +11306,6 @@ namespace Mutagen.Bethesda.Skyrim.Internals
             });
             PluginUtilityTranslation.CompileSetGroupLength(subStreams, groupBytes);
             streamDepositArray[targetIndex] = new CompositeReadStream(subStreams, resetPositions: true);
-        }
-        
-        public IEnumerable<IGroupCommonGetter> EnumerateGroups(ISkyrimModGetter obj)
-        {
-            yield return obj.GameSettings;
-            yield return obj.Keywords;
-            yield return obj.LocationReferenceTypes;
-            yield return obj.Actions;
-            yield return obj.TextureSets;
-            yield return obj.Globals;
-            yield return obj.Classes;
-            yield return obj.Factions;
-            yield return obj.HeadParts;
-            yield return obj.Hairs;
-            yield return obj.Eyes;
-            yield return obj.Races;
-            yield return obj.SoundMarkers;
-            yield return obj.AcousticSpaces;
-            yield return obj.MagicEffects;
-            yield return obj.LandscapeTextures;
-            yield return obj.ObjectEffects;
-            yield return obj.Spells;
-            yield return obj.Scrolls;
-            yield return obj.Activators;
-            yield return obj.TalkingActivators;
-            yield return obj.Armors;
-            yield return obj.Books;
-            yield return obj.Containers;
-            yield return obj.Doors;
-            yield return obj.Ingredients;
-            yield return obj.Lights;
-            yield return obj.MiscItems;
-            yield return obj.AlchemicalApparatuses;
-            yield return obj.Statics;
-            yield return obj.MoveableStatics;
-            yield return obj.Grasses;
-            yield return obj.Trees;
-            yield return obj.Florae;
-            yield return obj.Furniture;
-            yield return obj.Weapons;
-            yield return obj.Ammunitions;
-            yield return obj.Npcs;
-            yield return obj.LeveledNpcs;
-            yield return obj.Keys;
-            yield return obj.Ingestibles;
-            yield return obj.IdleMarkers;
-            yield return obj.ConstructibleObjects;
-            yield return obj.Projectiles;
-            yield return obj.Hazards;
-            yield return obj.SoulGems;
-            yield return obj.LeveledItems;
-            yield return obj.Weathers;
-            yield return obj.Climates;
-            yield return obj.ShaderParticleGeometries;
-            yield return obj.VisualEffects;
-            yield return obj.Regions;
-            yield return obj.NavigationMeshInfoMaps;
-            yield return obj.Cells;
-            yield return obj.Worldspaces;
-            yield return obj.DialogTopics;
-            yield return obj.Quests;
-            yield return obj.IdleAnimations;
-            yield return obj.Packages;
-            yield return obj.CombatStyles;
-            yield return obj.LoadScreens;
-            yield return obj.LeveledSpells;
-            yield return obj.AnimatedObjects;
-            yield return obj.Waters;
-            yield return obj.EffectShaders;
-            yield return obj.Explosions;
-            yield return obj.Debris;
-            yield return obj.ImageSpaces;
-            yield return obj.ImageSpaceAdapters;
-            yield return obj.FormLists;
-            yield return obj.Perks;
-            yield return obj.BodyParts;
-            yield return obj.AddonNodes;
-            yield return obj.ActorValueInformation;
-            yield return obj.CameraShots;
-            yield return obj.CameraPaths;
-            yield return obj.VoiceTypes;
-            yield return obj.MaterialTypes;
-            yield return obj.Impacts;
-            yield return obj.ImpactDataSets;
-            yield return obj.ArmorAddons;
-            yield return obj.EncounterZones;
-            yield return obj.Locations;
-            yield return obj.Messages;
-            yield return obj.DefaultObjectManagers;
-            yield return obj.LightingTemplates;
-            yield return obj.MusicTypes;
-            yield return obj.Footsteps;
-            yield return obj.FootstepSets;
-            yield return obj.StoryManagerBranchNodes;
-            yield return obj.StoryManagerQuestNodes;
-            yield return obj.StoryManagerEventNodes;
-            yield return obj.DialogBranches;
-            yield return obj.MusicTracks;
-            yield return obj.DialogViews;
-            yield return obj.WordsOfPower;
-            yield return obj.Shouts;
-            yield return obj.EquipTypes;
-            yield return obj.Relationships;
-            yield return obj.Scenes;
-            yield return obj.AssociationTypes;
-            yield return obj.Outfits;
-            yield return obj.ArtObjects;
-            yield return obj.MaterialObjects;
-            yield return obj.MovementTypes;
-            yield return obj.SoundDescriptors;
-            yield return obj.DualCastData;
-            yield return obj.SoundCategories;
-            yield return obj.SoundOutputModels;
-            yield return obj.CollisionLayers;
-            yield return obj.Colors;
-            yield return obj.ReverbParameters;
-            yield return obj.VolumetricLightings;
         }
         
         public IEnumerable<IFormLinkGetter> GetContainedFormLinks(ISkyrimModGetter obj)

@@ -755,12 +755,6 @@ namespace Mutagen.Bethesda.Plugins.Records
 
         #region Mutagen
         [DebuggerStepThrough]
-        public static IEnumerable<IGroupCommonGetter> EnumerateGroups(this IMajorRecordGetter obj)
-        {
-            return ((MajorRecordCommon)((IMajorRecordGetter)obj).CommonInstance()!).EnumerateGroups(obj: obj);
-        }
-
-        [DebuggerStepThrough]
         public static IEnumerable<IMajorRecordCommonGetter> EnumerateMajorRecords(this IMajorRecordGetter obj)
         {
             return ((MajorRecordCommon)((IMajorRecordGetter)obj).CommonInstance()!).EnumerateMajorRecords(obj: obj);
@@ -1327,11 +1321,6 @@ namespace Mutagen.Bethesda.Plugins.Records.Internals
         }
         
         #region Mutagen
-        public virtual IEnumerable<IGroupCommonGetter> EnumerateGroups(IMajorRecordGetter obj)
-        {
-            yield break;
-        }
-        
         public IEnumerable<IFormLinkGetter> GetContainedFormLinks(IMajorRecordGetter obj)
         {
             yield break;

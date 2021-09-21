@@ -1042,6 +1042,10 @@ namespace Mutagen.Bethesda.Oblivion.Internals
             foreach (var subItem in obj.Records)
             {
                 yield return subItem;
+                foreach (var item in subItem.EnumerateGroups())
+                {
+                    yield return item;
+                }
             }
         }
         

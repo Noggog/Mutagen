@@ -1041,8 +1041,6 @@ namespace Mutagen.Bethesda.Oblivion.Internals
         {
             foreach (var subItem in obj.RecordCache.Items)
             {
-                yield return subItem;
-                yield return subItem;
             }
         }
         
