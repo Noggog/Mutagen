@@ -3736,6 +3736,12 @@ namespace Mutagen.Bethesda.Oblivion
         }
 
         [DebuggerStepThrough]
+        public static IEnumerable<IGroupCommonGetter> EnumerateGroups(this IOblivionModGetter obj)
+        {
+            return ((OblivionModCommon)((IOblivionModGetter)obj).CommonInstance()!).EnumerateGroups(obj: obj).Catch(e => throw RecordException.Enrich(e, obj.ModKey));
+        }
+
+        [DebuggerStepThrough]
         public static IEnumerable<IMajorRecordCommonGetter> EnumerateMajorRecords(this IOblivionModGetter obj)
         {
             return ((OblivionModCommon)((IOblivionModGetter)obj).CommonInstance()!).EnumerateMajorRecords(obj: obj).Catch(e => throw RecordException.Enrich(e, obj.ModKey));
@@ -6336,6 +6342,66 @@ namespace Mutagen.Bethesda.Oblivion.Internals
             });
             PluginUtilityTranslation.CompileSetGroupLength(subStreams, groupBytes);
             streamDepositArray[targetIndex] = new CompositeReadStream(subStreams, resetPositions: true);
+        }
+        
+        public IEnumerable<IGroupCommonGetter> EnumerateGroups(IOblivionModGetter obj)
+        {
+            yield return obj.GameSettings;
+            yield return obj.Globals;
+            yield return obj.Classes;
+            yield return obj.Factions;
+            yield return obj.Hairs;
+            yield return obj.Eyes;
+            yield return obj.Races;
+            yield return obj.Sounds;
+            yield return obj.Skills;
+            yield return obj.MagicEffects;
+            yield return obj.Scripts;
+            yield return obj.LandTextures;
+            yield return obj.Enchantments;
+            yield return obj.Spells;
+            yield return obj.Birthsigns;
+            yield return obj.Activators;
+            yield return obj.AlchemicalApparatus;
+            yield return obj.Armors;
+            yield return obj.Books;
+            yield return obj.Clothes;
+            yield return obj.Containers;
+            yield return obj.Doors;
+            yield return obj.Ingredients;
+            yield return obj.Lights;
+            yield return obj.Miscellaneous;
+            yield return obj.Statics;
+            yield return obj.Grasses;
+            yield return obj.Trees;
+            yield return obj.Flora;
+            yield return obj.Furniture;
+            yield return obj.Weapons;
+            yield return obj.Ammunitions;
+            yield return obj.Npcs;
+            yield return obj.Creatures;
+            yield return obj.LeveledCreatures;
+            yield return obj.SoulGems;
+            yield return obj.Keys;
+            yield return obj.Potions;
+            yield return obj.Subspaces;
+            yield return obj.SigilStones;
+            yield return obj.LeveledItems;
+            yield return obj.Weathers;
+            yield return obj.Climates;
+            yield return obj.Regions;
+            yield return obj.Cells;
+            yield return obj.Worldspaces;
+            yield return obj.DialogTopics;
+            yield return obj.Quests;
+            yield return obj.IdleAnimations;
+            yield return obj.AIPackages;
+            yield return obj.CombatStyles;
+            yield return obj.LoadScreens;
+            yield return obj.LeveledSpells;
+            yield return obj.AnimatedObjects;
+            yield return obj.Waters;
+            yield return obj.EffectShaders;
         }
         
         public IEnumerable<IFormLinkGetter> GetContainedFormLinks(IOblivionModGetter obj)

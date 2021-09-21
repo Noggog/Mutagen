@@ -1519,6 +1519,12 @@ namespace Mutagen.Bethesda.Fallout4
         }
 
         [DebuggerStepThrough]
+        public static IEnumerable<IGroupCommonGetter> EnumerateGroups(this IFallout4ModGetter obj)
+        {
+            return ((Fallout4ModCommon)((IFallout4ModGetter)obj).CommonInstance()!).EnumerateGroups(obj: obj).Catch(e => throw RecordException.Enrich(e, obj.ModKey));
+        }
+
+        [DebuggerStepThrough]
         public static IEnumerable<IMajorRecordCommonGetter> EnumerateMajorRecords(this IFallout4ModGetter obj)
         {
             return ((Fallout4ModCommon)((IFallout4ModGetter)obj).CommonInstance()!).EnumerateMajorRecords(obj: obj).Catch(e => throw RecordException.Enrich(e, obj.ModKey));
@@ -2631,6 +2637,22 @@ namespace Mutagen.Bethesda.Fallout4.Internals
             });
             PluginUtilityTranslation.CompileSetGroupLength(subStreams, groupBytes);
             streamDepositArray[targetIndex] = new CompositeReadStream(subStreams, resetPositions: true);
+        }
+        
+        public IEnumerable<IGroupCommonGetter> EnumerateGroups(IFallout4ModGetter obj)
+        {
+            yield return obj.GameSettings;
+            yield return obj.Keywords;
+            yield return obj.LocationReferenceTypes;
+            yield return obj.Actions;
+            yield return obj.Transforms;
+            yield return obj.Components;
+            yield return obj.TextureSets;
+            yield return obj.Globals;
+            yield return obj.DamageTypes;
+            yield return obj.Classes;
+            yield return obj.Factions;
+            yield return obj.HeadParts;
         }
         
         public IEnumerable<IFormLinkGetter> GetContainedFormLinks(IFallout4ModGetter obj)

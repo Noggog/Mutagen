@@ -576,6 +576,12 @@ namespace Mutagen.Bethesda.Oblivion
 
         #region Mutagen
         [DebuggerStepThrough]
+        public static IEnumerable<IGroupCommonGetter> EnumerateGroups(this IPlaceGetter obj)
+        {
+            return ((PlaceCommon)((IPlaceGetter)obj).CommonInstance()!).EnumerateGroups(obj: obj);
+        }
+
+        [DebuggerStepThrough]
         public static IEnumerable<IMajorRecordCommonGetter> EnumerateMajorRecords(this IPlaceGetter obj)
         {
             return ((PlaceCommon)((IPlaceGetter)obj).CommonInstance()!).EnumerateMajorRecords(obj: obj);
@@ -1220,6 +1226,11 @@ namespace Mutagen.Bethesda.Oblivion.Internals
         }
         
         #region Mutagen
+        public virtual IEnumerable<IGroupCommonGetter> EnumerateGroups(IPlaceGetter obj)
+        {
+            yield break;
+        }
+        
         public IEnumerable<IFormLinkGetter> GetContainedFormLinks(IPlaceGetter obj)
         {
             foreach (var item in base.GetContainedFormLinks(obj))
