@@ -670,6 +670,12 @@ namespace Mutagen.Bethesda.Skyrim
 
         #region Mutagen
         [DebuggerStepThrough]
+        public static IEnumerable<IGroupCommonGetter> EnumerateGroups(this ISkyrimMajorRecordGetter obj)
+        {
+            return ((SkyrimMajorRecordCommon)((ISkyrimMajorRecordGetter)obj).CommonInstance()!).EnumerateGroups(obj: obj);
+        }
+
+        [DebuggerStepThrough]
         public static IEnumerable<IMajorRecordCommonGetter> EnumerateMajorRecords(this ISkyrimMajorRecordGetter obj)
         {
             return ((SkyrimMajorRecordCommon)((ISkyrimMajorRecordGetter)obj).CommonInstance()!).EnumerateMajorRecords(obj: obj);
@@ -1274,6 +1280,11 @@ namespace Mutagen.Bethesda.Skyrim.Internals
         }
         
         #region Mutagen
+        public virtual IEnumerable<IGroupCommonGetter> EnumerateGroups(ISkyrimMajorRecordGetter obj)
+        {
+            yield break;
+        }
+        
         public IEnumerable<IFormLinkGetter> GetContainedFormLinks(ISkyrimMajorRecordGetter obj)
         {
             foreach (var item in base.GetContainedFormLinks(obj))

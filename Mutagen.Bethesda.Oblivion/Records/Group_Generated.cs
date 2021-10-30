@@ -1039,8 +1039,11 @@ namespace Mutagen.Bethesda.Oblivion.Internals
         #region Mutagen
         public IEnumerable<IGroupCommonGetter> EnumerateGroups(IGroupGetter<T> obj)
         {
-            foreach (var subItem in obj.RecordCache.Items)
+            if (typeof(IGroupGetterEnumerable).IsAssignableFrom(typeof(T)))
             {
+                foreach (var subItem in obj.RecordCache.Items)
+                {
+                }
             }
         }
         

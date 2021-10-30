@@ -161,11 +161,15 @@ namespace Mutagen.Bethesda.Generation.Modules.Plugin
                             if (isGroup
                                 || await HasGroups(dictLoqui, includeBaseClass: true))
                             {
-                                fieldFg.AppendLine($"foreach (var subItem in {accessor}.{field.Name}.Items)");
+                                fieldFg.AppendLine($"if (typeof({nameof(IGroupGetterEnumerable)}).IsAssignableFrom(typeof(T)))");
                                 using (new BraceWrapper(fieldFg))
                                 {
-                                    await LoquiTypeHandler(fieldFg, $"subItem", dictLoqui, generic: null,
-                                        checkType: false);
+                                    using (var args = new FunctionWrapper(fieldFg,
+                                        ))
+                                    fieldFg.AppendLine($"foreach (var subItem in {accessor}.{field.Name}.Items)");
+                                    using (new BraceWrapper(fieldFg))
+                                    {
+                                    }
                                 }
                             }
                         }
@@ -704,9 +708,8 @@ namespace Mutagen.Bethesda.Generation.Modules.Plugin
                 }
                 else
                 {
-                    var isMajorRecord = dictLoqui.TargetObjectGeneration != null &&
-                                        await dictLoqui.TargetObjectGeneration.IsMajorRecord();
-                    if (isMajorRecord
+                    var isGroup = dictLoqui.TargetObjectGeneration.GetObjectType() == ObjectType.Group;
+                    if (isGroup
                         || await HasGroups(dictLoqui, includeBaseClass: true))
                     {
                         fieldGen.AppendLine($"foreach (var subItem in {accessor}.{field.Name}.Items)");
