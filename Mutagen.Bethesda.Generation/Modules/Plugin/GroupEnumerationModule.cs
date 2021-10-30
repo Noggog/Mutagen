@@ -726,6 +726,11 @@ namespace Mutagen.Bethesda.Generation.Modules.Plugin
         public static async Task<bool> HasGroupsInTree(ObjectGeneration obj, bool includeBaseClass,
             GenericSpecification? specifications = null)
         {
+            if (obj.Name == "Cell" && obj.ProtoGen.DefaultNamespace.Contains("Skyrim"))
+            {
+                int wer = 23;
+                wer++;
+            }
             if (await HasGroups(obj, includeBaseClass: includeBaseClass, includeSelf: false,
                 specifications: specifications)) return true;
             // If no, check subclasses  
