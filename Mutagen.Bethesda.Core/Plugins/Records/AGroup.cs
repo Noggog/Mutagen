@@ -38,6 +38,8 @@ namespace Mutagen.Bethesda.Plugins.Records
         /// </summary>
         public int Count => this.ProtectedCache.Count;
 
+        IMajorRecordCommonGetter IGroupCommonGetter.this[FormKey key] => this[key];
+
         /// <summary>
         /// The parent Mod object associated with the group.
         /// </summary>
@@ -304,6 +306,7 @@ namespace Mutagen.Bethesda.Plugins.Records
             public IMod SourceMod => throw new NotImplementedException();
             public IEnumerable<TMajor> Records => RecordCache.Items;
             public int Count => this.RecordCache.Count;
+            IMajorRecordCommonGetter IGroupCommonGetter.this[FormKey key] => this[key];
             public IEnumerable<FormKey> FormKeys => _RecordCache!.Keys;
             public IEnumerable<TMajor> Items => _RecordCache!.Items;
 

@@ -12,11 +12,13 @@ namespace Mutagen.Bethesda.Plugins.Records
     /// An interface that Mod objects implement to hook into the common getter systems
     /// </summary>
     public interface IModGetter : 
-        IMajorRecordGetterEnumerable,
+        IMajorRecordGetterEnumerable, 
         IMajorRecordSimpleContextEnumerable,
         IFormLinkContainerGetter, 
         IModKeyed, 
         IEqualsMask
+        // ,
+        // IGroupGetterEnumerable
     {
         /// <summary>
         /// The associated game release
@@ -95,7 +97,12 @@ namespace Mutagen.Bethesda.Plugins.Records
     /// <summary>
     /// An interface that Mod objects implement to hook into the common systems
     /// </summary>
-    public interface IMod : IModGetter, IMajorRecordEnumerable, IFormKeyAllocator, IFormLinkContainer
+    public interface IMod : IModGetter,
+        IMajorRecordEnumerable,
+        IFormKeyAllocator,
+        IFormLinkContainer
+        // ,
+        // IGroupEnumerable
     {
         /// <summary>
         /// List of master references.

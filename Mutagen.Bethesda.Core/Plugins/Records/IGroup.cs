@@ -3,21 +3,12 @@ using System.Collections.Generic;
 
 namespace Mutagen.Bethesda.Plugins.Records
 {
-    /// <summary>
-    /// An interface that Group Record objects implement to hook into the common systems
-    /// </summary>
-    public interface IGroupCommonGetter<out TMajor> : IEnumerable<TMajor>
-        where TMajor : IMajorRecordCommonGetter
+    public interface IGroupCommonGetter
     {
         /// <summary>
         /// Mod object the Group belongs to
         /// </summary>
         IMod SourceMod { get; }
-
-        /// <summary>
-        /// Access to records in an IReadOnlyCache interface
-        /// </summary>
-        IReadOnlyCache<TMajor, FormKey> RecordCache { get; }
 
         /// <summary>
         /// Number of contained records
@@ -30,7 +21,7 @@ namespace Mutagen.Bethesda.Plugins.Records
         /// <param name="key">FormKey to retrieve</param>
         /// <exception cref="KeyNotFoundException">A record with the given FormKey does not exist</exception>
         /// <returns>Record associated with the specified key</returns>
-        TMajor this[FormKey key] { get; }
+        IMajorRecordCommonGetter this[FormKey key] { get; }
 
         /// <summary>
         /// Enumerable containing all the FormKeys present in the group
@@ -43,6 +34,26 @@ namespace Mutagen.Bethesda.Plugins.Records
         /// <param name="key">Key to search for</param>
         /// <returns>True if record found with given key</returns>
         bool ContainsKey(FormKey key);
+    }
+    
+    /// <summary>
+    /// An interface that Group Record objects implement to hook into the common systems
+    /// </summary>
+    public interface IGroupCommonGetter<out TMajor> : IEnumerable<TMajor>, IGroupCommonGetter
+        where TMajor : IMajorRecordCommonGetter
+    {
+        /// <summary>
+        /// Access to records in an IReadOnlyCache interface
+        /// </summary>
+        IReadOnlyCache<TMajor, FormKey> RecordCache { get; }
+
+        /// <summary>
+        /// Gets the record associated with the specified key
+        /// </summary>
+        /// <param name="key">FormKey to retrieve</param>
+        /// <exception cref="KeyNotFoundException">A record with the given FormKey does not exist</exception>
+        /// <returns>Record associated with the specified key</returns>
+        new TMajor this[FormKey key] { get; }
     }
 
     public interface IGroupCommon<TMajor> : IGroupCommonGetter<TMajor>, IClearable

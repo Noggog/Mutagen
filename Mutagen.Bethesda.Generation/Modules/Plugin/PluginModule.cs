@@ -23,6 +23,7 @@ namespace Mutagen.Bethesda.Generation.Modules
             this.SubModules.Add(new RecordTypeConverterModule());
             this.SubModules.Add(new CorrectnessModule());
             this.SubModules.Add(new ModModule());
+            this.SubModules.Add(new GroupEnumerationModule());
             this.SubModules.Add(new ColorTypeModule());
             this.SubModules.Add(new LinkModule());
             this.SubModules.Add(new MajorRecordModule());

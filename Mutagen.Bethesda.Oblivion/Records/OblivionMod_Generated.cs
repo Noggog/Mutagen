@@ -3737,6 +3737,12 @@ namespace Mutagen.Bethesda.Oblivion
         }
 
         [DebuggerStepThrough]
+        public static IEnumerable<IGroupCommonGetter> EnumerateGroups(this IOblivionModGetter obj)
+        {
+            return ((OblivionModCommon)((IOblivionModGetter)obj).CommonInstance()!).EnumerateGroups(obj: obj).Catch(e => throw RecordException.Enrich(e, obj.ModKey));
+        }
+
+        [DebuggerStepThrough]
         public static IEnumerable<IMajorRecordCommonGetter> EnumerateMajorRecords(this IOblivionModGetter obj)
         {
             return ((OblivionModCommon)((IOblivionModGetter)obj).CommonInstance()!).EnumerateMajorRecords(obj: obj).Catch(e => throw RecordException.Enrich(e, obj.ModKey));
@@ -6337,6 +6343,18 @@ namespace Mutagen.Bethesda.Oblivion.Internals
             });
             PluginUtilityTranslation.CompileSetGroupLength(subStreams, groupBytes);
             streamDepositArray[targetIndex] = new CompositeReadStream(subStreams, resetPositions: true);
+        }
+        
+        public IEnumerable<IGroupCommonGetter> EnumerateGroups(IOblivionModGetter obj)
+        {
+            foreach (var item in obj.Cells.EnumerateGroups())
+            {
+                yield return item;
+            }
+            foreach (var item in obj.Worldspaces.EnumerateGroups())
+            {
+                yield return item;
+            }
         }
         
         public IEnumerable<IFormLinkGetter> GetContainedFormLinks(IOblivionModGetter obj)

@@ -415,6 +415,13 @@ namespace Mutagen.Bethesda.Oblivion
 
         #region Mutagen
         [DebuggerStepThrough]
+        public static IEnumerable<IGroupCommonGetter> EnumerateGroups<T>(this IGroupGetter<T> obj)
+            where T : class, IOblivionMajorRecordGetter, IBinaryItem
+        {
+            return ((GroupCommon<T>)((IGroupGetter<T>)obj).CommonInstance(typeof(T))!).EnumerateGroups(obj: obj);
+        }
+
+        [DebuggerStepThrough]
         public static IEnumerable<IMajorRecordCommonGetter> EnumerateMajorRecords<T>(this IGroupGetter<T> obj)
             where T : class, IOblivionMajorRecordGetter, IBinaryItem
         {
@@ -1030,6 +1037,16 @@ namespace Mutagen.Bethesda.Oblivion.Internals
         }
         
         #region Mutagen
+        public IEnumerable<IGroupCommonGetter> EnumerateGroups(IGroupGetter<T> obj)
+        {
+            if (typeof(IGroupGetterEnumerable).IsAssignableFrom(typeof(T)))
+            {
+                foreach (var subItem in obj.RecordCache.Items)
+                {
+                }
+            }
+        }
+        
         public IEnumerable<IFormLinkGetter> GetContainedFormLinks(IGroupGetter<T> obj)
         {
             foreach (var item in obj.RecordCache.Items.WhereCastable<T, IFormLinkContainerGetter>()

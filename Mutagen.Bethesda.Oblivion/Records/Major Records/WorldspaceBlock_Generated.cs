@@ -849,6 +849,12 @@ namespace Mutagen.Bethesda.Oblivion
 
         #region Mutagen
         [DebuggerStepThrough]
+        public static IEnumerable<IGroupCommonGetter> EnumerateGroups(this IWorldspaceBlockGetter obj)
+        {
+            return ((WorldspaceBlockCommon)((IWorldspaceBlockGetter)obj).CommonInstance()!).EnumerateGroups(obj: obj);
+        }
+
+        [DebuggerStepThrough]
         public static IEnumerable<IMajorRecordCommonGetter> EnumerateMajorRecords(this IWorldspaceBlockGetter obj)
         {
             return ((WorldspaceBlockCommon)((IWorldspaceBlockGetter)obj).CommonInstance()!).EnumerateMajorRecords(obj: obj);
@@ -1513,6 +1519,13 @@ namespace Mutagen.Bethesda.Oblivion.Internals
         }
         
         #region Mutagen
+        public IEnumerable<IGroupCommonGetter> EnumerateGroups(IWorldspaceBlockGetter obj)
+        {
+            foreach (var subItem in obj.Items)
+            {
+            }
+        }
+        
         public IEnumerable<IFormLinkGetter> GetContainedFormLinks(IWorldspaceBlockGetter obj)
         {
             foreach (var item in obj.Items.SelectMany(f => f.ContainedFormLinks))
