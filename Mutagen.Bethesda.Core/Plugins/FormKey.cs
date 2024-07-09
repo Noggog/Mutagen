@@ -76,7 +76,7 @@ public readonly struct FormKey : IEquatable<FormKey>, IFormKeyGetter
     /// <returns>Converted FormKey</returns>
     internal static FormKey Factory(IReadOnlySeparatedMasterPackage masterReferences, FormID formId)
     {
-        return FormIDTranslator.GetFormKey(masterReferences, formId);
+        return Factory(masterReferences, formId, maxIsNull: false, reference: true);
     }
 
     /// <summary>
@@ -86,13 +86,13 @@ public readonly struct FormKey : IEquatable<FormKey>, IFormKeyGetter
     /// <param name="formId">FormID to convert</param>
     /// <param name="maxIsNull">Whether a maximum value should be considered null</param>
     /// <returns>Converted FormKey</returns>
-    internal static FormKey Factory(IReadOnlySeparatedMasterPackage masterReferences, FormID formId, bool maxIsNull)
+    internal static FormKey Factory(IReadOnlySeparatedMasterPackage masterReferences, FormID formId, bool maxIsNull, bool reference = true)
     {
         if (maxIsNull && formId.Raw == uint.MaxValue)
         {
             return FormKey.None;
         }
-        return Factory(masterReferences, formId);
+        return FormIDTranslator.GetFormKey(masterReferences, formId, reference: reference);
     }
 
     private static bool IsDelim(char c) => c is ':' or '_';

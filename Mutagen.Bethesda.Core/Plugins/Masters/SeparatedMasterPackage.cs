@@ -13,7 +13,7 @@ public interface IReadOnlySeparatedMasterPackage
     ModKey CurrentMod { get; }
     IReadOnlyMasterReferenceCollection Raw { get; }
     bool TryLookupModKey(ModKey modKey, out MasterStyle style, out uint index);
-    FormKey GetFormKey(FormID formId);
+    FormKey GetFormKey(FormID formId, bool reference = true);
 }
 
 public class SeparatedMasterPackage : IReadOnlySeparatedMasterPackage
@@ -94,28 +94,9 @@ public class SeparatedMasterPackage : IReadOnlySeparatedMasterPackage
             return false;
         }
 
-        public FormKey GetFormKey(FormID formId)
+        public FormKey GetFormKey(FormID formId, bool reference)
         {
-            var loadOrder = Normal;
-            var modID = formId.FullMasterIndex;
-            
-            if (modID >= loadOrder.Count)
-            {
-                return new FormKey(
-                    CurrentMod,
-                    formId.FullId);
-            }
-
-            var id = formId.FullId;
-            if (modID == 0 && id == 0)
-            {
-                return FormKey.Null;
-            }
-
-            var master = loadOrder[checked((int)modID)];
-            return new FormKey(
-                master,
-                id);
+            return GetNonReferenceFormKey(CurrentMod, Normal, formId);
         }
     }
     
@@ -278,7 +259,7 @@ public class SeparatedMasterPackage : IReadOnlySeparatedMasterPackage
         }
     }
 
-    public FormKey GetFormKey(FormID formId)
+    private FormKey GetReferenceFormKey(FormID formId)
     {
         ExtractFormIdInfo(
             formId,
@@ -303,5 +284,44 @@ public class SeparatedMasterPackage : IReadOnlySeparatedMasterPackage
         return new FormKey(
             master,
             id);
+    }
+    
+    
+    private static FormKey GetNonReferenceFormKey(
+        ModKey currentMod,
+        ILoadOrderGetter<ModKey> loadOrder,
+        FormID formId)
+    {
+        var modID = formId.FullMasterIndex;
+            
+        if (modID >= loadOrder.Count)
+        {
+            return new FormKey(
+                currentMod,
+                formId.FullId);
+        }
+
+        var id = formId.FullId;
+        if (modID == 0 && id == 0)
+        {
+            return FormKey.Null;
+        }
+
+        var master = loadOrder[checked((int)modID)];
+        return new FormKey(
+            master,
+            id);
+    }
+
+    public FormKey GetFormKey(FormID formId, bool reference)
+    {
+        if (!reference)
+        {
+            return GetReferenceFormKey(formId);
+        }
+        else
+        {
+            return GetNonReferenceFormKey(CurrentMod, Full, formId);
+        }
     }
 }

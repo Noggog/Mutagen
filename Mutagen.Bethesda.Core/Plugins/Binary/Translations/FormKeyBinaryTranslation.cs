@@ -17,7 +17,8 @@ public sealed class FormKeyBinaryTranslation
     public FormKey Parse(
         ReadOnlySpan<byte> span,
         IReadOnlySeparatedMasterPackage masterReferences,
-        bool maxIsNone = false)
+        bool maxIsNone = false,
+        bool reference = true)
     {
         var id = BinaryPrimitives.ReadUInt32LittleEndian(span);
         if (maxIsNone && id == uint.MaxValue)
@@ -66,7 +67,8 @@ public sealed class FormKeyBinaryTranslation
     public void Write(
         MutagenWriter writer,
         IFormLinkIdentifier item,
-        bool nullable = false)
+        bool nullable = false,
+        bool reference = true)
     {
         if (item.FormKey == FormKey.None)
         {
@@ -83,7 +85,8 @@ public sealed class FormKeyBinaryTranslation
 
         var formID = FormIDTranslator.GetFormID(
             writer.MetaData.SeparatedMasterPackage!, 
-            item);
+            item,
+            reference: reference);
 
         UInt32BinaryTranslation<MutagenFrame, MutagenWriter>.Instance.Write(
             writer: writer,
