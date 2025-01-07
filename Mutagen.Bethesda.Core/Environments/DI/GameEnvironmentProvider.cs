@@ -1,5 +1,6 @@
 ﻿using Mutagen.Bethesda.Assets.DI;
 using Mutagen.Bethesda.Plugins.Cache;
+using Mutagen.Bethesda.Plugins.Masters.DI;
 using Mutagen.Bethesda.Plugins.Order.DI;
 using Mutagen.Bethesda.Plugins.Records;
 
@@ -93,7 +94,6 @@ public sealed class GameEnvironmentProvider<TMod> : IGameEnvironmentProvider<TMo
     public IGameEnvironment<TMod> Construct(LinkCachePreferences? linkCachePrefs = null)        
     {
         var loadOrder = _loadOrderImporter.Import();
-
         return new GameEnvironmentState<TMod>(
             gameRelease: _gameReleaseContext.Release,
             dataFolderPath: _dataDirectoryProvider.Path,

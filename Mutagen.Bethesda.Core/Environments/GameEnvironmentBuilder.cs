@@ -246,7 +246,11 @@ public sealed record GameEnvironmentBuilder<TMod, TModGetter>
                         fs,
                         dataDirectory,
                         cccPath,
-                        new CreationClubRawListingsReader()));
+                        new CreationClubRawListingsReader()),
+                    new TransitiveMasterLocator(
+                        fs,
+                        dataDirectory,
+                        Release));
             },
             ListingsProvider);
 
@@ -528,7 +532,11 @@ public sealed record GameEnvironmentBuilder
                         fs,
                         dataDirectory,
                         cccPath,
-                        new CreationClubRawListingsReader()));
+                        new CreationClubRawListingsReader()),
+                    new TransitiveMasterLocator(
+                        fs,
+                        dataDirectory,
+                        Release));
             },
             ListingsProvider);
 

@@ -10,6 +10,7 @@ using Mutagen.Bethesda.Environments.DI;
 using Mutagen.Bethesda.Installs.DI;
 using Mutagen.Bethesda.Plugins.Exceptions;
 using Mutagen.Bethesda.Plugins.Implicit.DI;
+using Mutagen.Bethesda.Plugins.Masters.DI;
 using Mutagen.Bethesda.Plugins.Order.DI;
 using Mutagen.Bethesda.Plugins.Records.DI;
 
@@ -289,7 +290,11 @@ public static class LoadOrder
                         dataDir,
                         new ImplicitListingModKeyProvider(gameRelease)),
                     pluginListingsProv,
-                    cccListingsProv),
+                    cccListingsProv,
+                    new TransitiveMasterLocator(
+                        fileSystem,
+                        dataDir,
+                        gameRelease)),
                 timings ?? new LiveLoadOrderTimings())
             .Get(out state, scheduler);
     }

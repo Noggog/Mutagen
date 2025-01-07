@@ -390,6 +390,7 @@
             <DefaultPackFolder>content</DefaultPackFolder>
             <BuildAction>Compile</BuildAction>
         </Compile>
+        <Compile Include="Plugins\Order\DI\EnvironmentLoadOrderListingsProvider.cs" />
         <Compile Include="Plugins\Order\DI\HasEnabledMarkersProvider.cs">
             <CodeLanguage>cs</CodeLanguage>
             <DefaultPackFolder>content</DefaultPackFolder>

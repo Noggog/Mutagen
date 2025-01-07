@@ -146,6 +146,7 @@ public interface IGameEnvironment<TModSetter, TModGetter> : IGameEnvironment<TMo
 [Register(typeof(ArchiveAssetProvider), typeof(ArchiveAssetProvider))]
 [Register(typeof(GameAssetProvider), typeof(IAssetProvider))]
 [Register(typeof(PluginListingsPathContext), typeof(IPluginListingsPathContext))]
+[RegisterDecorator(typeof(EnvironmentLoadOrderListingsProvider), typeof(IListingsProvider))]
 [Register(typeof(GameEnvironmentProvider<>))]
 partial class GameEnvironmentProviderContainer<TMod> : IContainer<GameEnvironmentProvider<TMod>>
     where TMod : class, IModGetter
