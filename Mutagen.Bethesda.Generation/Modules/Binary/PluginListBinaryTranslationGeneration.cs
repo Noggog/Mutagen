@@ -1339,6 +1339,13 @@ public class PluginListBinaryTranslationGeneration : BinaryTranslationGeneration
 
                         sb.AppendLine($".CastExtendedListIfAny<{list.SubTypeGeneration.TypeName(getter: false, needsCovariance: true)}>();");
                     }
+                    else 
+                    if (list is ArrayType arr
+                        && arr.FixedSize.HasValue
+                        && list.GetFieldData().HasTrigger)
+                    {
+                        sb.AppendLine($".ToArray();");
+                    }
                     else
                     {
                         sb.AppendLine($".CastExtendedList<{list.SubTypeGeneration.TypeName(getter: false, needsCovariance: true)}>();");

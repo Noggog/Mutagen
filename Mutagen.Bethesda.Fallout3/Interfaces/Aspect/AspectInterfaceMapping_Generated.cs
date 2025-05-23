@@ -94,6 +94,7 @@ namespace Mutagen.Bethesda.Fallout3
                 true,
                 new ILoquiRegistration[]
                 {
+                    Sound_Registration.Instance,
                     TextureSet_Registration.Instance,
                 },
                 new InterfaceMappingTypes(

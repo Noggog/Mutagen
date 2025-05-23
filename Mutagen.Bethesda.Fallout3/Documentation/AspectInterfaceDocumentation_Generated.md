@@ -16,6 +16,7 @@ Functions can then be written that take in `INamed`, allowing any record that ha
 - Hair
 - HeadPart
 ### IObjectBounded
+- Sound
 - TextureSet
 ## Concrete Classes to Interfaces
 ### AlternateTexture
@@ -34,5 +35,7 @@ Functions can then be written that take in `INamed`, allowing any record that ha
 - INamed
 ### MenuIcon
 - IHasIcons
+### Sound
+- IObjectBounded
 ### TextureSet
 - IObjectBounded
