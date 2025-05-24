@@ -15,7 +15,6 @@ public class TransitiveMasterCalculator : ITransitiveMasterCalculator
         IEnumerable<ModKey> starterMasters,
         Func<ModKey, IEnumerable<ModKey>> masterFetcher)
     {
-        // Collect all transitive masters
         var masters = new HashSet<ModKey>();
         var remainingMasters = new Queue<ModKey>(starterMasters);
           
@@ -30,7 +29,7 @@ public class TransitiveMasterCalculator : ITransitiveMasterCalculator
             {
                 var masterKey = parent;
 
-                if (masterKey != self && !masters.Add(parent))
+                if (masterKey != self && masters.Add(parent))
                 {
                     remainingMasters.Enqueue(parent);
                 }
