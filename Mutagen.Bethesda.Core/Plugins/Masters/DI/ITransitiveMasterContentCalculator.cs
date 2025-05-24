@@ -1,6 +1,6 @@
 ﻿namespace Mutagen.Bethesda.Plugins.Masters.DI;
 
-public interface ITransitiveMasterCalculator
+public interface ITransitiveMasterContentCalculator
 {
     IReadOnlyCollection<ModKey> GetAllMastersUnordered(
         ModKey self,
@@ -8,7 +8,7 @@ public interface ITransitiveMasterCalculator
         Func<ModKey, IEnumerable<ModKey>> masterFetcher);
 }
 
-public class TransitiveMasterCalculator : ITransitiveMasterCalculator
+public class TransitiveMasterContentCalculator : ITransitiveMasterContentCalculator
 {
     public IReadOnlyCollection<ModKey> GetAllMastersUnordered(
         ModKey self,

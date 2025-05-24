@@ -1861,7 +1861,7 @@ public record BinaryModdedWriteBuilder<TModGetter> : IBinaryModdedWriteBuilder
                     {
                         MastersContentCustomOverride = (mods) =>
                         {
-                            var transitiveCalculator = new TransitiveMasterCalculator();
+                            var transitiveCalculator = new TransitiveMasterContentCalculator();
                             return transitiveCalculator.GetAllMastersUnordered(
                                 mod.ModKey,
                                 mods,
@@ -2591,7 +2591,7 @@ public record BinaryWriteBuilder<TModGetter>
                     {
                         MastersContentCustomOverride = (mods) =>
                         {
-                            var transitiveCalculator = new TransitiveMasterCalculator();
+                            var transitiveCalculator = new TransitiveMasterContentCalculator();
                             return transitiveCalculator.GetAllMastersUnordered(
                                 mod.ModKey,
                                 mods,

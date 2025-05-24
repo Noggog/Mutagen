@@ -2,7 +2,7 @@
 
 namespace Mutagen.Bethesda.Plugins.Masters.DI;
 
-[Register<TransitiveMasterCalculator, ITransitiveMasterCalculator>]
+[Register<TransitiveMasterContentCalculator, ITransitiveMasterContentCalculator>]
 [Register<MasterReferenceReaderFactory, IMasterReferenceReaderFactory>]
 [Register<MasterFlagsLookupCompiler, IMasterFlagsLookupCompiler>]
 [Register<KeyedMasterStyleReader, IKeyedMasterStyleReader>]

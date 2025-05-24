@@ -5,7 +5,7 @@ using Noggog.Testing.Extensions;
 
 namespace Mutagen.Bethesda.UnitTests.Plugins.Masters;
 
-public class TransitiveMasterCalculatorTests
+public class TransitiveMasterContentCalculatorTests
 {
     [Theory, MutagenAutoData]
     public void Typical(
@@ -13,7 +13,7 @@ public class TransitiveMasterCalculatorTests
         ModKey master,
         ModKey transitive,
         ModKey transitive2,
-        TransitiveMasterCalculator sut)
+        TransitiveMasterContentCalculator sut)
     {
         sut.GetAllMastersUnordered(
             self: self,
@@ -43,7 +43,7 @@ public class TransitiveMasterCalculatorTests
         ModKey master,
         ModKey transitive,
         ModKey transitive2,
-        TransitiveMasterCalculator sut)
+        TransitiveMasterContentCalculator sut)
     {
         sut.GetAllMastersUnordered(
             self: self,
