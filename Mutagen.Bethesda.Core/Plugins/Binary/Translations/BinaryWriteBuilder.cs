@@ -1863,8 +1863,9 @@ public record BinaryModdedWriteBuilder<TModGetter> : IBinaryModdedWriteBuilder
                             var locator = new TransitiveMasterLocator(
                                 p._param.FileSystem.GetOrDefault(),
                                 new DataDirectoryInjection(dataFolder),
-                                new GameReleaseInjection(p._gameRelease));
-                            return locator.GetAllMasters(
+                                new GameReleaseInjection(p._gameRelease),
+                                new TransitiveMasterCalculator());
+                            return locator.GetAllMastersUnordered(
                                 mod.ModKey,
                                 mods,
                                 p._knownModLoadOrder);
@@ -2583,8 +2584,9 @@ public record BinaryWriteBuilder<TModGetter>
                             var locator = new TransitiveMasterLocator(
                                 p._param.FileSystem.GetOrDefault(),
                                 new DataDirectoryInjection(dataFolder),
-                                new GameReleaseInjection(p._gameRelease));
-                            return locator.GetAllMasters(
+                                new GameReleaseInjection(p._gameRelease),
+                                new TransitiveMasterCalculator());
+                            return locator.GetAllMastersUnordered(
                                 mod.ModKey,
                                 mods,
                                 p._knownModLoadOrder);

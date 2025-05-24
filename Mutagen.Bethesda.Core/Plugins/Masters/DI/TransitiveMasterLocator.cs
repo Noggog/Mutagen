@@ -9,14 +9,14 @@ namespace Mutagen.Bethesda.Plugins.Masters.DI;
 
 public interface ITransitiveMasterLocator
 {
-    IReadOnlyCollection<ModKey> GetAllMasters(
-        IReadOnlyCollection<ModKey> mods);
-    IReadOnlyCollection<ModKey> GetAllMasters(
+    IReadOnlyCollection<ModKey> GetAllMastersUnordered(
+        IReadOnlyCollection<ModKey> starterMasters);
+    IReadOnlyCollection<ModKey> GetAllMastersUnordered(
         ModKey self,
-        IEnumerable<ModKey> mods);
-    IReadOnlyCollection<ModKey> GetAllMasters(
+        IEnumerable<ModKey> starterMasters);
+    IReadOnlyCollection<ModKey> GetAllMastersUnordered(
         ModKey self,
-        IEnumerable<ModKey> mods,
+        IEnumerable<ModKey> starterMasters,
         IReadOnlyCache<IModListingGetter<IModGetter>, ModKey>? alreadyLocatedMods);
 }
 
@@ -25,73 +25,56 @@ public class TransitiveMasterLocator : ITransitiveMasterLocator
     private readonly IFileSystem _fileSystem;
     private readonly IDataDirectoryProvider _dataDirectoryProvider;
     private readonly IGameReleaseContext _gameReleaseContext;
-    
+    private readonly ITransitiveMasterCalculator _transitiveMasterCalculator;
+
     public TransitiveMasterLocator(
         IFileSystem fileSystem,
         IDataDirectoryProvider dataDirectoryProvider,
-        IGameReleaseContext gameReleaseContext)
+        IGameReleaseContext gameReleaseContext,
+        ITransitiveMasterCalculator transitiveMasterCalculator)
     {
         _fileSystem = fileSystem;
         _dataDirectoryProvider = dataDirectoryProvider;
         _gameReleaseContext = gameReleaseContext;
+        _transitiveMasterCalculator = transitiveMasterCalculator;
     }
     
-    public IReadOnlyCollection<ModKey> GetAllMasters(
-        IReadOnlyCollection<ModKey> mods)
+    public IReadOnlyCollection<ModKey> GetAllMastersUnordered(
+        IReadOnlyCollection<ModKey> starterMasters)
     {
-        return mods
-            .SelectMany(x => GetAllMasters(x, mods, alreadyLocatedMods: null))
+        return starterMasters
+            .SelectMany(x => GetAllMastersUnordered(x, starterMasters, alreadyLocatedMods: null))
             .ToHashSet();
     }
     
-    public IReadOnlyCollection<ModKey> GetAllMasters(
+    public IReadOnlyCollection<ModKey> GetAllMastersUnordered(
         ModKey self,
-        IEnumerable<ModKey> mods)
+        IEnumerable<ModKey> starterMasters)
     {
-        return GetAllMasters(self, mods, alreadyLocatedMods: null);
+        return GetAllMastersUnordered(self, starterMasters, alreadyLocatedMods: null);
     }
     
-    public IReadOnlyCollection<ModKey> GetAllMasters(
+    public IReadOnlyCollection<ModKey> GetAllMastersUnordered(
         ModKey self,
-        IEnumerable<ModKey> mods,
+        IEnumerable<ModKey> starterMasters,
         IReadOnlyCache<IModListingGetter<IModGetter>, ModKey>? alreadyLocatedMods)
     {
-        // Collect all transitive masters
-        var masters = new HashSet<ModKey>();
-        var remainingMasters = new Queue<ModKey>(mods);
-          
-        while (remainingMasters.Count > 0)
-        {
-            var master = remainingMasters.Dequeue();
-            masters.Add(master);
-
-            IEnumerable<ModKey> mastersOfMod;
-            if (alreadyLocatedMods != null 
-                && alreadyLocatedMods.TryGetValue(master, out var locatedMod)
-                && locatedMod.Mod != null)
+        return _transitiveMasterCalculator.GetAllMastersUnordered(
+            self: self,
+            starterMasters: starterMasters,
+            masterFetcher: master =>
             {
-                mastersOfMod = locatedMod.Mod.MasterReferences
-                    .Select(x => x.Master)
-                    .ToArray();
-            }
-            else
-            {
+                if (alreadyLocatedMods != null 
+                    && alreadyLocatedMods.TryGetValue(master, out var locatedMod)
+                    && locatedMod.Mod != null)
+                {
+                    return locatedMod.Mod.MasterReferences
+                        .Select(x => x.Master)
+                        .ToArray();
+                }
                 var modPath = new ModPath(Path.Combine(_dataDirectoryProvider.Path, master.FileName));
                 var header = ModHeaderFrame.FromPath(modPath, _gameReleaseContext.Release, fileSystem: _fileSystem);
-                mastersOfMod = header.Masters(master).Select(x => x.Master).ToArray();
-            }
-            
-            foreach (var parent in mastersOfMod)
-            {
-                var masterKey = parent;
-
-                if (masterKey != self && !masters.Add(parent))
-                {
-                    remainingMasters.Enqueue(parent);
-                }
-            }
-        }
-
-        return masters;
+                return header.Masters(master).Select(x => x.Master).ToArray();
+            });
     }
 }
