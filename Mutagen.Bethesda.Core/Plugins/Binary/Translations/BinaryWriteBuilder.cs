@@ -1,6 +1,7 @@
 using System.IO.Abstractions;
 using Mutagen.Bethesda.Environments.DI;
 using Mutagen.Bethesda.Installs.DI;
+using Mutagen.Bethesda.Plugins.Binary.Headers;
 using Mutagen.Bethesda.Plugins.Binary.Parameters;
 using Mutagen.Bethesda.Plugins.Binary.Streams;
 using Mutagen.Bethesda.Plugins.Masters;
@@ -1860,15 +1861,24 @@ public record BinaryModdedWriteBuilder<TModGetter> : IBinaryModdedWriteBuilder
                     {
                         MastersContentCustomOverride = (mods) =>
                         {
-                            var locator = new TransitiveMasterLocator(
-                                p._param.FileSystem.GetOrDefault(),
-                                new DataDirectoryInjection(dataFolder),
-                                new GameReleaseInjection(p._gameRelease),
-                                new TransitiveMasterCalculator());
-                            return locator.GetAllMastersUnordered(
+                            var transitiveCalculator = new TransitiveMasterCalculator();
+                            return transitiveCalculator.GetAllMastersUnordered(
                                 mod.ModKey,
                                 mods,
-                                p._knownModLoadOrder);
+                                master =>
+                                {
+                                    if (p._knownModLoadOrder != null
+                                        && p._knownModLoadOrder.TryGetValue(master, out var locatedMod)
+                                        && locatedMod.Mod != null)
+                                    {
+                                        return locatedMod.Mod.MasterReferences
+                                            .Select(x => x.Master)
+                                            .ToArray();
+                                    }
+                                    var modPath = new ModPath(Path.Combine(dataFolder, master.FileName));
+                                    var header = ModHeaderFrame.FromPath(modPath, p._gameRelease, fileSystem: p._param.FileSystem);
+                                    return header.Masters(master).Select(x => x.Master).ToArray();
+                                });
                         }
                     };
                 },
@@ -2581,15 +2591,24 @@ public record BinaryWriteBuilder<TModGetter>
                     {
                         MastersContentCustomOverride = (mods) =>
                         {
-                            var locator = new TransitiveMasterLocator(
-                                p._param.FileSystem.GetOrDefault(),
-                                new DataDirectoryInjection(dataFolder),
-                                new GameReleaseInjection(p._gameRelease),
-                                new TransitiveMasterCalculator());
-                            return locator.GetAllMastersUnordered(
+                            var transitiveCalculator = new TransitiveMasterCalculator();
+                            return transitiveCalculator.GetAllMastersUnordered(
                                 mod.ModKey,
                                 mods,
-                                p._knownModLoadOrder);
+                                master =>
+                                {
+                                    if (p._knownModLoadOrder != null
+                                        && p._knownModLoadOrder.TryGetValue(master, out var locatedMod)
+                                        && locatedMod.Mod != null)
+                                    {
+                                        return locatedMod.Mod.MasterReferences
+                                            .Select(x => x.Master)
+                                            .ToArray();
+                                    }
+                                    var modPath = new ModPath(Path.Combine(dataFolder, master.FileName));
+                                    var header = ModHeaderFrame.FromPath(modPath, p._gameRelease, fileSystem: p._param.FileSystem);
+                                    return header.Masters(master).Select(x => x.Master).ToArray();
+                                });
                         }
                     };
                 },
