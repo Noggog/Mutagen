@@ -50,8 +50,6 @@ public static class Implicits
         {
             "AltarESPMain.esp",
             "AltarDeluxe.esp",
-            "AltarGymNavigation.esp",
-            "TamrielLeveledRegion.esp",
         };
         OblivionRE = new ImplicitRegistration(
             GameRelease.Oblivion,
