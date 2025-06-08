@@ -24,6 +24,8 @@ namespace Mutagen.Bethesda.Fallout3
                 true,
                 new ILoquiRegistration[]
                 {
+                    BodyPartData_Registration.Instance,
+                    HeadPartData_Registration.Instance,
                     MenuIcon_Registration.Instance,
                 },
                 new InterfaceMappingTypes(
@@ -34,8 +36,10 @@ namespace Mutagen.Bethesda.Fallout3
                 true,
                 new ILoquiRegistration[]
                 {
+                    BodyPartData_Registration.Instance,
                     Hair_Registration.Instance,
                     HeadPart_Registration.Instance,
+                    HeadPartData_Registration.Instance,
                 },
                 new InterfaceMappingTypes(
                     Setter: typeof(IModeled),
@@ -48,6 +52,7 @@ namespace Mutagen.Bethesda.Fallout3
                     Faction_Registration.Instance,
                     Hair_Registration.Instance,
                     HeadPart_Registration.Instance,
+                    Race_Registration.Instance,
                 },
                 new InterfaceMappingTypes(
                     Setter: typeof(INamed),
@@ -63,6 +68,7 @@ namespace Mutagen.Bethesda.Fallout3
                     Faction_Registration.Instance,
                     Hair_Registration.Instance,
                     HeadPart_Registration.Instance,
+                    Race_Registration.Instance,
                 },
                 new InterfaceMappingTypes(
                     Setter: typeof(INamedRequired),

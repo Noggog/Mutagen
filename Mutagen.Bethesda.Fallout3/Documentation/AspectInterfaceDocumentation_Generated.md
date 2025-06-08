@@ -4,10 +4,14 @@ Aspect Interfaces expose common aspects of records.  For example, `INamed` are i
 Functions can then be written that take in `INamed`, allowing any record that has a name to be passed in.
 ## Interfaces to Concrete Classes
 ### IHasIcons
+- BodyPartData
+- HeadPartData
 - MenuIcon
 ### IModeled
+- BodyPartData
 - Hair
 - HeadPart
+- HeadPartData
 ### INamed
 - AlternateTexture
 - Class
@@ -15,12 +19,16 @@ Functions can then be written that take in `INamed`, allowing any record that ha
 - Faction
 - Hair
 - HeadPart
+- Race
 ### IObjectBounded
 - Sound
 - TextureSet
 ## Concrete Classes to Interfaces
 ### AlternateTexture
 - INamed
+### BodyPartData
+- IHasIcons
+- IModeled
 ### Class
 - INamed
 ### Eyes
@@ -33,8 +41,13 @@ Functions can then be written that take in `INamed`, allowing any record that ha
 ### HeadPart
 - IModeled
 - INamed
+### HeadPartData
+- IHasIcons
+- IModeled
 ### MenuIcon
 - IHasIcons
+### Race
+- INamed
 ### Sound
 - IObjectBounded
 ### TextureSet

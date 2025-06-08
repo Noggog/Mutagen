@@ -11,10 +11,12 @@ using Mutagen.Bethesda.Binary;
 using Mutagen.Bethesda.Fallout3;
 using Mutagen.Bethesda.Fallout3.Internals;
 using Mutagen.Bethesda.Plugins;
+using Mutagen.Bethesda.Plugins.Aspects;
 using Mutagen.Bethesda.Plugins.Binary.Headers;
 using Mutagen.Bethesda.Plugins.Binary.Overlay;
 using Mutagen.Bethesda.Plugins.Binary.Streams;
 using Mutagen.Bethesda.Plugins.Binary.Translations;
+using Mutagen.Bethesda.Plugins.Cache;
 using Mutagen.Bethesda.Plugins.Exceptions;
 using Mutagen.Bethesda.Plugins.Internals;
 using Mutagen.Bethesda.Plugins.Meta;
@@ -53,6 +55,185 @@ namespace Mutagen.Bethesda.Fallout3
         partial void CustomCtor();
         #endregion
 
+        #region Name
+        /// <summary>
+        /// Aspects: INamed, INamedRequired
+        /// </summary>
+        public String? Name { get; set; }
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        String? IRaceGetter.Name => this.Name;
+        #region Aspects
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        string INamedRequiredGetter.Name => this.Name ?? string.Empty;
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        string INamedRequired.Name
+        {
+            get => this.Name ?? string.Empty;
+            set => this.Name = value;
+        }
+        #endregion
+        #endregion
+        #region Description
+        public String? Description { get; set; }
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        String? IRaceGetter.Description => this.Description;
+        #endregion
+        #region Relations
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private ExtendedList<RaceRelation> _Relations = new ExtendedList<RaceRelation>();
+        public ExtendedList<RaceRelation> Relations
+        {
+            get => this._Relations;
+            init => this._Relations = value;
+        }
+        #region Interface Members
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        IReadOnlyList<IRaceRelationGetter> IRaceGetter.Relations => _Relations;
+        #endregion
+
+        #endregion
+        #region SkillBoost0
+        public SkillBoost SkillBoost0 { get; set; } = new SkillBoost();
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        ISkillBoostGetter IRaceGetter.SkillBoost0 => SkillBoost0;
+        #endregion
+        #region SkillBoost1
+        public SkillBoost SkillBoost1 { get; set; } = new SkillBoost();
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        ISkillBoostGetter IRaceGetter.SkillBoost1 => SkillBoost1;
+        #endregion
+        #region SkillBoost2
+        public SkillBoost SkillBoost2 { get; set; } = new SkillBoost();
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        ISkillBoostGetter IRaceGetter.SkillBoost2 => SkillBoost2;
+        #endregion
+        #region SkillBoost3
+        public SkillBoost SkillBoost3 { get; set; } = new SkillBoost();
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        ISkillBoostGetter IRaceGetter.SkillBoost3 => SkillBoost3;
+        #endregion
+        #region SkillBoost4
+        public SkillBoost SkillBoost4 { get; set; } = new SkillBoost();
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        ISkillBoostGetter IRaceGetter.SkillBoost4 => SkillBoost4;
+        #endregion
+        #region SkillBoost5
+        public SkillBoost SkillBoost5 { get; set; } = new SkillBoost();
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        ISkillBoostGetter IRaceGetter.SkillBoost5 => SkillBoost5;
+        #endregion
+        #region SkillBoost6
+        public SkillBoost SkillBoost6 { get; set; } = new SkillBoost();
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        ISkillBoostGetter IRaceGetter.SkillBoost6 => SkillBoost6;
+        #endregion
+        #region Unknown
+        public Int16 Unknown { get; set; } = default(Int16);
+        #endregion
+        #region Height
+        public IGenderedItem<Single> Height { get; set; } = new GenderedItem<Single>(default(Single), default(Single));
+        IGenderedItemGetter<Single> IRaceGetter.Height => this.Height;
+        #endregion
+        #region Weight
+        public IGenderedItem<Single> Weight { get; set; } = new GenderedItem<Single>(default(Single), default(Single));
+        IGenderedItemGetter<Single> IRaceGetter.Weight => this.Weight;
+        #endregion
+        #region Flags
+        public Race.Flag Flags { get; set; } = default(Race.Flag);
+        #endregion
+        #region Older
+        private readonly IFormLinkNullable<IRaceGetter> _Older = new FormLinkNullable<IRaceGetter>();
+        public IFormLinkNullable<IRaceGetter> Older
+        {
+            get => _Older;
+            set => _Older.SetTo(value);
+        }
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        IFormLinkNullableGetter<IRaceGetter> IRaceGetter.Older => this.Older;
+        #endregion
+        #region Younger
+        private readonly IFormLinkNullable<IRaceGetter> _Younger = new FormLinkNullable<IRaceGetter>();
+        public IFormLinkNullable<IRaceGetter> Younger
+        {
+            get => _Younger;
+            set => _Younger.SetTo(value);
+        }
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        IFormLinkNullableGetter<IRaceGetter> IRaceGetter.Younger => this.Younger;
+        #endregion
+        #region Voices
+        public IGenderedItem<IFormLinkGetter<IVoiceTypeGetter>> Voices { get; set; } = new GenderedItem<IFormLinkGetter<IVoiceTypeGetter>>(FormLink<IVoiceTypeGetter>.Null, FormLink<IVoiceTypeGetter>.Null);
+        IGenderedItemGetter<IFormLinkGetter<IVoiceTypeGetter>> IRaceGetter.Voices => this.Voices;
+        #endregion
+        #region DefaultHair
+        public IGenderedItem<IFormLinkGetter<IHairGetter>>? DefaultHair { get; set; }
+        IGenderedItemGetter<IFormLinkGetter<IHairGetter>>? IRaceGetter.DefaultHair => this.DefaultHair;
+        #endregion
+        #region DefaultHairColor
+        public IGenderedItem<Race.HairColor>? DefaultHairColor { get; set; }
+        IGenderedItemGetter<Race.HairColor>? IRaceGetter.DefaultHairColor => this.DefaultHairColor;
+        #endregion
+        #region FaceGenMainClamp
+        public Int32? FaceGenMainClamp { get; set; }
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        Int32? IRaceGetter.FaceGenMainClamp => this.FaceGenMainClamp;
+        #endregion
+        #region FaceGenFaceClamp
+        public Int32? FaceGenFaceClamp { get; set; }
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        Int32? IRaceGetter.FaceGenFaceClamp => this.FaceGenFaceClamp;
+        #endregion
+        #region RaceStats
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        protected MemorySlice<Byte>? _RaceStats;
+        public MemorySlice<Byte>? RaceStats
+        {
+            get => this._RaceStats;
+            set => this._RaceStats = value;
+        }
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        ReadOnlyMemorySlice<Byte>? IRaceGetter.RaceStats => this.RaceStats;
+        #endregion
+        #region HeadParts
+        public IGenderedItem<ExtendedList<HeadPartData>?> HeadParts { get; set; } = new GenderedItem<ExtendedList<HeadPartData>?>(default, default);
+        IGenderedItemGetter<IReadOnlyList<IHeadPartDataGetter>?> IRaceGetter.HeadParts => this.HeadParts;
+        #endregion
+        #region BodyParts
+        public IGenderedItem<ExtendedList<BodyPartData>?> BodyParts { get; set; } = new GenderedItem<ExtendedList<BodyPartData>?>(default, default);
+        IGenderedItemGetter<IReadOnlyList<IBodyPartDataGetter>?> IRaceGetter.BodyParts => this.BodyParts;
+        #endregion
+        #region Hairs
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private ExtendedList<IFormLinkGetter<IHairGetter>>? _Hairs;
+        public ExtendedList<IFormLinkGetter<IHairGetter>>? Hairs
+        {
+            get => this._Hairs;
+            set => this._Hairs = value;
+        }
+        #region Interface Members
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        IReadOnlyList<IFormLinkGetter<IHairGetter>>? IRaceGetter.Hairs => _Hairs;
+        #endregion
+
+        #endregion
+        #region Eyes
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private ExtendedList<IFormLinkGetter<IEyesGetter>>? _Eyes;
+        public ExtendedList<IFormLinkGetter<IEyesGetter>>? Eyes
+        {
+            get => this._Eyes;
+            set => this._Eyes = value;
+        }
+        #region Interface Members
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        IReadOnlyList<IFormLinkGetter<IEyesGetter>>? IRaceGetter.Eyes => _Eyes;
+        #endregion
+
+        #endregion
+        #region FaceGen
+        public IGenderedItem<FaceGenData?> FaceGen { get; set; } = new GenderedItem<FaceGenData?>(default, default);
+        IGenderedItemGetter<IFaceGenDataGetter?> IRaceGetter.FaceGen => this.FaceGen;
+        #endregion
 
         #region To String
 
@@ -78,6 +259,33 @@ namespace Mutagen.Bethesda.Fallout3
             public Mask(TItem initialValue)
             : base(initialValue)
             {
+                this.Name = initialValue;
+                this.Description = initialValue;
+                this.Relations = new MaskItem<TItem, IEnumerable<MaskItemIndexed<TItem, RaceRelation.Mask<TItem>?>>?>(initialValue, Enumerable.Empty<MaskItemIndexed<TItem, RaceRelation.Mask<TItem>?>>());
+                this.SkillBoost0 = new MaskItem<TItem, SkillBoost.Mask<TItem>?>(initialValue, new SkillBoost.Mask<TItem>(initialValue));
+                this.SkillBoost1 = new MaskItem<TItem, SkillBoost.Mask<TItem>?>(initialValue, new SkillBoost.Mask<TItem>(initialValue));
+                this.SkillBoost2 = new MaskItem<TItem, SkillBoost.Mask<TItem>?>(initialValue, new SkillBoost.Mask<TItem>(initialValue));
+                this.SkillBoost3 = new MaskItem<TItem, SkillBoost.Mask<TItem>?>(initialValue, new SkillBoost.Mask<TItem>(initialValue));
+                this.SkillBoost4 = new MaskItem<TItem, SkillBoost.Mask<TItem>?>(initialValue, new SkillBoost.Mask<TItem>(initialValue));
+                this.SkillBoost5 = new MaskItem<TItem, SkillBoost.Mask<TItem>?>(initialValue, new SkillBoost.Mask<TItem>(initialValue));
+                this.SkillBoost6 = new MaskItem<TItem, SkillBoost.Mask<TItem>?>(initialValue, new SkillBoost.Mask<TItem>(initialValue));
+                this.Unknown = initialValue;
+                this.Height = new GenderedItem<TItem>(initialValue, initialValue);
+                this.Weight = new GenderedItem<TItem>(initialValue, initialValue);
+                this.Flags = initialValue;
+                this.Older = initialValue;
+                this.Younger = initialValue;
+                this.Voices = new GenderedItem<TItem>(initialValue, initialValue);
+                this.DefaultHair = new MaskItem<TItem, GenderedItem<TItem>?>(initialValue, default);
+                this.DefaultHairColor = new MaskItem<TItem, GenderedItem<TItem>?>(initialValue, default);
+                this.FaceGenMainClamp = initialValue;
+                this.FaceGenFaceClamp = initialValue;
+                this.RaceStats = initialValue;
+                this.HeadParts = new GenderedItem<TItem>(initialValue, initialValue);
+                this.BodyParts = new GenderedItem<TItem>(initialValue, initialValue);
+                this.Hairs = new MaskItem<TItem, IEnumerable<(int Index, TItem Value)>?>(initialValue, Enumerable.Empty<(int Index, TItem Value)>());
+                this.Eyes = new MaskItem<TItem, IEnumerable<(int Index, TItem Value)>?>(initialValue, Enumerable.Empty<(int Index, TItem Value)>());
+                this.FaceGen = new MaskItem<TItem, GenderedItem<MaskItem<TItem, FaceGenData.Mask<TItem>?>?>?>(initialValue, default);
             }
 
             public Mask(
@@ -87,7 +295,34 @@ namespace Mutagen.Bethesda.Fallout3
                 TItem EditorID,
                 TItem FormVersion,
                 TItem Version2,
-                TItem Fallout3MajorRecordFlags)
+                TItem Fallout3MajorRecordFlags,
+                TItem Name,
+                TItem Description,
+                TItem Relations,
+                TItem SkillBoost0,
+                TItem SkillBoost1,
+                TItem SkillBoost2,
+                TItem SkillBoost3,
+                TItem SkillBoost4,
+                TItem SkillBoost5,
+                TItem SkillBoost6,
+                TItem Unknown,
+                TItem Height,
+                TItem Weight,
+                TItem Flags,
+                TItem Older,
+                TItem Younger,
+                TItem Voices,
+                TItem DefaultHair,
+                TItem DefaultHairColor,
+                TItem FaceGenMainClamp,
+                TItem FaceGenFaceClamp,
+                TItem RaceStats,
+                TItem HeadParts,
+                TItem BodyParts,
+                TItem Hairs,
+                TItem Eyes,
+                TItem FaceGen)
             : base(
                 MajorRecordFlagsRaw: MajorRecordFlagsRaw,
                 FormKey: FormKey,
@@ -97,6 +332,33 @@ namespace Mutagen.Bethesda.Fallout3
                 Version2: Version2,
                 Fallout3MajorRecordFlags: Fallout3MajorRecordFlags)
             {
+                this.Name = Name;
+                this.Description = Description;
+                this.Relations = new MaskItem<TItem, IEnumerable<MaskItemIndexed<TItem, RaceRelation.Mask<TItem>?>>?>(Relations, Enumerable.Empty<MaskItemIndexed<TItem, RaceRelation.Mask<TItem>?>>());
+                this.SkillBoost0 = new MaskItem<TItem, SkillBoost.Mask<TItem>?>(SkillBoost0, new SkillBoost.Mask<TItem>(SkillBoost0));
+                this.SkillBoost1 = new MaskItem<TItem, SkillBoost.Mask<TItem>?>(SkillBoost1, new SkillBoost.Mask<TItem>(SkillBoost1));
+                this.SkillBoost2 = new MaskItem<TItem, SkillBoost.Mask<TItem>?>(SkillBoost2, new SkillBoost.Mask<TItem>(SkillBoost2));
+                this.SkillBoost3 = new MaskItem<TItem, SkillBoost.Mask<TItem>?>(SkillBoost3, new SkillBoost.Mask<TItem>(SkillBoost3));
+                this.SkillBoost4 = new MaskItem<TItem, SkillBoost.Mask<TItem>?>(SkillBoost4, new SkillBoost.Mask<TItem>(SkillBoost4));
+                this.SkillBoost5 = new MaskItem<TItem, SkillBoost.Mask<TItem>?>(SkillBoost5, new SkillBoost.Mask<TItem>(SkillBoost5));
+                this.SkillBoost6 = new MaskItem<TItem, SkillBoost.Mask<TItem>?>(SkillBoost6, new SkillBoost.Mask<TItem>(SkillBoost6));
+                this.Unknown = Unknown;
+                this.Height = new GenderedItem<TItem>(Height, Height);
+                this.Weight = new GenderedItem<TItem>(Weight, Weight);
+                this.Flags = Flags;
+                this.Older = Older;
+                this.Younger = Younger;
+                this.Voices = new GenderedItem<TItem>(Voices, Voices);
+                this.DefaultHair = new MaskItem<TItem, GenderedItem<TItem>?>(DefaultHair, default);
+                this.DefaultHairColor = new MaskItem<TItem, GenderedItem<TItem>?>(DefaultHairColor, default);
+                this.FaceGenMainClamp = FaceGenMainClamp;
+                this.FaceGenFaceClamp = FaceGenFaceClamp;
+                this.RaceStats = RaceStats;
+                this.HeadParts = new GenderedItem<TItem>(HeadParts, HeadParts);
+                this.BodyParts = new GenderedItem<TItem>(BodyParts, BodyParts);
+                this.Hairs = new MaskItem<TItem, IEnumerable<(int Index, TItem Value)>?>(Hairs, Enumerable.Empty<(int Index, TItem Value)>());
+                this.Eyes = new MaskItem<TItem, IEnumerable<(int Index, TItem Value)>?>(Eyes, Enumerable.Empty<(int Index, TItem Value)>());
+                this.FaceGen = new MaskItem<TItem, GenderedItem<MaskItem<TItem, FaceGenData.Mask<TItem>?>?>?>(FaceGen, default);
             }
 
             #pragma warning disable CS8618
@@ -105,6 +367,36 @@ namespace Mutagen.Bethesda.Fallout3
             }
             #pragma warning restore CS8618
 
+            #endregion
+
+            #region Members
+            public TItem Name;
+            public TItem Description;
+            public MaskItem<TItem, IEnumerable<MaskItemIndexed<TItem, RaceRelation.Mask<TItem>?>>?>? Relations;
+            public MaskItem<TItem, SkillBoost.Mask<TItem>?>? SkillBoost0 { get; set; }
+            public MaskItem<TItem, SkillBoost.Mask<TItem>?>? SkillBoost1 { get; set; }
+            public MaskItem<TItem, SkillBoost.Mask<TItem>?>? SkillBoost2 { get; set; }
+            public MaskItem<TItem, SkillBoost.Mask<TItem>?>? SkillBoost3 { get; set; }
+            public MaskItem<TItem, SkillBoost.Mask<TItem>?>? SkillBoost4 { get; set; }
+            public MaskItem<TItem, SkillBoost.Mask<TItem>?>? SkillBoost5 { get; set; }
+            public MaskItem<TItem, SkillBoost.Mask<TItem>?>? SkillBoost6 { get; set; }
+            public TItem Unknown;
+            public GenderedItem<TItem> Height;
+            public GenderedItem<TItem> Weight;
+            public TItem Flags;
+            public TItem Older;
+            public TItem Younger;
+            public GenderedItem<TItem> Voices;
+            public MaskItem<TItem, GenderedItem<TItem>?>? DefaultHair;
+            public MaskItem<TItem, GenderedItem<TItem>?>? DefaultHairColor;
+            public TItem FaceGenMainClamp;
+            public TItem FaceGenFaceClamp;
+            public TItem RaceStats;
+            public GenderedItem<TItem> HeadParts;
+            public GenderedItem<TItem> BodyParts;
+            public MaskItem<TItem, IEnumerable<(int Index, TItem Value)>?>? Hairs;
+            public MaskItem<TItem, IEnumerable<(int Index, TItem Value)>?>? Eyes;
+            public MaskItem<TItem, GenderedItem<MaskItem<TItem, FaceGenData.Mask<TItem>?>?>?>? FaceGen;
             #endregion
 
             #region Equals
@@ -118,11 +410,65 @@ namespace Mutagen.Bethesda.Fallout3
             {
                 if (rhs == null) return false;
                 if (!base.Equals(rhs)) return false;
+                if (!object.Equals(this.Name, rhs.Name)) return false;
+                if (!object.Equals(this.Description, rhs.Description)) return false;
+                if (!object.Equals(this.Relations, rhs.Relations)) return false;
+                if (!object.Equals(this.SkillBoost0, rhs.SkillBoost0)) return false;
+                if (!object.Equals(this.SkillBoost1, rhs.SkillBoost1)) return false;
+                if (!object.Equals(this.SkillBoost2, rhs.SkillBoost2)) return false;
+                if (!object.Equals(this.SkillBoost3, rhs.SkillBoost3)) return false;
+                if (!object.Equals(this.SkillBoost4, rhs.SkillBoost4)) return false;
+                if (!object.Equals(this.SkillBoost5, rhs.SkillBoost5)) return false;
+                if (!object.Equals(this.SkillBoost6, rhs.SkillBoost6)) return false;
+                if (!object.Equals(this.Unknown, rhs.Unknown)) return false;
+                if (!object.Equals(this.Height, rhs.Height)) return false;
+                if (!object.Equals(this.Weight, rhs.Weight)) return false;
+                if (!object.Equals(this.Flags, rhs.Flags)) return false;
+                if (!object.Equals(this.Older, rhs.Older)) return false;
+                if (!object.Equals(this.Younger, rhs.Younger)) return false;
+                if (!object.Equals(this.Voices, rhs.Voices)) return false;
+                if (!object.Equals(this.DefaultHair, rhs.DefaultHair)) return false;
+                if (!object.Equals(this.DefaultHairColor, rhs.DefaultHairColor)) return false;
+                if (!object.Equals(this.FaceGenMainClamp, rhs.FaceGenMainClamp)) return false;
+                if (!object.Equals(this.FaceGenFaceClamp, rhs.FaceGenFaceClamp)) return false;
+                if (!object.Equals(this.RaceStats, rhs.RaceStats)) return false;
+                if (!object.Equals(this.HeadParts, rhs.HeadParts)) return false;
+                if (!object.Equals(this.BodyParts, rhs.BodyParts)) return false;
+                if (!object.Equals(this.Hairs, rhs.Hairs)) return false;
+                if (!object.Equals(this.Eyes, rhs.Eyes)) return false;
+                if (!object.Equals(this.FaceGen, rhs.FaceGen)) return false;
                 return true;
             }
             public override int GetHashCode()
             {
                 var hash = new HashCode();
+                hash.Add(this.Name);
+                hash.Add(this.Description);
+                hash.Add(this.Relations);
+                hash.Add(this.SkillBoost0);
+                hash.Add(this.SkillBoost1);
+                hash.Add(this.SkillBoost2);
+                hash.Add(this.SkillBoost3);
+                hash.Add(this.SkillBoost4);
+                hash.Add(this.SkillBoost5);
+                hash.Add(this.SkillBoost6);
+                hash.Add(this.Unknown);
+                hash.Add(this.Height);
+                hash.Add(this.Weight);
+                hash.Add(this.Flags);
+                hash.Add(this.Older);
+                hash.Add(this.Younger);
+                hash.Add(this.Voices);
+                hash.Add(this.DefaultHair);
+                hash.Add(this.DefaultHairColor);
+                hash.Add(this.FaceGenMainClamp);
+                hash.Add(this.FaceGenFaceClamp);
+                hash.Add(this.RaceStats);
+                hash.Add(this.HeadParts);
+                hash.Add(this.BodyParts);
+                hash.Add(this.Hairs);
+                hash.Add(this.Eyes);
+                hash.Add(this.FaceGen);
                 hash.Add(base.GetHashCode());
                 return hash.ToHashCode();
             }
@@ -133,6 +479,98 @@ namespace Mutagen.Bethesda.Fallout3
             public override bool All(Func<TItem, bool> eval)
             {
                 if (!base.All(eval)) return false;
+                if (!eval(this.Name)) return false;
+                if (!eval(this.Description)) return false;
+                if (this.Relations != null)
+                {
+                    if (!eval(this.Relations.Overall)) return false;
+                    if (this.Relations.Specific != null)
+                    {
+                        foreach (var item in this.Relations.Specific)
+                        {
+                            if (!eval(item.Overall)) return false;
+                            if (item.Specific != null && !item.Specific.All(eval)) return false;
+                        }
+                    }
+                }
+                if (SkillBoost0 != null)
+                {
+                    if (!eval(this.SkillBoost0.Overall)) return false;
+                    if (this.SkillBoost0.Specific != null && !this.SkillBoost0.Specific.All(eval)) return false;
+                }
+                if (SkillBoost1 != null)
+                {
+                    if (!eval(this.SkillBoost1.Overall)) return false;
+                    if (this.SkillBoost1.Specific != null && !this.SkillBoost1.Specific.All(eval)) return false;
+                }
+                if (SkillBoost2 != null)
+                {
+                    if (!eval(this.SkillBoost2.Overall)) return false;
+                    if (this.SkillBoost2.Specific != null && !this.SkillBoost2.Specific.All(eval)) return false;
+                }
+                if (SkillBoost3 != null)
+                {
+                    if (!eval(this.SkillBoost3.Overall)) return false;
+                    if (this.SkillBoost3.Specific != null && !this.SkillBoost3.Specific.All(eval)) return false;
+                }
+                if (SkillBoost4 != null)
+                {
+                    if (!eval(this.SkillBoost4.Overall)) return false;
+                    if (this.SkillBoost4.Specific != null && !this.SkillBoost4.Specific.All(eval)) return false;
+                }
+                if (SkillBoost5 != null)
+                {
+                    if (!eval(this.SkillBoost5.Overall)) return false;
+                    if (this.SkillBoost5.Specific != null && !this.SkillBoost5.Specific.All(eval)) return false;
+                }
+                if (SkillBoost6 != null)
+                {
+                    if (!eval(this.SkillBoost6.Overall)) return false;
+                    if (this.SkillBoost6.Specific != null && !this.SkillBoost6.Specific.All(eval)) return false;
+                }
+                if (!eval(this.Unknown)) return false;
+                if (!eval(this.Height.Male) || !eval(this.Height.Female)) return false;
+                if (!eval(this.Weight.Male) || !eval(this.Weight.Female)) return false;
+                if (!eval(this.Flags)) return false;
+                if (!eval(this.Older)) return false;
+                if (!eval(this.Younger)) return false;
+                if (!eval(this.Voices.Male) || !eval(this.Voices.Female)) return false;
+                if (!GenderedItem.All(
+                    this.DefaultHair,
+                    eval: eval)) return false;
+                if (!GenderedItem.All(
+                    this.DefaultHairColor,
+                    eval: eval)) return false;
+                if (!eval(this.FaceGenMainClamp)) return false;
+                if (!eval(this.FaceGenFaceClamp)) return false;
+                if (!eval(this.RaceStats)) return false;
+                if (!eval(this.HeadParts.Male) || !eval(this.HeadParts.Female)) return false;
+                if (!eval(this.BodyParts.Male) || !eval(this.BodyParts.Female)) return false;
+                if (this.Hairs != null)
+                {
+                    if (!eval(this.Hairs.Overall)) return false;
+                    if (this.Hairs.Specific != null)
+                    {
+                        foreach (var item in this.Hairs.Specific)
+                        {
+                            if (!eval(item.Value)) return false;
+                        }
+                    }
+                }
+                if (this.Eyes != null)
+                {
+                    if (!eval(this.Eyes.Overall)) return false;
+                    if (this.Eyes.Specific != null)
+                    {
+                        foreach (var item in this.Eyes.Specific)
+                        {
+                            if (!eval(item.Value)) return false;
+                        }
+                    }
+                }
+                if (!GenderedItem.AllMask(
+                    this.FaceGen,
+                    eval: eval)) return false;
                 return true;
             }
             #endregion
@@ -141,6 +579,98 @@ namespace Mutagen.Bethesda.Fallout3
             public override bool Any(Func<TItem, bool> eval)
             {
                 if (base.Any(eval)) return true;
+                if (eval(this.Name)) return true;
+                if (eval(this.Description)) return true;
+                if (this.Relations != null)
+                {
+                    if (eval(this.Relations.Overall)) return true;
+                    if (this.Relations.Specific != null)
+                    {
+                        foreach (var item in this.Relations.Specific)
+                        {
+                            if (!eval(item.Overall)) return false;
+                            if (item.Specific != null && !item.Specific.All(eval)) return false;
+                        }
+                    }
+                }
+                if (SkillBoost0 != null)
+                {
+                    if (eval(this.SkillBoost0.Overall)) return true;
+                    if (this.SkillBoost0.Specific != null && this.SkillBoost0.Specific.Any(eval)) return true;
+                }
+                if (SkillBoost1 != null)
+                {
+                    if (eval(this.SkillBoost1.Overall)) return true;
+                    if (this.SkillBoost1.Specific != null && this.SkillBoost1.Specific.Any(eval)) return true;
+                }
+                if (SkillBoost2 != null)
+                {
+                    if (eval(this.SkillBoost2.Overall)) return true;
+                    if (this.SkillBoost2.Specific != null && this.SkillBoost2.Specific.Any(eval)) return true;
+                }
+                if (SkillBoost3 != null)
+                {
+                    if (eval(this.SkillBoost3.Overall)) return true;
+                    if (this.SkillBoost3.Specific != null && this.SkillBoost3.Specific.Any(eval)) return true;
+                }
+                if (SkillBoost4 != null)
+                {
+                    if (eval(this.SkillBoost4.Overall)) return true;
+                    if (this.SkillBoost4.Specific != null && this.SkillBoost4.Specific.Any(eval)) return true;
+                }
+                if (SkillBoost5 != null)
+                {
+                    if (eval(this.SkillBoost5.Overall)) return true;
+                    if (this.SkillBoost5.Specific != null && this.SkillBoost5.Specific.Any(eval)) return true;
+                }
+                if (SkillBoost6 != null)
+                {
+                    if (eval(this.SkillBoost6.Overall)) return true;
+                    if (this.SkillBoost6.Specific != null && this.SkillBoost6.Specific.Any(eval)) return true;
+                }
+                if (eval(this.Unknown)) return true;
+                if (eval(this.Height.Male) || eval(this.Height.Female)) return true;
+                if (eval(this.Weight.Male) || eval(this.Weight.Female)) return true;
+                if (eval(this.Flags)) return true;
+                if (eval(this.Older)) return true;
+                if (eval(this.Younger)) return true;
+                if (eval(this.Voices.Male) || eval(this.Voices.Female)) return true;
+                if (GenderedItem.Any(
+                    this.DefaultHair,
+                    eval: eval)) return true;
+                if (GenderedItem.Any(
+                    this.DefaultHairColor,
+                    eval: eval)) return true;
+                if (eval(this.FaceGenMainClamp)) return true;
+                if (eval(this.FaceGenFaceClamp)) return true;
+                if (eval(this.RaceStats)) return true;
+                if (eval(this.HeadParts.Male) || eval(this.HeadParts.Female)) return true;
+                if (eval(this.BodyParts.Male) || eval(this.BodyParts.Female)) return true;
+                if (this.Hairs != null)
+                {
+                    if (eval(this.Hairs.Overall)) return true;
+                    if (this.Hairs.Specific != null)
+                    {
+                        foreach (var item in this.Hairs.Specific)
+                        {
+                            if (!eval(item.Value)) return false;
+                        }
+                    }
+                }
+                if (this.Eyes != null)
+                {
+                    if (eval(this.Eyes.Overall)) return true;
+                    if (this.Eyes.Specific != null)
+                    {
+                        foreach (var item in this.Eyes.Specific)
+                        {
+                            if (!eval(item.Value)) return false;
+                        }
+                    }
+                }
+                if (GenderedItem.AnyMask(
+                    this.FaceGen,
+                    eval: eval)) return true;
                 return false;
             }
             #endregion
@@ -156,6 +686,90 @@ namespace Mutagen.Bethesda.Fallout3
             protected void Translate_InternalFill<R>(Mask<R> obj, Func<TItem, R> eval)
             {
                 base.Translate_InternalFill(obj, eval);
+                obj.Name = eval(this.Name);
+                obj.Description = eval(this.Description);
+                if (Relations != null)
+                {
+                    obj.Relations = new MaskItem<R, IEnumerable<MaskItemIndexed<R, RaceRelation.Mask<R>?>>?>(eval(this.Relations.Overall), Enumerable.Empty<MaskItemIndexed<R, RaceRelation.Mask<R>?>>());
+                    if (Relations.Specific != null)
+                    {
+                        var l = new List<MaskItemIndexed<R, RaceRelation.Mask<R>?>>();
+                        obj.Relations.Specific = l;
+                        foreach (var item in Relations.Specific)
+                        {
+                            MaskItemIndexed<R, RaceRelation.Mask<R>?>? mask = item == null ? null : new MaskItemIndexed<R, RaceRelation.Mask<R>?>(item.Index, eval(item.Overall), item.Specific?.Translate(eval));
+                            if (mask == null) continue;
+                            l.Add(mask);
+                        }
+                    }
+                }
+                obj.SkillBoost0 = this.SkillBoost0 == null ? null : new MaskItem<R, SkillBoost.Mask<R>?>(eval(this.SkillBoost0.Overall), this.SkillBoost0.Specific?.Translate(eval));
+                obj.SkillBoost1 = this.SkillBoost1 == null ? null : new MaskItem<R, SkillBoost.Mask<R>?>(eval(this.SkillBoost1.Overall), this.SkillBoost1.Specific?.Translate(eval));
+                obj.SkillBoost2 = this.SkillBoost2 == null ? null : new MaskItem<R, SkillBoost.Mask<R>?>(eval(this.SkillBoost2.Overall), this.SkillBoost2.Specific?.Translate(eval));
+                obj.SkillBoost3 = this.SkillBoost3 == null ? null : new MaskItem<R, SkillBoost.Mask<R>?>(eval(this.SkillBoost3.Overall), this.SkillBoost3.Specific?.Translate(eval));
+                obj.SkillBoost4 = this.SkillBoost4 == null ? null : new MaskItem<R, SkillBoost.Mask<R>?>(eval(this.SkillBoost4.Overall), this.SkillBoost4.Specific?.Translate(eval));
+                obj.SkillBoost5 = this.SkillBoost5 == null ? null : new MaskItem<R, SkillBoost.Mask<R>?>(eval(this.SkillBoost5.Overall), this.SkillBoost5.Specific?.Translate(eval));
+                obj.SkillBoost6 = this.SkillBoost6 == null ? null : new MaskItem<R, SkillBoost.Mask<R>?>(eval(this.SkillBoost6.Overall), this.SkillBoost6.Specific?.Translate(eval));
+                obj.Unknown = eval(this.Unknown);
+                obj.Height = new GenderedItem<R>(
+                    eval(this.Height.Male),
+                    eval(this.Height.Female));
+                obj.Weight = new GenderedItem<R>(
+                    eval(this.Weight.Male),
+                    eval(this.Weight.Female));
+                obj.Flags = eval(this.Flags);
+                obj.Older = eval(this.Older);
+                obj.Younger = eval(this.Younger);
+                obj.Voices = new GenderedItem<R>(
+                    eval(this.Voices.Male),
+                    eval(this.Voices.Female));
+                obj.DefaultHair = GenderedItem.TranslateHelper(
+                    this.DefaultHair,
+                    eval);
+                obj.DefaultHairColor = GenderedItem.TranslateHelper(
+                    this.DefaultHairColor,
+                    eval);
+                obj.FaceGenMainClamp = eval(this.FaceGenMainClamp);
+                obj.FaceGenFaceClamp = eval(this.FaceGenFaceClamp);
+                obj.RaceStats = eval(this.RaceStats);
+                obj.HeadParts = new GenderedItem<R>(
+                    eval(this.HeadParts.Male),
+                    eval(this.HeadParts.Female));
+                obj.BodyParts = new GenderedItem<R>(
+                    eval(this.BodyParts.Male),
+                    eval(this.BodyParts.Female));
+                if (Hairs != null)
+                {
+                    obj.Hairs = new MaskItem<R, IEnumerable<(int Index, R Value)>?>(eval(this.Hairs.Overall), Enumerable.Empty<(int Index, R Value)>());
+                    if (Hairs.Specific != null)
+                    {
+                        var l = new List<(int Index, R Item)>();
+                        obj.Hairs.Specific = l;
+                        foreach (var item in Hairs.Specific)
+                        {
+                            R mask = eval(item.Value);
+                            l.Add((item.Index, mask));
+                        }
+                    }
+                }
+                if (Eyes != null)
+                {
+                    obj.Eyes = new MaskItem<R, IEnumerable<(int Index, R Value)>?>(eval(this.Eyes.Overall), Enumerable.Empty<(int Index, R Value)>());
+                    if (Eyes.Specific != null)
+                    {
+                        var l = new List<(int Index, R Item)>();
+                        obj.Eyes.Specific = l;
+                        foreach (var item in Eyes.Specific)
+                        {
+                            R mask = eval(item.Value);
+                            l.Add((item.Index, mask));
+                        }
+                    }
+                }
+                obj.FaceGen = GenderedItem.TranslateHelper(
+                    this.FaceGen,
+                    eval,
+                    (m, e) => m?.Translate(e));
             }
             #endregion
 
@@ -174,6 +788,165 @@ namespace Mutagen.Bethesda.Fallout3
                 sb.AppendLine($"{nameof(Race.Mask<TItem>)} =>");
                 using (sb.Brace())
                 {
+                    if (printMask?.Name ?? true)
+                    {
+                        sb.AppendItem(Name, "Name");
+                    }
+                    if (printMask?.Description ?? true)
+                    {
+                        sb.AppendItem(Description, "Description");
+                    }
+                    if ((printMask?.Relations?.Overall ?? true)
+                        && Relations is {} RelationsItem)
+                    {
+                        sb.AppendLine("Relations =>");
+                        using (sb.Brace())
+                        {
+                            sb.AppendItem(RelationsItem.Overall);
+                            if (RelationsItem.Specific != null)
+                            {
+                                foreach (var subItem in RelationsItem.Specific)
+                                {
+                                    using (sb.Brace())
+                                    {
+                                        subItem?.Print(sb);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if (printMask?.SkillBoost0?.Overall ?? true)
+                    {
+                        SkillBoost0?.Print(sb);
+                    }
+                    if (printMask?.SkillBoost1?.Overall ?? true)
+                    {
+                        SkillBoost1?.Print(sb);
+                    }
+                    if (printMask?.SkillBoost2?.Overall ?? true)
+                    {
+                        SkillBoost2?.Print(sb);
+                    }
+                    if (printMask?.SkillBoost3?.Overall ?? true)
+                    {
+                        SkillBoost3?.Print(sb);
+                    }
+                    if (printMask?.SkillBoost4?.Overall ?? true)
+                    {
+                        SkillBoost4?.Print(sb);
+                    }
+                    if (printMask?.SkillBoost5?.Overall ?? true)
+                    {
+                        SkillBoost5?.Print(sb);
+                    }
+                    if (printMask?.SkillBoost6?.Overall ?? true)
+                    {
+                        SkillBoost6?.Print(sb);
+                    }
+                    if (printMask?.Unknown ?? true)
+                    {
+                        sb.AppendItem(Unknown, "Unknown");
+                    }
+                    if ((true))
+                    {
+                        sb.AppendLine($"Height => {Height}");
+                    }
+                    if ((true))
+                    {
+                        sb.AppendLine($"Weight => {Weight}");
+                    }
+                    if (printMask?.Flags ?? true)
+                    {
+                        sb.AppendItem(Flags, "Flags");
+                    }
+                    if (printMask?.Older ?? true)
+                    {
+                        sb.AppendItem(Older, "Older");
+                    }
+                    if (printMask?.Younger ?? true)
+                    {
+                        sb.AppendItem(Younger, "Younger");
+                    }
+                    if ((true))
+                    {
+                        sb.AppendLine($"Voices => {Voices}");
+                    }
+                    if (DefaultHair != null
+                        && (printMask?.DefaultHair?.Overall ?? true))
+                    {
+                        sb.AppendLine($"DefaultHair => {DefaultHair}");
+                    }
+                    if (DefaultHairColor != null
+                        && (printMask?.DefaultHairColor?.Overall ?? true))
+                    {
+                        sb.AppendLine($"DefaultHairColor => {DefaultHairColor}");
+                    }
+                    if (printMask?.FaceGenMainClamp ?? true)
+                    {
+                        sb.AppendItem(FaceGenMainClamp, "FaceGenMainClamp");
+                    }
+                    if (printMask?.FaceGenFaceClamp ?? true)
+                    {
+                        sb.AppendItem(FaceGenFaceClamp, "FaceGenFaceClamp");
+                    }
+                    if (printMask?.RaceStats ?? true)
+                    {
+                        sb.AppendItem(RaceStats, "RaceStats");
+                    }
+                    if ((true))
+                    {
+                        sb.AppendLine($"HeadParts => {HeadParts}");
+                    }
+                    if ((true))
+                    {
+                        sb.AppendLine($"BodyParts => {BodyParts}");
+                    }
+                    if ((printMask?.Hairs?.Overall ?? true)
+                        && Hairs is {} HairsItem)
+                    {
+                        sb.AppendLine("Hairs =>");
+                        using (sb.Brace())
+                        {
+                            sb.AppendItem(HairsItem.Overall);
+                            if (HairsItem.Specific != null)
+                            {
+                                foreach (var subItem in HairsItem.Specific)
+                                {
+                                    using (sb.Brace())
+                                    {
+                                        {
+                                            sb.AppendItem(subItem);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if ((printMask?.Eyes?.Overall ?? true)
+                        && Eyes is {} EyesItem)
+                    {
+                        sb.AppendLine("Eyes =>");
+                        using (sb.Brace())
+                        {
+                            sb.AppendItem(EyesItem.Overall);
+                            if (EyesItem.Specific != null)
+                            {
+                                foreach (var subItem in EyesItem.Specific)
+                                {
+                                    using (sb.Brace())
+                                    {
+                                        {
+                                            sb.AppendItem(subItem);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if ((true))
+                    {
+                        sb.AppendLine($"FaceGen => {FaceGen}");
+                    }
                 }
             }
             #endregion
@@ -184,12 +957,96 @@ namespace Mutagen.Bethesda.Fallout3
             Fallout3MajorRecord.ErrorMask,
             IErrorMask<ErrorMask>
         {
+            #region Members
+            public Exception? Name;
+            public Exception? Description;
+            public MaskItem<Exception?, IEnumerable<MaskItem<Exception?, RaceRelation.ErrorMask?>>?>? Relations;
+            public MaskItem<Exception?, SkillBoost.ErrorMask?>? SkillBoost0;
+            public MaskItem<Exception?, SkillBoost.ErrorMask?>? SkillBoost1;
+            public MaskItem<Exception?, SkillBoost.ErrorMask?>? SkillBoost2;
+            public MaskItem<Exception?, SkillBoost.ErrorMask?>? SkillBoost3;
+            public MaskItem<Exception?, SkillBoost.ErrorMask?>? SkillBoost4;
+            public MaskItem<Exception?, SkillBoost.ErrorMask?>? SkillBoost5;
+            public MaskItem<Exception?, SkillBoost.ErrorMask?>? SkillBoost6;
+            public Exception? Unknown;
+            public MaskItem<Exception?, GenderedItem<Exception?>?>? Height;
+            public MaskItem<Exception?, GenderedItem<Exception?>?>? Weight;
+            public Exception? Flags;
+            public Exception? Older;
+            public Exception? Younger;
+            public MaskItem<Exception?, GenderedItem<Exception?>?>? Voices;
+            public MaskItem<Exception?, GenderedItem<Exception?>?>? DefaultHair;
+            public MaskItem<Exception?, GenderedItem<Exception?>?>? DefaultHairColor;
+            public Exception? FaceGenMainClamp;
+            public Exception? FaceGenFaceClamp;
+            public Exception? RaceStats;
+            public MaskItem<Exception?, GenderedItem<Exception?>?>? HeadParts;
+            public MaskItem<Exception?, GenderedItem<Exception?>?>? BodyParts;
+            public MaskItem<Exception?, IEnumerable<(int Index, Exception Value)>?>? Hairs;
+            public MaskItem<Exception?, IEnumerable<(int Index, Exception Value)>?>? Eyes;
+            public MaskItem<Exception?, GenderedItem<Exception?>?>? FaceGen;
+            #endregion
+
             #region IErrorMask
             public override object? GetNthMask(int index)
             {
                 Race_FieldIndex enu = (Race_FieldIndex)index;
                 switch (enu)
                 {
+                    case Race_FieldIndex.Name:
+                        return Name;
+                    case Race_FieldIndex.Description:
+                        return Description;
+                    case Race_FieldIndex.Relations:
+                        return Relations;
+                    case Race_FieldIndex.SkillBoost0:
+                        return SkillBoost0;
+                    case Race_FieldIndex.SkillBoost1:
+                        return SkillBoost1;
+                    case Race_FieldIndex.SkillBoost2:
+                        return SkillBoost2;
+                    case Race_FieldIndex.SkillBoost3:
+                        return SkillBoost3;
+                    case Race_FieldIndex.SkillBoost4:
+                        return SkillBoost4;
+                    case Race_FieldIndex.SkillBoost5:
+                        return SkillBoost5;
+                    case Race_FieldIndex.SkillBoost6:
+                        return SkillBoost6;
+                    case Race_FieldIndex.Unknown:
+                        return Unknown;
+                    case Race_FieldIndex.Height:
+                        return Height;
+                    case Race_FieldIndex.Weight:
+                        return Weight;
+                    case Race_FieldIndex.Flags:
+                        return Flags;
+                    case Race_FieldIndex.Older:
+                        return Older;
+                    case Race_FieldIndex.Younger:
+                        return Younger;
+                    case Race_FieldIndex.Voices:
+                        return Voices;
+                    case Race_FieldIndex.DefaultHair:
+                        return DefaultHair;
+                    case Race_FieldIndex.DefaultHairColor:
+                        return DefaultHairColor;
+                    case Race_FieldIndex.FaceGenMainClamp:
+                        return FaceGenMainClamp;
+                    case Race_FieldIndex.FaceGenFaceClamp:
+                        return FaceGenFaceClamp;
+                    case Race_FieldIndex.RaceStats:
+                        return RaceStats;
+                    case Race_FieldIndex.HeadParts:
+                        return HeadParts;
+                    case Race_FieldIndex.BodyParts:
+                        return BodyParts;
+                    case Race_FieldIndex.Hairs:
+                        return Hairs;
+                    case Race_FieldIndex.Eyes:
+                        return Eyes;
+                    case Race_FieldIndex.FaceGen:
+                        return FaceGen;
                     default:
                         return base.GetNthMask(index);
                 }
@@ -200,6 +1057,87 @@ namespace Mutagen.Bethesda.Fallout3
                 Race_FieldIndex enu = (Race_FieldIndex)index;
                 switch (enu)
                 {
+                    case Race_FieldIndex.Name:
+                        this.Name = ex;
+                        break;
+                    case Race_FieldIndex.Description:
+                        this.Description = ex;
+                        break;
+                    case Race_FieldIndex.Relations:
+                        this.Relations = new MaskItem<Exception?, IEnumerable<MaskItem<Exception?, RaceRelation.ErrorMask?>>?>(ex, null);
+                        break;
+                    case Race_FieldIndex.SkillBoost0:
+                        this.SkillBoost0 = new MaskItem<Exception?, SkillBoost.ErrorMask?>(ex, null);
+                        break;
+                    case Race_FieldIndex.SkillBoost1:
+                        this.SkillBoost1 = new MaskItem<Exception?, SkillBoost.ErrorMask?>(ex, null);
+                        break;
+                    case Race_FieldIndex.SkillBoost2:
+                        this.SkillBoost2 = new MaskItem<Exception?, SkillBoost.ErrorMask?>(ex, null);
+                        break;
+                    case Race_FieldIndex.SkillBoost3:
+                        this.SkillBoost3 = new MaskItem<Exception?, SkillBoost.ErrorMask?>(ex, null);
+                        break;
+                    case Race_FieldIndex.SkillBoost4:
+                        this.SkillBoost4 = new MaskItem<Exception?, SkillBoost.ErrorMask?>(ex, null);
+                        break;
+                    case Race_FieldIndex.SkillBoost5:
+                        this.SkillBoost5 = new MaskItem<Exception?, SkillBoost.ErrorMask?>(ex, null);
+                        break;
+                    case Race_FieldIndex.SkillBoost6:
+                        this.SkillBoost6 = new MaskItem<Exception?, SkillBoost.ErrorMask?>(ex, null);
+                        break;
+                    case Race_FieldIndex.Unknown:
+                        this.Unknown = ex;
+                        break;
+                    case Race_FieldIndex.Height:
+                        this.Height = new MaskItem<Exception?, GenderedItem<Exception?>?>(ex, null);
+                        break;
+                    case Race_FieldIndex.Weight:
+                        this.Weight = new MaskItem<Exception?, GenderedItem<Exception?>?>(ex, null);
+                        break;
+                    case Race_FieldIndex.Flags:
+                        this.Flags = ex;
+                        break;
+                    case Race_FieldIndex.Older:
+                        this.Older = ex;
+                        break;
+                    case Race_FieldIndex.Younger:
+                        this.Younger = ex;
+                        break;
+                    case Race_FieldIndex.Voices:
+                        this.Voices = new MaskItem<Exception?, GenderedItem<Exception?>?>(ex, null);
+                        break;
+                    case Race_FieldIndex.DefaultHair:
+                        this.DefaultHair = new MaskItem<Exception?, GenderedItem<Exception?>?>(ex, null);
+                        break;
+                    case Race_FieldIndex.DefaultHairColor:
+                        this.DefaultHairColor = new MaskItem<Exception?, GenderedItem<Exception?>?>(ex, null);
+                        break;
+                    case Race_FieldIndex.FaceGenMainClamp:
+                        this.FaceGenMainClamp = ex;
+                        break;
+                    case Race_FieldIndex.FaceGenFaceClamp:
+                        this.FaceGenFaceClamp = ex;
+                        break;
+                    case Race_FieldIndex.RaceStats:
+                        this.RaceStats = ex;
+                        break;
+                    case Race_FieldIndex.HeadParts:
+                        this.HeadParts = new MaskItem<Exception?, GenderedItem<Exception?>?>(ex, null);
+                        break;
+                    case Race_FieldIndex.BodyParts:
+                        this.BodyParts = new MaskItem<Exception?, GenderedItem<Exception?>?>(ex, null);
+                        break;
+                    case Race_FieldIndex.Hairs:
+                        this.Hairs = new MaskItem<Exception?, IEnumerable<(int Index, Exception Value)>?>(ex, null);
+                        break;
+                    case Race_FieldIndex.Eyes:
+                        this.Eyes = new MaskItem<Exception?, IEnumerable<(int Index, Exception Value)>?>(ex, null);
+                        break;
+                    case Race_FieldIndex.FaceGen:
+                        this.FaceGen = new MaskItem<Exception?, GenderedItem<Exception?>?>(ex, null);
+                        break;
                     default:
                         base.SetNthException(index, ex);
                         break;
@@ -211,6 +1149,87 @@ namespace Mutagen.Bethesda.Fallout3
                 Race_FieldIndex enu = (Race_FieldIndex)index;
                 switch (enu)
                 {
+                    case Race_FieldIndex.Name:
+                        this.Name = (Exception?)obj;
+                        break;
+                    case Race_FieldIndex.Description:
+                        this.Description = (Exception?)obj;
+                        break;
+                    case Race_FieldIndex.Relations:
+                        this.Relations = (MaskItem<Exception?, IEnumerable<MaskItem<Exception?, RaceRelation.ErrorMask?>>?>)obj;
+                        break;
+                    case Race_FieldIndex.SkillBoost0:
+                        this.SkillBoost0 = (MaskItem<Exception?, SkillBoost.ErrorMask?>?)obj;
+                        break;
+                    case Race_FieldIndex.SkillBoost1:
+                        this.SkillBoost1 = (MaskItem<Exception?, SkillBoost.ErrorMask?>?)obj;
+                        break;
+                    case Race_FieldIndex.SkillBoost2:
+                        this.SkillBoost2 = (MaskItem<Exception?, SkillBoost.ErrorMask?>?)obj;
+                        break;
+                    case Race_FieldIndex.SkillBoost3:
+                        this.SkillBoost3 = (MaskItem<Exception?, SkillBoost.ErrorMask?>?)obj;
+                        break;
+                    case Race_FieldIndex.SkillBoost4:
+                        this.SkillBoost4 = (MaskItem<Exception?, SkillBoost.ErrorMask?>?)obj;
+                        break;
+                    case Race_FieldIndex.SkillBoost5:
+                        this.SkillBoost5 = (MaskItem<Exception?, SkillBoost.ErrorMask?>?)obj;
+                        break;
+                    case Race_FieldIndex.SkillBoost6:
+                        this.SkillBoost6 = (MaskItem<Exception?, SkillBoost.ErrorMask?>?)obj;
+                        break;
+                    case Race_FieldIndex.Unknown:
+                        this.Unknown = (Exception?)obj;
+                        break;
+                    case Race_FieldIndex.Height:
+                        this.Height = (MaskItem<Exception?, GenderedItem<Exception?>?>?)obj;
+                        break;
+                    case Race_FieldIndex.Weight:
+                        this.Weight = (MaskItem<Exception?, GenderedItem<Exception?>?>?)obj;
+                        break;
+                    case Race_FieldIndex.Flags:
+                        this.Flags = (Exception?)obj;
+                        break;
+                    case Race_FieldIndex.Older:
+                        this.Older = (Exception?)obj;
+                        break;
+                    case Race_FieldIndex.Younger:
+                        this.Younger = (Exception?)obj;
+                        break;
+                    case Race_FieldIndex.Voices:
+                        this.Voices = (MaskItem<Exception?, GenderedItem<Exception?>?>?)obj;
+                        break;
+                    case Race_FieldIndex.DefaultHair:
+                        this.DefaultHair = (MaskItem<Exception?, GenderedItem<Exception?>?>?)obj;
+                        break;
+                    case Race_FieldIndex.DefaultHairColor:
+                        this.DefaultHairColor = (MaskItem<Exception?, GenderedItem<Exception?>?>?)obj;
+                        break;
+                    case Race_FieldIndex.FaceGenMainClamp:
+                        this.FaceGenMainClamp = (Exception?)obj;
+                        break;
+                    case Race_FieldIndex.FaceGenFaceClamp:
+                        this.FaceGenFaceClamp = (Exception?)obj;
+                        break;
+                    case Race_FieldIndex.RaceStats:
+                        this.RaceStats = (Exception?)obj;
+                        break;
+                    case Race_FieldIndex.HeadParts:
+                        this.HeadParts = (MaskItem<Exception?, GenderedItem<Exception?>?>?)obj;
+                        break;
+                    case Race_FieldIndex.BodyParts:
+                        this.BodyParts = (MaskItem<Exception?, GenderedItem<Exception?>?>?)obj;
+                        break;
+                    case Race_FieldIndex.Hairs:
+                        this.Hairs = (MaskItem<Exception?, IEnumerable<(int Index, Exception Value)>?>)obj;
+                        break;
+                    case Race_FieldIndex.Eyes:
+                        this.Eyes = (MaskItem<Exception?, IEnumerable<(int Index, Exception Value)>?>)obj;
+                        break;
+                    case Race_FieldIndex.FaceGen:
+                        this.FaceGen = (MaskItem<Exception?, GenderedItem<Exception?>?>?)obj;
+                        break;
                     default:
                         base.SetNthMask(index, obj);
                         break;
@@ -220,6 +1239,33 @@ namespace Mutagen.Bethesda.Fallout3
             public override bool IsInError()
             {
                 if (Overall != null) return true;
+                if (Name != null) return true;
+                if (Description != null) return true;
+                if (Relations != null) return true;
+                if (SkillBoost0 != null) return true;
+                if (SkillBoost1 != null) return true;
+                if (SkillBoost2 != null) return true;
+                if (SkillBoost3 != null) return true;
+                if (SkillBoost4 != null) return true;
+                if (SkillBoost5 != null) return true;
+                if (SkillBoost6 != null) return true;
+                if (Unknown != null) return true;
+                if (Height != null) return true;
+                if (Weight != null) return true;
+                if (Flags != null) return true;
+                if (Older != null) return true;
+                if (Younger != null) return true;
+                if (Voices != null) return true;
+                if (DefaultHair != null) return true;
+                if (DefaultHairColor != null) return true;
+                if (FaceGenMainClamp != null) return true;
+                if (FaceGenFaceClamp != null) return true;
+                if (RaceStats != null) return true;
+                if (HeadParts != null) return true;
+                if (BodyParts != null) return true;
+                if (Hairs != null) return true;
+                if (Eyes != null) return true;
+                if (FaceGen != null) return true;
                 return false;
             }
             #endregion
@@ -246,6 +1292,124 @@ namespace Mutagen.Bethesda.Fallout3
             protected override void PrintFillInternal(StructuredStringBuilder sb)
             {
                 base.PrintFillInternal(sb);
+                {
+                    sb.AppendItem(Name, "Name");
+                }
+                {
+                    sb.AppendItem(Description, "Description");
+                }
+                if (Relations is {} RelationsItem)
+                {
+                    sb.AppendLine("Relations =>");
+                    using (sb.Brace())
+                    {
+                        sb.AppendItem(RelationsItem.Overall);
+                        if (RelationsItem.Specific != null)
+                        {
+                            foreach (var subItem in RelationsItem.Specific)
+                            {
+                                using (sb.Brace())
+                                {
+                                    subItem?.Print(sb);
+                                }
+                            }
+                        }
+                    }
+                }
+                SkillBoost0?.Print(sb);
+                SkillBoost1?.Print(sb);
+                SkillBoost2?.Print(sb);
+                SkillBoost3?.Print(sb);
+                SkillBoost4?.Print(sb);
+                SkillBoost5?.Print(sb);
+                SkillBoost6?.Print(sb);
+                {
+                    sb.AppendItem(Unknown, "Unknown");
+                }
+                {
+                    sb.AppendLine($"Height => {Height}");
+                }
+                {
+                    sb.AppendLine($"Weight => {Weight}");
+                }
+                {
+                    sb.AppendItem(Flags, "Flags");
+                }
+                {
+                    sb.AppendItem(Older, "Older");
+                }
+                {
+                    sb.AppendItem(Younger, "Younger");
+                }
+                {
+                    sb.AppendLine($"Voices => {Voices}");
+                }
+                if (DefaultHair != null)
+                {
+                    sb.AppendLine($"DefaultHair => {DefaultHair}");
+                }
+                if (DefaultHairColor != null)
+                {
+                    sb.AppendLine($"DefaultHairColor => {DefaultHairColor}");
+                }
+                {
+                    sb.AppendItem(FaceGenMainClamp, "FaceGenMainClamp");
+                }
+                {
+                    sb.AppendItem(FaceGenFaceClamp, "FaceGenFaceClamp");
+                }
+                {
+                    sb.AppendItem(RaceStats, "RaceStats");
+                }
+                {
+                    sb.AppendLine($"HeadParts => {HeadParts}");
+                }
+                {
+                    sb.AppendLine($"BodyParts => {BodyParts}");
+                }
+                if (Hairs is {} HairsItem)
+                {
+                    sb.AppendLine("Hairs =>");
+                    using (sb.Brace())
+                    {
+                        sb.AppendItem(HairsItem.Overall);
+                        if (HairsItem.Specific != null)
+                        {
+                            foreach (var subItem in HairsItem.Specific)
+                            {
+                                using (sb.Brace())
+                                {
+                                    {
+                                        sb.AppendItem(subItem);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                if (Eyes is {} EyesItem)
+                {
+                    sb.AppendLine("Eyes =>");
+                    using (sb.Brace())
+                    {
+                        sb.AppendItem(EyesItem.Overall);
+                        if (EyesItem.Specific != null)
+                        {
+                            foreach (var subItem in EyesItem.Specific)
+                            {
+                                using (sb.Brace())
+                                {
+                                    {
+                                        sb.AppendItem(subItem);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                {
+                    sb.AppendLine($"FaceGen => {FaceGen}");
+                }
             }
             #endregion
 
@@ -254,6 +1418,33 @@ namespace Mutagen.Bethesda.Fallout3
             {
                 if (rhs == null) return this;
                 var ret = new ErrorMask();
+                ret.Name = this.Name.Combine(rhs.Name);
+                ret.Description = this.Description.Combine(rhs.Description);
+                ret.Relations = new MaskItem<Exception?, IEnumerable<MaskItem<Exception?, RaceRelation.ErrorMask?>>?>(Noggog.ExceptionExt.Combine(this.Relations?.Overall, rhs.Relations?.Overall), Noggog.ExceptionExt.Combine(this.Relations?.Specific, rhs.Relations?.Specific));
+                ret.SkillBoost0 = this.SkillBoost0.Combine(rhs.SkillBoost0, (l, r) => l.Combine(r));
+                ret.SkillBoost1 = this.SkillBoost1.Combine(rhs.SkillBoost1, (l, r) => l.Combine(r));
+                ret.SkillBoost2 = this.SkillBoost2.Combine(rhs.SkillBoost2, (l, r) => l.Combine(r));
+                ret.SkillBoost3 = this.SkillBoost3.Combine(rhs.SkillBoost3, (l, r) => l.Combine(r));
+                ret.SkillBoost4 = this.SkillBoost4.Combine(rhs.SkillBoost4, (l, r) => l.Combine(r));
+                ret.SkillBoost5 = this.SkillBoost5.Combine(rhs.SkillBoost5, (l, r) => l.Combine(r));
+                ret.SkillBoost6 = this.SkillBoost6.Combine(rhs.SkillBoost6, (l, r) => l.Combine(r));
+                ret.Unknown = this.Unknown.Combine(rhs.Unknown);
+                ret.Height = new MaskItem<Exception?, GenderedItem<Exception?>?>(Noggog.ExceptionExt.Combine(this.Height?.Overall, rhs.Height?.Overall), GenderedItem.Combine(this.Height?.Specific, rhs.Height?.Specific));
+                ret.Weight = new MaskItem<Exception?, GenderedItem<Exception?>?>(Noggog.ExceptionExt.Combine(this.Weight?.Overall, rhs.Weight?.Overall), GenderedItem.Combine(this.Weight?.Specific, rhs.Weight?.Specific));
+                ret.Flags = this.Flags.Combine(rhs.Flags);
+                ret.Older = this.Older.Combine(rhs.Older);
+                ret.Younger = this.Younger.Combine(rhs.Younger);
+                ret.Voices = new MaskItem<Exception?, GenderedItem<Exception?>?>(Noggog.ExceptionExt.Combine(this.Voices?.Overall, rhs.Voices?.Overall), GenderedItem.Combine(this.Voices?.Specific, rhs.Voices?.Specific));
+                ret.DefaultHair = new MaskItem<Exception?, GenderedItem<Exception?>?>(Noggog.ExceptionExt.Combine(this.DefaultHair?.Overall, rhs.DefaultHair?.Overall), GenderedItem.Combine(this.DefaultHair?.Specific, rhs.DefaultHair?.Specific));
+                ret.DefaultHairColor = new MaskItem<Exception?, GenderedItem<Exception?>?>(Noggog.ExceptionExt.Combine(this.DefaultHairColor?.Overall, rhs.DefaultHairColor?.Overall), GenderedItem.Combine(this.DefaultHairColor?.Specific, rhs.DefaultHairColor?.Specific));
+                ret.FaceGenMainClamp = this.FaceGenMainClamp.Combine(rhs.FaceGenMainClamp);
+                ret.FaceGenFaceClamp = this.FaceGenFaceClamp.Combine(rhs.FaceGenFaceClamp);
+                ret.RaceStats = this.RaceStats.Combine(rhs.RaceStats);
+                ret.HeadParts = new MaskItem<Exception?, GenderedItem<Exception?>?>(Noggog.ExceptionExt.Combine(this.HeadParts?.Overall, rhs.HeadParts?.Overall), GenderedItem.Combine(this.HeadParts?.Specific, rhs.HeadParts?.Specific));
+                ret.BodyParts = new MaskItem<Exception?, GenderedItem<Exception?>?>(Noggog.ExceptionExt.Combine(this.BodyParts?.Overall, rhs.BodyParts?.Overall), GenderedItem.Combine(this.BodyParts?.Specific, rhs.BodyParts?.Specific));
+                ret.Hairs = new MaskItem<Exception?, IEnumerable<(int Index, Exception Value)>?>(Noggog.ExceptionExt.Combine(this.Hairs?.Overall, rhs.Hairs?.Overall), Noggog.ExceptionExt.Combine(this.Hairs?.Specific, rhs.Hairs?.Specific));
+                ret.Eyes = new MaskItem<Exception?, IEnumerable<(int Index, Exception Value)>?>(Noggog.ExceptionExt.Combine(this.Eyes?.Overall, rhs.Eyes?.Overall), Noggog.ExceptionExt.Combine(this.Eyes?.Specific, rhs.Eyes?.Specific));
+                ret.FaceGen = new MaskItem<Exception?, GenderedItem<Exception?>?>(Noggog.ExceptionExt.Combine(this.FaceGen?.Overall, rhs.FaceGen?.Overall), GenderedItem.Combine(this.FaceGen?.Specific, rhs.FaceGen?.Specific));
                 return ret;
             }
             public static ErrorMask? Combine(ErrorMask? lhs, ErrorMask? rhs)
@@ -275,15 +1466,88 @@ namespace Mutagen.Bethesda.Fallout3
             Fallout3MajorRecord.TranslationMask,
             ITranslationMask
         {
+            #region Members
+            public bool Name;
+            public bool Description;
+            public RaceRelation.TranslationMask? Relations;
+            public SkillBoost.TranslationMask? SkillBoost0;
+            public SkillBoost.TranslationMask? SkillBoost1;
+            public SkillBoost.TranslationMask? SkillBoost2;
+            public SkillBoost.TranslationMask? SkillBoost3;
+            public SkillBoost.TranslationMask? SkillBoost4;
+            public SkillBoost.TranslationMask? SkillBoost5;
+            public SkillBoost.TranslationMask? SkillBoost6;
+            public bool Unknown;
+            public GenderedItem<bool>? Height;
+            public GenderedItem<bool>? Weight;
+            public bool Flags;
+            public bool Older;
+            public bool Younger;
+            public GenderedItem<bool>? Voices;
+            public GenderedItem<bool>? DefaultHair;
+            public GenderedItem<bool>? DefaultHairColor;
+            public bool FaceGenMainClamp;
+            public bool FaceGenFaceClamp;
+            public bool RaceStats;
+            public GenderedItem<bool>? HeadParts;
+            public GenderedItem<bool>? BodyParts;
+            public bool Hairs;
+            public bool Eyes;
+            public GenderedItem<FaceGenData.TranslationMask>? FaceGen;
+            #endregion
+
             #region Ctors
             public TranslationMask(
                 bool defaultOn,
                 bool onOverall = true)
                 : base(defaultOn, onOverall)
             {
+                this.Name = defaultOn;
+                this.Description = defaultOn;
+                this.Unknown = defaultOn;
+                this.Flags = defaultOn;
+                this.Older = defaultOn;
+                this.Younger = defaultOn;
+                this.FaceGenMainClamp = defaultOn;
+                this.FaceGenFaceClamp = defaultOn;
+                this.RaceStats = defaultOn;
+                this.Hairs = defaultOn;
+                this.Eyes = defaultOn;
             }
 
             #endregion
+
+            protected override void GetCrystal(List<(bool On, TranslationCrystal? SubCrystal)> ret)
+            {
+                base.GetCrystal(ret);
+                ret.Add((Name, null));
+                ret.Add((Description, null));
+                ret.Add((Relations == null ? DefaultOn : !Relations.GetCrystal().CopyNothing, Relations?.GetCrystal()));
+                ret.Add((SkillBoost0 != null ? SkillBoost0.OnOverall : DefaultOn, SkillBoost0?.GetCrystal()));
+                ret.Add((SkillBoost1 != null ? SkillBoost1.OnOverall : DefaultOn, SkillBoost1?.GetCrystal()));
+                ret.Add((SkillBoost2 != null ? SkillBoost2.OnOverall : DefaultOn, SkillBoost2?.GetCrystal()));
+                ret.Add((SkillBoost3 != null ? SkillBoost3.OnOverall : DefaultOn, SkillBoost3?.GetCrystal()));
+                ret.Add((SkillBoost4 != null ? SkillBoost4.OnOverall : DefaultOn, SkillBoost4?.GetCrystal()));
+                ret.Add((SkillBoost5 != null ? SkillBoost5.OnOverall : DefaultOn, SkillBoost5?.GetCrystal()));
+                ret.Add((SkillBoost6 != null ? SkillBoost6.OnOverall : DefaultOn, SkillBoost6?.GetCrystal()));
+                ret.Add((Unknown, null));
+                ret.Add((Height != null || DefaultOn, null));
+                ret.Add((Weight != null || DefaultOn, null));
+                ret.Add((Flags, null));
+                ret.Add((Older, null));
+                ret.Add((Younger, null));
+                ret.Add((Voices != null || DefaultOn, null));
+                ret.Add((DefaultHair != null || DefaultOn, null));
+                ret.Add((DefaultHairColor != null || DefaultOn, null));
+                ret.Add((FaceGenMainClamp, null));
+                ret.Add((FaceGenFaceClamp, null));
+                ret.Add((RaceStats, null));
+                ret.Add((HeadParts != null || DefaultOn, null));
+                ret.Add((BodyParts != null || DefaultOn, null));
+                ret.Add((Hairs, null));
+                ret.Add((Eyes, null));
+                ret.Add((FaceGen != null || DefaultOn, null));
+            }
 
             public static implicit operator TranslationMask(bool defaultOn)
             {
@@ -295,6 +1559,8 @@ namespace Mutagen.Bethesda.Fallout3
 
         #region Mutagen
         public static readonly RecordType GrupRecordType = Race_Registration.TriggeringRecordType;
+        public override IEnumerable<IFormLinkGetter> EnumerateFormLinks() => RaceCommon.Instance.EnumerateFormLinks(this);
+        public override void RemapLinks(IReadOnlyDictionary<FormKey, FormKey> mapping) => RaceSetterCommon.Instance.RemapLinks(this, mapping);
         public Race(
             FormKey formKey,
             Fallout3Release gameRelease)
@@ -413,10 +1679,43 @@ namespace Mutagen.Bethesda.Fallout3
     #region Interface
     public partial interface IRace :
         IFallout3MajorRecordInternal,
+        IFormLinkContainer,
         ILoquiObjectSetter<IRaceInternal>,
+        INamed,
+        INamedRequired,
         IRaceGetter,
         IRelatable
     {
+        /// <summary>
+        /// Aspects: INamed, INamedRequired
+        /// </summary>
+        new String? Name { get; set; }
+        new String? Description { get; set; }
+        new ExtendedList<RaceRelation> Relations { get; }
+        new SkillBoost SkillBoost0 { get; set; }
+        new SkillBoost SkillBoost1 { get; set; }
+        new SkillBoost SkillBoost2 { get; set; }
+        new SkillBoost SkillBoost3 { get; set; }
+        new SkillBoost SkillBoost4 { get; set; }
+        new SkillBoost SkillBoost5 { get; set; }
+        new SkillBoost SkillBoost6 { get; set; }
+        new Int16 Unknown { get; set; }
+        new IGenderedItem<Single> Height { get; set; }
+        new IGenderedItem<Single> Weight { get; set; }
+        new Race.Flag Flags { get; set; }
+        new IFormLinkNullable<IRaceGetter> Older { get; set; }
+        new IFormLinkNullable<IRaceGetter> Younger { get; set; }
+        new IGenderedItem<IFormLinkGetter<IVoiceTypeGetter>> Voices { get; set; }
+        new IGenderedItem<IFormLinkGetter<IHairGetter>>? DefaultHair { get; set; }
+        new IGenderedItem<Race.HairColor>? DefaultHairColor { get; set; }
+        new Int32? FaceGenMainClamp { get; set; }
+        new Int32? FaceGenFaceClamp { get; set; }
+        new MemorySlice<Byte>? RaceStats { get; set; }
+        new IGenderedItem<ExtendedList<HeadPartData>?> HeadParts { get; set; }
+        new IGenderedItem<ExtendedList<BodyPartData>?> BodyParts { get; set; }
+        new ExtendedList<IFormLinkGetter<IHairGetter>>? Hairs { get; set; }
+        new ExtendedList<IFormLinkGetter<IEyesGetter>>? Eyes { get; set; }
+        new IGenderedItem<FaceGenData?> FaceGen { get; set; }
     }
 
     public partial interface IRaceInternal :
@@ -424,17 +1723,60 @@ namespace Mutagen.Bethesda.Fallout3
         IRace,
         IRaceGetter
     {
+        new IGenderedItem<Single> Height { get; set; }
+        new IGenderedItem<Single> Weight { get; set; }
+        new IGenderedItem<IFormLinkGetter<IVoiceTypeGetter>> Voices { get; set; }
+        new IGenderedItem<IFormLinkGetter<IHairGetter>>? DefaultHair { get; set; }
+        new IGenderedItem<Race.HairColor>? DefaultHairColor { get; set; }
+        new IGenderedItem<ExtendedList<HeadPartData>?> HeadParts { get; set; }
+        new IGenderedItem<ExtendedList<BodyPartData>?> BodyParts { get; set; }
+        new IGenderedItem<FaceGenData?> FaceGen { get; set; }
     }
 
     [AssociatedRecordTypesAttribute(Mutagen.Bethesda.Fallout3.Internals.RecordTypeInts.RACE)]
     public partial interface IRaceGetter :
         IFallout3MajorRecordGetter,
         IBinaryItem,
+        IFormLinkContainerGetter,
         ILoquiObject<IRaceGetter>,
         IMapsToGetter<IRaceGetter>,
+        INamedGetter,
+        INamedRequiredGetter,
         IRelatableGetter
     {
         static new ILoquiRegistration StaticRegistration => Race_Registration.Instance;
+        #region Name
+        /// <summary>
+        /// Aspects: INamedGetter, INamedRequiredGetter
+        /// </summary>
+        String? Name { get; }
+        #endregion
+        String? Description { get; }
+        IReadOnlyList<IRaceRelationGetter> Relations { get; }
+        ISkillBoostGetter SkillBoost0 { get; }
+        ISkillBoostGetter SkillBoost1 { get; }
+        ISkillBoostGetter SkillBoost2 { get; }
+        ISkillBoostGetter SkillBoost3 { get; }
+        ISkillBoostGetter SkillBoost4 { get; }
+        ISkillBoostGetter SkillBoost5 { get; }
+        ISkillBoostGetter SkillBoost6 { get; }
+        Int16 Unknown { get; }
+        IGenderedItemGetter<Single> Height { get; }
+        IGenderedItemGetter<Single> Weight { get; }
+        Race.Flag Flags { get; }
+        IFormLinkNullableGetter<IRaceGetter> Older { get; }
+        IFormLinkNullableGetter<IRaceGetter> Younger { get; }
+        IGenderedItemGetter<IFormLinkGetter<IVoiceTypeGetter>> Voices { get; }
+        IGenderedItemGetter<IFormLinkGetter<IHairGetter>>? DefaultHair { get; }
+        IGenderedItemGetter<Race.HairColor>? DefaultHairColor { get; }
+        Int32? FaceGenMainClamp { get; }
+        Int32? FaceGenFaceClamp { get; }
+        ReadOnlyMemorySlice<Byte>? RaceStats { get; }
+        IGenderedItemGetter<IReadOnlyList<IHeadPartDataGetter>?> HeadParts { get; }
+        IGenderedItemGetter<IReadOnlyList<IBodyPartDataGetter>?> BodyParts { get; }
+        IReadOnlyList<IFormLinkGetter<IHairGetter>>? Hairs { get; }
+        IReadOnlyList<IFormLinkGetter<IEyesGetter>>? Eyes { get; }
+        IGenderedItemGetter<IFaceGenDataGetter?> FaceGen { get; }
 
     }
 
@@ -611,6 +1953,33 @@ namespace Mutagen.Bethesda.Fallout3
         FormVersion = 4,
         Version2 = 5,
         Fallout3MajorRecordFlags = 6,
+        Name = 7,
+        Description = 8,
+        Relations = 9,
+        SkillBoost0 = 10,
+        SkillBoost1 = 11,
+        SkillBoost2 = 12,
+        SkillBoost3 = 13,
+        SkillBoost4 = 14,
+        SkillBoost5 = 15,
+        SkillBoost6 = 16,
+        Unknown = 17,
+        Height = 18,
+        Weight = 19,
+        Flags = 20,
+        Older = 21,
+        Younger = 22,
+        Voices = 23,
+        DefaultHair = 24,
+        DefaultHairColor = 25,
+        FaceGenMainClamp = 26,
+        FaceGenFaceClamp = 27,
+        RaceStats = 28,
+        HeadParts = 29,
+        BodyParts = 30,
+        Hairs = 31,
+        Eyes = 32,
+        FaceGen = 33,
     }
     #endregion
 
@@ -621,9 +1990,9 @@ namespace Mutagen.Bethesda.Fallout3
 
         public static ProtocolKey ProtocolKey => ProtocolDefinition_Fallout3.ProtocolKey;
 
-        public const ushort AdditionalFieldCount = 0;
+        public const ushort AdditionalFieldCount = 27;
 
-        public const ushort FieldCount = 7;
+        public const ushort FieldCount = 34;
 
         public static readonly Type MaskType = typeof(Race.Mask<>);
 
@@ -653,8 +2022,31 @@ namespace Mutagen.Bethesda.Fallout3
         public static RecordTriggerSpecs TriggerSpecs => _recordSpecs.Value;
         private static readonly Lazy<RecordTriggerSpecs> _recordSpecs = new Lazy<RecordTriggerSpecs>(() =>
         {
-            var all = RecordCollection.Factory(RecordTypes.RACE);
-            return new RecordTriggerSpecs(allRecordTypes: all);
+            var triggers = RecordCollection.Factory(RecordTypes.RACE);
+            var all = RecordCollection.Factory(
+                RecordTypes.RACE,
+                RecordTypes.FULL,
+                RecordTypes.DESC,
+                RecordTypes.XNAM,
+                RecordTypes.DATA,
+                RecordTypes.ONAM,
+                RecordTypes.YNAM,
+                RecordTypes.NAM2,
+                RecordTypes.VTCK,
+                RecordTypes.DNAM,
+                RecordTypes.CNAM,
+                RecordTypes.PNAM,
+                RecordTypes.UNAM,
+                RecordTypes.ATTR,
+                RecordTypes.NAM0,
+                RecordTypes.MNAM,
+                RecordTypes.FNAM,
+                RecordTypes.NAM1,
+                RecordTypes.HNAM,
+                RecordTypes.ENAM);
+            return new RecordTriggerSpecs(
+                allRecordTypes: all,
+                triggeringRecordTypes: triggers);
         });
         public static readonly Type BinaryWriteTranslation = typeof(RaceBinaryWriteTranslation);
         #region Interface
@@ -696,6 +2088,39 @@ namespace Mutagen.Bethesda.Fallout3
         public void Clear(IRaceInternal item)
         {
             ClearPartial();
+            item.Name = default;
+            item.Description = default;
+            item.Relations.Clear();
+            item.SkillBoost0.Clear();
+            item.SkillBoost1.Clear();
+            item.SkillBoost2.Clear();
+            item.SkillBoost3.Clear();
+            item.SkillBoost4.Clear();
+            item.SkillBoost5.Clear();
+            item.SkillBoost6.Clear();
+            item.Unknown = default(Int16);
+            item.Height.Male = default(Single);
+            item.Height.Female = default(Single);
+            item.Weight.Male = default(Single);
+            item.Weight.Female = default(Single);
+            item.Flags = default(Race.Flag);
+            item.Older.Clear();
+            item.Younger.Clear();
+            item.Voices.Male = FormLink<IVoiceTypeGetter>.Null;
+            item.Voices.Female = FormLink<IVoiceTypeGetter>.Null;
+            item.DefaultHair = null;
+            item.DefaultHairColor = null;
+            item.FaceGenMainClamp = default;
+            item.FaceGenFaceClamp = default;
+            item.RaceStats = default;
+            item.HeadParts.Male = null;
+            item.HeadParts.Female = null;
+            item.BodyParts.Male = null;
+            item.BodyParts.Female = null;
+            item.Hairs = null;
+            item.Eyes = null;
+            item.FaceGen.Male = null;
+            item.FaceGen.Female = null;
             base.Clear(item);
         }
         
@@ -713,6 +2138,13 @@ namespace Mutagen.Bethesda.Fallout3
         public void RemapLinks(IRace obj, IReadOnlyDictionary<FormKey, FormKey> mapping)
         {
             base.RemapLinks(obj, mapping);
+            obj.Relations.RemapLinks(mapping);
+            obj.Older.Relink(mapping);
+            obj.Younger.Relink(mapping);
+            obj.Voices.RemapLinks(mapping);
+            obj.DefaultHair?.RemapLinks(mapping);
+            obj.Hairs?.RemapLinks(mapping);
+            obj.Eyes?.RemapLinks(mapping);
         }
         
         #endregion
@@ -780,6 +2212,64 @@ namespace Mutagen.Bethesda.Fallout3
             Race.Mask<bool> ret,
             EqualsMaskHelper.Include include = EqualsMaskHelper.Include.All)
         {
+            ret.Name = string.Equals(item.Name, rhs.Name);
+            ret.Description = string.Equals(item.Description, rhs.Description);
+            ret.Relations = item.Relations.CollectionEqualsHelper(
+                rhs.Relations,
+                (loqLhs, loqRhs) => loqLhs.GetEqualsMask(loqRhs, include),
+                include);
+            ret.SkillBoost0 = MaskItemExt.Factory(item.SkillBoost0.GetEqualsMask(rhs.SkillBoost0, include), include);
+            ret.SkillBoost1 = MaskItemExt.Factory(item.SkillBoost1.GetEqualsMask(rhs.SkillBoost1, include), include);
+            ret.SkillBoost2 = MaskItemExt.Factory(item.SkillBoost2.GetEqualsMask(rhs.SkillBoost2, include), include);
+            ret.SkillBoost3 = MaskItemExt.Factory(item.SkillBoost3.GetEqualsMask(rhs.SkillBoost3, include), include);
+            ret.SkillBoost4 = MaskItemExt.Factory(item.SkillBoost4.GetEqualsMask(rhs.SkillBoost4, include), include);
+            ret.SkillBoost5 = MaskItemExt.Factory(item.SkillBoost5.GetEqualsMask(rhs.SkillBoost5, include), include);
+            ret.SkillBoost6 = MaskItemExt.Factory(item.SkillBoost6.GetEqualsMask(rhs.SkillBoost6, include), include);
+            ret.Unknown = item.Unknown == rhs.Unknown;
+            ret.Height = new GenderedItem<bool>(
+                male: item.Height.Male.EqualsWithin(rhs.Height.Male),
+                female: item.Height.Female.EqualsWithin(rhs.Height.Female));
+            ret.Weight = new GenderedItem<bool>(
+                male: item.Weight.Male.EqualsWithin(rhs.Weight.Male),
+                female: item.Weight.Female.EqualsWithin(rhs.Weight.Female));
+            ret.Flags = item.Flags == rhs.Flags;
+            ret.Older = item.Older.Equals(rhs.Older);
+            ret.Younger = item.Younger.Equals(rhs.Younger);
+            ret.Voices = new GenderedItem<bool>(
+                male: object.Equals(item.Voices.Male, rhs.Voices.Male),
+                female: object.Equals(item.Voices.Female, rhs.Voices.Female));
+            ret.DefaultHair = GenderedItem.EqualityMaskHelper(
+                lhs: item.DefaultHair,
+                rhs: rhs.DefaultHair,
+                maskGetter: (l, r, i) => EqualityComparer<IFormLinkGetter<IHairGetter>>.Default.Equals(l, r),
+                include: include);
+            ret.DefaultHairColor = GenderedItem.EqualityMaskHelper(
+                lhs: item.DefaultHairColor,
+                rhs: rhs.DefaultHairColor,
+                maskGetter: (l, r, i) => EqualityComparer<Race.HairColor>.Default.Equals(l, r),
+                include: include);
+            ret.FaceGenMainClamp = item.FaceGenMainClamp == rhs.FaceGenMainClamp;
+            ret.FaceGenFaceClamp = item.FaceGenFaceClamp == rhs.FaceGenFaceClamp;
+            ret.RaceStats = MemorySliceExt.SequenceEqual(item.RaceStats, rhs.RaceStats);
+            ret.HeadParts = new GenderedItem<bool>(
+                male: item.HeadParts.Male.SequenceEqualNullable(rhs.HeadParts.Male),
+                female: item.HeadParts.Female.SequenceEqualNullable(rhs.HeadParts.Female));
+            ret.BodyParts = new GenderedItem<bool>(
+                male: item.BodyParts.Male.SequenceEqualNullable(rhs.BodyParts.Male),
+                female: item.BodyParts.Female.SequenceEqualNullable(rhs.BodyParts.Female));
+            ret.Hairs = item.Hairs.CollectionEqualsHelper(
+                rhs.Hairs,
+                (l, r) => object.Equals(l, r),
+                include);
+            ret.Eyes = item.Eyes.CollectionEqualsHelper(
+                rhs.Eyes,
+                (l, r) => object.Equals(l, r),
+                include);
+            ret.FaceGen = GenderedItem.EqualityMaskHelper(
+                lhs: item.FaceGen,
+                rhs: rhs.FaceGen,
+                maskGetter: (l, r, i) => EqualsMaskHelper.EqualsHelper(l, r, (loqLhs, loqRhs, incl) => loqLhs.GetEqualsMask(loqRhs, incl), i),
+                include: include);
             base.FillEqualsMask(item, rhs, ret, include);
         }
         
@@ -829,6 +2319,153 @@ namespace Mutagen.Bethesda.Fallout3
                 item: item,
                 sb: sb,
                 printMask: printMask);
+            if ((printMask?.Name ?? true)
+                && item.Name is {} NameItem)
+            {
+                sb.AppendItem(NameItem, "Name");
+            }
+            if ((printMask?.Description ?? true)
+                && item.Description is {} DescriptionItem)
+            {
+                sb.AppendItem(DescriptionItem, "Description");
+            }
+            if (printMask?.Relations?.Overall ?? true)
+            {
+                sb.AppendLine("Relations =>");
+                using (sb.Brace())
+                {
+                    foreach (var subItem in item.Relations)
+                    {
+                        using (sb.Brace())
+                        {
+                            subItem?.Print(sb, "Item");
+                        }
+                    }
+                }
+            }
+            if (printMask?.SkillBoost0?.Overall ?? true)
+            {
+                item.SkillBoost0?.Print(sb, "SkillBoost0");
+            }
+            if (printMask?.SkillBoost1?.Overall ?? true)
+            {
+                item.SkillBoost1?.Print(sb, "SkillBoost1");
+            }
+            if (printMask?.SkillBoost2?.Overall ?? true)
+            {
+                item.SkillBoost2?.Print(sb, "SkillBoost2");
+            }
+            if (printMask?.SkillBoost3?.Overall ?? true)
+            {
+                item.SkillBoost3?.Print(sb, "SkillBoost3");
+            }
+            if (printMask?.SkillBoost4?.Overall ?? true)
+            {
+                item.SkillBoost4?.Print(sb, "SkillBoost4");
+            }
+            if (printMask?.SkillBoost5?.Overall ?? true)
+            {
+                item.SkillBoost5?.Print(sb, "SkillBoost5");
+            }
+            if (printMask?.SkillBoost6?.Overall ?? true)
+            {
+                item.SkillBoost6?.Print(sb, "SkillBoost6");
+            }
+            if (printMask?.Unknown ?? true)
+            {
+                sb.AppendItem(item.Unknown, "Unknown");
+            }
+            if (true)
+            {
+                item.Height.Print(sb, "Height");
+            }
+            if (true)
+            {
+                item.Weight.Print(sb, "Weight");
+            }
+            if (printMask?.Flags ?? true)
+            {
+                sb.AppendItem(item.Flags, "Flags");
+            }
+            if (printMask?.Older ?? true)
+            {
+                sb.AppendItem(item.Older.FormKeyNullable, "Older");
+            }
+            if (printMask?.Younger ?? true)
+            {
+                sb.AppendItem(item.Younger.FormKeyNullable, "Younger");
+            }
+            if (true)
+            {
+                item.Voices.Print(sb, "Voices");
+            }
+            if ((printMask?.DefaultHair?.Overall ?? true)
+                && item.DefaultHair is {} DefaultHairItem)
+            {
+                DefaultHairItem?.Print(sb, "DefaultHair");
+            }
+            if ((printMask?.DefaultHairColor?.Overall ?? true)
+                && item.DefaultHairColor is {} DefaultHairColorItem)
+            {
+                DefaultHairColorItem?.Print(sb, "DefaultHairColor");
+            }
+            if ((printMask?.FaceGenMainClamp ?? true)
+                && item.FaceGenMainClamp is {} FaceGenMainClampItem)
+            {
+                sb.AppendItem(FaceGenMainClampItem, "FaceGenMainClamp");
+            }
+            if ((printMask?.FaceGenFaceClamp ?? true)
+                && item.FaceGenFaceClamp is {} FaceGenFaceClampItem)
+            {
+                sb.AppendItem(FaceGenFaceClampItem, "FaceGenFaceClamp");
+            }
+            if ((printMask?.RaceStats ?? true)
+                && item.RaceStats is {} RaceStatsItem)
+            {
+                sb.AppendLine($"RaceStats => {SpanExt.ToHexString(RaceStatsItem)}");
+            }
+            if (true)
+            {
+                item.HeadParts.Print(sb, "HeadParts");
+            }
+            if (true)
+            {
+                item.BodyParts.Print(sb, "BodyParts");
+            }
+            if ((printMask?.Hairs?.Overall ?? true)
+                && item.Hairs is {} HairsItem)
+            {
+                sb.AppendLine("Hairs =>");
+                using (sb.Brace())
+                {
+                    foreach (var subItem in HairsItem)
+                    {
+                        using (sb.Brace())
+                        {
+                            sb.AppendItem(subItem.FormKey);
+                        }
+                    }
+                }
+            }
+            if ((printMask?.Eyes?.Overall ?? true)
+                && item.Eyes is {} EyesItem)
+            {
+                sb.AppendLine("Eyes =>");
+                using (sb.Brace())
+                {
+                    foreach (var subItem in EyesItem)
+                    {
+                        using (sb.Brace())
+                        {
+                            sb.AppendItem(subItem.FormKey);
+                        }
+                    }
+                }
+            }
+            if (true)
+            {
+                item.FaceGen.Print(sb, "FaceGen");
+            }
         }
         
         public static Race_FieldIndex ConvertFieldIndex(Fallout3MajorRecord_FieldIndex index)
@@ -879,6 +2516,142 @@ namespace Mutagen.Bethesda.Fallout3
         {
             if (!EqualsMaskHelper.RefEquality(lhs, rhs, out var isEqual)) return isEqual;
             if (!base.Equals((IFallout3MajorRecordGetter)lhs, (IFallout3MajorRecordGetter)rhs, equalsMask)) return false;
+            if ((equalsMask?.GetShouldTranslate((int)Race_FieldIndex.Name) ?? true))
+            {
+                if (!string.Equals(lhs.Name, rhs.Name)) return false;
+            }
+            if ((equalsMask?.GetShouldTranslate((int)Race_FieldIndex.Description) ?? true))
+            {
+                if (!string.Equals(lhs.Description, rhs.Description)) return false;
+            }
+            if ((equalsMask?.GetShouldTranslate((int)Race_FieldIndex.Relations) ?? true))
+            {
+                if (!lhs.Relations.SequenceEqual(rhs.Relations, (l, r) => ((RaceRelationCommon)((IRaceRelationGetter)l).CommonInstance()!).Equals(l, r, equalsMask?.GetSubCrystal((int)Race_FieldIndex.Relations)))) return false;
+            }
+            if ((equalsMask?.GetShouldTranslate((int)Race_FieldIndex.SkillBoost0) ?? true))
+            {
+                if (EqualsMaskHelper.RefEquality(lhs.SkillBoost0, rhs.SkillBoost0, out var lhsSkillBoost0, out var rhsSkillBoost0, out var isSkillBoost0Equal))
+                {
+                    if (!((SkillBoostCommon)((ISkillBoostGetter)lhsSkillBoost0).CommonInstance()!).Equals(lhsSkillBoost0, rhsSkillBoost0, equalsMask?.GetSubCrystal((int)Race_FieldIndex.SkillBoost0))) return false;
+                }
+                else if (!isSkillBoost0Equal) return false;
+            }
+            if ((equalsMask?.GetShouldTranslate((int)Race_FieldIndex.SkillBoost1) ?? true))
+            {
+                if (EqualsMaskHelper.RefEquality(lhs.SkillBoost1, rhs.SkillBoost1, out var lhsSkillBoost1, out var rhsSkillBoost1, out var isSkillBoost1Equal))
+                {
+                    if (!((SkillBoostCommon)((ISkillBoostGetter)lhsSkillBoost1).CommonInstance()!).Equals(lhsSkillBoost1, rhsSkillBoost1, equalsMask?.GetSubCrystal((int)Race_FieldIndex.SkillBoost1))) return false;
+                }
+                else if (!isSkillBoost1Equal) return false;
+            }
+            if ((equalsMask?.GetShouldTranslate((int)Race_FieldIndex.SkillBoost2) ?? true))
+            {
+                if (EqualsMaskHelper.RefEquality(lhs.SkillBoost2, rhs.SkillBoost2, out var lhsSkillBoost2, out var rhsSkillBoost2, out var isSkillBoost2Equal))
+                {
+                    if (!((SkillBoostCommon)((ISkillBoostGetter)lhsSkillBoost2).CommonInstance()!).Equals(lhsSkillBoost2, rhsSkillBoost2, equalsMask?.GetSubCrystal((int)Race_FieldIndex.SkillBoost2))) return false;
+                }
+                else if (!isSkillBoost2Equal) return false;
+            }
+            if ((equalsMask?.GetShouldTranslate((int)Race_FieldIndex.SkillBoost3) ?? true))
+            {
+                if (EqualsMaskHelper.RefEquality(lhs.SkillBoost3, rhs.SkillBoost3, out var lhsSkillBoost3, out var rhsSkillBoost3, out var isSkillBoost3Equal))
+                {
+                    if (!((SkillBoostCommon)((ISkillBoostGetter)lhsSkillBoost3).CommonInstance()!).Equals(lhsSkillBoost3, rhsSkillBoost3, equalsMask?.GetSubCrystal((int)Race_FieldIndex.SkillBoost3))) return false;
+                }
+                else if (!isSkillBoost3Equal) return false;
+            }
+            if ((equalsMask?.GetShouldTranslate((int)Race_FieldIndex.SkillBoost4) ?? true))
+            {
+                if (EqualsMaskHelper.RefEquality(lhs.SkillBoost4, rhs.SkillBoost4, out var lhsSkillBoost4, out var rhsSkillBoost4, out var isSkillBoost4Equal))
+                {
+                    if (!((SkillBoostCommon)((ISkillBoostGetter)lhsSkillBoost4).CommonInstance()!).Equals(lhsSkillBoost4, rhsSkillBoost4, equalsMask?.GetSubCrystal((int)Race_FieldIndex.SkillBoost4))) return false;
+                }
+                else if (!isSkillBoost4Equal) return false;
+            }
+            if ((equalsMask?.GetShouldTranslate((int)Race_FieldIndex.SkillBoost5) ?? true))
+            {
+                if (EqualsMaskHelper.RefEquality(lhs.SkillBoost5, rhs.SkillBoost5, out var lhsSkillBoost5, out var rhsSkillBoost5, out var isSkillBoost5Equal))
+                {
+                    if (!((SkillBoostCommon)((ISkillBoostGetter)lhsSkillBoost5).CommonInstance()!).Equals(lhsSkillBoost5, rhsSkillBoost5, equalsMask?.GetSubCrystal((int)Race_FieldIndex.SkillBoost5))) return false;
+                }
+                else if (!isSkillBoost5Equal) return false;
+            }
+            if ((equalsMask?.GetShouldTranslate((int)Race_FieldIndex.SkillBoost6) ?? true))
+            {
+                if (EqualsMaskHelper.RefEquality(lhs.SkillBoost6, rhs.SkillBoost6, out var lhsSkillBoost6, out var rhsSkillBoost6, out var isSkillBoost6Equal))
+                {
+                    if (!((SkillBoostCommon)((ISkillBoostGetter)lhsSkillBoost6).CommonInstance()!).Equals(lhsSkillBoost6, rhsSkillBoost6, equalsMask?.GetSubCrystal((int)Race_FieldIndex.SkillBoost6))) return false;
+                }
+                else if (!isSkillBoost6Equal) return false;
+            }
+            if ((equalsMask?.GetShouldTranslate((int)Race_FieldIndex.Unknown) ?? true))
+            {
+                if (lhs.Unknown != rhs.Unknown) return false;
+            }
+            if ((equalsMask?.GetShouldTranslate((int)Race_FieldIndex.Height) ?? true))
+            {
+                if (!Equals(lhs.Height, rhs.Height)) return false;
+            }
+            if ((equalsMask?.GetShouldTranslate((int)Race_FieldIndex.Weight) ?? true))
+            {
+                if (!Equals(lhs.Weight, rhs.Weight)) return false;
+            }
+            if ((equalsMask?.GetShouldTranslate((int)Race_FieldIndex.Flags) ?? true))
+            {
+                if (lhs.Flags != rhs.Flags) return false;
+            }
+            if ((equalsMask?.GetShouldTranslate((int)Race_FieldIndex.Older) ?? true))
+            {
+                if (!lhs.Older.Equals(rhs.Older)) return false;
+            }
+            if ((equalsMask?.GetShouldTranslate((int)Race_FieldIndex.Younger) ?? true))
+            {
+                if (!lhs.Younger.Equals(rhs.Younger)) return false;
+            }
+            if ((equalsMask?.GetShouldTranslate((int)Race_FieldIndex.Voices) ?? true))
+            {
+                if (!Equals(lhs.Voices, rhs.Voices)) return false;
+            }
+            if ((equalsMask?.GetShouldTranslate((int)Race_FieldIndex.DefaultHair) ?? true))
+            {
+                if (!Equals(lhs.DefaultHair, rhs.DefaultHair)) return false;
+            }
+            if ((equalsMask?.GetShouldTranslate((int)Race_FieldIndex.DefaultHairColor) ?? true))
+            {
+                if (!Equals(lhs.DefaultHairColor, rhs.DefaultHairColor)) return false;
+            }
+            if ((equalsMask?.GetShouldTranslate((int)Race_FieldIndex.FaceGenMainClamp) ?? true))
+            {
+                if (lhs.FaceGenMainClamp != rhs.FaceGenMainClamp) return false;
+            }
+            if ((equalsMask?.GetShouldTranslate((int)Race_FieldIndex.FaceGenFaceClamp) ?? true))
+            {
+                if (lhs.FaceGenFaceClamp != rhs.FaceGenFaceClamp) return false;
+            }
+            if ((equalsMask?.GetShouldTranslate((int)Race_FieldIndex.RaceStats) ?? true))
+            {
+                if (!MemorySliceExt.SequenceEqual(lhs.RaceStats, rhs.RaceStats)) return false;
+            }
+            if ((equalsMask?.GetShouldTranslate((int)Race_FieldIndex.HeadParts) ?? true))
+            {
+                if (!Equals(lhs.HeadParts, rhs.HeadParts)) return false;
+            }
+            if ((equalsMask?.GetShouldTranslate((int)Race_FieldIndex.BodyParts) ?? true))
+            {
+                if (!Equals(lhs.BodyParts, rhs.BodyParts)) return false;
+            }
+            if ((equalsMask?.GetShouldTranslate((int)Race_FieldIndex.Hairs) ?? true))
+            {
+                if (!lhs.Hairs.SequenceEqualNullable(rhs.Hairs)) return false;
+            }
+            if ((equalsMask?.GetShouldTranslate((int)Race_FieldIndex.Eyes) ?? true))
+            {
+                if (!lhs.Eyes.SequenceEqualNullable(rhs.Eyes)) return false;
+            }
+            if ((equalsMask?.GetShouldTranslate((int)Race_FieldIndex.FaceGen) ?? true))
+            {
+                if (!Equals(lhs.FaceGen, rhs.FaceGen)) return false;
+            }
             return true;
         }
         
@@ -907,6 +2680,54 @@ namespace Mutagen.Bethesda.Fallout3
         public virtual int GetHashCode(IRaceGetter item)
         {
             var hash = new HashCode();
+            if (item.Name is {} Nameitem)
+            {
+                hash.Add(Nameitem);
+            }
+            if (item.Description is {} Descriptionitem)
+            {
+                hash.Add(Descriptionitem);
+            }
+            hash.Add(item.Relations);
+            hash.Add(item.SkillBoost0);
+            hash.Add(item.SkillBoost1);
+            hash.Add(item.SkillBoost2);
+            hash.Add(item.SkillBoost3);
+            hash.Add(item.SkillBoost4);
+            hash.Add(item.SkillBoost5);
+            hash.Add(item.SkillBoost6);
+            hash.Add(item.Unknown);
+            hash.Add(HashCode.Combine(item.Height.Male, item.Height.Female));
+            hash.Add(HashCode.Combine(item.Weight.Male, item.Weight.Female));
+            hash.Add(item.Flags);
+            hash.Add(item.Older);
+            hash.Add(item.Younger);
+            hash.Add(HashCode.Combine(item.Voices.Male, item.Voices.Female));
+            if (item.DefaultHair is {} DefaultHairitem)
+            {
+                hash.Add(HashCode.Combine(DefaultHairitem.Male, DefaultHairitem.Female));
+            }
+            if (item.DefaultHairColor is {} DefaultHairColoritem)
+            {
+                hash.Add(HashCode.Combine(DefaultHairColoritem.Male, DefaultHairColoritem.Female));
+            }
+            if (item.FaceGenMainClamp is {} FaceGenMainClampitem)
+            {
+                hash.Add(FaceGenMainClampitem);
+            }
+            if (item.FaceGenFaceClamp is {} FaceGenFaceClampitem)
+            {
+                hash.Add(FaceGenFaceClampitem);
+            }
+            if (item.RaceStats is {} RaceStatsItem)
+            {
+                hash.Add(RaceStatsItem);
+            }
+            hash.Add(HashCode.Combine(item.HeadParts.Male, item.HeadParts.Female));
+            hash.Add(HashCode.Combine(item.BodyParts.Male, item.BodyParts.Female));
+            hash.Add(item.Hairs);
+            hash.Add(item.Eyes);
+            hash.Add(HashCode.Combine(item.FaceGen.Male, item.FaceGen.Female));
             hash.Add(base.GetHashCode());
             return hash.ToHashCode();
         }
@@ -935,6 +2756,43 @@ namespace Mutagen.Bethesda.Fallout3
             foreach (var item in base.EnumerateFormLinks(obj))
             {
                 yield return item;
+            }
+            foreach (var item in obj.Relations.SelectMany(f => f.EnumerateFormLinks()))
+            {
+                yield return FormLinkInformation.Factory(item);
+            }
+            if (FormLinkInformation.TryFactory(obj.Older, out var OlderInfo))
+            {
+                yield return OlderInfo;
+            }
+            if (FormLinkInformation.TryFactory(obj.Younger, out var YoungerInfo))
+            {
+                yield return YoungerInfo;
+            }
+            foreach (var item in obj.Voices)
+            {
+                yield return FormLinkInformation.Factory(item);
+            }
+            if (obj.DefaultHair is {} DefaultHairItem)
+            {
+                foreach (var item in DefaultHairItem)
+                {
+                    yield return FormLinkInformation.Factory(item);
+                }
+            }
+            if (obj.Hairs is {} HairsItem)
+            {
+                foreach (var item in HairsItem)
+                {
+                    yield return FormLinkInformation.Factory(item);
+                }
+            }
+            if (obj.Eyes is {} EyesItem)
+            {
+                foreach (var item in EyesItem)
+                {
+                    yield return FormLinkInformation.Factory(item);
+                }
             }
             yield break;
         }
@@ -1010,6 +2868,323 @@ namespace Mutagen.Bethesda.Fallout3
                 errorMask,
                 copyMask,
                 deepCopy: deepCopy);
+            if ((copyMask?.GetShouldTranslate((int)Race_FieldIndex.Name) ?? true))
+            {
+                item.Name = rhs.Name;
+            }
+            if ((copyMask?.GetShouldTranslate((int)Race_FieldIndex.Description) ?? true))
+            {
+                item.Description = rhs.Description;
+            }
+            if ((copyMask?.GetShouldTranslate((int)Race_FieldIndex.Relations) ?? true))
+            {
+                errorMask?.PushIndex((int)Race_FieldIndex.Relations);
+                try
+                {
+                    item.Relations.SetTo(
+                        rhs.Relations
+                        .Select(r =>
+                        {
+                            return r.DeepCopy(
+                                errorMask: errorMask,
+                                default(TranslationCrystal));
+                        }));
+                }
+                catch (Exception ex)
+                when (errorMask != null)
+                {
+                    errorMask.ReportException(ex);
+                }
+                finally
+                {
+                    errorMask?.PopIndex();
+                }
+            }
+            if ((copyMask?.GetShouldTranslate((int)Race_FieldIndex.SkillBoost0) ?? true))
+            {
+                errorMask?.PushIndex((int)Race_FieldIndex.SkillBoost0);
+                try
+                {
+                    if ((copyMask?.GetShouldTranslate((int)Race_FieldIndex.SkillBoost0) ?? true))
+                    {
+                        item.SkillBoost0 = rhs.SkillBoost0.DeepCopy(
+                            copyMask: copyMask?.GetSubCrystal((int)Race_FieldIndex.SkillBoost0),
+                            errorMask: errorMask);
+                    }
+                }
+                catch (Exception ex)
+                when (errorMask != null)
+                {
+                    errorMask.ReportException(ex);
+                }
+                finally
+                {
+                    errorMask?.PopIndex();
+                }
+            }
+            if ((copyMask?.GetShouldTranslate((int)Race_FieldIndex.SkillBoost1) ?? true))
+            {
+                errorMask?.PushIndex((int)Race_FieldIndex.SkillBoost1);
+                try
+                {
+                    if ((copyMask?.GetShouldTranslate((int)Race_FieldIndex.SkillBoost1) ?? true))
+                    {
+                        item.SkillBoost1 = rhs.SkillBoost1.DeepCopy(
+                            copyMask: copyMask?.GetSubCrystal((int)Race_FieldIndex.SkillBoost1),
+                            errorMask: errorMask);
+                    }
+                }
+                catch (Exception ex)
+                when (errorMask != null)
+                {
+                    errorMask.ReportException(ex);
+                }
+                finally
+                {
+                    errorMask?.PopIndex();
+                }
+            }
+            if ((copyMask?.GetShouldTranslate((int)Race_FieldIndex.SkillBoost2) ?? true))
+            {
+                errorMask?.PushIndex((int)Race_FieldIndex.SkillBoost2);
+                try
+                {
+                    if ((copyMask?.GetShouldTranslate((int)Race_FieldIndex.SkillBoost2) ?? true))
+                    {
+                        item.SkillBoost2 = rhs.SkillBoost2.DeepCopy(
+                            copyMask: copyMask?.GetSubCrystal((int)Race_FieldIndex.SkillBoost2),
+                            errorMask: errorMask);
+                    }
+                }
+                catch (Exception ex)
+                when (errorMask != null)
+                {
+                    errorMask.ReportException(ex);
+                }
+                finally
+                {
+                    errorMask?.PopIndex();
+                }
+            }
+            if ((copyMask?.GetShouldTranslate((int)Race_FieldIndex.SkillBoost3) ?? true))
+            {
+                errorMask?.PushIndex((int)Race_FieldIndex.SkillBoost3);
+                try
+                {
+                    if ((copyMask?.GetShouldTranslate((int)Race_FieldIndex.SkillBoost3) ?? true))
+                    {
+                        item.SkillBoost3 = rhs.SkillBoost3.DeepCopy(
+                            copyMask: copyMask?.GetSubCrystal((int)Race_FieldIndex.SkillBoost3),
+                            errorMask: errorMask);
+                    }
+                }
+                catch (Exception ex)
+                when (errorMask != null)
+                {
+                    errorMask.ReportException(ex);
+                }
+                finally
+                {
+                    errorMask?.PopIndex();
+                }
+            }
+            if ((copyMask?.GetShouldTranslate((int)Race_FieldIndex.SkillBoost4) ?? true))
+            {
+                errorMask?.PushIndex((int)Race_FieldIndex.SkillBoost4);
+                try
+                {
+                    if ((copyMask?.GetShouldTranslate((int)Race_FieldIndex.SkillBoost4) ?? true))
+                    {
+                        item.SkillBoost4 = rhs.SkillBoost4.DeepCopy(
+                            copyMask: copyMask?.GetSubCrystal((int)Race_FieldIndex.SkillBoost4),
+                            errorMask: errorMask);
+                    }
+                }
+                catch (Exception ex)
+                when (errorMask != null)
+                {
+                    errorMask.ReportException(ex);
+                }
+                finally
+                {
+                    errorMask?.PopIndex();
+                }
+            }
+            if ((copyMask?.GetShouldTranslate((int)Race_FieldIndex.SkillBoost5) ?? true))
+            {
+                errorMask?.PushIndex((int)Race_FieldIndex.SkillBoost5);
+                try
+                {
+                    if ((copyMask?.GetShouldTranslate((int)Race_FieldIndex.SkillBoost5) ?? true))
+                    {
+                        item.SkillBoost5 = rhs.SkillBoost5.DeepCopy(
+                            copyMask: copyMask?.GetSubCrystal((int)Race_FieldIndex.SkillBoost5),
+                            errorMask: errorMask);
+                    }
+                }
+                catch (Exception ex)
+                when (errorMask != null)
+                {
+                    errorMask.ReportException(ex);
+                }
+                finally
+                {
+                    errorMask?.PopIndex();
+                }
+            }
+            if ((copyMask?.GetShouldTranslate((int)Race_FieldIndex.SkillBoost6) ?? true))
+            {
+                errorMask?.PushIndex((int)Race_FieldIndex.SkillBoost6);
+                try
+                {
+                    if ((copyMask?.GetShouldTranslate((int)Race_FieldIndex.SkillBoost6) ?? true))
+                    {
+                        item.SkillBoost6 = rhs.SkillBoost6.DeepCopy(
+                            copyMask: copyMask?.GetSubCrystal((int)Race_FieldIndex.SkillBoost6),
+                            errorMask: errorMask);
+                    }
+                }
+                catch (Exception ex)
+                when (errorMask != null)
+                {
+                    errorMask.ReportException(ex);
+                }
+                finally
+                {
+                    errorMask?.PopIndex();
+                }
+            }
+            if ((copyMask?.GetShouldTranslate((int)Race_FieldIndex.Unknown) ?? true))
+            {
+                item.Unknown = rhs.Unknown;
+            }
+            item.Height = new GenderedItem<Single>(
+                male: rhs.Height.Male,
+                female: rhs.Height.Female);
+            item.Weight = new GenderedItem<Single>(
+                male: rhs.Weight.Male,
+                female: rhs.Weight.Female);
+            if ((copyMask?.GetShouldTranslate((int)Race_FieldIndex.Flags) ?? true))
+            {
+                item.Flags = rhs.Flags;
+            }
+            if ((copyMask?.GetShouldTranslate((int)Race_FieldIndex.Older) ?? true))
+            {
+                item.Older.SetTo(rhs.Older.FormKeyNullable);
+            }
+            if ((copyMask?.GetShouldTranslate((int)Race_FieldIndex.Younger) ?? true))
+            {
+                item.Younger.SetTo(rhs.Younger.FormKeyNullable);
+            }
+            item.Voices = new GenderedItem<IFormLinkGetter<IVoiceTypeGetter>>(
+                male: new FormLink<IVoiceTypeGetter>(rhs.Voices.Male.FormKey),
+                female: new FormLink<IVoiceTypeGetter>(rhs.Voices.Female.FormKey));
+            if (rhs.DefaultHair is not {} rhsDefaultHairitem)
+            {
+                item.DefaultHair = null;
+            }
+            else
+            {
+                item.DefaultHair = new GenderedItem<IFormLinkGetter<IHairGetter>>(
+                    male: new FormLink<IHairGetter>(rhsDefaultHairitem.Male.FormKey),
+                    female: new FormLink<IHairGetter>(rhsDefaultHairitem.Female.FormKey));
+            }
+            if (rhs.DefaultHairColor is not {} rhsDefaultHairColoritem)
+            {
+                item.DefaultHairColor = null;
+            }
+            else
+            {
+                item.DefaultHairColor = new GenderedItem<Race.HairColor>(
+                    male: rhsDefaultHairColoritem.Male,
+                    female: rhsDefaultHairColoritem.Female);
+            }
+            if ((copyMask?.GetShouldTranslate((int)Race_FieldIndex.FaceGenMainClamp) ?? true))
+            {
+                item.FaceGenMainClamp = rhs.FaceGenMainClamp;
+            }
+            if ((copyMask?.GetShouldTranslate((int)Race_FieldIndex.FaceGenFaceClamp) ?? true))
+            {
+                item.FaceGenFaceClamp = rhs.FaceGenFaceClamp;
+            }
+            if ((copyMask?.GetShouldTranslate((int)Race_FieldIndex.RaceStats) ?? true))
+            {
+                if(rhs.RaceStats is {} RaceStatsrhs)
+                {
+                    item.RaceStats = RaceStatsrhs.ToArray();
+                }
+                else
+                {
+                    item.RaceStats = default;
+                }
+            }
+            item.HeadParts = new GenderedItem<ExtendedList<HeadPartData>?>(
+                male: rhs.HeadParts.Male?.Select(x => x.DeepCopy()).ToExtendedList<HeadPartData>(),
+                female: rhs.HeadParts.Female?.Select(x => x.DeepCopy()).ToExtendedList<HeadPartData>());
+            item.BodyParts = new GenderedItem<ExtendedList<BodyPartData>?>(
+                male: rhs.BodyParts.Male?.Select(x => x.DeepCopy()).ToExtendedList<BodyPartData>(),
+                female: rhs.BodyParts.Female?.Select(x => x.DeepCopy()).ToExtendedList<BodyPartData>());
+            if ((copyMask?.GetShouldTranslate((int)Race_FieldIndex.Hairs) ?? true))
+            {
+                errorMask?.PushIndex((int)Race_FieldIndex.Hairs);
+                try
+                {
+                    if ((rhs.Hairs != null))
+                    {
+                        item.Hairs = 
+                            rhs.Hairs
+                                .Select(b => (IFormLinkGetter<IHairGetter>)new FormLink<IHairGetter>(b.FormKey))
+                            .ToExtendedList<IFormLinkGetter<IHairGetter>>();
+                    }
+                    else
+                    {
+                        item.Hairs = null;
+                    }
+                }
+                catch (Exception ex)
+                when (errorMask != null)
+                {
+                    errorMask.ReportException(ex);
+                }
+                finally
+                {
+                    errorMask?.PopIndex();
+                }
+            }
+            if ((copyMask?.GetShouldTranslate((int)Race_FieldIndex.Eyes) ?? true))
+            {
+                errorMask?.PushIndex((int)Race_FieldIndex.Eyes);
+                try
+                {
+                    if ((rhs.Eyes != null))
+                    {
+                        item.Eyes = 
+                            rhs.Eyes
+                                .Select(b => (IFormLinkGetter<IEyesGetter>)new FormLink<IEyesGetter>(b.FormKey))
+                            .ToExtendedList<IFormLinkGetter<IEyesGetter>>();
+                    }
+                    else
+                    {
+                        item.Eyes = null;
+                    }
+                }
+                catch (Exception ex)
+                when (errorMask != null)
+                {
+                    errorMask.ReportException(ex);
+                }
+                finally
+                {
+                    errorMask?.PopIndex();
+                }
+            }
+            item.FaceGen = new GenderedItem<FaceGenData?>(
+                male: rhs.FaceGen.Male?.DeepCopy(
+                    errorMask: errorMask,
+                    default(TranslationCrystal)),
+                female: rhs.FaceGen.Female?.DeepCopy(
+                    errorMask: errorMask,
+                    default(TranslationCrystal)));
             DeepCopyInCustom(
                 item: item,
                 rhs: rhs,
@@ -1170,6 +3345,219 @@ namespace Mutagen.Bethesda.Fallout3
     {
         public new static readonly RaceBinaryWriteTranslation Instance = new();
 
+        public static void WriteRecordTypes(
+            IRaceGetter item,
+            MutagenWriter writer,
+            TypedWriteParams translationParams)
+        {
+            MajorRecordBinaryWriteTranslation.WriteRecordTypes(
+                item: item,
+                writer: writer,
+                translationParams: translationParams);
+            StringBinaryTranslation.Instance.WriteNullable(
+                writer: writer,
+                item: item.Name,
+                header: translationParams.ConvertToCustom(RecordTypes.FULL),
+                binaryType: StringBinaryType.NullTerminate);
+            StringBinaryTranslation.Instance.WriteNullable(
+                writer: writer,
+                item: item.Description,
+                header: translationParams.ConvertToCustom(RecordTypes.DESC),
+                binaryType: StringBinaryType.NullTerminate);
+            Mutagen.Bethesda.Plugins.Binary.Translations.ListBinaryTranslation<IRaceRelationGetter>.Instance.Write(
+                writer: writer,
+                items: item.Relations,
+                transl: (MutagenWriter subWriter, IRaceRelationGetter subItem, TypedWriteParams conv) =>
+                {
+                    var Item = subItem;
+                    ((RaceRelationBinaryWriteTranslation)((IBinaryItem)Item).BinaryWriteTranslator).Write(
+                        item: Item,
+                        writer: subWriter,
+                        translationParams: conv);
+                });
+            using (HeaderExport.Subrecord(writer, translationParams.ConvertToCustom(RecordTypes.DATA)))
+            {
+                var SkillBoost0Item = item.SkillBoost0;
+                ((SkillBoostBinaryWriteTranslation)((IBinaryItem)SkillBoost0Item).BinaryWriteTranslator).Write(
+                    item: SkillBoost0Item,
+                    writer: writer,
+                    translationParams: translationParams);
+                var SkillBoost1Item = item.SkillBoost1;
+                ((SkillBoostBinaryWriteTranslation)((IBinaryItem)SkillBoost1Item).BinaryWriteTranslator).Write(
+                    item: SkillBoost1Item,
+                    writer: writer,
+                    translationParams: translationParams);
+                var SkillBoost2Item = item.SkillBoost2;
+                ((SkillBoostBinaryWriteTranslation)((IBinaryItem)SkillBoost2Item).BinaryWriteTranslator).Write(
+                    item: SkillBoost2Item,
+                    writer: writer,
+                    translationParams: translationParams);
+                var SkillBoost3Item = item.SkillBoost3;
+                ((SkillBoostBinaryWriteTranslation)((IBinaryItem)SkillBoost3Item).BinaryWriteTranslator).Write(
+                    item: SkillBoost3Item,
+                    writer: writer,
+                    translationParams: translationParams);
+                var SkillBoost4Item = item.SkillBoost4;
+                ((SkillBoostBinaryWriteTranslation)((IBinaryItem)SkillBoost4Item).BinaryWriteTranslator).Write(
+                    item: SkillBoost4Item,
+                    writer: writer,
+                    translationParams: translationParams);
+                var SkillBoost5Item = item.SkillBoost5;
+                ((SkillBoostBinaryWriteTranslation)((IBinaryItem)SkillBoost5Item).BinaryWriteTranslator).Write(
+                    item: SkillBoost5Item,
+                    writer: writer,
+                    translationParams: translationParams);
+                var SkillBoost6Item = item.SkillBoost6;
+                ((SkillBoostBinaryWriteTranslation)((IBinaryItem)SkillBoost6Item).BinaryWriteTranslator).Write(
+                    item: SkillBoost6Item,
+                    writer: writer,
+                    translationParams: translationParams);
+                writer.Write(item.Unknown);
+                GenderedItemBinaryTranslation.Write(
+                    writer: writer,
+                    item: item.Height,
+                    transl: FloatBinaryTranslation<MutagenFrame, MutagenWriter>.Instance.Write);
+                GenderedItemBinaryTranslation.Write(
+                    writer: writer,
+                    item: item.Weight,
+                    transl: FloatBinaryTranslation<MutagenFrame, MutagenWriter>.Instance.Write);
+                EnumBinaryTranslation<Race.Flag, MutagenFrame, MutagenWriter>.Instance.Write(
+                    writer,
+                    item.Flags,
+                    length: 4);
+            }
+            FormLinkBinaryTranslation.Instance.WriteNullable(
+                writer: writer,
+                item: item.Older,
+                header: translationParams.ConvertToCustom(RecordTypes.ONAM));
+            FormLinkBinaryTranslation.Instance.WriteNullable(
+                writer: writer,
+                item: item.Younger,
+                header: translationParams.ConvertToCustom(RecordTypes.YNAM));
+            using (HeaderExport.Subrecord(writer, RecordTypes.NAM2)) { }
+            GenderedItemBinaryTranslation.Write(
+                writer: writer,
+                item: item.Voices,
+                recordType: RecordTypes.VTCK,
+                transl: (MutagenWriter subWriter, IFormLinkGetter<IVoiceTypeGetter> subItem, TypedWriteParams conv) =>
+                {
+                    FormLinkBinaryTranslation.Instance.Write(
+                        writer: subWriter,
+                        item: subItem);
+                });
+            GenderedItemBinaryTranslation.Write(
+                writer: writer,
+                item: item.DefaultHair,
+                recordType: RecordTypes.DNAM,
+                transl: (MutagenWriter subWriter, IFormLinkGetter<IHairGetter> subItem, TypedWriteParams conv) =>
+                {
+                    FormLinkBinaryTranslation.Instance.Write(
+                        writer: subWriter,
+                        item: subItem);
+                });
+            GenderedItemBinaryTranslation.Write(
+                writer: writer,
+                item: item.DefaultHairColor,
+                recordType: RecordTypes.CNAM,
+                transl: (MutagenWriter subWriter, Race.HairColor subItem) =>
+                {
+                    EnumBinaryTranslation<Race.HairColor, MutagenFrame, MutagenWriter>.Instance.Write(
+                        subWriter,
+                        subItem,
+                        length: 1);
+                });
+            Int32BinaryTranslation<MutagenFrame, MutagenWriter>.Instance.WriteNullable(
+                writer: writer,
+                item: item.FaceGenMainClamp,
+                header: translationParams.ConvertToCustom(RecordTypes.PNAM));
+            Int32BinaryTranslation<MutagenFrame, MutagenWriter>.Instance.WriteNullable(
+                writer: writer,
+                item: item.FaceGenFaceClamp,
+                header: translationParams.ConvertToCustom(RecordTypes.UNAM));
+            ByteArrayBinaryTranslation<MutagenFrame, MutagenWriter>.Instance.Write(
+                writer: writer,
+                item: item.RaceStats,
+                header: translationParams.ConvertToCustom(RecordTypes.ATTR));
+            GenderedItemBinaryTranslation.Write(
+                writer: writer,
+                item: item.HeadParts,
+                markerType: RecordTypes.NAM0,
+                maleMarker: RecordTypes.MNAM,
+                femaleMarker: RecordTypes.FNAM,
+                markerWrap: false,
+                transl: (MutagenWriter subWriter, IReadOnlyList<IHeadPartDataGetter>? subItem, TypedWriteParams conv) =>
+                {
+                    Mutagen.Bethesda.Plugins.Binary.Translations.ListBinaryTranslation<IHeadPartDataGetter>.Instance.Write(
+                        writer: subWriter,
+                        items: subItem,
+                        transl: (MutagenWriter subWriter, IHeadPartDataGetter subItem, TypedWriteParams conv) =>
+                        {
+                            var Item = subItem;
+                            ((HeadPartDataBinaryWriteTranslation)((IBinaryItem)Item).BinaryWriteTranslator).Write(
+                                item: Item,
+                                writer: subWriter,
+                                translationParams: conv);
+                        });
+                });
+            GenderedItemBinaryTranslation.Write(
+                writer: writer,
+                item: item.BodyParts,
+                markerType: RecordTypes.NAM1,
+                maleMarker: RecordTypes.MNAM,
+                femaleMarker: RecordTypes.FNAM,
+                markerWrap: false,
+                transl: (MutagenWriter subWriter, IReadOnlyList<IBodyPartDataGetter>? subItem, TypedWriteParams conv) =>
+                {
+                    Mutagen.Bethesda.Plugins.Binary.Translations.ListBinaryTranslation<IBodyPartDataGetter>.Instance.Write(
+                        writer: subWriter,
+                        items: subItem,
+                        transl: (MutagenWriter subWriter, IBodyPartDataGetter subItem, TypedWriteParams conv) =>
+                        {
+                            var Item = subItem;
+                            ((BodyPartDataBinaryWriteTranslation)((IBinaryItem)Item).BinaryWriteTranslator).Write(
+                                item: Item,
+                                writer: subWriter,
+                                translationParams: conv);
+                        });
+                });
+            Mutagen.Bethesda.Plugins.Binary.Translations.ListBinaryTranslation<IFormLinkGetter<IHairGetter>>.Instance.Write(
+                writer: writer,
+                items: item.Hairs,
+                recordType: translationParams.ConvertToCustom(RecordTypes.HNAM),
+                transl: (MutagenWriter subWriter, IFormLinkGetter<IHairGetter> subItem, TypedWriteParams conv) =>
+                {
+                    FormLinkBinaryTranslation.Instance.Write(
+                        writer: subWriter,
+                        item: subItem);
+                });
+            Mutagen.Bethesda.Plugins.Binary.Translations.ListBinaryTranslation<IFormLinkGetter<IEyesGetter>>.Instance.Write(
+                writer: writer,
+                items: item.Eyes,
+                recordType: translationParams.ConvertToCustom(RecordTypes.ENAM),
+                transl: (MutagenWriter subWriter, IFormLinkGetter<IEyesGetter> subItem, TypedWriteParams conv) =>
+                {
+                    FormLinkBinaryTranslation.Instance.Write(
+                        writer: subWriter,
+                        item: subItem);
+                });
+            GenderedItemBinaryTranslation.Write(
+                writer: writer,
+                item: item.FaceGen,
+                maleMarker: RecordTypes.MNAM,
+                femaleMarker: RecordTypes.FNAM,
+                markerWrap: false,
+                transl: (MutagenWriter subWriter, IFaceGenDataGetter? subItem, TypedWriteParams conv) =>
+                {
+                    if (subItem is {} Item)
+                    {
+                        ((FaceGenDataBinaryWriteTranslation)((IBinaryItem)Item).BinaryWriteTranslator).Write(
+                            item: Item,
+                            writer: subWriter,
+                            translationParams: conv);
+                    }
+                });
+        }
+
         public void Write(
             MutagenWriter writer,
             IRaceGetter item,
@@ -1224,6 +3612,228 @@ namespace Mutagen.Bethesda.Fallout3
         public new static readonly RaceBinaryCreateTranslation Instance = new RaceBinaryCreateTranslation();
 
         public override RecordType RecordType => RecordTypes.RACE;
+        public static ParseResult FillBinaryRecordTypes(
+            IRaceInternal item,
+            MutagenFrame frame,
+            PreviousParse lastParsed,
+            Dictionary<RecordType, int>? recordParseCount,
+            RecordType nextRecordType,
+            int contentLength,
+            TypedParseParams translationParams = default)
+        {
+            nextRecordType = translationParams.ConvertToStandard(nextRecordType);
+            switch (nextRecordType.TypeInt)
+            {
+                case RecordTypeInts.FULL:
+                {
+                    frame.Position += frame.MetaData.Constants.SubConstants.HeaderLength;
+                    item.Name = StringBinaryTranslation.Instance.Parse(
+                        reader: frame.SpawnWithLength(contentLength),
+                        stringBinaryType: StringBinaryType.NullTerminate,
+                        parseWhole: true);
+                    return (int)Race_FieldIndex.Name;
+                }
+                case RecordTypeInts.DESC:
+                {
+                    frame.Position += frame.MetaData.Constants.SubConstants.HeaderLength;
+                    item.Description = StringBinaryTranslation.Instance.Parse(
+                        reader: frame.SpawnWithLength(contentLength),
+                        stringBinaryType: StringBinaryType.NullTerminate,
+                        parseWhole: true);
+                    return (int)Race_FieldIndex.Description;
+                }
+                case RecordTypeInts.XNAM:
+                {
+                    item.Relations.SetTo(
+                        Mutagen.Bethesda.Plugins.Binary.Translations.ListBinaryTranslation<RaceRelation>.Instance.Parse(
+                            reader: frame,
+                            triggeringRecord: RaceRelation_Registration.TriggerSpecs,
+                            translationParams: translationParams,
+                            transl: RaceRelation.TryCreateFromBinary));
+                    return (int)Race_FieldIndex.Relations;
+                }
+                case RecordTypeInts.DATA:
+                {
+                    frame.Position += frame.MetaData.Constants.SubConstants.HeaderLength;
+                    var dataFrame = frame.SpawnWithLength(contentLength);
+                    if (dataFrame.Complete) return null;
+                    item.SkillBoost0 = Mutagen.Bethesda.Fallout3.SkillBoost.CreateFromBinary(frame: dataFrame);
+                    if (dataFrame.Complete) return null;
+                    item.SkillBoost1 = Mutagen.Bethesda.Fallout3.SkillBoost.CreateFromBinary(frame: dataFrame);
+                    if (dataFrame.Complete) return null;
+                    item.SkillBoost2 = Mutagen.Bethesda.Fallout3.SkillBoost.CreateFromBinary(frame: dataFrame);
+                    if (dataFrame.Complete) return null;
+                    item.SkillBoost3 = Mutagen.Bethesda.Fallout3.SkillBoost.CreateFromBinary(frame: dataFrame);
+                    if (dataFrame.Complete) return null;
+                    item.SkillBoost4 = Mutagen.Bethesda.Fallout3.SkillBoost.CreateFromBinary(frame: dataFrame);
+                    if (dataFrame.Complete) return null;
+                    item.SkillBoost5 = Mutagen.Bethesda.Fallout3.SkillBoost.CreateFromBinary(frame: dataFrame);
+                    if (dataFrame.Complete) return null;
+                    item.SkillBoost6 = Mutagen.Bethesda.Fallout3.SkillBoost.CreateFromBinary(frame: dataFrame);
+                    if (dataFrame.Remaining < 2) return null;
+                    item.Unknown = dataFrame.ReadInt16();
+                    if (dataFrame.Remaining < 8) return null;
+                    item.Height = Mutagen.Bethesda.Plugins.Binary.Translations.GenderedItemBinaryTranslation.ParseRequired<Single>(
+                        frame: frame,
+                        transl: FloatBinaryTranslation<MutagenFrame, MutagenWriter>.Instance.Parse);
+                    if (dataFrame.Remaining < 8) return null;
+                    item.Weight = Mutagen.Bethesda.Plugins.Binary.Translations.GenderedItemBinaryTranslation.ParseRequired<Single>(
+                        frame: frame,
+                        transl: FloatBinaryTranslation<MutagenFrame, MutagenWriter>.Instance.Parse);
+                    if (dataFrame.Remaining < 4) return null;
+                    item.Flags = EnumBinaryTranslation<Race.Flag, MutagenFrame, MutagenWriter>.Instance.Parse(
+                        reader: dataFrame,
+                        length: 4);
+                    return (int)Race_FieldIndex.Flags;
+                }
+                case RecordTypeInts.ONAM:
+                {
+                    frame.Position += frame.MetaData.Constants.SubConstants.HeaderLength;
+                    item.Older.SetTo(FormLinkBinaryTranslation.Instance.Parse(reader: frame));
+                    return (int)Race_FieldIndex.Older;
+                }
+                case RecordTypeInts.YNAM:
+                {
+                    frame.Position += frame.MetaData.Constants.SubConstants.HeaderLength;
+                    item.Younger.SetTo(FormLinkBinaryTranslation.Instance.Parse(reader: frame));
+                    return (int)Race_FieldIndex.Younger;
+                }
+                case RecordTypeInts.NAM2:
+                {
+                    frame.ReadSubrecord();
+                    return default(int?);
+                }
+                case RecordTypeInts.VTCK:
+                {
+                    frame.Position += frame.MetaData.Constants.SubConstants.HeaderLength;
+                    item.Voices = Mutagen.Bethesda.Plugins.Binary.Translations.GenderedItemBinaryTranslation.ParseRequired<IFormLinkGetter<IVoiceTypeGetter>>(
+                        frame: frame,
+                        transl: FormLinkBinaryTranslation.Instance.Parse);
+                    return (int)Race_FieldIndex.Voices;
+                }
+                case RecordTypeInts.DNAM:
+                {
+                    frame.Position += frame.MetaData.Constants.SubConstants.HeaderLength;
+                    item.DefaultHair = Mutagen.Bethesda.Plugins.Binary.Translations.GenderedItemBinaryTranslation.ParseRequired<IFormLinkGetter<IHairGetter>>(
+                        frame: frame,
+                        transl: FormLinkBinaryTranslation.Instance.Parse);
+                    return (int)Race_FieldIndex.DefaultHair;
+                }
+                case RecordTypeInts.CNAM:
+                {
+                    frame.Position += frame.MetaData.Constants.SubConstants.HeaderLength;
+                    item.DefaultHairColor = Mutagen.Bethesda.Plugins.Binary.Translations.GenderedItemBinaryTranslation.ParseRequired<Race.HairColor>(
+                        frame: frame,
+                        transl: (MutagenFrame r, [MaybeNullWhen(false)] out Race.HairColor genSubItem) =>
+                        {
+                            return EnumBinaryTranslation<Race.HairColor, MutagenFrame, MutagenWriter>.Instance.Parse(
+                                reader: r.SpawnWithLength(1),
+                                item: out genSubItem);
+                        });
+                    return (int)Race_FieldIndex.DefaultHairColor;
+                }
+                case RecordTypeInts.PNAM:
+                {
+                    frame.Position += frame.MetaData.Constants.SubConstants.HeaderLength;
+                    item.FaceGenMainClamp = frame.ReadInt32();
+                    return (int)Race_FieldIndex.FaceGenMainClamp;
+                }
+                case RecordTypeInts.UNAM:
+                {
+                    frame.Position += frame.MetaData.Constants.SubConstants.HeaderLength;
+                    item.FaceGenFaceClamp = frame.ReadInt32();
+                    return (int)Race_FieldIndex.FaceGenFaceClamp;
+                }
+                case RecordTypeInts.ATTR:
+                {
+                    frame.Position += frame.MetaData.Constants.SubConstants.HeaderLength;
+                    item.RaceStats = ByteArrayBinaryTranslation<MutagenFrame, MutagenWriter>.Instance.Parse(reader: frame.SpawnWithLength(contentLength));
+                    return (int)Race_FieldIndex.RaceStats;
+                }
+                case RecordTypeInts.NAM0:
+                {
+                    frame.Position += frame.MetaData.Constants.SubConstants.HeaderLength + contentLength; // Skip marker
+                    item.HeadParts = Mutagen.Bethesda.Plugins.Binary.Translations.GenderedItemBinaryTranslation.Parse<ExtendedList<HeadPartData>>(
+                        frame: frame,
+                        maleMarker: RecordTypes.MNAM,
+                        femaleMarker: RecordTypes.FNAM,
+                        skipMarker: false,
+                        transl: (MutagenFrame r, [MaybeNullWhen(false)] out ExtendedList<HeadPartData> genSubItem) =>
+                        {
+                            genSubItem = 
+                                Mutagen.Bethesda.Plugins.Binary.Translations.ListBinaryTranslation<HeadPartData>.Instance.Parse(
+                                    reader: frame,
+                                    triggeringRecord: HeadPartData_Registration.TriggerSpecs,
+                                    translationParams: translationParams,
+                                    transl: HeadPartData.TryCreateFromBinary)
+                                .CastExtendedList<HeadPartData>();
+                            return true;
+                        });
+                    return (int)Race_FieldIndex.HeadParts;
+                }
+                case RecordTypeInts.NAM1:
+                {
+                    frame.Position += frame.MetaData.Constants.SubConstants.HeaderLength + contentLength; // Skip marker
+                    item.BodyParts = Mutagen.Bethesda.Plugins.Binary.Translations.GenderedItemBinaryTranslation.Parse<ExtendedList<BodyPartData>>(
+                        frame: frame,
+                        maleMarker: RecordTypes.MNAM,
+                        femaleMarker: RecordTypes.FNAM,
+                        skipMarker: false,
+                        transl: (MutagenFrame r, [MaybeNullWhen(false)] out ExtendedList<BodyPartData> genSubItem) =>
+                        {
+                            genSubItem = 
+                                Mutagen.Bethesda.Plugins.Binary.Translations.ListBinaryTranslation<BodyPartData>.Instance.Parse(
+                                    reader: frame,
+                                    triggeringRecord: BodyPartData_Registration.TriggerSpecs,
+                                    translationParams: translationParams,
+                                    transl: BodyPartData.TryCreateFromBinary)
+                                .CastExtendedList<BodyPartData>();
+                            return true;
+                        });
+                    return (int)Race_FieldIndex.BodyParts;
+                }
+                case RecordTypeInts.HNAM:
+                {
+                    frame.Position += frame.MetaData.Constants.SubConstants.HeaderLength;
+                    item.Hairs = 
+                        Mutagen.Bethesda.Plugins.Binary.Translations.ListBinaryTranslation<IFormLinkGetter<IHairGetter>>.Instance.Parse(
+                            reader: frame.SpawnWithLength(contentLength),
+                            transl: FormLinkBinaryTranslation.Instance.Parse)
+                        .CastExtendedList<IFormLinkGetter<IHairGetter>>();
+                    return (int)Race_FieldIndex.Hairs;
+                }
+                case RecordTypeInts.ENAM:
+                {
+                    frame.Position += frame.MetaData.Constants.SubConstants.HeaderLength;
+                    item.Eyes = 
+                        Mutagen.Bethesda.Plugins.Binary.Translations.ListBinaryTranslation<IFormLinkGetter<IEyesGetter>>.Instance.Parse(
+                            reader: frame.SpawnWithLength(contentLength),
+                            transl: FormLinkBinaryTranslation.Instance.Parse)
+                        .CastExtendedList<IFormLinkGetter<IEyesGetter>>();
+                    return (int)Race_FieldIndex.Eyes;
+                }
+                case RecordTypeInts.MNAM:
+                case RecordTypeInts.FNAM:
+                {
+                    item.FaceGen = Mutagen.Bethesda.Plugins.Binary.Translations.GenderedItemBinaryTranslation.Parse<FaceGenData>(
+                        frame: frame,
+                        maleMarker: RecordTypes.MNAM,
+                        femaleMarker: RecordTypes.FNAM,
+                        transl: FaceGenData.TryCreateFromBinary);
+                    return (int)Race_FieldIndex.FaceGen;
+                }
+                default:
+                    return Fallout3MajorRecordBinaryCreateTranslation.FillBinaryRecordTypes(
+                        item: item,
+                        frame: frame,
+                        lastParsed: lastParsed,
+                        recordParseCount: recordParseCount,
+                        nextRecordType: nextRecordType,
+                        contentLength: contentLength,
+                        translationParams: translationParams.WithNoConverter());
+            }
+        }
+
     }
 
 }
@@ -1256,6 +3866,7 @@ namespace Mutagen.Bethesda.Fallout3
 
         void IPrintable.Print(StructuredStringBuilder sb, string? name) => this.Print(sb, name);
 
+        public override IEnumerable<IFormLinkGetter> EnumerateFormLinks() => RaceCommon.Instance.EnumerateFormLinks(this);
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         protected override object BinaryWriteTranslator => RaceBinaryWriteTranslation.Instance;
         void IBinaryItem.WriteToBinary(
@@ -1270,6 +3881,178 @@ namespace Mutagen.Bethesda.Fallout3
         protected override Type LinkType => typeof(IRace);
 
 
+        #region Name
+        private int? _NameLocation;
+        public String? Name => _NameLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NameLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        #region Aspects
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        string INamedRequiredGetter.Name => this.Name ?? string.Empty;
+        #endregion
+        #endregion
+        #region Description
+        private int? _DescriptionLocation;
+        public String? Description => _DescriptionLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _DescriptionLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        #endregion
+        public IReadOnlyList<IRaceRelationGetter> Relations { get; private set; } = Array.Empty<IRaceRelationGetter>();
+        private RangeInt32? _DATALocation;
+        #region SkillBoost0
+        private int _SkillBoost0Location => _DATALocation!.Value.Min;
+        private bool _SkillBoost0_IsSet => _DATALocation.HasValue;
+        private ISkillBoostGetter? _SkillBoost0 => _SkillBoost0_IsSet ? SkillBoostBinaryOverlay.SkillBoostFactory(_recordData.Slice(_SkillBoost0Location), _package) : default;
+        public ISkillBoostGetter SkillBoost0 => _SkillBoost0 ?? new SkillBoost();
+        #endregion
+        #region SkillBoost1
+        private int _SkillBoost1Location => _DATALocation!.Value.Min + 0x2;
+        private bool _SkillBoost1_IsSet => _DATALocation.HasValue;
+        private ISkillBoostGetter? _SkillBoost1 => _SkillBoost1_IsSet ? SkillBoostBinaryOverlay.SkillBoostFactory(_recordData.Slice(_SkillBoost1Location), _package) : default;
+        public ISkillBoostGetter SkillBoost1 => _SkillBoost1 ?? new SkillBoost();
+        #endregion
+        #region SkillBoost2
+        private int _SkillBoost2Location => _DATALocation!.Value.Min + 0x4;
+        private bool _SkillBoost2_IsSet => _DATALocation.HasValue;
+        private ISkillBoostGetter? _SkillBoost2 => _SkillBoost2_IsSet ? SkillBoostBinaryOverlay.SkillBoostFactory(_recordData.Slice(_SkillBoost2Location), _package) : default;
+        public ISkillBoostGetter SkillBoost2 => _SkillBoost2 ?? new SkillBoost();
+        #endregion
+        #region SkillBoost3
+        private int _SkillBoost3Location => _DATALocation!.Value.Min + 0x6;
+        private bool _SkillBoost3_IsSet => _DATALocation.HasValue;
+        private ISkillBoostGetter? _SkillBoost3 => _SkillBoost3_IsSet ? SkillBoostBinaryOverlay.SkillBoostFactory(_recordData.Slice(_SkillBoost3Location), _package) : default;
+        public ISkillBoostGetter SkillBoost3 => _SkillBoost3 ?? new SkillBoost();
+        #endregion
+        #region SkillBoost4
+        private int _SkillBoost4Location => _DATALocation!.Value.Min + 0x8;
+        private bool _SkillBoost4_IsSet => _DATALocation.HasValue;
+        private ISkillBoostGetter? _SkillBoost4 => _SkillBoost4_IsSet ? SkillBoostBinaryOverlay.SkillBoostFactory(_recordData.Slice(_SkillBoost4Location), _package) : default;
+        public ISkillBoostGetter SkillBoost4 => _SkillBoost4 ?? new SkillBoost();
+        #endregion
+        #region SkillBoost5
+        private int _SkillBoost5Location => _DATALocation!.Value.Min + 0xA;
+        private bool _SkillBoost5_IsSet => _DATALocation.HasValue;
+        private ISkillBoostGetter? _SkillBoost5 => _SkillBoost5_IsSet ? SkillBoostBinaryOverlay.SkillBoostFactory(_recordData.Slice(_SkillBoost5Location), _package) : default;
+        public ISkillBoostGetter SkillBoost5 => _SkillBoost5 ?? new SkillBoost();
+        #endregion
+        #region SkillBoost6
+        private int _SkillBoost6Location => _DATALocation!.Value.Min + 0xC;
+        private bool _SkillBoost6_IsSet => _DATALocation.HasValue;
+        private ISkillBoostGetter? _SkillBoost6 => _SkillBoost6_IsSet ? SkillBoostBinaryOverlay.SkillBoostFactory(_recordData.Slice(_SkillBoost6Location), _package) : default;
+        public ISkillBoostGetter SkillBoost6 => _SkillBoost6 ?? new SkillBoost();
+        #endregion
+        #region Unknown
+        private int _UnknownLocation => _DATALocation!.Value.Min + 0xE;
+        private bool _Unknown_IsSet => _DATALocation.HasValue;
+        public Int16 Unknown => _Unknown_IsSet ? BinaryPrimitives.ReadInt16LittleEndian(_recordData.Slice(_UnknownLocation, 2)) : default(Int16);
+        #endregion
+        #region Height
+        private int _HeightLocation => _DATALocation!.Value.Min + 0x10;
+        private bool _Height_IsSet => _DATALocation.HasValue;
+        public IGenderedItemGetter<Single> Height
+        {
+            get
+            {
+                if (!_Height_IsSet) return new GenderedItem<Single>(default(Single), default(Single));
+                var data = _recordData.Slice(_HeightLocation);
+                return new GenderedItem<Single>(
+                    data.Float(),
+                    data.Slice(4).Float());
+            }
+        }
+        #endregion
+        #region Weight
+        private int _WeightLocation => _DATALocation!.Value.Min + 0x18;
+        private bool _Weight_IsSet => _DATALocation.HasValue;
+        public IGenderedItemGetter<Single> Weight
+        {
+            get
+            {
+                if (!_Weight_IsSet) return new GenderedItem<Single>(default(Single), default(Single));
+                var data = _recordData.Slice(_WeightLocation);
+                return new GenderedItem<Single>(
+                    data.Float(),
+                    data.Slice(4).Float());
+            }
+        }
+        #endregion
+        #region Flags
+        private int _FlagsLocation => _DATALocation!.Value.Min + 0x20;
+        private bool _Flags_IsSet => _DATALocation.HasValue;
+        public Race.Flag Flags => _Flags_IsSet ? (Race.Flag)BinaryPrimitives.ReadInt32LittleEndian(_recordData.Span.Slice(_FlagsLocation, 0x4)) : default;
+        #endregion
+        #region Older
+        private int? _OlderLocation;
+        public IFormLinkNullableGetter<IRaceGetter> Older => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IRaceGetter>(_package, _recordData, _OlderLocation);
+        #endregion
+        #region Younger
+        private int? _YoungerLocation;
+        public IFormLinkNullableGetter<IRaceGetter> Younger => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IRaceGetter>(_package, _recordData, _YoungerLocation);
+        #endregion
+        #region Voices
+        private int? _VoicesLocation;
+        public IGenderedItemGetter<IFormLinkGetter<IVoiceTypeGetter>> Voices
+        {
+            get
+            {
+                if (!_VoicesLocation.HasValue) return new GenderedItem<IFormLinkGetter<IVoiceTypeGetter>>(FormLink<IVoiceTypeGetter>.Null, FormLink<IVoiceTypeGetter>.Null);
+                var data = HeaderTranslation.ExtractSubrecordMemory(_recordData, _VoicesLocation.Value, _package.MetaData.Constants);
+                return new GenderedItem<IFormLinkGetter<IVoiceTypeGetter>>(
+                    FormLinkBinaryTranslation.Instance.OverlayFactory<IVoiceTypeGetter>(_package, data),
+                    FormLinkBinaryTranslation.Instance.OverlayFactory<IVoiceTypeGetter>(_package, data.Slice(4)));
+            }
+        }
+        #endregion
+        #region DefaultHair
+        private int? _DefaultHairLocation;
+        public IGenderedItemGetter<IFormLinkGetter<IHairGetter>>? DefaultHair
+        {
+            get
+            {
+                if (!_DefaultHairLocation.HasValue) return default;
+                var data = HeaderTranslation.ExtractSubrecordMemory(_recordData, _DefaultHairLocation.Value, _package.MetaData.Constants);
+                return new GenderedItem<IFormLinkGetter<IHairGetter>>(
+                    FormLinkBinaryTranslation.Instance.OverlayFactory<IHairGetter>(_package, data),
+                    FormLinkBinaryTranslation.Instance.OverlayFactory<IHairGetter>(_package, data.Slice(4)));
+            }
+        }
+        #endregion
+        #region DefaultHairColor
+        private int? _DefaultHairColorLocation;
+        public IGenderedItemGetter<Race.HairColor>? DefaultHairColor
+        {
+            get
+            {
+                if (!_DefaultHairColorLocation.HasValue) return default;
+                var data = HeaderTranslation.ExtractSubrecordMemory(_recordData, _DefaultHairColorLocation.Value, _package.MetaData.Constants);
+                return new GenderedItem<Race.HairColor>(
+                    (Race.HairColor)data[0],
+                    (Race.HairColor)data.Slice(1)[0]);
+            }
+        }
+        #endregion
+        #region FaceGenMainClamp
+        private int? _FaceGenMainClampLocation;
+        public Int32? FaceGenMainClamp => _FaceGenMainClampLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _FaceGenMainClampLocation.Value, _package.MetaData.Constants)) : default(Int32?);
+        #endregion
+        #region FaceGenFaceClamp
+        private int? _FaceGenFaceClampLocation;
+        public Int32? FaceGenFaceClamp => _FaceGenFaceClampLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _FaceGenFaceClampLocation.Value, _package.MetaData.Constants)) : default(Int32?);
+        #endregion
+        #region RaceStats
+        private int? _RaceStatsLocation;
+        public ReadOnlyMemorySlice<Byte>? RaceStats => _RaceStatsLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _RaceStatsLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
+        #endregion
+        #region HeadParts
+        private IGenderedItemGetter<IReadOnlyList<IHeadPartDataGetter>?>? _HeadPartsOverlay;
+        public IGenderedItemGetter<IReadOnlyList<IHeadPartDataGetter>?> HeadParts => _HeadPartsOverlay ?? new GenderedItem<IReadOnlyList<IHeadPartDataGetter>?>(default, default);
+        #endregion
+        #region BodyParts
+        private IGenderedItemGetter<IReadOnlyList<IBodyPartDataGetter>?>? _BodyPartsOverlay;
+        public IGenderedItemGetter<IReadOnlyList<IBodyPartDataGetter>?> BodyParts => _BodyPartsOverlay ?? new GenderedItem<IReadOnlyList<IBodyPartDataGetter>?>(default, default);
+        #endregion
+        public IReadOnlyList<IFormLinkGetter<IHairGetter>>? Hairs { get; private set; }
+        public IReadOnlyList<IFormLinkGetter<IEyesGetter>>? Eyes { get; private set; }
+        #region FaceGen
+        private IGenderedItemGetter<IFaceGenDataGetter?>? _FaceGenOverlay;
+        public IGenderedItemGetter<IFaceGenDataGetter?> FaceGen => _FaceGenOverlay ?? new GenderedItem<IFaceGenDataGetter?>(default, default);
+        #endregion
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -1327,6 +4110,172 @@ namespace Mutagen.Bethesda.Fallout3
                 translationParams: translationParams);
         }
 
+        public override ParseResult FillRecordType(
+            OverlayStream stream,
+            int finalPos,
+            int offset,
+            RecordType type,
+            PreviousParse lastParsed,
+            Dictionary<RecordType, int>? recordParseCount,
+            TypedParseParams translationParams = default)
+        {
+            type = translationParams.ConvertToStandard(type);
+            switch (type.TypeInt)
+            {
+                case RecordTypeInts.FULL:
+                {
+                    _NameLocation = (stream.Position - offset);
+                    return (int)Race_FieldIndex.Name;
+                }
+                case RecordTypeInts.DESC:
+                {
+                    _DescriptionLocation = (stream.Position - offset);
+                    return (int)Race_FieldIndex.Description;
+                }
+                case RecordTypeInts.XNAM:
+                {
+                    this.Relations = BinaryOverlayList.FactoryByArray<IRaceRelationGetter>(
+                        mem: stream.RemainingMemory,
+                        package: _package,
+                        translationParams: translationParams,
+                        getter: (s, p, recConv) => RaceRelationBinaryOverlay.RaceRelationFactory(new OverlayStream(s, p), p, recConv),
+                        locs: ParseRecordLocations(
+                            stream: stream,
+                            trigger: RaceRelation_Registration.TriggerSpecs,
+                            triggersAlwaysAreNewRecords: true,
+                            constants: _package.MetaData.Constants.SubConstants,
+                            skipHeader: false));
+                    return (int)Race_FieldIndex.Relations;
+                }
+                case RecordTypeInts.DATA:
+                {
+                    _DATALocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    return (int)Race_FieldIndex.Flags;
+                }
+                case RecordTypeInts.ONAM:
+                {
+                    _OlderLocation = (stream.Position - offset);
+                    return (int)Race_FieldIndex.Older;
+                }
+                case RecordTypeInts.YNAM:
+                {
+                    _YoungerLocation = (stream.Position - offset);
+                    return (int)Race_FieldIndex.Younger;
+                }
+                case RecordTypeInts.NAM2:
+                {
+                    stream.ReadSubrecord();
+                    return default(int?);
+                }
+                case RecordTypeInts.VTCK:
+                {
+                    _VoicesLocation = (stream.Position - offset);
+                    return (int)Race_FieldIndex.Voices;
+                }
+                case RecordTypeInts.DNAM:
+                {
+                    _DefaultHairLocation = (stream.Position - offset);
+                    return (int)Race_FieldIndex.DefaultHair;
+                }
+                case RecordTypeInts.CNAM:
+                {
+                    _DefaultHairColorLocation = (stream.Position - offset);
+                    return (int)Race_FieldIndex.DefaultHairColor;
+                }
+                case RecordTypeInts.PNAM:
+                {
+                    _FaceGenMainClampLocation = (stream.Position - offset);
+                    return (int)Race_FieldIndex.FaceGenMainClamp;
+                }
+                case RecordTypeInts.UNAM:
+                {
+                    _FaceGenFaceClampLocation = (stream.Position - offset);
+                    return (int)Race_FieldIndex.FaceGenFaceClamp;
+                }
+                case RecordTypeInts.ATTR:
+                {
+                    _RaceStatsLocation = (stream.Position - offset);
+                    return (int)Race_FieldIndex.RaceStats;
+                }
+                case RecordTypeInts.NAM0:
+                {
+                    stream.Position += _package.MetaData.Constants.SubConstants.HeaderLength; // Skip marker
+                    _HeadPartsOverlay = GenderedItemBinaryOverlay.FactorySkipMarkersPreRead<IReadOnlyList<IHeadPartDataGetter>>(
+                        package: _package,
+                        male: RecordTypes.MNAM,
+                        female: RecordTypes.FNAM,
+                        stream: stream,
+                        creator: (s, p, t) => 
+                        {
+                            return this.ParseRepeatedTypelessSubrecord<IHeadPartDataGetter>(
+                                stream: s,
+                                translationParams: t,
+                                trigger: HeadPartData_Registration.TriggerSpecs,
+                                factory: HeadPartDataBinaryOverlay.HeadPartDataFactory);
+                        });
+                    return (int)Race_FieldIndex.HeadParts;
+                }
+                case RecordTypeInts.NAM1:
+                {
+                    stream.Position += _package.MetaData.Constants.SubConstants.HeaderLength; // Skip marker
+                    _BodyPartsOverlay = GenderedItemBinaryOverlay.FactorySkipMarkersPreRead<IReadOnlyList<IBodyPartDataGetter>>(
+                        package: _package,
+                        male: RecordTypes.MNAM,
+                        female: RecordTypes.FNAM,
+                        stream: stream,
+                        creator: (s, p, t) => 
+                        {
+                            return this.ParseRepeatedTypelessSubrecord<IBodyPartDataGetter>(
+                                stream: s,
+                                translationParams: t,
+                                trigger: BodyPartData_Registration.TriggerSpecs,
+                                factory: BodyPartDataBinaryOverlay.BodyPartDataFactory);
+                        });
+                    return (int)Race_FieldIndex.BodyParts;
+                }
+                case RecordTypeInts.HNAM:
+                {
+                    this.Hairs = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<IHairGetter>>(
+                        stream: stream,
+                        package: _package,
+                        finalPos: finalPos,
+                        itemLength: 4,
+                        getter: (s, p) => FormLinkBinaryTranslation.Instance.OverlayFactory<IHairGetter>(p, s));
+                    return (int)Race_FieldIndex.Hairs;
+                }
+                case RecordTypeInts.ENAM:
+                {
+                    this.Eyes = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<IEyesGetter>>(
+                        stream: stream,
+                        package: _package,
+                        finalPos: finalPos,
+                        itemLength: 4,
+                        getter: (s, p) => FormLinkBinaryTranslation.Instance.OverlayFactory<IEyesGetter>(p, s));
+                    return (int)Race_FieldIndex.Eyes;
+                }
+                case RecordTypeInts.MNAM:
+                case RecordTypeInts.FNAM:
+                {
+                    _FaceGenOverlay = GenderedItemBinaryOverlay.FactorySkipMarkersPreRead<IFaceGenDataGetter>(
+                        package: _package,
+                        male: RecordTypes.MNAM,
+                        female: RecordTypes.FNAM,
+                        stream: stream,
+                        creator: static (s, p, r) => FaceGenDataBinaryOverlay.FaceGenDataFactory(s, p, r),
+                        translationParams: translationParams);
+                    return (int)Race_FieldIndex.FaceGen;
+                }
+                default:
+                    return base.FillRecordType(
+                        stream: stream,
+                        finalPos: finalPos,
+                        offset: offset,
+                        type: type,
+                        lastParsed: lastParsed,
+                        recordParseCount: recordParseCount,
+                        translationParams: translationParams.WithNoConverter());
+            }
+        }
         #region To String
 
         public override void Print(

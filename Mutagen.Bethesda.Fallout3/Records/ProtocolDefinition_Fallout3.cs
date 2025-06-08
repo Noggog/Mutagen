@@ -10,12 +10,14 @@ internal class ProtocolDefinition_Fallout3 : IProtocolRegistration
     {
         LoquiRegistration.Register(
             AlternateTexture_Registration.Instance,
+            BodyPartData_Registration.Instance,
             Cell_Registration.Instance,
             CellBlock_Registration.Instance,
             CellSubBlock_Registration.Instance,
             Class_Registration.Instance,
             Decal_Registration.Instance,
             Eyes_Registration.Instance,
+            FaceGenData_Registration.Instance,
             Faction_Registration.Instance,
             Fallout3Group_Registration.Instance,
             Fallout3ListGroup_Registration.Instance,
@@ -33,6 +35,7 @@ internal class ProtocolDefinition_Fallout3 : IProtocolRegistration
             GlobalUnknown_Registration.Instance,
             Hair_Registration.Instance,
             HeadPart_Registration.Instance,
+            HeadPartData_Registration.Instance,
             Icons_Registration.Instance,
             MenuIcon_Registration.Instance,
             Model_Registration.Instance,
@@ -41,12 +44,15 @@ internal class ProtocolDefinition_Fallout3 : IProtocolRegistration
             ObjectBounds_Registration.Instance,
             PlacedObject_Registration.Instance,
             Race_Registration.Instance,
+            RaceRelation_Registration.Instance,
             Rank_Registration.Instance,
             Relation_Registration.Instance,
+            SkillBoost_Registration.Instance,
             Sound_Registration.Instance,
             SoundData_Registration.Instance,
             SoundDataExtended_Registration.Instance,
-            TextureSet_Registration.Instance
+            TextureSet_Registration.Instance,
+            VoiceType_Registration.Instance
         );
     }
 }
