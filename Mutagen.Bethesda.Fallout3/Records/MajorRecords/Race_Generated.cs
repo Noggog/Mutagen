@@ -3893,7 +3893,7 @@ namespace Mutagen.Bethesda.Fallout3
         private int? _DescriptionLocation;
         public String? Description => _DescriptionLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _DescriptionLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
         #endregion
-        public IReadOnlyList<IRaceRelationGetter> Relations { get; private set; } = Array.Empty<IRaceRelationGetter>();
+        public IReadOnlyList<IRaceRelationGetter> Relations { get; private set; } = [];
         private RangeInt32? _DATALocation;
         #region SkillBoost0
         private int _SkillBoost0Location => _DATALocation!.Value.Min;
