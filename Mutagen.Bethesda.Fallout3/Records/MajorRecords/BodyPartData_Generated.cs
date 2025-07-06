@@ -1403,7 +1403,7 @@ namespace Mutagen.Bethesda.Fallout3
 
         #region Part
         private int? _PartLocation;
-        public Race.BodyIndex? Part => _PartLocation.HasValue ? (Race.BodyIndex)BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _PartLocation!.Value, _package.MetaData.Constants)) : default(Race.BodyIndex?);
+        public Race.BodyIndex? Part => EnumBinaryTranslation<Race.BodyIndex, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(_PartLocation, _recordData, _package, 4);
         #endregion
         public IIconsGetter? Icons { get; private set; }
         public IModelGetter? Model { get; private set; }

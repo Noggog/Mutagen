@@ -1524,7 +1524,7 @@ namespace Mutagen.Bethesda.Fallout3
         public IReadOnlyList<IAlternateTextureGetter>? AlternateTextures { get; private set; }
         #region FaceGenFlags
         private int? _FaceGenFlagsLocation;
-        public Model.FaceGenFlag? FaceGenFlags => _FaceGenFlagsLocation.HasValue ? (Model.FaceGenFlag)HeaderTranslation.ExtractSubrecordMemory(_recordData, _FaceGenFlagsLocation!.Value, _package.MetaData.Constants)[0] : default(Model.FaceGenFlag?);
+        public Model.FaceGenFlag? FaceGenFlags => EnumBinaryTranslation<Model.FaceGenFlag, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(_FaceGenFlagsLocation, _recordData, _package, 1);
         #endregion
         partial void CustomFactoryEnd(
             OverlayStream stream,
