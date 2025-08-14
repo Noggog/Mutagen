@@ -952,6 +952,11 @@ namespace Mutagen.Bethesda.Skyrim
         #region Mutagen
         public IEnumerable<IFormLinkGetter> EnumerateFormLinks(IWeatherColorGetter obj)
         {
+            return EnumerateFormLinks<IMajorRecordGetter>(obj);
+        }
+        public IEnumerable<IFormLinkGetter<TMajorGetter>> EnumerateFormLinks<TMajorGetter>(IWeatherColorGetter obj)
+            where TMajorGetter : class, IMajorRecordGetter
+        {
             yield break;
         }
         

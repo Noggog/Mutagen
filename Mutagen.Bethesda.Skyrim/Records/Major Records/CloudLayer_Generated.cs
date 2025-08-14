@@ -1067,6 +1067,11 @@ namespace Mutagen.Bethesda.Skyrim
         #region Mutagen
         public IEnumerable<IFormLinkGetter> EnumerateFormLinks(ICloudLayerGetter obj)
         {
+            return EnumerateFormLinks<IMajorRecordGetter>(obj);
+        }
+        public IEnumerable<IFormLinkGetter<TMajorGetter>> EnumerateFormLinks<TMajorGetter>(ICloudLayerGetter obj)
+            where TMajorGetter : class, IMajorRecordGetter
+        {
             yield break;
         }
         

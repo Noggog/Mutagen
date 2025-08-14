@@ -431,6 +431,11 @@ namespace Mutagen.Bethesda.Skyrim
 
         #region Mutagen
         public IEnumerable<IFormLinkGetter> EnumerateFormLinks() => AlternateTextureCommon.Instance.EnumerateFormLinks(this);
+        public IEnumerable<IFormLinkGetter<TMajorGetter>> EnumerateFormLinks<TMajorGetter>()
+            where TMajorGetter : class, IMajorRecordGetter
+        {
+            return AlternateTextureCommon.Instance.EnumerateFormLinks<TMajorGetter>(this);
+        }
         public void RemapLinks(IReadOnlyDictionary<FormKey, FormKey> mapping) => AlternateTextureSetterCommon.Instance.RemapLinks(this, mapping);
         #endregion
 
@@ -934,6 +939,11 @@ namespace Mutagen.Bethesda.Skyrim
         #region Mutagen
         public IEnumerable<IFormLinkGetter> EnumerateFormLinks(IAlternateTextureGetter obj)
         {
+            return EnumerateFormLinks<IMajorRecordGetter>(obj);
+        }
+        public IEnumerable<IFormLinkGetter<TMajorGetter>> EnumerateFormLinks<TMajorGetter>(IAlternateTextureGetter obj)
+            where TMajorGetter : class, IMajorRecordGetter
+        {
             yield return FormLinkInformation.Factory(obj.NewTexture);
             yield break;
         }
@@ -1172,6 +1182,11 @@ namespace Mutagen.Bethesda.Skyrim
         void IPrintable.Print(StructuredStringBuilder sb, string? name) => this.Print(sb, name);
 
         public IEnumerable<IFormLinkGetter> EnumerateFormLinks() => AlternateTextureCommon.Instance.EnumerateFormLinks(this);
+        public IEnumerable<IFormLinkGetter<TMajorGetter>> EnumerateFormLinks<TMajorGetter>()
+            where TMajorGetter : class, IMajorRecordGetter
+        {
+            return AlternateTextureCommon.Instance.EnumerateFormLinks<TMajorGetter>(this);
+        }
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         protected object BinaryWriteTranslator => AlternateTextureBinaryWriteTranslation.Instance;
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]

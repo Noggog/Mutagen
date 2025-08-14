@@ -344,6 +344,10 @@ namespace Mutagen.Bethesda.Skyrim
 
         #region Mutagen
         public override IEnumerable<IFormLinkGetter> EnumerateFormLinks() => MagicEffectSpawnHazardArchetypeCommon.Instance.EnumerateFormLinks(this);
+        public override IEnumerable<IFormLinkGetter<TMajorGetter>> EnumerateFormLinks<TMajorGetter>()
+        {
+            return MagicEffectSpawnHazardArchetypeCommon.Instance.EnumerateFormLinks<TMajorGetter>(this);
+        }
         public override void RemapLinks(IReadOnlyDictionary<FormKey, FormKey> mapping) => MagicEffectSpawnHazardArchetypeSetterCommon.Instance.RemapLinks(this, mapping);
         #endregion
 
@@ -829,6 +833,11 @@ namespace Mutagen.Bethesda.Skyrim
         
         #region Mutagen
         public IEnumerable<IFormLinkGetter> EnumerateFormLinks(IMagicEffectSpawnHazardArchetypeGetter obj)
+        {
+            return EnumerateFormLinks<IMajorRecordGetter>(obj);
+        }
+        public IEnumerable<IFormLinkGetter<TMajorGetter>> EnumerateFormLinks<TMajorGetter>(IMagicEffectSpawnHazardArchetypeGetter obj)
+            where TMajorGetter : class, IMajorRecordGetter
         {
             foreach (var item in base.EnumerateFormLinks(obj))
             {

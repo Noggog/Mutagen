@@ -109,6 +109,10 @@ public abstract class AListGroup<TObject> : IListGroup<TObject>
     
     /// <inheritdoc />
     public abstract IEnumerable<IFormLinkGetter> EnumerateFormLinks();
+    
+    /// <inheritdoc />
+    public abstract IEnumerable<IFormLinkGetter<TMajorGetter>> EnumerateFormLinks<TMajorGetter>()
+        where TMajorGetter : class, IMajorRecordGetter;
 
     /// <inheritdoc />
     public abstract IEnumerable<IAssetLinkGetter> EnumerateAssetLinks(AssetLinkQuery queryCategories,

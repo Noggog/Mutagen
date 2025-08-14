@@ -394,6 +394,10 @@ namespace Mutagen.Bethesda.Skyrim
 
         #region Mutagen
         public override IEnumerable<IFormLinkGetter> EnumerateFormLinks() => AGetVATSValueConditionDataCommon.Instance.EnumerateFormLinks(this);
+        public override IEnumerable<IFormLinkGetter<TMajorGetter>> EnumerateFormLinks<TMajorGetter>()
+        {
+            return AGetVATSValueConditionDataCommon.Instance.EnumerateFormLinks<TMajorGetter>(this);
+        }
         public override void RemapLinks(IReadOnlyDictionary<FormKey, FormKey> mapping) => AGetVATSValueConditionDataSetterCommon.Instance.RemapLinks(this, mapping);
         #endregion
 
@@ -892,6 +896,11 @@ namespace Mutagen.Bethesda.Skyrim
         
         #region Mutagen
         public IEnumerable<IFormLinkGetter> EnumerateFormLinks(IAGetVATSValueConditionDataGetter obj)
+        {
+            return EnumerateFormLinks<IMajorRecordGetter>(obj);
+        }
+        public IEnumerable<IFormLinkGetter<TMajorGetter>> EnumerateFormLinks<TMajorGetter>(IAGetVATSValueConditionDataGetter obj)
+            where TMajorGetter : class, IMajorRecordGetter
         {
             foreach (var item in base.EnumerateFormLinks(obj))
             {

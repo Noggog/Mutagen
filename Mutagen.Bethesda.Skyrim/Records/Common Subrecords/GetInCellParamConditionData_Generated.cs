@@ -473,6 +473,10 @@ namespace Mutagen.Bethesda.Skyrim
 
         #region Mutagen
         public override IEnumerable<IFormLinkGetter> EnumerateFormLinks() => GetInCellParamConditionDataCommon.Instance.EnumerateFormLinks(this);
+        public override IEnumerable<IFormLinkGetter<TMajorGetter>> EnumerateFormLinks<TMajorGetter>()
+        {
+            return GetInCellParamConditionDataCommon.Instance.EnumerateFormLinks<TMajorGetter>(this);
+        }
         public override void RemapLinks(IReadOnlyDictionary<FormKey, FormKey> mapping) => GetInCellParamConditionDataSetterCommon.Instance.RemapLinks(this, mapping);
         object? IConditionParameters.Parameter1
         {
@@ -1047,6 +1051,11 @@ namespace Mutagen.Bethesda.Skyrim
         
         #region Mutagen
         public IEnumerable<IFormLinkGetter> EnumerateFormLinks(IGetInCellParamConditionDataGetter obj)
+        {
+            return EnumerateFormLinks<IMajorRecordGetter>(obj);
+        }
+        public IEnumerable<IFormLinkGetter<TMajorGetter>> EnumerateFormLinks<TMajorGetter>(IGetInCellParamConditionDataGetter obj)
+            where TMajorGetter : class, IMajorRecordGetter
         {
             foreach (var item in base.EnumerateFormLinks(obj))
             {

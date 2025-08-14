@@ -435,6 +435,11 @@ namespace Mutagen.Bethesda.Skyrim
 
         #region Mutagen
         public IEnumerable<IFormLinkGetter> EnumerateFormLinks() => DialogResponsesUnknownDataCommon.Instance.EnumerateFormLinks(this);
+        public IEnumerable<IFormLinkGetter<TMajorGetter>> EnumerateFormLinks<TMajorGetter>()
+            where TMajorGetter : class, IMajorRecordGetter
+        {
+            return DialogResponsesUnknownDataCommon.Instance.EnumerateFormLinks<TMajorGetter>(this);
+        }
         public void RemapLinks(IReadOnlyDictionary<FormKey, FormKey> mapping) => DialogResponsesUnknownDataSetterCommon.Instance.RemapLinks(this, mapping);
         #endregion
 
@@ -941,6 +946,11 @@ namespace Mutagen.Bethesda.Skyrim
         #region Mutagen
         public IEnumerable<IFormLinkGetter> EnumerateFormLinks(IDialogResponsesUnknownDataGetter obj)
         {
+            return EnumerateFormLinks<IMajorRecordGetter>(obj);
+        }
+        public IEnumerable<IFormLinkGetter<TMajorGetter>> EnumerateFormLinks<TMajorGetter>(IDialogResponsesUnknownDataGetter obj)
+            where TMajorGetter : class, IMajorRecordGetter
+        {
             if (FormLinkInformation.TryFactory(obj.QNAM, out var QNAMInfo))
             {
                 yield return QNAMInfo;
@@ -1220,6 +1230,11 @@ namespace Mutagen.Bethesda.Skyrim
         void IPrintable.Print(StructuredStringBuilder sb, string? name) => this.Print(sb, name);
 
         public IEnumerable<IFormLinkGetter> EnumerateFormLinks() => DialogResponsesUnknownDataCommon.Instance.EnumerateFormLinks(this);
+        public IEnumerable<IFormLinkGetter<TMajorGetter>> EnumerateFormLinks<TMajorGetter>()
+            where TMajorGetter : class, IMajorRecordGetter
+        {
+            return DialogResponsesUnknownDataCommon.Instance.EnumerateFormLinks<TMajorGetter>(this);
+        }
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         protected object BinaryWriteTranslator => DialogResponsesUnknownDataBinaryWriteTranslation.Instance;
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]

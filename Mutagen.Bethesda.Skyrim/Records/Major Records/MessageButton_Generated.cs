@@ -467,6 +467,11 @@ namespace Mutagen.Bethesda.Skyrim
 
         #region Mutagen
         public IEnumerable<IFormLinkGetter> EnumerateFormLinks() => MessageButtonCommon.Instance.EnumerateFormLinks(this);
+        public IEnumerable<IFormLinkGetter<TMajorGetter>> EnumerateFormLinks<TMajorGetter>()
+            where TMajorGetter : class, IMajorRecordGetter
+        {
+            return MessageButtonCommon.Instance.EnumerateFormLinks<TMajorGetter>(this);
+        }
         public void RemapLinks(IReadOnlyDictionary<FormKey, FormKey> mapping) => MessageButtonSetterCommon.Instance.RemapLinks(this, mapping);
         #endregion
 
@@ -978,6 +983,11 @@ namespace Mutagen.Bethesda.Skyrim
         #region Mutagen
         public IEnumerable<IFormLinkGetter> EnumerateFormLinks(IMessageButtonGetter obj)
         {
+            return EnumerateFormLinks<IMajorRecordGetter>(obj);
+        }
+        public IEnumerable<IFormLinkGetter<TMajorGetter>> EnumerateFormLinks<TMajorGetter>(IMessageButtonGetter obj)
+            where TMajorGetter : class, IMajorRecordGetter
+        {
             foreach (var item in obj.Conditions.SelectMany(f => f.EnumerateFormLinks()))
             {
                 yield return FormLinkInformation.Factory(item);
@@ -1274,6 +1284,11 @@ namespace Mutagen.Bethesda.Skyrim
         void IPrintable.Print(StructuredStringBuilder sb, string? name) => this.Print(sb, name);
 
         public IEnumerable<IFormLinkGetter> EnumerateFormLinks() => MessageButtonCommon.Instance.EnumerateFormLinks(this);
+        public IEnumerable<IFormLinkGetter<TMajorGetter>> EnumerateFormLinks<TMajorGetter>()
+            where TMajorGetter : class, IMajorRecordGetter
+        {
+            return MessageButtonCommon.Instance.EnumerateFormLinks<TMajorGetter>(this);
+        }
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         protected object BinaryWriteTranslator => MessageButtonBinaryWriteTranslation.Instance;
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]

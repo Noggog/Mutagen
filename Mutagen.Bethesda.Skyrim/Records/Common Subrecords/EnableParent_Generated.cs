@@ -473,6 +473,11 @@ namespace Mutagen.Bethesda.Skyrim
             Break0 = 1
         }
         public IEnumerable<IFormLinkGetter> EnumerateFormLinks() => EnableParentCommon.Instance.EnumerateFormLinks(this);
+        public IEnumerable<IFormLinkGetter<TMajorGetter>> EnumerateFormLinks<TMajorGetter>()
+            where TMajorGetter : class, IMajorRecordGetter
+        {
+            return EnableParentCommon.Instance.EnumerateFormLinks<TMajorGetter>(this);
+        }
         public void RemapLinks(IReadOnlyDictionary<FormKey, FormKey> mapping) => EnableParentSetterCommon.Instance.RemapLinks(this, mapping);
         #endregion
 
@@ -991,6 +996,11 @@ namespace Mutagen.Bethesda.Skyrim
         #region Mutagen
         public IEnumerable<IFormLinkGetter> EnumerateFormLinks(IEnableParentGetter obj)
         {
+            return EnumerateFormLinks<IMajorRecordGetter>(obj);
+        }
+        public IEnumerable<IFormLinkGetter<TMajorGetter>> EnumerateFormLinks<TMajorGetter>(IEnableParentGetter obj)
+            where TMajorGetter : class, IMajorRecordGetter
+        {
             yield return FormLinkInformation.Factory(obj.Reference);
             yield break;
         }
@@ -1250,6 +1260,11 @@ namespace Mutagen.Bethesda.Skyrim
         void IPrintable.Print(StructuredStringBuilder sb, string? name) => this.Print(sb, name);
 
         public IEnumerable<IFormLinkGetter> EnumerateFormLinks() => EnableParentCommon.Instance.EnumerateFormLinks(this);
+        public IEnumerable<IFormLinkGetter<TMajorGetter>> EnumerateFormLinks<TMajorGetter>()
+            where TMajorGetter : class, IMajorRecordGetter
+        {
+            return EnableParentCommon.Instance.EnumerateFormLinks<TMajorGetter>(this);
+        }
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         protected object BinaryWriteTranslator => EnableParentBinaryWriteTranslation.Instance;
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]

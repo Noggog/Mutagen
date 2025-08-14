@@ -1028,6 +1028,11 @@ namespace Mutagen.Bethesda.Skyrim
         #region Mutagen
         public IEnumerable<IFormLinkGetter> EnumerateFormLinks(IGetGraphVariableFloatConditionDataGetter obj)
         {
+            return EnumerateFormLinks<IMajorRecordGetter>(obj);
+        }
+        public IEnumerable<IFormLinkGetter<TMajorGetter>> EnumerateFormLinks<TMajorGetter>(IGetGraphVariableFloatConditionDataGetter obj)
+            where TMajorGetter : class, IMajorRecordGetter
+        {
             foreach (var item in base.EnumerateFormLinks(obj))
             {
                 yield return item;

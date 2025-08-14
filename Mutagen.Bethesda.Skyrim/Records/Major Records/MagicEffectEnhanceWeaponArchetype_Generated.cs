@@ -344,6 +344,10 @@ namespace Mutagen.Bethesda.Skyrim
 
         #region Mutagen
         public override IEnumerable<IFormLinkGetter> EnumerateFormLinks() => MagicEffectEnhanceWeaponArchetypeCommon.Instance.EnumerateFormLinks(this);
+        public override IEnumerable<IFormLinkGetter<TMajorGetter>> EnumerateFormLinks<TMajorGetter>()
+        {
+            return MagicEffectEnhanceWeaponArchetypeCommon.Instance.EnumerateFormLinks<TMajorGetter>(this);
+        }
         public override void RemapLinks(IReadOnlyDictionary<FormKey, FormKey> mapping) => MagicEffectEnhanceWeaponArchetypeSetterCommon.Instance.RemapLinks(this, mapping);
         #endregion
 
@@ -829,6 +833,11 @@ namespace Mutagen.Bethesda.Skyrim
         
         #region Mutagen
         public IEnumerable<IFormLinkGetter> EnumerateFormLinks(IMagicEffectEnhanceWeaponArchetypeGetter obj)
+        {
+            return EnumerateFormLinks<IMajorRecordGetter>(obj);
+        }
+        public IEnumerable<IFormLinkGetter<TMajorGetter>> EnumerateFormLinks<TMajorGetter>(IMagicEffectEnhanceWeaponArchetypeGetter obj)
+            where TMajorGetter : class, IMajorRecordGetter
         {
             foreach (var item in base.EnumerateFormLinks(obj))
             {

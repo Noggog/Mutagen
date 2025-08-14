@@ -421,7 +421,19 @@ public class LinkModule : GenerationModule
     {
         var shouldAlwaysOverride = obj.IsTopLevelGroup() || obj.IsTopLevelListGroup();
         sb.AppendLine($"public{await obj.FunctionOverride(shouldAlwaysOverride, async (o) => await HasLinks(o, includeBaseClass: true) != Case.No)}IEnumerable<{nameof(IFormLinkGetter)}> {nameof(IFormLinkContainerGetter.EnumerateFormLinks)}() => {obj.CommonClass(LoquiInterfaceType.IGetter, CommonGenerics.Class)}.Instance.EnumerateFormLinks(this);");
-
+        sb.AppendLine($"public{await obj.FunctionOverride(shouldAlwaysOverride, async (o) => await HasLinks(o, includeBaseClass: false) != Case.No)}IEnumerable<{nameof(IFormLinkGetter)}<TMajorGetter>> {nameof(IFormLinkContainerGetter.EnumerateFormLinks)}<TMajorGetter>()");
+        if (!obj.HasLoquiBaseObject && !obj.IsTopLevelGroup() && !obj.IsTopLevelListGroup())
+        {
+            using (sb.IncreaseDepth())
+            {
+                sb.AppendLine("where TMajorGetter : class, IMajorRecordGetter");
+            }
+        }
+        using (sb.CurlyBrace())
+        {
+            sb.AppendLine($"return {obj.CommonClass(LoquiInterfaceType.IGetter, CommonGenerics.Class)}.Instance.EnumerateFormLinks<TMajorGetter>(this);");
+        }
+        
         if (!getter)
         {
             sb.AppendLine($"public{await obj.FunctionOverride(async (o) => await HasLinks(o, includeBaseClass: true) != Case.No)}void {nameof(IFormLinkContainer.RemapLinks)}(IReadOnlyDictionary<FormKey, FormKey> mapping) => {obj.CommonClass(LoquiInterfaceType.ISetter, CommonGenerics.Class)}.Instance.RemapLinks(this, mapping);");

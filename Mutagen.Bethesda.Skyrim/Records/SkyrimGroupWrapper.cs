@@ -29,6 +29,11 @@ internal class SkyrimGroupWrapper<TMajor> : ISkyrimGroupGetter<TMajor>
     #region IGroupGetter Forwarding
 
     public IEnumerable<IFormLinkGetter> EnumerateFormLinks() => _groupMerge.EnumerateFormLinks();
+    public IEnumerable<IFormLinkGetter<TMajorGetter>> EnumerateFormLinks<TMajorGetter>()
+        where TMajorGetter : class, IMajorRecordGetter
+    {
+        return _groupMerge.EnumerateFormLinks<TMajorGetter>();
+    }
 
     public IMod SourceMod => _groupMerge.SourceMod;
     

@@ -10,9 +10,9 @@ using ObjectType = Mutagen.Bethesda.Plugins.Meta.ObjectType;
 
 namespace Mutagen.Bethesda.Generation.Modules.Plugin;
 
-public class ContainedFormLinksModule : AContainedLinksModule<FormLinkType>
+public class FormLinksEnumerationModule : AContainedLinksModule<FormLinkType>
 {
-    public static ContainedFormLinksModule Instance = new();
+    public static FormLinksEnumerationModule Instance = new();
     
     public override async IAsyncEnumerable<(LoquiInterfaceType Location, string Interface)> Interfaces(ObjectGeneration obj)
     {
@@ -28,6 +28,16 @@ public class ContainedFormLinksModule : AContainedLinksModule<FormLinkType>
         if (maskTypes.Applicable(LoquiInterfaceType.IGetter, CommonGenerics.Class))
         {
             sb.AppendLine($"public IEnumerable<{nameof(IFormLinkGetter)}> EnumerateFormLinks({obj.Interface(getter: true)} obj)");
+            using (sb.CurlyBrace())
+            {
+                sb.AppendLine("return EnumerateFormLinks<IMajorRecordGetter>(obj);");
+            }
+            
+            sb.AppendLine($"public IEnumerable<{nameof(IFormLinkGetter)}<TMajorGetter>> EnumerateFormLinks<TMajorGetter>({obj.Interface(getter: true)} obj)");
+            using (sb.IncreaseDepth())
+            {
+                sb.AppendLine("where TMajorGetter : class, IMajorRecordGetter");
+            }
             using (sb.CurlyBrace())
             {
                 foreach (var baseClass in obj.BaseClassTrail())
@@ -349,6 +359,18 @@ public class ContainedFormLinksModule : AContainedLinksModule<FormLinkType>
     {
         var shouldAlwaysOverride = obj.IsTopLevelGroup() || obj.IsTopLevelListGroup();
         fg.AppendLine($"public{await obj.FunctionOverride(shouldAlwaysOverride, async (o) => await HasLinks(o, includeBaseClass: false) != Case.No)}IEnumerable<{nameof(IFormLinkGetter)}> {nameof(IFormLinkContainerGetter.EnumerateFormLinks)}() => {obj.CommonClass(LoquiInterfaceType.IGetter, CommonGenerics.Class)}.Instance.EnumerateFormLinks(this);");
+        fg.AppendLine($"public{await obj.FunctionOverride(shouldAlwaysOverride, async (o) => await HasLinks(o, includeBaseClass: false) != Case.No)}IEnumerable<{nameof(IFormLinkGetter)}<TMajorGetter>> {nameof(IFormLinkContainerGetter.EnumerateFormLinks)}<TMajorGetter>()");
+        if (!obj.HasLoquiBaseObject && !obj.IsTopLevelGroup() && !obj.IsTopLevelListGroup())
+        {
+            using (fg.IncreaseDepth())
+            {
+                fg.AppendLine("where TMajorGetter : class, IMajorRecordGetter");
+            }
+        }
+        using (fg.CurlyBrace())
+        {
+            fg.AppendLine($"return {obj.CommonClass(LoquiInterfaceType.IGetter, CommonGenerics.Class)}.Instance.EnumerateFormLinks<TMajorGetter>(this);");
+        }
 
         if (!getter)
         {

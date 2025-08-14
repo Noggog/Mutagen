@@ -874,6 +874,11 @@ namespace Mutagen.Bethesda.Plugins.Records
         #region Mutagen
         public IEnumerable<IFormLinkGetter> EnumerateFormLinks(IMasterReferenceGetter obj)
         {
+            return EnumerateFormLinks<IMajorRecordGetter>(obj);
+        }
+        public IEnumerable<IFormLinkGetter<TMajorGetter>> EnumerateFormLinks<TMajorGetter>(IMasterReferenceGetter obj)
+            where TMajorGetter : class, IMajorRecordGetter
+        {
             yield break;
         }
         

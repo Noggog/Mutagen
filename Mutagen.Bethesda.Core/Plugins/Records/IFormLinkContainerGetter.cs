@@ -17,7 +17,13 @@ public interface IFormLinkContainer : IFormLinkContainerGetter
 public interface IFormLinkContainerGetter
 {
     /// <summary>
-    /// Enumerate of all contained FormKeys within object and subobjects
+    /// Enumeration of all contained FormLinks within object and subobjects
     /// </summary>
     IEnumerable<IFormLinkGetter> EnumerateFormLinks();
+
+    /// <summary>
+    /// Enumerate of all contained FormLinks within object and subobjects that point to a specific type of record.
+    /// </summary>
+    IEnumerable<IFormLinkGetter<TMajorGetter>> EnumerateFormLinks<TMajorGetter>()
+        where TMajorGetter : class, IMajorRecordGetter;
 }

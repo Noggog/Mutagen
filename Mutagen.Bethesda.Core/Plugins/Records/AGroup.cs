@@ -160,7 +160,11 @@ public abstract class AGroup<TMajor> : IEnumerable<TMajor>, IGroup<TMajor>
 
     /// <inheritdoc />
     public abstract IEnumerable<IFormLinkGetter> EnumerateFormLinks();
-        
+
+    /// <inheritdoc />
+    public abstract IEnumerable<IFormLinkGetter<TMajorGetter>> EnumerateFormLinks<TMajorGetter>()
+        where TMajorGetter : class, IMajorRecordGetter;
+
     /// <inheritdoc />
     public abstract IEnumerable<IAssetLink> EnumerateListedAssetLinks();
 
@@ -375,6 +379,9 @@ internal abstract class AGroupBinaryOverlay<TMajor> : PluginBinaryOverlay, IGrou
     public Type ContainedRecordType => typeof(TMajor);
 
     public abstract IEnumerable<IFormLinkGetter> EnumerateFormLinks();
+    
+    public abstract IEnumerable<IFormLinkGetter<TMajorGetter>> EnumerateFormLinks<TMajorGetter>()
+        where TMajorGetter : class, IMajorRecordGetter;
 
     public abstract IEnumerable<IAssetLinkGetter> EnumerateAssetLinks(
         AssetLinkQuery queryCategories = AssetLinkQuery.Listed,

@@ -50,6 +50,14 @@ public class FormLinkOrIndexGetter<TMajorGetter> : IFormLinkOrIndexGetter<TMajor
             yield return Link;
         }
     }
+    public IEnumerable<IFormLinkGetter<TMajorGetterTarget>> EnumerateFormLinks<TMajorGetterTarget>()
+        where TMajorGetterTarget : class, IMajorRecordGetter
+    {
+        if (UsesLink() && Link is IFormLinkGetter<TMajorGetterTarget> link)
+        {
+            yield return link;
+        }
+    }
 
     public void Print(StructuredStringBuilder sb, string? name = null)
     {
@@ -133,6 +141,14 @@ public class FormLinkOrIndex<TMajorGetter> : IFormLinkOrIndex<TMajorGetter>
         if (UsesLink())
         {
             yield return Link;
+        }
+    }
+    public IEnumerable<IFormLinkGetter<TMajorGetterTarget>> EnumerateFormLinks<TMajorGetterTarget>()
+        where TMajorGetterTarget : class, IMajorRecordGetter
+    {
+        if (UsesLink() && Link is IFormLinkGetter<TMajorGetterTarget> link)
+        {
+            yield return link;
         }
     }
 
