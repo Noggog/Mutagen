@@ -2322,6 +2322,7 @@ public class PluginTranslationModule : BinaryTranslationModule
                 }
                 sb.AppendLine($"IGroupGetter<T>? {nameof(IModGetter)}.{nameof(IModGetter.TryGetTopLevelGroup)}<T>() => this.{nameof(IModGetter.TryGetTopLevelGroup)}<T>();");
                 sb.AppendLine($"IGroupGetter? {nameof(IModGetter)}.{nameof(IModGetter.TryGetTopLevelGroup)}(Type type) => this.{nameof(IModGetter.TryGetTopLevelGroup)}(type);");
+                sb.AppendLine($"IEnumerable<IGroupGetter> {nameof(IModGetter)}.EnumerateGroups() => this.EnumerateGroups();");
                 sb.AppendLine($"void IModGetter.WriteToBinary({nameof(FilePath)} path, {nameof(BinaryWriteParameters)}? param) => this.WriteToBinary(path, importMask: null, param: param);");
                 sb.AppendLine($"void IModGetter.WriteToBinary({nameof(Stream)} stream, {nameof(BinaryWriteParameters)}? param) => this.WriteToBinary(stream, importMask: null, param: param);");
                 sb.AppendLine($"uint IModGetter.GetRecordCount() => this.GetRecordCount();");

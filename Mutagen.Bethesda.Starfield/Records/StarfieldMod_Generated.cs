@@ -7948,6 +7948,7 @@ namespace Mutagen.Bethesda.Starfield
         public override GameRelease GameRelease => StarfieldRelease.ToGameRelease();
         IGroupGetter<T>? IModGetter.TryGetTopLevelGroup<T>() => this.TryGetTopLevelGroup<T>();
         IGroupGetter? IModGetter.TryGetTopLevelGroup(Type type) => this.TryGetTopLevelGroup(type);
+        IEnumerable<IGroupGetter> IModGetter.EnumerateGroups() => this.EnumerateGroups();
         IGroup<T>? IMod.TryGetTopLevelGroup<T>() => this.TryGetTopLevelGroup<T>();
         IGroup? IMod.TryGetTopLevelGroup(Type type) => this.TryGetTopLevelGroup(type);
         void IModGetter.WriteToBinary(FilePath path, BinaryWriteParameters? param) => this.WriteToBinary(path, importMask: null, param: param);
@@ -9716,6 +9717,11 @@ namespace Mutagen.Bethesda.Starfield
             return (IGroup?)((StarfieldModCommon)((IStarfieldModGetter)obj).CommonInstance()!).GetGroup(
                 obj: obj,
                 type: type);
+        }
+
+        public static IEnumerable<IGroupGetter> EnumerateGroups(this IStarfieldModGetter obj)
+        {
+            return ((StarfieldModCommon)((IStarfieldModGetter)obj).CommonInstance()!).EnumerateGroups(obj: obj);
         }
 
         public static uint GetRecordCount(this IStarfieldModGetter item)
@@ -17027,6 +17033,185 @@ namespace Mutagen.Bethesda.Starfield
                 default:
                     return null;
             }
+        }
+        
+        public IEnumerable<IGroupGetter> EnumerateGroups(IStarfieldModGetter obj)
+        {
+            yield return obj.GameSettings;
+            yield return obj.Keywords;
+            yield return obj.FormFolderKeywordLists;
+            yield return obj.LocationReferenceTypes;
+            yield return obj.Actions;
+            yield return obj.Transforms;
+            yield return obj.TextureSets;
+            yield return obj.Globals;
+            yield return obj.DamageTypes;
+            yield return obj.Classes;
+            yield return obj.Factions;
+            yield return obj.AffinityEvents;
+            yield return obj.HeadParts;
+            yield return obj.Races;
+            yield return obj.SoundMarkers;
+            yield return obj.SoundEchoMarkers;
+            yield return obj.AcousticSpaces;
+            yield return obj.AudioOcclusionPrimitives;
+            yield return obj.MagicEffects;
+            yield return obj.LandscapeTextures;
+            yield return obj.ProjectedDecals;
+            yield return obj.ObjectEffects;
+            yield return obj.Spells;
+            yield return obj.Activators;
+            yield return obj.CurveTables;
+            yield return obj.Curve3Ds;
+            yield return obj.Armors;
+            yield return obj.Books;
+            yield return obj.Containers;
+            yield return obj.Doors;
+            yield return obj.Lights;
+            yield return obj.MiscItems;
+            yield return obj.Statics;
+            yield return obj.StaticCollections;
+            yield return obj.PackIns;
+            yield return obj.MoveableStatics;
+            yield return obj.Grasses;
+            yield return obj.Florae;
+            yield return obj.Furniture;
+            yield return obj.Weapons;
+            yield return obj.Ammunitions;
+            yield return obj.Npcs;
+            yield return obj.LeveledNpcs;
+            yield return obj.LeveledPackIns;
+            yield return obj.Keys;
+            yield return obj.Ingestibles;
+            yield return obj.IdleMarkers;
+            yield return obj.BiomeMarkers;
+            yield return obj.Notes;
+            yield return obj.Projectiles;
+            yield return obj.Hazards;
+            yield return obj.BendableSplines;
+            yield return obj.Terminals;
+            yield return obj.LeveledItems;
+            yield return obj.GenericBaseFormTemplates;
+            yield return obj.GenericBaseForms;
+            yield return obj.LeveledBaseForms;
+            yield return obj.Weathers;
+            yield return obj.WeatherSettings;
+            yield return obj.Climates;
+            yield return obj.ShaderParticleGeometries;
+            yield return obj.Regions;
+            yield return obj.NavigationMeshInfoMaps;
+            yield return obj.Worldspaces;
+            yield return obj.Quests;
+            yield return obj.IdleAnimations;
+            yield return obj.Packages;
+            yield return obj.CombatStyles;
+            yield return obj.LoadScreens;
+            yield return obj.AnimatedObjects;
+            yield return obj.Waters;
+            yield return obj.EffectShaders;
+            yield return obj.Explosions;
+            yield return obj.Debris;
+            yield return obj.ImageSpaces;
+            yield return obj.ImageSpaceAdapters;
+            yield return obj.FormLists;
+            yield return obj.Perks;
+            yield return obj.BodyParts;
+            yield return obj.AddonNodes;
+            yield return obj.ActorValueInformation;
+            yield return obj.CameraShots;
+            yield return obj.CameraPaths;
+            yield return obj.VoiceTypes;
+            yield return obj.MaterialTypes;
+            yield return obj.Impacts;
+            yield return obj.ImpactDataSets;
+            yield return obj.ArmorAddons;
+            yield return obj.Locations;
+            yield return obj.Messages;
+            yield return obj.DefaultObjectManagers;
+            yield return obj.DefaultObjects;
+            yield return obj.LightingTemplates;
+            yield return obj.MusicTypes;
+            yield return obj.Footsteps;
+            yield return obj.FootstepSets;
+            yield return obj.StoryManagerBranchNodes;
+            yield return obj.StoryManagerQuestNodes;
+            yield return obj.StoryManagerEventNodes;
+            yield return obj.MusicTracks;
+            yield return obj.EquipTypes;
+            yield return obj.Outfits;
+            yield return obj.ArtObjects;
+            yield return obj.MovementTypes;
+            yield return obj.CollisionLayers;
+            yield return obj.Colors;
+            yield return obj.ReverbParameters;
+            yield return obj.ReferenceGroups;
+            yield return obj.AimModels;
+            yield return obj.AimAssistModels;
+            yield return obj.MeleeAimAssistModels;
+            yield return obj.Layers;
+            yield return obj.ConstructibleObjects;
+            yield return obj.ObjectModifications;
+            yield return obj.Zooms;
+            yield return obj.InstanceNamingRules;
+            yield return obj.SoundKeywordMappings;
+            yield return obj.AttractionRules;
+            yield return obj.SceneCollections;
+            yield return obj.AnimationSoundTagSets;
+            yield return obj.Resources;
+            yield return obj.Biomes;
+            yield return obj.NavigationMeshObstacleCoverManagers;
+            yield return obj.LensFlares;
+            yield return obj.ObjectVisibilityManagers;
+            yield return obj.SnapTemplateNodes;
+            yield return obj.SnapTemplates;
+            yield return obj.GroundCovers;
+            yield return obj.MorphableObjects;
+            yield return obj.Traversals;
+            yield return obj.ResourceGenerationData;
+            yield return obj.ObjectSwaps;
+            yield return obj.Atmospheres;
+            yield return obj.LeveledSpaceCells;
+            yield return obj.SpeechChallenges;
+            yield return obj.AimAssistPoses;
+            yield return obj.VolumetricLightings;
+            yield return obj.SurfaceBlocks;
+            yield return obj.SurfacePatternConfigs;
+            yield return obj.SurfacePatterns;
+            yield return obj.SurfaceTrees;
+            yield return obj.PlanetContentManagerTrees;
+            yield return obj.BoneModifiers;
+            yield return obj.SnapTemplateBehaviors;
+            yield return obj.Planets;
+            yield return obj.ConditionRecords;
+            yield return obj.PlanetContentManagerBranchNodes;
+            yield return obj.PlanetContentManagerContentNodes;
+            yield return obj.Stars;
+            yield return obj.WWiseEventDatas;
+            yield return obj.ResearchProjects;
+            yield return obj.AimOpticalSightMarkers;
+            yield return obj.AmbienceSets;
+            yield return obj.WeaponBarrelModels;
+            yield return obj.SurfacePatternStyles;
+            yield return obj.LayeredMaterialSwaps;
+            yield return obj.ForceDatas;
+            yield return obj.TerminalMenus;
+            yield return obj.EffectSequences;
+            yield return obj.SecondaryDamageLists;
+            yield return obj.MaterialPaths;
+            yield return obj.Clouds;
+            yield return obj.FogVolumes;
+            yield return obj.WWiseKeywordMappings;
+            yield return obj.LegendaryItems;
+            yield return obj.ParticleSystemDefineCollisions;
+            yield return obj.SunPresets;
+            yield return obj.PhotoModeFeatures;
+            yield return obj.GameplayOptions;
+            yield return obj.GameplayOptionsGroups;
+            yield return obj.TimeOfDays;
+            yield return obj.ActorValueModulations;
+            yield return obj.Challenges;
+            yield return obj.FacialExpressions;
+            yield return obj.PERS;
         }
         
         public static void WriteParallel(
@@ -34167,6 +34352,7 @@ namespace Mutagen.Bethesda.Starfield
         public GameRelease GameRelease => StarfieldRelease.ToGameRelease();
         IGroupGetter<T>? IModGetter.TryGetTopLevelGroup<T>() => this.TryGetTopLevelGroup<T>();
         IGroupGetter? IModGetter.TryGetTopLevelGroup(Type type) => this.TryGetTopLevelGroup(type);
+        IEnumerable<IGroupGetter> IModGetter.EnumerateGroups() => this.EnumerateGroups();
         void IModGetter.WriteToBinary(FilePath path, BinaryWriteParameters? param) => this.WriteToBinary(path, importMask: null, param: param);
         void IModGetter.WriteToBinary(Stream stream, BinaryWriteParameters? param) => this.WriteToBinary(stream, importMask: null, param: param);
         uint IModGetter.GetRecordCount() => this.GetRecordCount();

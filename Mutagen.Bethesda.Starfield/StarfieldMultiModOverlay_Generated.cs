@@ -841,6 +841,11 @@ internal class StarfieldMultiModOverlay : IStarfieldModDisposableGetter
             type: type);
     }
 
+    public IEnumerable<IGroupGetter> EnumerateGroups()
+    {
+        return ((StarfieldModCommon)((IStarfieldModGetter)this).CommonInstance()!).EnumerateGroups(obj: this);
+    }
+
     IEnumerable<IModContext<IStarfieldMod, IStarfieldModGetter, TSetter, TGetter>> IMajorRecordContextEnumerable<IStarfieldMod, IStarfieldModGetter>.EnumerateMajorRecordContexts<TSetter, TGetter>(ILinkCache linkCache, bool throwIfUnknown)
     {
         foreach (var mod in _sourceMods)

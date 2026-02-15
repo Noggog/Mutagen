@@ -186,6 +186,11 @@ public class TestMod : ITestMod, IDisposable
         throw new NotImplementedException();
     }
 
+    public IEnumerable<IGroupGetter> EnumerateGroups()
+    {
+        throw new NotImplementedException();
+    }
+
     public void WriteToBinary(FilePath path, BinaryWriteParameters? param = null)
     {
         throw new NotImplementedException();

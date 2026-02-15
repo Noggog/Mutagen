@@ -641,6 +641,11 @@ internal class Fallout4MultiModOverlay : IFallout4ModDisposableGetter
             type: type);
     }
 
+    public IEnumerable<IGroupGetter> EnumerateGroups()
+    {
+        return ((Fallout4ModCommon)((IFallout4ModGetter)this).CommonInstance()!).EnumerateGroups(obj: this);
+    }
+
     IEnumerable<IModContext<IFallout4Mod, IFallout4ModGetter, TSetter, TGetter>> IMajorRecordContextEnumerable<IFallout4Mod, IFallout4ModGetter>.EnumerateMajorRecordContexts<TSetter, TGetter>(ILinkCache linkCache, bool throwIfUnknown)
     {
         foreach (var mod in _sourceMods)

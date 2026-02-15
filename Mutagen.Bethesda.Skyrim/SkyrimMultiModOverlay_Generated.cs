@@ -593,6 +593,11 @@ internal class SkyrimMultiModOverlay : ISkyrimModDisposableGetter
             type: type);
     }
 
+    public IEnumerable<IGroupGetter> EnumerateGroups()
+    {
+        return ((SkyrimModCommon)((ISkyrimModGetter)this).CommonInstance()!).EnumerateGroups(obj: this);
+    }
+
     IEnumerable<IModContext<ISkyrimMod, ISkyrimModGetter, TSetter, TGetter>> IMajorRecordContextEnumerable<ISkyrimMod, ISkyrimModGetter>.EnumerateMajorRecordContexts<TSetter, TGetter>(ILinkCache linkCache, bool throwIfUnknown)
     {
         foreach (var mod in _sourceMods)

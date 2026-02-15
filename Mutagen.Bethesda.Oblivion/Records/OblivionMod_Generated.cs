@@ -2788,6 +2788,7 @@ namespace Mutagen.Bethesda.Oblivion
         public override GameRelease GameRelease => OblivionRelease.ToGameRelease();
         IGroupGetter<T>? IModGetter.TryGetTopLevelGroup<T>() => this.TryGetTopLevelGroup<T>();
         IGroupGetter? IModGetter.TryGetTopLevelGroup(Type type) => this.TryGetTopLevelGroup(type);
+        IEnumerable<IGroupGetter> IModGetter.EnumerateGroups() => this.EnumerateGroups();
         IGroup<T>? IMod.TryGetTopLevelGroup<T>() => this.TryGetTopLevelGroup<T>();
         IGroup? IMod.TryGetTopLevelGroup(Type type) => this.TryGetTopLevelGroup(type);
         void IModGetter.WriteToBinary(FilePath path, BinaryWriteParameters? param) => this.WriteToBinary(path, importMask: null, param: param);
@@ -3698,6 +3699,11 @@ namespace Mutagen.Bethesda.Oblivion
             return (IGroup?)((OblivionModCommon)((IOblivionModGetter)obj).CommonInstance()!).GetGroup(
                 obj: obj,
                 type: type);
+        }
+
+        public static IEnumerable<IGroupGetter> EnumerateGroups(this IOblivionModGetter obj)
+        {
+            return ((OblivionModCommon)((IOblivionModGetter)obj).CommonInstance()!).EnumerateGroups(obj: obj);
         }
 
         public static uint GetRecordCount(this IOblivionModGetter item)
@@ -6317,6 +6323,65 @@ namespace Mutagen.Bethesda.Oblivion
                 default:
                     return null;
             }
+        }
+        
+        public IEnumerable<IGroupGetter> EnumerateGroups(IOblivionModGetter obj)
+        {
+            yield return obj.GameSettings;
+            yield return obj.Globals;
+            yield return obj.Classes;
+            yield return obj.Factions;
+            yield return obj.Hairs;
+            yield return obj.Eyes;
+            yield return obj.Races;
+            yield return obj.Sounds;
+            yield return obj.Skills;
+            yield return obj.MagicEffects;
+            yield return obj.Scripts;
+            yield return obj.LandTextures;
+            yield return obj.Enchantments;
+            yield return obj.Spells;
+            yield return obj.Birthsigns;
+            yield return obj.Activators;
+            yield return obj.AlchemicalApparatus;
+            yield return obj.Armors;
+            yield return obj.Books;
+            yield return obj.Clothes;
+            yield return obj.Containers;
+            yield return obj.Doors;
+            yield return obj.Ingredients;
+            yield return obj.Lights;
+            yield return obj.Miscellaneous;
+            yield return obj.Statics;
+            yield return obj.Grasses;
+            yield return obj.Trees;
+            yield return obj.Flora;
+            yield return obj.Furniture;
+            yield return obj.Weapons;
+            yield return obj.Ammunitions;
+            yield return obj.Npcs;
+            yield return obj.Creatures;
+            yield return obj.LeveledCreatures;
+            yield return obj.SoulGems;
+            yield return obj.Keys;
+            yield return obj.Potions;
+            yield return obj.Subspaces;
+            yield return obj.SigilStones;
+            yield return obj.LeveledItems;
+            yield return obj.Weathers;
+            yield return obj.Climates;
+            yield return obj.Regions;
+            yield return obj.Worldspaces;
+            yield return obj.DialogTopics;
+            yield return obj.Quests;
+            yield return obj.IdleAnimations;
+            yield return obj.AIPackages;
+            yield return obj.CombatStyles;
+            yield return obj.LoadScreens;
+            yield return obj.LeveledSpells;
+            yield return obj.AnimatedObjects;
+            yield return obj.Waters;
+            yield return obj.EffectShaders;
         }
         
         public static void WriteParallel(
@@ -12196,6 +12261,7 @@ namespace Mutagen.Bethesda.Oblivion
         public GameRelease GameRelease => OblivionRelease.ToGameRelease();
         IGroupGetter<T>? IModGetter.TryGetTopLevelGroup<T>() => this.TryGetTopLevelGroup<T>();
         IGroupGetter? IModGetter.TryGetTopLevelGroup(Type type) => this.TryGetTopLevelGroup(type);
+        IEnumerable<IGroupGetter> IModGetter.EnumerateGroups() => this.EnumerateGroups();
         void IModGetter.WriteToBinary(FilePath path, BinaryWriteParameters? param) => this.WriteToBinary(path, importMask: null, param: param);
         void IModGetter.WriteToBinary(Stream stream, BinaryWriteParameters? param) => this.WriteToBinary(stream, importMask: null, param: param);
         uint IModGetter.GetRecordCount() => this.GetRecordCount();

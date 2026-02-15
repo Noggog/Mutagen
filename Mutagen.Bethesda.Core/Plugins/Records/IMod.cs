@@ -68,6 +68,13 @@ public interface IModGetter :
     IGroupGetter? TryGetTopLevelGroup(Type type);
 
     /// <summary>
+    /// Enumerates all top-level Group getter objects in the mod.
+    /// Only includes IGroupGetter instances (FormKey-indexed groups),
+    /// not IListGroupGetter instances.
+    /// </summary>
+    IEnumerable<IGroupGetter> EnumerateGroups();
+
+    /// <summary>
     /// Exports to disk in Bethesda binary format.
     /// Access and iterates through the mod object's contents in a single thread.
     /// </summary>

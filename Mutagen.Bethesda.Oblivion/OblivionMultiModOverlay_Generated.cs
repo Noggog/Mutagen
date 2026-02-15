@@ -361,6 +361,11 @@ internal class OblivionMultiModOverlay : IOblivionModDisposableGetter
             type: type);
     }
 
+    public IEnumerable<IGroupGetter> EnumerateGroups()
+    {
+        return ((OblivionModCommon)((IOblivionModGetter)this).CommonInstance()!).EnumerateGroups(obj: this);
+    }
+
     IEnumerable<IModContext<IOblivionMod, IOblivionModGetter, TSetter, TGetter>> IMajorRecordContextEnumerable<IOblivionMod, IOblivionModGetter>.EnumerateMajorRecordContexts<TSetter, TGetter>(ILinkCache linkCache, bool throwIfUnknown)
     {
         foreach (var mod in _sourceMods)

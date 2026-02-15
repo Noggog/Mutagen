@@ -70,6 +70,7 @@ public abstract class AMod : IMod
     IBinaryModdedWriteBuilderTargetChoice IModGetter.BeginWrite => throw new NotImplementedException();
     IGroupGetter<T>? IModGetter.TryGetTopLevelGroup<T>() => throw new NotImplementedException();
     IGroupGetter? IModGetter.TryGetTopLevelGroup(Type type) => throw new NotImplementedException();
+    IEnumerable<IGroupGetter> IModGetter.EnumerateGroups() => throw new NotImplementedException();
     void IModGetter.WriteToBinary(FilePath path, BinaryWriteParameters? param) => throw new NotImplementedException();
     void IModGetter.WriteToBinary(Stream stream, BinaryWriteParameters? param) => throw new NotImplementedException();
     IEnumerable<T> IMajorRecordEnumerable.EnumerateMajorRecords<T>(bool throwIfUnknown) => throw new NotImplementedException();

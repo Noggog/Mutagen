@@ -63,6 +63,7 @@ public class ModModule : GenerationModule
         // Interfaces
         sb.AppendLine($"IGroupGetter<T>? {nameof(IModGetter)}.{nameof(IModGetter.TryGetTopLevelGroup)}<T>() => this.{nameof(IModGetter.TryGetTopLevelGroup)}<T>();");
         sb.AppendLine($"IGroupGetter? {nameof(IModGetter)}.{nameof(IModGetter.TryGetTopLevelGroup)}(Type type) => this.{nameof(IModGetter.TryGetTopLevelGroup)}(type);");
+        sb.AppendLine($"IEnumerable<IGroupGetter> {nameof(IModGetter)}.EnumerateGroups() => this.EnumerateGroups();");
         sb.AppendLine($"IGroup<T>? {nameof(IMod)}.{nameof(IMod.TryGetTopLevelGroup)}<T>() => this.{nameof(IMod.TryGetTopLevelGroup)}<T>();");
         sb.AppendLine($"IGroup? {nameof(IMod)}.{nameof(IMod.TryGetTopLevelGroup)}(Type type) => this.{nameof(IMod.TryGetTopLevelGroup)}(type);");
         sb.AppendLine($"void IModGetter.WriteToBinary({nameof(FilePath)} path, {nameof(BinaryWriteParameters)}? param) => this.WriteToBinary(path, importMask: null, param: param);");
@@ -446,7 +447,22 @@ public class ModModule : GenerationModule
             }
         }
         sb.AppendLine();
-            
+
+        using (var args = sb.Function(
+                   $"public static IEnumerable<IGroupGetter> EnumerateGroups"))
+        {
+            args.Add($"this {obj.Interface(getter: true)} obj");
+        }
+        using (sb.CurlyBrace())
+        {
+            using (var args = sb.Call(
+                       $"return {obj.CommonClassInstance("obj", LoquiInterfaceType.IGetter, CommonGenerics.Class, MaskType.Normal)}.EnumerateGroups"))
+            {
+                args.AddPassArg("obj");
+            }
+        }
+        sb.AppendLine();
+
         using (var args = sb.Function(
                    $"public static uint {nameof(IModGetter.GetRecordCount)}"))
         {
@@ -470,6 +486,7 @@ public class ModModule : GenerationModule
         if (!maskTypes.Applicable(LoquiInterfaceType.IGetter, CommonGenerics.Class, MaskType.Normal)) return;
 
         await GenerateGetGroup(obj, sb);
+        GenerateEnumerateGroups(obj, sb);
         GenerateWriteParallel(obj, sb);
         GenerateGetRecordCount(obj, sb);
     }
@@ -540,6 +557,27 @@ public class ModModule : GenerationModule
                 {
                     sb.AppendLine("return null;");
                 }
+            }
+        }
+        sb.AppendLine();
+    }
+
+    private void GenerateEnumerateGroups(ObjectGeneration obj, StructuredStringBuilder sb)
+    {
+        using (var args = sb.Function(
+                   "public IEnumerable<IGroupGetter> EnumerateGroups"))
+        {
+            args.Add($"{obj.Interface(getter: true)} obj");
+        }
+        using (sb.CurlyBrace())
+        {
+            foreach (var field in obj.IterateFields())
+            {
+                if (field is not LoquiType loqui) continue;
+                if (loqui.TargetObjectGeneration?.GetObjectData().ObjectType != ObjectType.Group) continue;
+                // Skip ListGroups - they don't have RecordCache
+                if (loqui.TargetObjectGeneration.Name.EndsWith("ListGroup")) continue;
+                sb.AppendLine($"yield return obj.{field.Name};");
             }
         }
         sb.AppendLine();

@@ -1010,6 +1010,14 @@ public class MultiModOverlayModule : GenerationModule
         }
         sb.AppendLine();
 
+        // EnumerateGroups
+        sb.AppendLine("public IEnumerable<IGroupGetter> EnumerateGroups()");
+        using (sb.CurlyBrace())
+        {
+            sb.AppendLine($"return (({gameName}ModCommon)((I{gameName}ModGetter)this).CommonInstance()!).EnumerateGroups(obj: this);");
+        }
+        sb.AppendLine();
+
         // EnumerateMajorRecordContexts
         sb.AppendLine($"IEnumerable<IModContext<I{gameName}Mod, I{gameName}ModGetter, TSetter, TGetter>> IMajorRecordContextEnumerable<I{gameName}Mod, I{gameName}ModGetter>.EnumerateMajorRecordContexts<TSetter, TGetter>(ILinkCache linkCache, bool throwIfUnknown)");
         using (sb.CurlyBrace())
