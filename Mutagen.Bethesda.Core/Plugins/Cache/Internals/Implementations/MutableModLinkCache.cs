@@ -53,7 +53,7 @@ public sealed class MutableModLinkCache : ILinkCache
     public bool TryResolve(FormKey formKey, [MaybeNullWhen(false)] out IMajorRecordGetter majorRec, ResolveTarget target = ResolveTarget.Winner)
     {
         CheckDisposal();
-            
+
         if (formKey.IsNull)
         {
             majorRec = default;
@@ -66,12 +66,20 @@ public sealed class MutableModLinkCache : ILinkCache
             majorRec = default;
             return false;
         }
-            
-        // ToDo
-        // Upgrade to call EnumerateGroups(), which will perform much better
+
+        // Fast path: check each top-level group's dictionary — O(g) where g ≈ 60
+        foreach (var group in _sourceMod.EnumerateGroups())
+        {
+            var rec = group.RecordCache.TryGetValue(formKey);
+            if (rec != null)
+            {
+                majorRec = rec;
+                return true;
+            }
+        }
+
+        // Fall through for nested records (Cells, PlacedObjects, etc.)
         foreach (var item in _sourceMod.EnumerateMajorRecords()
-                     // ToDo
-                     // Capture and expose errors optionally via TryResolve /w out param
                      .Catch((Exception ex) => { }))
         {
             if (item.FormKey == formKey)
@@ -89,18 +97,28 @@ public sealed class MutableModLinkCache : ILinkCache
     public bool TryResolve(string editorId, [MaybeNullWhen(false)] out IMajorRecordGetter majorRec)
     {
         CheckDisposal();
-            
+
         if (editorId.IsNullOrWhitespace())
         {
             majorRec = default;
             return false;
         }
-            
-        // ToDo
-        // Upgrade to call EnumerateGroups(), which will perform much better
+
+        // Fast path: search each top-level group's records
+        foreach (var group in _sourceMod.EnumerateGroups())
+        {
+            foreach (var item in group.Records)
+            {
+                if (editorId.Equals(item.EditorID))
+                {
+                    majorRec = item;
+                    return true;
+                }
+            }
+        }
+
+        // Fall through for nested records (Cells, PlacedObjects, etc.)
         foreach (var item in _sourceMod.EnumerateMajorRecords()
-                     // ToDo
-                     // Capture and expose errors optionally via TryResolve /w out param
                      .Catch((Exception ex) => { }))
         {
             if (editorId.Equals(item.EditorID))
@@ -132,11 +150,22 @@ public sealed class MutableModLinkCache : ILinkCache
             return false;
         }
             
-        // ToDo
-        // Upgrade to EnumerateGroups<TMajor>()
+        // Fast path: O(1) lookup via top-level group dictionary
+        var group = _sourceMod.TryGetTopLevelGroup(typeof(TMajor));
+        if (group != null)
+        {
+            var rec = group.RecordCache.TryGetValue(formKey);
+            if (rec is TMajor typed)
+            {
+                majorRec = typed;
+                return true;
+            }
+            majorRec = default;
+            return false;
+        }
+
+        // Not a top-level type — fall through to enumeration for nested types
         foreach (var item in _sourceMod.EnumerateMajorRecords<TMajor>()
-                     // ToDo
-                     // Capture and expose errors optionally via TryResolve /w out param
                      .Catch((Exception ex) => { }))
         {
             if (item is IMajorRecordGetter majRec
@@ -157,24 +186,37 @@ public sealed class MutableModLinkCache : ILinkCache
     {
         return TryResolve<TMajor>(record.FormKey, out majorRec, target);
     }
-    
+
     /// <inheritdoc />
     public bool TryResolve<TMajor>(string editorId, [MaybeNullWhen(false)] out TMajor majorRec)
         where TMajor : class, IMajorRecordQueryableGetter
     {
         CheckDisposal();
-            
+
         if (editorId.IsNullOrWhitespace())
         {
             majorRec = default;
             return false;
         }
-            
-        // ToDo
-        // Upgrade to EnumerateGroups<TMajor>()
+
+        // Fast path: scope search to the relevant top-level group
+        var group = _sourceMod.TryGetTopLevelGroup(typeof(TMajor));
+        if (group != null)
+        {
+            foreach (var item in group.Records)
+            {
+                if (item is TMajor typedItem && editorId.Equals(item.EditorID))
+                {
+                    majorRec = typedItem;
+                    return true;
+                }
+            }
+            majorRec = default;
+            return false;
+        }
+
+        // Not a top-level type — fall through to enumeration for nested types
         foreach (var item in _sourceMod.EnumerateMajorRecords<TMajor>()
-                     // ToDo
-                     // Capture and expose errors optionally via TryResolve /w out param
                      .Catch((Exception ex) => { }))
         {
             if (item is IMajorRecordGetter majRec
@@ -193,7 +235,7 @@ public sealed class MutableModLinkCache : ILinkCache
     public bool TryResolve(FormKey formKey, Type type, [MaybeNullWhen(false)] out IMajorRecordGetter majorRec, ResolveTarget target = ResolveTarget.Winner)
     {
         CheckDisposal();
-            
+
         if (formKey.IsNull)
         {
             majorRec = default;
@@ -206,12 +248,23 @@ public sealed class MutableModLinkCache : ILinkCache
             majorRec = default;
             return false;
         }
-            
-        // ToDo
-        // Upgrade to EnumerateGroups<TMajor>()
+
+        // Fast path: O(1) lookup via top-level group dictionary
+        var group = _sourceMod.TryGetTopLevelGroup(type);
+        if (group != null)
+        {
+            var rec = group.RecordCache.TryGetValue(formKey);
+            if (rec != null)
+            {
+                majorRec = rec;
+                return true;
+            }
+            majorRec = default;
+            return false;
+        }
+
+        // Not a top-level type — fall through to enumeration for nested types
         foreach (var major in _sourceMod.EnumerateMajorRecords(type)
-                     // ToDo
-                     // Capture and expose errors optionally via TryResolve /w out param
                      .Catch((Exception ex) => { }))
         {
             if (major.FormKey == formKey)
@@ -235,18 +288,31 @@ public sealed class MutableModLinkCache : ILinkCache
     public bool TryResolve(string editorId, Type type, [MaybeNullWhen(false)] out IMajorRecordGetter majorRec)
     {
         CheckDisposal();
-            
+
         if (editorId.IsNullOrWhitespace())
         {
             majorRec = default;
             return false;
         }
-            
-        // ToDo
-        // Upgrade to EnumerateGroups<TMajor>()
+
+        // Fast path: scope search to the relevant top-level group
+        var group = _sourceMod.TryGetTopLevelGroup(type);
+        if (group != null)
+        {
+            foreach (var item in group.Records)
+            {
+                if (editorId.Equals(item.EditorID))
+                {
+                    majorRec = item;
+                    return true;
+                }
+            }
+            majorRec = default;
+            return false;
+        }
+
+        // Not a top-level type — fall through to enumeration for nested types
         foreach (var major in _sourceMod.EnumerateMajorRecords(type)
-                     // ToDo
-                     // Capture and expose errors optionally via TryResolve /w out param
                      .Catch((Exception ex) => { }))
         {
             if (editorId.Equals(major.EditorID))
@@ -381,25 +447,33 @@ public sealed class MutableModLinkCache : ILinkCache
     public bool TryResolveSimpleContext(FormKey formKey, [MaybeNullWhen(false)] out IModContext<IMajorRecordGetter> majorRec, ResolveTarget target = ResolveTarget.Winner)
     {
         CheckDisposal();
-            
+
         if (formKey.IsNull)
         {
             majorRec = default;
             return false;
         }
-        
+
         if (target == ResolveTarget.Origin
             && formKey.ModKey != _sourceMod.ModKey)
         {
             majorRec = default;
             return false;
         }
-            
-        // ToDo
-        // Upgrade to call EnumerateGroups(), which will perform much better
+
+        // Fast path: check each top-level group's dictionary — O(g) where g ≈ 60
+        foreach (var group in _sourceMod.EnumerateGroups())
+        {
+            var rec = group.RecordCache.TryGetValue(formKey);
+            if (rec != null)
+            {
+                majorRec = new ModContext<IMajorRecordGetter>(_sourceMod.ModKey, parent: null, rec);
+                return true;
+            }
+        }
+
+        // Fall through for nested records (Cells, PlacedObjects, etc.)
         foreach (var item in _sourceMod.EnumerateMajorRecordSimpleContexts<IMajorRecordGetter>()
-                     // ToDo
-                     // Capture and expose errors optionally via TryResolve /w out param
                      .Catch((Exception ex) => { }))
         {
             if (item.Record.FormKey == formKey)
@@ -417,18 +491,28 @@ public sealed class MutableModLinkCache : ILinkCache
     public bool TryResolveSimpleContext(string editorId, [MaybeNullWhen(false)] out IModContext<IMajorRecordGetter> majorRec)
     {
         CheckDisposal();
-            
+
         if (editorId.IsNullOrWhitespace())
         {
             majorRec = default;
             return false;
         }
-            
-        // ToDo
-        // Upgrade to call EnumerateGroups(), which will perform much better
+
+        // Fast path: search each top-level group's records
+        foreach (var group in _sourceMod.EnumerateGroups())
+        {
+            foreach (var item in group.Records)
+            {
+                if (editorId.Equals(item.EditorID))
+                {
+                    majorRec = new ModContext<IMajorRecordGetter>(_sourceMod.ModKey, parent: null, item);
+                    return true;
+                }
+            }
+        }
+
+        // Fall through for nested records (Cells, PlacedObjects, etc.)
         foreach (var item in _sourceMod.EnumerateMajorRecordSimpleContexts<IMajorRecordGetter>()
-                     // ToDo
-                     // Capture and expose errors optionally via TryResolve /w out param
                      .Catch((Exception ex) => { }))
         {
             if (editorId.Equals(item.Record.EditorID))
@@ -446,7 +530,7 @@ public sealed class MutableModLinkCache : ILinkCache
         where TMajor : class, IMajorRecordQueryableGetter
     {
         CheckDisposal();
-            
+
         if (formKey.IsNull)
         {
             majorRec = default;
@@ -459,12 +543,23 @@ public sealed class MutableModLinkCache : ILinkCache
             majorRec = default;
             return false;
         }
-            
-        // ToDo
-        // Upgrade to EnumerateGroups<TMajor>()
+
+        // Fast path: O(1) lookup via top-level group dictionary
+        var group = _sourceMod.TryGetTopLevelGroup(typeof(TMajor));
+        if (group != null)
+        {
+            var rec = group.RecordCache.TryGetValue(formKey);
+            if (rec is TMajor typed)
+            {
+                majorRec = new ModContext<TMajor>(_sourceMod.ModKey, parent: null, typed);
+                return true;
+            }
+            majorRec = default;
+            return false;
+        }
+
+        // Not a top-level type — fall through to enumeration for nested types
         foreach (var context in _sourceMod.EnumerateMajorRecordSimpleContexts<TMajor>()
-                     // ToDo
-                     // Capture and expose errors optionally via TryResolve /w out param
                      .Catch((Exception ex) => { }))
         {
             if (context.Record is IMajorRecordGetter majRec && majRec.FormKey == formKey)
@@ -479,22 +574,35 @@ public sealed class MutableModLinkCache : ILinkCache
     }
 
     /// <inheritdoc />
-    public bool TryResolveSimpleContext<TMajor>(string editorId, [MaybeNullWhen(false)] out IModContext<TMajor> majorRec) 
+    public bool TryResolveSimpleContext<TMajor>(string editorId, [MaybeNullWhen(false)] out IModContext<TMajor> majorRec)
         where TMajor : class, IMajorRecordQueryableGetter
     {
         CheckDisposal();
-            
+
         if (editorId.IsNullOrWhitespace())
         {
             majorRec = default;
             return false;
         }
-            
-        // ToDo
-        // Upgrade to EnumerateGroups<TMajor>()
+
+        // Fast path: scope search to the relevant top-level group
+        var group = _sourceMod.TryGetTopLevelGroup(typeof(TMajor));
+        if (group != null)
+        {
+            foreach (var item in group.Records)
+            {
+                if (item is TMajor typedItem && editorId.Equals(item.EditorID))
+                {
+                    majorRec = new ModContext<TMajor>(_sourceMod.ModKey, parent: null, typedItem);
+                    return true;
+                }
+            }
+            majorRec = default;
+            return false;
+        }
+
+        // Not a top-level type — fall through to enumeration for nested types
         foreach (var context in _sourceMod.EnumerateMajorRecordSimpleContexts<TMajor>()
-                     // ToDo
-                     // Capture and expose errors optionally via TryResolve /w out param
                      .Catch((Exception ex) => { }))
         {
             if (context.Record is IMajorRecordGetter majRec && editorId.Equals(majRec.EditorID))
@@ -512,25 +620,36 @@ public sealed class MutableModLinkCache : ILinkCache
     public bool TryResolveSimpleContext(FormKey formKey, Type type, [MaybeNullWhen(false)] out IModContext<IMajorRecordGetter> majorRec, ResolveTarget target = ResolveTarget.Winner)
     {
         CheckDisposal();
-            
+
         if (formKey.IsNull)
         {
             majorRec = default;
             return false;
         }
-        
+
         if (target == ResolveTarget.Origin
             && formKey.ModKey != _sourceMod.ModKey)
         {
             majorRec = default;
             return false;
         }
-            
-        // ToDo
-        // Upgrade to EnumerateGroups<TMajor>()
+
+        // Fast path: O(1) lookup via top-level group dictionary
+        var group = _sourceMod.TryGetTopLevelGroup(type);
+        if (group != null)
+        {
+            var rec = group.RecordCache.TryGetValue(formKey);
+            if (rec != null)
+            {
+                majorRec = new ModContext<IMajorRecordGetter>(_sourceMod.ModKey, parent: null, rec);
+                return true;
+            }
+            majorRec = default;
+            return false;
+        }
+
+        // Not a top-level type — fall through to enumeration for nested types
         foreach (var major in _sourceMod.EnumerateMajorRecordSimpleContexts(type)
-                     // ToDo
-                     // Capture and expose errors optionally via TryResolve /w out param
                      .Catch((Exception ex) => { }))
         {
             if (major.Record.FormKey == formKey)
@@ -539,7 +658,7 @@ public sealed class MutableModLinkCache : ILinkCache
                 return true;
             }
         }
-        
+
         majorRec = default;
         return false;
     }
@@ -554,17 +673,31 @@ public sealed class MutableModLinkCache : ILinkCache
     public bool TryResolveSimpleContext(string editorId, Type type, [MaybeNullWhen(false)] out IModContext<IMajorRecordGetter> majorRec)
     {
         CheckDisposal();
-            
+
         if (editorId.IsNullOrWhitespace())
         {
             majorRec = default;
             return false;
         }
-        // ToDo
-        // Upgrade to EnumerateGroups<TMajor>()
+
+        // Fast path: scope search to the relevant top-level group
+        var group = _sourceMod.TryGetTopLevelGroup(type);
+        if (group != null)
+        {
+            foreach (var item in group.Records)
+            {
+                if (editorId.Equals(item.EditorID))
+                {
+                    majorRec = new ModContext<IMajorRecordGetter>(_sourceMod.ModKey, parent: null, item);
+                    return true;
+                }
+            }
+            majorRec = default;
+            return false;
+        }
+
+        // Not a top-level type — fall through to enumeration for nested types
         foreach (var major in _sourceMod.EnumerateMajorRecordSimpleContexts(type)
-                     // ToDo
-                     // Capture and expose errors optionally via TryResolve /w out param
                      .Catch((Exception ex) => { }))
         {
             if (editorId.Equals(major.Record.EditorID))
@@ -573,7 +706,7 @@ public sealed class MutableModLinkCache : ILinkCache
                 return true;
             }
         }
-        
+
         majorRec = default;
         return false;
     }
@@ -1140,7 +1273,7 @@ public sealed class MutableModLinkCache<TMod, TModGetter> : ILinkCache<TMod, TMo
     public bool TryResolve(FormKey formKey, [MaybeNullWhen(false)] out IMajorRecordGetter majorRec, ResolveTarget target = ResolveTarget.Winner)
     {
         CheckDisposal();
-            
+
         if (formKey.IsNull)
         {
             majorRec = default;
@@ -1153,12 +1286,20 @@ public sealed class MutableModLinkCache<TMod, TModGetter> : ILinkCache<TMod, TMo
             majorRec = default;
             return false;
         }
-            
-        // ToDo
-        // Upgrade to call EnumerateGroups(), which will perform much better
+
+        // Fast path: check each top-level group's dictionary — O(g) where g ≈ 60
+        foreach (var group in _sourceMod.EnumerateGroups())
+        {
+            var rec = group.RecordCache.TryGetValue(formKey);
+            if (rec != null)
+            {
+                majorRec = rec;
+                return true;
+            }
+        }
+
+        // Fall through for nested records (Cells, PlacedObjects, etc.)
         foreach (var item in _sourceMod.EnumerateMajorRecords()
-                     // ToDo
-                     // Capture and expose errors optionally via TryResolve /w out param
                      .Catch((Exception ex) => { }))
         {
             if (item.FormKey == formKey)
@@ -1176,18 +1317,28 @@ public sealed class MutableModLinkCache<TMod, TModGetter> : ILinkCache<TMod, TMo
     public bool TryResolve(string editorId, [MaybeNullWhen(false)] out IMajorRecordGetter majorRec)
     {
         CheckDisposal();
-            
+
         if (editorId.IsNullOrWhitespace())
         {
             majorRec = default;
             return false;
         }
-            
-        // ToDo
-        // Upgrade to call EnumerateGroups(), which will perform much better
+
+        // Fast path: search each top-level group's records
+        foreach (var group in _sourceMod.EnumerateGroups())
+        {
+            foreach (var item in group.Records)
+            {
+                if (editorId.Equals(item.EditorID))
+                {
+                    majorRec = item;
+                    return true;
+                }
+            }
+        }
+
+        // Fall through for nested records (Cells, PlacedObjects, etc.)
         foreach (var item in _sourceMod.EnumerateMajorRecords()
-                     // ToDo
-                     // Capture and expose errors optionally via TryResolve /w out param
                      .Catch((Exception ex) => { }))
         {
             if (editorId.Equals(item.EditorID))
@@ -1205,7 +1356,7 @@ public sealed class MutableModLinkCache<TMod, TModGetter> : ILinkCache<TMod, TMo
         where TMajor : class, IMajorRecordQueryableGetter
     {
         CheckDisposal();
-            
+
         if (formKey.IsNull)
         {
             majorRec = default;
@@ -1218,12 +1369,23 @@ public sealed class MutableModLinkCache<TMod, TModGetter> : ILinkCache<TMod, TMo
             majorRec = default;
             return false;
         }
-            
-        // ToDo
-        // Upgrade to EnumerateGroups<TMajor>()
+
+        // Fast path: O(1) lookup via top-level group dictionary
+        var group = _sourceMod.TryGetTopLevelGroup(typeof(TMajor));
+        if (group != null)
+        {
+            var rec = group.RecordCache.TryGetValue(formKey);
+            if (rec is TMajor typed)
+            {
+                majorRec = typed;
+                return true;
+            }
+            majorRec = default;
+            return false;
+        }
+
+        // Not a top-level type — fall through to enumeration for nested types
         foreach (var item in _sourceMod.EnumerateMajorRecords<TMajor>()
-                     // ToDo
-                     // Capture and expose errors optionally via TryResolve /w out param
                      .Catch((Exception ex) => { }))
         {
             if (item is IMajorRecordGetter majRec
@@ -1239,29 +1401,42 @@ public sealed class MutableModLinkCache<TMod, TModGetter> : ILinkCache<TMod, TMo
     }
 
     /// <inheritdoc />
-    public bool TryResolve<TMajor>(TMajor record, [MaybeNullWhen(false)] out TMajor majorRec, ResolveTarget target = ResolveTarget.Winner) 
+    public bool TryResolve<TMajor>(TMajor record, [MaybeNullWhen(false)] out TMajor majorRec, ResolveTarget target = ResolveTarget.Winner)
         where TMajor : class, IMajorRecordGetter
     {
         return TryResolve<TMajor>(record.FormKey, out majorRec, target);
     }
-    
+
     /// <inheritdoc />
     public bool TryResolve<TMajor>(string editorId, [MaybeNullWhen(false)] out TMajor majorRec)
         where TMajor : class, IMajorRecordQueryableGetter
     {
         CheckDisposal();
-            
+
         if (editorId.IsNullOrWhitespace())
         {
             majorRec = default;
             return false;
         }
-            
-        // ToDo
-        // Upgrade to EnumerateGroups<TMajor>()
+
+        // Fast path: scope search to the relevant top-level group
+        var group = _sourceMod.TryGetTopLevelGroup(typeof(TMajor));
+        if (group != null)
+        {
+            foreach (var item in group.Records)
+            {
+                if (item is TMajor typedItem && editorId.Equals(item.EditorID, StringComparison.OrdinalIgnoreCase))
+                {
+                    majorRec = typedItem;
+                    return true;
+                }
+            }
+            majorRec = default;
+            return false;
+        }
+
+        // Not a top-level type — fall through to enumeration for nested types
         foreach (var item in _sourceMod.EnumerateMajorRecords<TMajor>()
-                     // ToDo
-                     // Capture and expose errors optionally via TryResolve /w out param
                      .Catch((Exception ex) => { }))
         {
             if (item is IMajorRecordGetter majRec
@@ -1280,7 +1455,7 @@ public sealed class MutableModLinkCache<TMod, TModGetter> : ILinkCache<TMod, TMo
     public bool TryResolve(FormKey formKey, Type type, [MaybeNullWhen(false)] out IMajorRecordGetter majorRec, ResolveTarget target = ResolveTarget.Winner)
     {
         CheckDisposal();
-            
+
         if (formKey.IsNull)
         {
             majorRec = default;
@@ -1293,12 +1468,23 @@ public sealed class MutableModLinkCache<TMod, TModGetter> : ILinkCache<TMod, TMo
             majorRec = default;
             return false;
         }
-            
-        // ToDo
-        // Upgrade to EnumerateGroups<TMajor>()
+
+        // Fast path: O(1) lookup via top-level group dictionary
+        var group = _sourceMod.TryGetTopLevelGroup(type);
+        if (group != null)
+        {
+            var rec = group.RecordCache.TryGetValue(formKey);
+            if (rec != null)
+            {
+                majorRec = rec;
+                return true;
+            }
+            majorRec = default;
+            return false;
+        }
+
+        // Not a top-level type — fall through to enumeration for nested types
         foreach (var major in _sourceMod.EnumerateMajorRecords(type)
-                     // ToDo
-                     // Capture and expose errors optionally via TryResolve /w out param
                      .Catch((Exception ex) => { }))
         {
             if (major.FormKey == formKey)
@@ -1322,18 +1508,31 @@ public sealed class MutableModLinkCache<TMod, TModGetter> : ILinkCache<TMod, TMo
     public bool TryResolve(string editorId, Type type, [MaybeNullWhen(false)] out IMajorRecordGetter majorRec)
     {
         CheckDisposal();
-            
+
         if (editorId.IsNullOrWhitespace())
         {
             majorRec = default;
             return false;
         }
-            
-        // ToDo
-        // Upgrade to EnumerateGroups<TMajor>()
+
+        // Fast path: scope search to the relevant top-level group
+        var group = _sourceMod.TryGetTopLevelGroup(type);
+        if (group != null)
+        {
+            foreach (var item in group.Records)
+            {
+                if (editorId.Equals(item.EditorID))
+                {
+                    majorRec = item;
+                    return true;
+                }
+            }
+            majorRec = default;
+            return false;
+        }
+
+        // Not a top-level type — fall through to enumeration for nested types
         foreach (var major in _sourceMod.EnumerateMajorRecords(type)
-                     // ToDo
-                     // Capture and expose errors optionally via TryResolve /w out param
                      .Catch((Exception ex) => { }))
         {
             if (editorId.Equals(major.EditorID))
@@ -1414,7 +1613,7 @@ public sealed class MutableModLinkCache<TMod, TModGetter> : ILinkCache<TMod, TMo
     public bool TryResolveContext(FormKey formKey, [MaybeNullWhen(false)] out IModContext<TMod, TModGetter, IMajorRecord, IMajorRecordGetter> majorRec, ResolveTarget target = ResolveTarget.Winner)
     {
         CheckDisposal();
-            
+
         if (formKey.IsNull)
         {
             majorRec = default;
@@ -1427,12 +1626,8 @@ public sealed class MutableModLinkCache<TMod, TModGetter> : ILinkCache<TMod, TMo
             majorRec = default;
             return false;
         }
-            
-        // ToDo
-        // Upgrade to call EnumerateGroups(), which will perform much better
+
         foreach (var item in _sourceMod.EnumerateMajorRecordContexts<IMajorRecord, IMajorRecordGetter>(this)
-                     // ToDo
-                     // Capture and expose errors optionally via TryResolve /w out param
                      .Catch((Exception ex) => { }))
         {
             if (item.Record.FormKey == formKey)
@@ -1450,18 +1645,14 @@ public sealed class MutableModLinkCache<TMod, TModGetter> : ILinkCache<TMod, TMo
     public bool TryResolveContext(string editorId, [MaybeNullWhen(false)] out IModContext<TMod, TModGetter, IMajorRecord, IMajorRecordGetter> majorRec)
     {
         CheckDisposal();
-            
+
         if (editorId.IsNullOrWhitespace())
         {
             majorRec = default;
             return false;
         }
-            
-        // ToDo
-        // Upgrade to call EnumerateGroups(), which will perform much better
+
         foreach (var item in _sourceMod.EnumerateMajorRecordContexts<IMajorRecord, IMajorRecordGetter>(this)
-                     // ToDo
-                     // Capture and expose errors optionally via TryResolve /w out param
                      .Catch((Exception ex) => { }))
         {
             if (editorId.Equals(item.Record.EditorID))
@@ -1480,7 +1671,7 @@ public sealed class MutableModLinkCache<TMod, TModGetter> : ILinkCache<TMod, TMo
         where TMajorGetter : class, IMajorRecordQueryableGetter
     {
         CheckDisposal();
-            
+
         if (formKey.IsNull)
         {
             majorRec = default;
@@ -1493,12 +1684,20 @@ public sealed class MutableModLinkCache<TMod, TModGetter> : ILinkCache<TMod, TMo
             majorRec = default;
             return false;
         }
-            
-        // ToDo
-        // Upgrade to EnumerateGroups<TMajor>()
+
+        // Fast path: definitive miss via top-level group dictionary
+        var group = _sourceMod.TryGetTopLevelGroup(typeof(TMajorGetter));
+        if (group != null)
+        {
+            if (group.RecordCache.TryGetValue(formKey) == null)
+            {
+                majorRec = default;
+                return false;
+            }
+        }
+
+        // Need context enumeration for proper context wrapping
         foreach (var context in _sourceMod.EnumerateMajorRecordContexts<TMajor, TMajorGetter>(this)
-                     // ToDo
-                     // Capture and expose errors optionally via TryResolve /w out param
                      .Catch((Exception ex) => { }))
         {
             if (context.Record is IMajorRecordGetter majRec
@@ -1519,18 +1718,35 @@ public sealed class MutableModLinkCache<TMod, TModGetter> : ILinkCache<TMod, TMo
         where TMajorGetter : class, IMajorRecordQueryableGetter
     {
         CheckDisposal();
-            
+
         if (editorId.IsNullOrWhitespace())
         {
             majorRec = default;
             return false;
         }
-            
-        // ToDo
-        // Upgrade to EnumerateGroups<TMajor>()
+
+        // Fast path: for top-level types, check if editorId exists in the group first
+        var group = _sourceMod.TryGetTopLevelGroup(typeof(TMajorGetter));
+        if (group != null)
+        {
+            bool found = false;
+            foreach (var item in group.Records)
+            {
+                if (editorId.Equals(item.EditorID))
+                {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found)
+            {
+                majorRec = default;
+                return false;
+            }
+        }
+
+        // Need context enumeration for proper context wrapping
         foreach (var context in _sourceMod.EnumerateMajorRecordContexts<TMajor, TMajorGetter>(this)
-                     // ToDo
-                     // Capture and expose errors optionally via TryResolve /w out param
                      .Catch((Exception ex) => { }))
         {
             if (context.Record is IMajorRecordGetter majRec
@@ -1549,7 +1765,7 @@ public sealed class MutableModLinkCache<TMod, TModGetter> : ILinkCache<TMod, TMo
     public bool TryResolveContext(FormKey formKey, Type type, [MaybeNullWhen(false)] out IModContext<TMod, TModGetter, IMajorRecord, IMajorRecordGetter> majorRec, ResolveTarget target = ResolveTarget.Winner)
     {
         CheckDisposal();
-            
+
         if (formKey.IsNull)
         {
             majorRec = default;
@@ -1562,12 +1778,20 @@ public sealed class MutableModLinkCache<TMod, TModGetter> : ILinkCache<TMod, TMo
             majorRec = default;
             return false;
         }
-            
-        // ToDo
-        // Upgrade to EnumerateGroups<TMajor>()
+
+        // Fast path: definitive miss via top-level group dictionary
+        var group = _sourceMod.TryGetTopLevelGroup(type);
+        if (group != null)
+        {
+            if (group.RecordCache.TryGetValue(formKey) == null)
+            {
+                majorRec = default;
+                return false;
+            }
+        }
+
+        // Need context enumeration for proper context wrapping
         foreach (var major in _sourceMod.EnumerateMajorRecordContexts(this, type)
-                     // ToDo
-                     // Capture and expose errors optionally via TryResolve /w out param
                      .Catch((Exception ex) => { }))
         {
             if (major.Record.FormKey == formKey)
@@ -1591,17 +1815,35 @@ public sealed class MutableModLinkCache<TMod, TModGetter> : ILinkCache<TMod, TMo
     public bool TryResolveContext(string editorId, Type type, [MaybeNullWhen(false)] out IModContext<TMod, TModGetter, IMajorRecord, IMajorRecordGetter> majorRec)
     {
         CheckDisposal();
-            
+
         if (editorId.IsNullOrWhitespace())
         {
             majorRec = default;
             return false;
         }
-        // ToDo
-        // Upgrade to EnumerateGroups<TMajor>()
+
+        // Fast path: for top-level types, check if editorId exists in the group first
+        var group = _sourceMod.TryGetTopLevelGroup(type);
+        if (group != null)
+        {
+            bool found = false;
+            foreach (var item in group.Records)
+            {
+                if (editorId.Equals(item.EditorID))
+                {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found)
+            {
+                majorRec = default;
+                return false;
+            }
+        }
+
+        // Need context enumeration for proper context wrapping
         foreach (var major in _sourceMod.EnumerateMajorRecordContexts(this, type)
-                     // ToDo
-                     // Capture and expose errors optionally via TryResolve /w out param
                      .Catch((Exception ex) => { }))
         {
             if (editorId.Equals(major.Record.EditorID))
@@ -1752,7 +1994,7 @@ public sealed class MutableModLinkCache<TMod, TModGetter> : ILinkCache<TMod, TMo
         where TMajor : class, IMajorRecordQueryableGetter
     {
         CheckDisposal();
-            
+
         if (formKey.IsNull)
         {
             majorRec = default;
@@ -1765,12 +2007,23 @@ public sealed class MutableModLinkCache<TMod, TModGetter> : ILinkCache<TMod, TMo
             majorRec = default;
             return false;
         }
-            
-        // ToDo
-        // Upgrade to EnumerateGroups<TMajor>()
+
+        // Fast path: O(1) lookup via top-level group dictionary
+        var group = _sourceMod.TryGetTopLevelGroup(typeof(TMajor));
+        if (group != null)
+        {
+            var rec = group.RecordCache.TryGetValue(formKey);
+            if (rec is TMajor typed)
+            {
+                majorRec = new ModContext<TMajor>(_sourceMod.ModKey, parent: null, typed);
+                return true;
+            }
+            majorRec = default;
+            return false;
+        }
+
+        // Not a top-level type — fall through to enumeration for nested types
         foreach (var context in _sourceMod.EnumerateMajorRecordSimpleContexts<TMajor>()
-                     // ToDo
-                     // Capture and expose errors optionally via TryResolve /w out param
                      .Catch((Exception ex) => { }))
         {
             if (context.Record is IMajorRecordGetter majRec && majRec.FormKey == formKey)
@@ -1785,22 +2038,35 @@ public sealed class MutableModLinkCache<TMod, TModGetter> : ILinkCache<TMod, TMo
     }
 
     /// <inheritdoc />
-    public bool TryResolveSimpleContext<TMajor>(string editorId, [MaybeNullWhen(false)] out IModContext<TMajor> majorRec) 
+    public bool TryResolveSimpleContext<TMajor>(string editorId, [MaybeNullWhen(false)] out IModContext<TMajor> majorRec)
         where TMajor : class, IMajorRecordQueryableGetter
     {
         CheckDisposal();
-            
+
         if (editorId.IsNullOrWhitespace())
         {
             majorRec = default;
             return false;
         }
-            
-        // ToDo
-        // Upgrade to EnumerateGroups<TMajor>()
+
+        // Fast path: scope search to the relevant top-level group
+        var group = _sourceMod.TryGetTopLevelGroup(typeof(TMajor));
+        if (group != null)
+        {
+            foreach (var item in group.Records)
+            {
+                if (item is TMajor typedItem && editorId.Equals(item.EditorID))
+                {
+                    majorRec = new ModContext<TMajor>(_sourceMod.ModKey, parent: null, typedItem);
+                    return true;
+                }
+            }
+            majorRec = default;
+            return false;
+        }
+
+        // Not a top-level type — fall through to enumeration for nested types
         foreach (var context in _sourceMod.EnumerateMajorRecordSimpleContexts<TMajor>()
-                     // ToDo
-                     // Capture and expose errors optionally via TryResolve /w out param
                      .Catch((Exception ex) => { }))
         {
             if (context.Record is IMajorRecordGetter majRec && editorId.Equals(majRec.EditorID))
