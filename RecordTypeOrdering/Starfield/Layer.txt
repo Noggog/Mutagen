@@ -1,0 +1,6 @@
+RecordTypes.EDID,
+RecordTypes.BFCB,
+RecordTypes.BFCE,
+RecordTypes.PNAM,
+RecordTypes.XCLP,
+RecordTypes.LODB,

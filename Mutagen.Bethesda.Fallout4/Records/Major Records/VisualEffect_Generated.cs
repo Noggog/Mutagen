@@ -34,6 +34,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -1537,22 +1538,36 @@ namespace Mutagen.Bethesda.Fallout4
         protected override Type LinkType => typeof(IVisualEffectGetter);
 
 
-        private RangeInt32? _DATALocation;
         #region EffectArt
-        private int _EffectArtLocation => _DATALocation!.Value.Min;
-        private bool _EffectArt_IsSet => _DATALocation.HasValue;
+        private int _EffectArtLocation => Payload.DATALocation!.Value.Min;
+        private bool _EffectArt_IsSet => Payload.DATALocation.HasValue;
         public IFormLinkGetter<IArtObjectGetter> EffectArt => _EffectArt_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IArtObjectGetter>(_package, _recordData.Span.Slice(_EffectArtLocation, 0x4), isSet: _EffectArt_IsSet) : FormLink<IArtObjectGetter>.Null;
         #endregion
         #region Shader
-        private int _ShaderLocation => _DATALocation!.Value.Min + 0x4;
-        private bool _Shader_IsSet => _DATALocation.HasValue;
+        private int _ShaderLocation => Payload.DATALocation!.Value.Min + 0x4;
+        private bool _Shader_IsSet => Payload.DATALocation.HasValue;
         public IFormLinkGetter<IEffectShaderGetter> Shader => _Shader_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IEffectShaderGetter>(_package, _recordData.Span.Slice(_ShaderLocation, 0x4), isSet: _Shader_IsSet) : FormLink<IEffectShaderGetter>.Null;
         #endregion
         #region Flags
-        private int _FlagsLocation => _DATALocation!.Value.Min + 0x8;
-        private bool _Flags_IsSet => _DATALocation.HasValue;
+        private int _FlagsLocation => Payload.DATALocation!.Value.Min + 0x8;
+        private bool _Flags_IsSet => Payload.DATALocation.HasValue;
         public VisualEffect.Flag Flags => _Flags_IsSet ? (VisualEffect.Flag)BinaryPrimitives.ReadInt32LittleEndian(_recordData.Span.Slice(_FlagsLocation, 0x4)) : default;
         #endregion
+
+        internal partial class VisualEffectRecordDataPayload
+        {
+            public RangeInt32? DATALocation;
+        }
+
+        private LazyPayload<VisualEffectRecordDataPayload> _payload = null!;
+
+        internal VisualEffectRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<VisualEffectRecordDataPayload>(init, new VisualEffectRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -1560,10 +1575,10 @@ namespace Mutagen.Bethesda.Fallout4
 
         partial void CustomCtor();
         protected VisualEffectBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -1574,28 +1589,51 @@ namespace Mutagen.Bethesda.Fallout4
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new VisualEffectBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -1624,7 +1662,7 @@ namespace Mutagen.Bethesda.Fallout4
             {
                 case RecordTypeInts.DATA:
                 {
-                    _DATALocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.DATALocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     return (int)VisualEffect_FieldIndex.Flags;
                 }
                 default:

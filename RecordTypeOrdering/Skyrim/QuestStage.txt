@@ -1,0 +1,7 @@
+RecordTypes.QSDT,
+RecordTypes.CTDA,
+RecordTypes.CNAM,
+RecordTypes.NAM0,
+RecordTypes.SCHR,
+RecordTypes.SCTX,
+RecordTypes.QNAM,

@@ -190,7 +190,7 @@ partial class MagicEffectBinaryOverlay
 
     public partial IAMagicEffectArchetypeGetter GetArchetypeCustom()
     {
-        if (!_DATALocation.HasValue) return new MagicEffectArchetype();
+        if (!Payload.DATALocation.HasValue) return new MagicEffectArchetype();
         var frame = new MutagenFrame(new MutagenMemoryReadStream(_recordData, _package.MetaData))
         {
             Position = _ArchetypeLocation

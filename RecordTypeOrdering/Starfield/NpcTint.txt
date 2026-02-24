@@ -1,0 +1,6 @@
+RecordTypes.MNAM,
+RecordTypes.TNAM,
+RecordTypes.QNAM,
+RecordTypes.VNAM,
+RecordTypes.NNAM,
+RecordTypes.INTV,

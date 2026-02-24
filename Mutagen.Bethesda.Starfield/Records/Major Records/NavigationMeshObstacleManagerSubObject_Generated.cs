@@ -1405,7 +1405,14 @@ namespace Mutagen.Bethesda.Starfield
 
         #region Index
         private int? _IndexLocation;
-        public UInt32? Index => _IndexLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _IndexLocation.Value, _package.MetaData.Constants)) : default(UInt32?);
+        public UInt32? Index
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _IndexLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _IndexLocation.Value, _package.MetaData.Constants)) : default(UInt32?);
+            }
+        }
         #endregion
         public IReadOnlyList<ReadOnlyMemorySlice<Byte>> DATAs { get; private set; } = [];
         #region INTV
@@ -1414,7 +1421,14 @@ namespace Mutagen.Bethesda.Starfield
         #endregion
         #region Model
         private int? _ModelLocation;
-        public String? Model => _ModelLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _ModelLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? Model
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _ModelLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_data, _ModelLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+            }
+        }
         #endregion
         partial void CustomFactoryEnd(
             OverlayStream stream,

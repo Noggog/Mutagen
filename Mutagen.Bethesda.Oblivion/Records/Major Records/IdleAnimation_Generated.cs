@@ -35,6 +35,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -1898,13 +1899,28 @@ namespace Mutagen.Bethesda.Oblivion
         protected override Type LinkType => typeof(IIdleAnimationGetter);
 
 
-        public IModelGetter? Model { get; private set; }
-        public IReadOnlyList<IConditionGetter> Conditions { get; private set; } = [];
-        #region AnimationGroupSection
-        private int? _AnimationGroupSectionLocation;
-        public IdleAnimation.AnimationGroupSectionEnum? AnimationGroupSection => EnumBinaryTranslation<IdleAnimation.AnimationGroupSectionEnum, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(_AnimationGroupSectionLocation, _recordData, _package, 1);
-        #endregion
-        public IReadOnlyList<IFormLinkGetter<IIdleAnimationGetter>>? RelatedIdleAnimations { get; private set; }
+        public IModelGetter? Model => Payload.Model;
+        public IReadOnlyList<IConditionGetter> Conditions => Payload.Conditions ?? [];
+        public IdleAnimation.AnimationGroupSectionEnum? AnimationGroupSection => EnumBinaryTranslation<IdleAnimation.AnimationGroupSectionEnum, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(Payload.AnimationGroupSectionLocation, _recordData, _package, 1);
+        public IReadOnlyList<IFormLinkGetter<IIdleAnimationGetter>>? RelatedIdleAnimations => Payload.RelatedIdleAnimations;
+
+        internal partial class IdleAnimationRecordDataPayload
+        {
+            public IModelGetter? Model;
+            public IReadOnlyList<IConditionGetter> Conditions = [];
+            public int? AnimationGroupSectionLocation;
+            public IReadOnlyList<IFormLinkGetter<IIdleAnimationGetter>>? RelatedIdleAnimations;
+        }
+
+        private LazyPayload<IdleAnimationRecordDataPayload> _payload = null!;
+
+        internal IdleAnimationRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<IdleAnimationRecordDataPayload>(init, new IdleAnimationRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -1912,10 +1928,10 @@ namespace Mutagen.Bethesda.Oblivion
 
         partial void CustomCtor();
         protected IdleAnimationBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -1926,28 +1942,51 @@ namespace Mutagen.Bethesda.Oblivion
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new IdleAnimationBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -1976,7 +2015,7 @@ namespace Mutagen.Bethesda.Oblivion
             {
                 case RecordTypeInts.MODL:
                 {
-                    this.Model = ModelBinaryOverlay.ModelFactory(
+                    _payload.Fields.Model = ModelBinaryOverlay.ModelFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());
@@ -1985,7 +2024,7 @@ namespace Mutagen.Bethesda.Oblivion
                 case RecordTypeInts.CTDA:
                 case RecordTypeInts.CTDT:
                 {
-                    this.Conditions = BinaryOverlayList.FactoryByArray<IConditionGetter>(
+                    _payload.Fields.Conditions = BinaryOverlayList.FactoryByArray<IConditionGetter>(
                         mem: stream.RemainingMemory,
                         package: _package,
                         translationParams: translationParams,
@@ -2000,12 +2039,12 @@ namespace Mutagen.Bethesda.Oblivion
                 }
                 case RecordTypeInts.ANAM:
                 {
-                    _AnimationGroupSectionLocation = (stream.Position - offset);
+                    _payload.Fields.AnimationGroupSectionLocation = (stream.Position - offset);
                     return (int)IdleAnimation_FieldIndex.AnimationGroupSection;
                 }
                 case RecordTypeInts.DATA:
                 {
-                    this.RelatedIdleAnimations = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<IIdleAnimationGetter>>(
+                    _payload.Fields.RelatedIdleAnimations = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<IIdleAnimationGetter>>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,

@@ -36,6 +36,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -3669,13 +3670,11 @@ namespace Mutagen.Bethesda.Fallout4
 
 
         #region ObjectBounds
-        private RangeInt32? _ObjectBoundsLocation;
-        private IObjectBoundsGetter? _ObjectBounds => _ObjectBoundsLocation.HasValue ? ObjectBoundsBinaryOverlay.ObjectBoundsFactory(_recordData.Slice(_ObjectBoundsLocation!.Value.Min), _package) : default;
+        private IObjectBoundsGetter? _ObjectBounds => Payload.ObjectBoundsLocation.HasValue ? ObjectBoundsBinaryOverlay.ObjectBoundsFactory(_recordData.Slice(Payload.ObjectBoundsLocation!.Value.Min), _package) : default;
         public IObjectBoundsGetter ObjectBounds => _ObjectBounds ?? new ObjectBounds();
         #endregion
         #region Name
-        private int? _NameLocation;
-        public ITranslatedStringGetter? Name => _NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+        public ITranslatedStringGetter? Name => Payload.NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
         #region Aspects
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         string INamedRequiredGetter.Name => this.Name?.String ?? string.Empty;
@@ -3685,150 +3684,160 @@ namespace Mutagen.Bethesda.Fallout4
         ITranslatedStringGetter ITranslatedNamedRequiredGetter.Name => this.Name ?? TranslatedString.Empty;
         #endregion
         #endregion
-        public IModelGetter? Model { get; private set; }
-        public IDestructibleGetter? Destructible { get; private set; }
-        #region Unused
-        private int? _UnusedLocation;
-        public ReadOnlyMemorySlice<Byte>? Unused => _UnusedLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _UnusedLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
-        #endregion
-        private RangeInt32? _DNAMLocation;
+        public IModelGetter? Model => Payload.Model;
+        public IDestructibleGetter? Destructible => Payload.Destructible;
+        public ReadOnlyMemorySlice<Byte>? Unused => Payload.UnusedLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.UnusedLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
         #region Flags
-        private int _FlagsLocation => _DNAMLocation!.Value.Min;
-        private bool _Flags_IsSet => _DNAMLocation.HasValue;
+        private int _FlagsLocation => Payload.DNAMLocation!.Value.Min;
+        private bool _Flags_IsSet => Payload.DNAMLocation.HasValue;
         public Projectile.Flag Flags => _Flags_IsSet ? (Projectile.Flag)BinaryPrimitives.ReadUInt16LittleEndian(_recordData.Span.Slice(_FlagsLocation, 0x2)) : default;
         #endregion
         #region Type
-        private int _TypeLocation => _DNAMLocation!.Value.Min + 0x2;
-        private bool _Type_IsSet => _DNAMLocation.HasValue;
+        private int _TypeLocation => Payload.DNAMLocation!.Value.Min + 0x2;
+        private bool _Type_IsSet => Payload.DNAMLocation.HasValue;
         public Projectile.TypeEnum Type => _Type_IsSet ? (Projectile.TypeEnum)BinaryPrimitives.ReadUInt16LittleEndian(_recordData.Span.Slice(_TypeLocation, 0x2)) : default;
         #endregion
         #region Gravity
-        private int _GravityLocation => _DNAMLocation!.Value.Min + 0x4;
-        private bool _Gravity_IsSet => _DNAMLocation.HasValue;
+        private int _GravityLocation => Payload.DNAMLocation!.Value.Min + 0x4;
+        private bool _Gravity_IsSet => Payload.DNAMLocation.HasValue;
         public Single Gravity => _Gravity_IsSet ? _recordData.Slice(_GravityLocation, 4).Float() : default(Single);
         #endregion
         #region Speed
-        private int _SpeedLocation => _DNAMLocation!.Value.Min + 0x8;
-        private bool _Speed_IsSet => _DNAMLocation.HasValue;
+        private int _SpeedLocation => Payload.DNAMLocation!.Value.Min + 0x8;
+        private bool _Speed_IsSet => Payload.DNAMLocation.HasValue;
         public Single Speed => _Speed_IsSet ? _recordData.Slice(_SpeedLocation, 4).Float() : default(Single);
         #endregion
         #region Range
-        private int _RangeLocation => _DNAMLocation!.Value.Min + 0xC;
-        private bool _Range_IsSet => _DNAMLocation.HasValue;
+        private int _RangeLocation => Payload.DNAMLocation!.Value.Min + 0xC;
+        private bool _Range_IsSet => Payload.DNAMLocation.HasValue;
         public Single Range => _Range_IsSet ? _recordData.Slice(_RangeLocation, 4).Float() : default(Single);
         #endregion
         #region Light
-        private int _LightLocation => _DNAMLocation!.Value.Min + 0x10;
-        private bool _Light_IsSet => _DNAMLocation.HasValue;
+        private int _LightLocation => Payload.DNAMLocation!.Value.Min + 0x10;
+        private bool _Light_IsSet => Payload.DNAMLocation.HasValue;
         public IFormLinkGetter<ILightGetter> Light => _Light_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<ILightGetter>(_package, _recordData.Span.Slice(_LightLocation, 0x4), isSet: _Light_IsSet) : FormLink<ILightGetter>.Null;
         #endregion
         #region MuzzleFlash
-        private int _MuzzleFlashLocation => _DNAMLocation!.Value.Min + 0x14;
-        private bool _MuzzleFlash_IsSet => _DNAMLocation.HasValue;
+        private int _MuzzleFlashLocation => Payload.DNAMLocation!.Value.Min + 0x14;
+        private bool _MuzzleFlash_IsSet => Payload.DNAMLocation.HasValue;
         public IFormLinkGetter<ILightGetter> MuzzleFlash => _MuzzleFlash_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<ILightGetter>(_package, _recordData.Span.Slice(_MuzzleFlashLocation, 0x4), isSet: _MuzzleFlash_IsSet) : FormLink<ILightGetter>.Null;
         #endregion
         #region ExplosionAltTriggerProximity
-        private int _ExplosionAltTriggerProximityLocation => _DNAMLocation!.Value.Min + 0x18;
-        private bool _ExplosionAltTriggerProximity_IsSet => _DNAMLocation.HasValue;
+        private int _ExplosionAltTriggerProximityLocation => Payload.DNAMLocation!.Value.Min + 0x18;
+        private bool _ExplosionAltTriggerProximity_IsSet => Payload.DNAMLocation.HasValue;
         public Single ExplosionAltTriggerProximity => _ExplosionAltTriggerProximity_IsSet ? _recordData.Slice(_ExplosionAltTriggerProximityLocation, 4).Float() : default(Single);
         #endregion
         #region ExplosionAltTriggerTimer
-        private int _ExplosionAltTriggerTimerLocation => _DNAMLocation!.Value.Min + 0x1C;
-        private bool _ExplosionAltTriggerTimer_IsSet => _DNAMLocation.HasValue;
+        private int _ExplosionAltTriggerTimerLocation => Payload.DNAMLocation!.Value.Min + 0x1C;
+        private bool _ExplosionAltTriggerTimer_IsSet => Payload.DNAMLocation.HasValue;
         public Single ExplosionAltTriggerTimer => _ExplosionAltTriggerTimer_IsSet ? _recordData.Slice(_ExplosionAltTriggerTimerLocation, 4).Float() : default(Single);
         #endregion
         #region Explosion
-        private int _ExplosionLocation => _DNAMLocation!.Value.Min + 0x20;
-        private bool _Explosion_IsSet => _DNAMLocation.HasValue;
+        private int _ExplosionLocation => Payload.DNAMLocation!.Value.Min + 0x20;
+        private bool _Explosion_IsSet => Payload.DNAMLocation.HasValue;
         public IFormLinkGetter<IExplosionGetter> Explosion => _Explosion_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IExplosionGetter>(_package, _recordData.Span.Slice(_ExplosionLocation, 0x4), isSet: _Explosion_IsSet) : FormLink<IExplosionGetter>.Null;
         #endregion
         #region Sound
-        private int _SoundLocation => _DNAMLocation!.Value.Min + 0x24;
-        private bool _Sound_IsSet => _DNAMLocation.HasValue;
+        private int _SoundLocation => Payload.DNAMLocation!.Value.Min + 0x24;
+        private bool _Sound_IsSet => Payload.DNAMLocation.HasValue;
         public IFormLinkGetter<ISoundDescriptorGetter> Sound => _Sound_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<ISoundDescriptorGetter>(_package, _recordData.Span.Slice(_SoundLocation, 0x4), isSet: _Sound_IsSet) : FormLink<ISoundDescriptorGetter>.Null;
         #endregion
         #region MuzzleFlashDuration
-        private int _MuzzleFlashDurationLocation => _DNAMLocation!.Value.Min + 0x28;
-        private bool _MuzzleFlashDuration_IsSet => _DNAMLocation.HasValue;
+        private int _MuzzleFlashDurationLocation => Payload.DNAMLocation!.Value.Min + 0x28;
+        private bool _MuzzleFlashDuration_IsSet => Payload.DNAMLocation.HasValue;
         public Single MuzzleFlashDuration => _MuzzleFlashDuration_IsSet ? _recordData.Slice(_MuzzleFlashDurationLocation, 4).Float() : default(Single);
         #endregion
         #region FadeDuration
-        private int _FadeDurationLocation => _DNAMLocation!.Value.Min + 0x2C;
-        private bool _FadeDuration_IsSet => _DNAMLocation.HasValue;
+        private int _FadeDurationLocation => Payload.DNAMLocation!.Value.Min + 0x2C;
+        private bool _FadeDuration_IsSet => Payload.DNAMLocation.HasValue;
         public Single FadeDuration => _FadeDuration_IsSet ? _recordData.Slice(_FadeDurationLocation, 4).Float() : default(Single);
         #endregion
         #region ImpactForce
-        private int _ImpactForceLocation => _DNAMLocation!.Value.Min + 0x30;
-        private bool _ImpactForce_IsSet => _DNAMLocation.HasValue;
+        private int _ImpactForceLocation => Payload.DNAMLocation!.Value.Min + 0x30;
+        private bool _ImpactForce_IsSet => Payload.DNAMLocation.HasValue;
         public Single ImpactForce => _ImpactForce_IsSet ? _recordData.Slice(_ImpactForceLocation, 4).Float() : default(Single);
         #endregion
         #region CountdownSound
-        private int _CountdownSoundLocation => _DNAMLocation!.Value.Min + 0x34;
-        private bool _CountdownSound_IsSet => _DNAMLocation.HasValue;
+        private int _CountdownSoundLocation => Payload.DNAMLocation!.Value.Min + 0x34;
+        private bool _CountdownSound_IsSet => Payload.DNAMLocation.HasValue;
         public IFormLinkGetter<ISoundDescriptorGetter> CountdownSound => _CountdownSound_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<ISoundDescriptorGetter>(_package, _recordData.Span.Slice(_CountdownSoundLocation, 0x4), isSet: _CountdownSound_IsSet) : FormLink<ISoundDescriptorGetter>.Null;
         #endregion
         #region DisaleSound
-        private int _DisaleSoundLocation => _DNAMLocation!.Value.Min + 0x38;
-        private bool _DisaleSound_IsSet => _DNAMLocation.HasValue;
+        private int _DisaleSoundLocation => Payload.DNAMLocation!.Value.Min + 0x38;
+        private bool _DisaleSound_IsSet => Payload.DNAMLocation.HasValue;
         public IFormLinkGetter<ISoundDescriptorGetter> DisaleSound => _DisaleSound_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<ISoundDescriptorGetter>(_package, _recordData.Span.Slice(_DisaleSoundLocation, 0x4), isSet: _DisaleSound_IsSet) : FormLink<ISoundDescriptorGetter>.Null;
         #endregion
         #region DefaultWeaponSource
-        private int _DefaultWeaponSourceLocation => _DNAMLocation!.Value.Min + 0x3C;
-        private bool _DefaultWeaponSource_IsSet => _DNAMLocation.HasValue;
+        private int _DefaultWeaponSourceLocation => Payload.DNAMLocation!.Value.Min + 0x3C;
+        private bool _DefaultWeaponSource_IsSet => Payload.DNAMLocation.HasValue;
         public IFormLinkGetter<IWeaponGetter> DefaultWeaponSource => _DefaultWeaponSource_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IWeaponGetter>(_package, _recordData.Span.Slice(_DefaultWeaponSourceLocation, 0x4), isSet: _DefaultWeaponSource_IsSet) : FormLink<IWeaponGetter>.Null;
         #endregion
         #region ConeSpread
-        private int _ConeSpreadLocation => _DNAMLocation!.Value.Min + 0x40;
-        private bool _ConeSpread_IsSet => _DNAMLocation.HasValue;
+        private int _ConeSpreadLocation => Payload.DNAMLocation!.Value.Min + 0x40;
+        private bool _ConeSpread_IsSet => Payload.DNAMLocation.HasValue;
         public Single ConeSpread => _ConeSpread_IsSet ? _recordData.Slice(_ConeSpreadLocation, 4).Float() : default(Single);
         #endregion
         #region CollisionRadius
-        private int _CollisionRadiusLocation => _DNAMLocation!.Value.Min + 0x44;
-        private bool _CollisionRadius_IsSet => _DNAMLocation.HasValue;
+        private int _CollisionRadiusLocation => Payload.DNAMLocation!.Value.Min + 0x44;
+        private bool _CollisionRadius_IsSet => Payload.DNAMLocation.HasValue;
         public Single CollisionRadius => _CollisionRadius_IsSet ? _recordData.Slice(_CollisionRadiusLocation, 4).Float() : default(Single);
         #endregion
         #region Lifetime
-        private int _LifetimeLocation => _DNAMLocation!.Value.Min + 0x48;
-        private bool _Lifetime_IsSet => _DNAMLocation.HasValue;
+        private int _LifetimeLocation => Payload.DNAMLocation!.Value.Min + 0x48;
+        private bool _Lifetime_IsSet => Payload.DNAMLocation.HasValue;
         public Single Lifetime => _Lifetime_IsSet ? _recordData.Slice(_LifetimeLocation, 4).Float() : default(Single);
         #endregion
         #region RelaunchInterval
-        private int _RelaunchIntervalLocation => _DNAMLocation!.Value.Min + 0x4C;
-        private bool _RelaunchInterval_IsSet => _DNAMLocation.HasValue;
+        private int _RelaunchIntervalLocation => Payload.DNAMLocation!.Value.Min + 0x4C;
+        private bool _RelaunchInterval_IsSet => Payload.DNAMLocation.HasValue;
         public Single RelaunchInterval => _RelaunchInterval_IsSet ? _recordData.Slice(_RelaunchIntervalLocation, 4).Float() : default(Single);
         #endregion
         #region DecalData
-        private int _DecalDataLocation => _DNAMLocation!.Value.Min + 0x50;
-        private bool _DecalData_IsSet => _DNAMLocation.HasValue;
+        private int _DecalDataLocation => Payload.DNAMLocation!.Value.Min + 0x50;
+        private bool _DecalData_IsSet => Payload.DNAMLocation.HasValue;
         public IFormLinkGetter<ITextureSetGetter> DecalData => _DecalData_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<ITextureSetGetter>(_package, _recordData.Span.Slice(_DecalDataLocation, 0x4), isSet: _DecalData_IsSet) : FormLink<ITextureSetGetter>.Null;
         #endregion
         #region CollisionLayer
-        private int _CollisionLayerLocation => _DNAMLocation!.Value.Min + 0x54;
-        private bool _CollisionLayer_IsSet => _DNAMLocation.HasValue;
+        private int _CollisionLayerLocation => Payload.DNAMLocation!.Value.Min + 0x54;
+        private bool _CollisionLayer_IsSet => Payload.DNAMLocation.HasValue;
         public IFormLinkGetter<ICollisionLayerGetter> CollisionLayer => _CollisionLayer_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<ICollisionLayerGetter>(_package, _recordData.Span.Slice(_CollisionLayerLocation, 0x4), isSet: _CollisionLayer_IsSet) : FormLink<ICollisionLayerGetter>.Null;
         #endregion
         #region TracerFrequency
-        private int _TracerFrequencyLocation => _DNAMLocation!.Value.Min + 0x58;
-        private bool _TracerFrequency_IsSet => _DNAMLocation.HasValue;
+        private int _TracerFrequencyLocation => Payload.DNAMLocation!.Value.Min + 0x58;
+        private bool _TracerFrequency_IsSet => Payload.DNAMLocation.HasValue;
         public Byte TracerFrequency => _TracerFrequency_IsSet ? _recordData.Span[_TracerFrequencyLocation] : default;
         #endregion
         #region VATSProjectile
-        private int _VATSProjectileLocation => _DNAMLocation!.Value.Min + 0x59;
-        private bool _VATSProjectile_IsSet => _DNAMLocation.HasValue;
+        private int _VATSProjectileLocation => Payload.DNAMLocation!.Value.Min + 0x59;
+        private bool _VATSProjectile_IsSet => Payload.DNAMLocation.HasValue;
         public IFormLinkGetter<IProjectileGetter> VATSProjectile => _VATSProjectile_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IProjectileGetter>(_package, _recordData.Span.Slice(_VATSProjectileLocation, 0x4), isSet: _VATSProjectile_IsSet) : FormLink<IProjectileGetter>.Null;
         #endregion
-        #region MuzzleFlashModel
-        private int? _MuzzleFlashModelLocation;
-        public String MuzzleFlashModel => _MuzzleFlashModelLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _MuzzleFlashModelLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : string.Empty;
-        #endregion
-        #region TextureFilesHashes
-        private int? _TextureFilesHashesLocation;
-        public ReadOnlyMemorySlice<Byte>? TextureFilesHashes => _TextureFilesHashesLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _TextureFilesHashesLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
-        #endregion
-        #region SoundLevel
-        private int? _SoundLevelLocation;
-        public UInt32 SoundLevel => _SoundLevelLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _SoundLevelLocation.Value, _package.MetaData.Constants)) : default(UInt32);
-        #endregion
+        public String MuzzleFlashModel => Payload.MuzzleFlashModelLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.MuzzleFlashModelLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : string.Empty;
+        public ReadOnlyMemorySlice<Byte>? TextureFilesHashes => Payload.TextureFilesHashesLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.TextureFilesHashesLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
+        public UInt32 SoundLevel => Payload.SoundLevelLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.SoundLevelLocation.Value, _package.MetaData.Constants)) : default(UInt32);
+
+        internal partial class ProjectileRecordDataPayload
+        {
+            public RangeInt32? ObjectBoundsLocation;
+            public int? NameLocation;
+            public IModelGetter? Model;
+            public IDestructibleGetter? Destructible;
+            public int? UnusedLocation;
+            public RangeInt32? DNAMLocation;
+            public int? MuzzleFlashModelLocation;
+            public int? TextureFilesHashesLocation;
+            public int? SoundLevelLocation;
+        }
+
+        private LazyPayload<ProjectileRecordDataPayload> _payload = null!;
+
+        internal ProjectileRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<ProjectileRecordDataPayload>(init, new ProjectileRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -3836,10 +3845,10 @@ namespace Mutagen.Bethesda.Fallout4
 
         partial void CustomCtor();
         protected ProjectileBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -3850,28 +3859,51 @@ namespace Mutagen.Bethesda.Fallout4
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new ProjectileBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -3900,12 +3932,12 @@ namespace Mutagen.Bethesda.Fallout4
             {
                 case RecordTypeInts.OBND:
                 {
-                    _ObjectBoundsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.ObjectBoundsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)Projectile_FieldIndex.ObjectBounds;
                 }
                 case RecordTypeInts.FULL:
                 {
-                    _NameLocation = (stream.Position - offset);
+                    _payload.Fields.NameLocation = (stream.Position - offset);
                     return (int)Projectile_FieldIndex.Name;
                 }
                 case RecordTypeInts.MODL:
@@ -3913,7 +3945,7 @@ namespace Mutagen.Bethesda.Fallout4
                 case RecordTypeInts.MODT:
                 case RecordTypeInts.MODS:
                 {
-                    this.Model = ModelBinaryOverlay.ModelFactory(
+                    _payload.Fields.Model = ModelBinaryOverlay.ModelFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());
@@ -3923,7 +3955,7 @@ namespace Mutagen.Bethesda.Fallout4
                 case RecordTypeInts.DAMC:
                 case RecordTypeInts.DSTD:
                 {
-                    this.Destructible = DestructibleBinaryOverlay.DestructibleFactory(
+                    _payload.Fields.Destructible = DestructibleBinaryOverlay.DestructibleFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());
@@ -3931,27 +3963,27 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.DATA:
                 {
-                    _UnusedLocation = (stream.Position - offset);
+                    _payload.Fields.UnusedLocation = (stream.Position - offset);
                     return (int)Projectile_FieldIndex.Unused;
                 }
                 case RecordTypeInts.DNAM:
                 {
-                    _DNAMLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.DNAMLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     return (int)Projectile_FieldIndex.VATSProjectile;
                 }
                 case RecordTypeInts.NAM1:
                 {
-                    _MuzzleFlashModelLocation = (stream.Position - offset);
+                    _payload.Fields.MuzzleFlashModelLocation = (stream.Position - offset);
                     return (int)Projectile_FieldIndex.MuzzleFlashModel;
                 }
                 case RecordTypeInts.NAM2:
                 {
-                    _TextureFilesHashesLocation = (stream.Position - offset);
+                    _payload.Fields.TextureFilesHashesLocation = (stream.Position - offset);
                     return (int)Projectile_FieldIndex.TextureFilesHashes;
                 }
                 case RecordTypeInts.VNAM:
                 {
-                    _SoundLevelLocation = (stream.Position - offset);
+                    _payload.Fields.SoundLevelLocation = (stream.Position - offset);
                     return (int)Projectile_FieldIndex.SoundLevel;
                 }
                 default:

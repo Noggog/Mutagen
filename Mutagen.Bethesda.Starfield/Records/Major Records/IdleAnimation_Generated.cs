@@ -36,6 +36,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -2079,37 +2080,23 @@ namespace Mutagen.Bethesda.Starfield
         protected override Type LinkType => typeof(IIdleAnimationGetter);
 
 
-        public IReadOnlyList<IConditionGetter> Conditions { get; private set; } = [];
-        #region BehaviorGraph
-        private int? _BehaviorGraphLocation;
-        public String? BehaviorGraph => _BehaviorGraphLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _BehaviorGraphLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
-        #region AnimationEvent
-        private int? _AnimationEventLocation;
-        public String? AnimationEvent => _AnimationEventLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _AnimationEventLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
-        private RangeInt32? _ANAMLocation;
+        public IReadOnlyList<IConditionGetter> Conditions => Payload.Conditions ?? [];
+        public String? BehaviorGraph => Payload.BehaviorGraphLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.BehaviorGraphLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? AnimationEvent => Payload.AnimationEventLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.AnimationEventLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
         #region ParentAnimation
-        private int _ParentAnimationLocation => _ANAMLocation!.Value.Min;
-        private bool _ParentAnimation_IsSet => _ANAMLocation.HasValue;
+        private int _ParentAnimationLocation => Payload.ANAMLocation!.Value.Min;
+        private bool _ParentAnimation_IsSet => Payload.ANAMLocation.HasValue;
         public IFormLinkGetter<IIdleRelationGetter> ParentAnimation => _ParentAnimation_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IIdleRelationGetter>(_package, _recordData.Span.Slice(_ParentAnimationLocation, 0x4), isSet: _ParentAnimation_IsSet) : FormLink<IIdleRelationGetter>.Null;
         #endregion
         #region PreviousAnimation
-        private int _PreviousAnimationLocation => _ANAMLocation!.Value.Min + 0x4;
-        private bool _PreviousAnimation_IsSet => _ANAMLocation.HasValue;
+        private int _PreviousAnimationLocation => Payload.ANAMLocation!.Value.Min + 0x4;
+        private bool _PreviousAnimation_IsSet => Payload.ANAMLocation.HasValue;
         public IFormLinkGetter<IIdleRelationGetter> PreviousAnimation => _PreviousAnimation_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IIdleRelationGetter>(_package, _recordData.Span.Slice(_PreviousAnimationLocation, 0x4), isSet: _PreviousAnimation_IsSet) : FormLink<IIdleRelationGetter>.Null;
         #endregion
-        #region Flags
-        private int? _FlagsLocation;
-        public IdleAnimation.Flag? Flags => EnumBinaryTranslation<IdleAnimation.Flag, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(_FlagsLocation, _recordData, _package, 1);
-        #endregion
-        #region AnimationFile
-        private int? _AnimationFileLocation;
-        public String? AnimationFile => _AnimationFileLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _AnimationFileLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
+        public IdleAnimation.Flag? Flags => EnumBinaryTranslation<IdleAnimation.Flag, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(Payload.FlagsLocation, _recordData, _package, 1);
+        public String? AnimationFile => Payload.AnimationFileLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.AnimationFileLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
         #region Name
-        private int? _NameLocation;
-        public ITranslatedStringGetter? Name => _NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+        public ITranslatedStringGetter? Name => Payload.NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
         #region Aspects
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         string INamedRequiredGetter.Name => this.Name?.String ?? string.Empty;
@@ -2119,6 +2106,27 @@ namespace Mutagen.Bethesda.Starfield
         ITranslatedStringGetter ITranslatedNamedRequiredGetter.Name => this.Name ?? TranslatedString.Empty;
         #endregion
         #endregion
+
+        internal partial class IdleAnimationRecordDataPayload
+        {
+            public IReadOnlyList<IConditionGetter> Conditions = [];
+            public int? BehaviorGraphLocation;
+            public int? AnimationEventLocation;
+            public RangeInt32? ANAMLocation;
+            public int? FlagsLocation;
+            public int? AnimationFileLocation;
+            public int? NameLocation;
+        }
+
+        private LazyPayload<IdleAnimationRecordDataPayload> _payload = null!;
+
+        internal IdleAnimationRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<IdleAnimationRecordDataPayload>(init, new IdleAnimationRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -2126,10 +2134,10 @@ namespace Mutagen.Bethesda.Starfield
 
         partial void CustomCtor();
         protected IdleAnimationBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -2140,28 +2148,51 @@ namespace Mutagen.Bethesda.Starfield
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new IdleAnimationBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -2190,7 +2221,7 @@ namespace Mutagen.Bethesda.Starfield
             {
                 case RecordTypeInts.CTDA:
                 {
-                    this.Conditions = BinaryOverlayList.FactoryByArray<IConditionGetter>(
+                    _payload.Fields.Conditions = BinaryOverlayList.FactoryByArray<IConditionGetter>(
                         mem: stream.RemainingMemory,
                         package: _package,
                         translationParams: translationParams,
@@ -2205,32 +2236,32 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.DNAM:
                 {
-                    _BehaviorGraphLocation = (stream.Position - offset);
+                    _payload.Fields.BehaviorGraphLocation = (stream.Position - offset);
                     return (int)IdleAnimation_FieldIndex.BehaviorGraph;
                 }
                 case RecordTypeInts.ENAM:
                 {
-                    _AnimationEventLocation = (stream.Position - offset);
+                    _payload.Fields.AnimationEventLocation = (stream.Position - offset);
                     return (int)IdleAnimation_FieldIndex.AnimationEvent;
                 }
                 case RecordTypeInts.ANAM:
                 {
-                    _ANAMLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.ANAMLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     return (int)IdleAnimation_FieldIndex.PreviousAnimation;
                 }
                 case RecordTypeInts.FNAM:
                 {
-                    _FlagsLocation = (stream.Position - offset);
+                    _payload.Fields.FlagsLocation = (stream.Position - offset);
                     return (int)IdleAnimation_FieldIndex.Flags;
                 }
                 case RecordTypeInts.GNAM:
                 {
-                    _AnimationFileLocation = (stream.Position - offset);
+                    _payload.Fields.AnimationFileLocation = (stream.Position - offset);
                     return (int)IdleAnimation_FieldIndex.AnimationFile;
                 }
                 case RecordTypeInts.FULL:
                 {
-                    _NameLocation = (stream.Position - offset);
+                    _payload.Fields.NameLocation = (stream.Position - offset);
                     return (int)IdleAnimation_FieldIndex.Name;
                 }
                 default:

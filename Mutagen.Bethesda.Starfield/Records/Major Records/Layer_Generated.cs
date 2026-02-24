@@ -37,6 +37,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -1790,19 +1791,28 @@ namespace Mutagen.Bethesda.Starfield
 
         public Layer.MajorFlag MajorFlags => (Layer.MajorFlag)this.MajorRecordFlagsRaw;
 
-        public IReadOnlyList<IAComponentGetter> Components { get; private set; } = [];
-        #region Parent
-        private int? _ParentLocation;
-        public IFormLinkNullableGetter<ILayerGetter> Parent => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ILayerGetter>(_package, _recordData, _ParentLocation);
-        #endregion
-        #region SurfaceColor
-        private int? _SurfaceColorLocation;
-        public Color SurfaceColor => _SurfaceColorLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _SurfaceColorLocation.Value, _package.MetaData.Constants).ReadColor(ColorBinaryType.Alpha) : default(Color);
-        #endregion
-        #region LodBehavior
-        private int? _LodBehaviorLocation;
-        public Layer.LodBehaviorType LodBehavior => EnumBinaryTranslation<Layer.LodBehaviorType, MutagenFrame, MutagenWriter>.Instance.ParseRecord(_LodBehaviorLocation, _recordData, _package, 4);
-        #endregion
+        public IReadOnlyList<IAComponentGetter> Components => Payload.Components ?? [];
+        public IFormLinkNullableGetter<ILayerGetter> Parent => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ILayerGetter>(_package, _recordData, Payload.ParentLocation);
+        public Color SurfaceColor => Payload.SurfaceColorLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.SurfaceColorLocation.Value, _package.MetaData.Constants).ReadColor(ColorBinaryType.Alpha) : default(Color);
+        public Layer.LodBehaviorType LodBehavior => EnumBinaryTranslation<Layer.LodBehaviorType, MutagenFrame, MutagenWriter>.Instance.ParseRecord(Payload.LodBehaviorLocation, _recordData, _package, 4);
+
+        internal partial class LayerRecordDataPayload
+        {
+            public IReadOnlyList<IAComponentGetter> Components = [];
+            public int? ParentLocation;
+            public int? SurfaceColorLocation;
+            public int? LodBehaviorLocation;
+        }
+
+        private LazyPayload<LayerRecordDataPayload> _payload = null!;
+
+        internal LayerRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<LayerRecordDataPayload>(init, new LayerRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -1810,10 +1820,10 @@ namespace Mutagen.Bethesda.Starfield
 
         partial void CustomCtor();
         protected LayerBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -1824,28 +1834,51 @@ namespace Mutagen.Bethesda.Starfield
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new LayerBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -1874,7 +1907,7 @@ namespace Mutagen.Bethesda.Starfield
             {
                 case RecordTypeInts.BFCB:
                 {
-                    this.Components = this.ParseRepeatedTypelessSubrecord<IAComponentGetter>(
+                    _payload.Fields.Components = this.ParseRepeatedTypelessSubrecord<IAComponentGetter>(
                         stream: stream,
                         translationParams: translationParams,
                         trigger: AComponent_Registration.TriggerSpecs,
@@ -1883,17 +1916,17 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.PNAM:
                 {
-                    _ParentLocation = (stream.Position - offset);
+                    _payload.Fields.ParentLocation = (stream.Position - offset);
                     return (int)Layer_FieldIndex.Parent;
                 }
                 case RecordTypeInts.XCLP:
                 {
-                    _SurfaceColorLocation = (stream.Position - offset);
+                    _payload.Fields.SurfaceColorLocation = (stream.Position - offset);
                     return (int)Layer_FieldIndex.SurfaceColor;
                 }
                 case RecordTypeInts.LODB:
                 {
-                    _LodBehaviorLocation = (stream.Position - offset);
+                    _payload.Fields.LodBehaviorLocation = (stream.Position - offset);
                     return (int)Layer_FieldIndex.LodBehavior;
                 }
                 default:

@@ -1488,19 +1488,47 @@ namespace Mutagen.Bethesda.Starfield
 
         #region Name
         private int? _NameLocation;
-        public String Name => _NameLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NameLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : string.Empty;
+        public String Name
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _NameLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_data, _NameLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : string.Empty;
+            }
+        }
         #endregion
         #region SceneNotes
         private int? _SceneNotesLocation;
-        public String? SceneNotes => _SceneNotesLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _SceneNotesLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? SceneNotes
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _SceneNotesLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_data, _SceneNotesLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+            }
+        }
         #endregion
         #region AliasID
         private int? _AliasIDLocation;
-        public Int32? AliasID => _AliasIDLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _AliasIDLocation.Value, _package.MetaData.Constants)) : default(Int32?);
+        public Int32? AliasID
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _AliasIDLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _AliasIDLocation.Value, _package.MetaData.Constants)) : default(Int32?);
+            }
+        }
         #endregion
         #region Index
         private int? _IndexLocation;
-        public UInt32? Index => _IndexLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _IndexLocation.Value, _package.MetaData.Constants)) : default(UInt32?);
+        public UInt32? Index
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _IndexLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _IndexLocation.Value, _package.MetaData.Constants)) : default(UInt32?);
+            }
+        }
         #endregion
         #region Flags
         private int? _FlagsLocation;
@@ -1508,11 +1536,25 @@ namespace Mutagen.Bethesda.Starfield
         #endregion
         #region StartPhase
         private int? _StartPhaseLocation;
-        public UInt32 StartPhase => _StartPhaseLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _StartPhaseLocation.Value, _package.MetaData.Constants)) : default(UInt32);
+        public UInt32 StartPhase
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _StartPhaseLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _StartPhaseLocation.Value, _package.MetaData.Constants)) : default(UInt32);
+            }
+        }
         #endregion
         #region EndPhase
         private int? _EndPhaseLocation;
-        public UInt32 EndPhase => _EndPhaseLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _EndPhaseLocation.Value, _package.MetaData.Constants)) : default(UInt32);
+        public UInt32 EndPhase
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _EndPhaseLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _EndPhaseLocation.Value, _package.MetaData.Constants)) : default(UInt32);
+            }
+        }
         #endregion
         partial void CustomFactoryEnd(
             OverlayStream stream,

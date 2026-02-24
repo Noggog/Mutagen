@@ -1111,7 +1111,14 @@ namespace Mutagen.Bethesda.Starfield
 
         #region Text
         private int? _TextLocation;
-        public ITranslatedStringGetter? Text => _TextLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _TextLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+        public ITranslatedStringGetter? Text
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _TextLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_data, _TextLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+            }
+        }
         #endregion
         #region Keywords
         public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? Keywords { get; private set; }
@@ -1123,7 +1130,14 @@ namespace Mutagen.Bethesda.Starfield
         #endregion
         #region Index
         private int? _IndexLocation;
-        public UInt16? Index => _IndexLocation.HasValue ? BinaryPrimitives.ReadUInt16LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _IndexLocation.Value, _package.MetaData.Constants)) : default(UInt16?);
+        public UInt16? Index
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _IndexLocation.HasValue ? BinaryPrimitives.ReadUInt16LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _IndexLocation.Value, _package.MetaData.Constants)) : default(UInt16?);
+            }
+        }
         #endregion
         partial void CustomFactoryEnd(
             OverlayStream stream,

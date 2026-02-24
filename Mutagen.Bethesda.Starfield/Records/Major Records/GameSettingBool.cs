@@ -35,11 +35,18 @@ partial class GameSettingBoolBinaryWriteTranslation
 
 partial class GameSettingBoolBinaryOverlay
 {
-    private int? _DataLocation;
-    bool GetDataIsSetCustom() => _DataLocation.HasValue;
-    public partial bool? GetDataCustom() => _DataLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _DataLocation.Value, _package.MetaData.Constants)) != 0 : default;
+    internal partial class GameSettingBoolRecordDataPayload
+    {
+        public int? DataLocation;
+    }
+
+    bool GetDataIsSetCustom() => Payload.DataLocation.HasValue;
+    public partial bool? GetDataCustom()
+    {
+        return Payload.DataLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.DataLocation.Value, _package.MetaData.Constants)) != 0 : default;
+    }
     partial void DataCustomParse(OverlayStream stream, int finalPos, int offset)
     {
-        _DataLocation = (ushort)(stream.Position - offset);
+        _payload.Fields.DataLocation = (ushort)(stream.Position - offset);
     }
 }

@@ -33,6 +33,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -2074,71 +2075,83 @@ namespace Mutagen.Bethesda.Fallout4
         protected override Type LinkType => typeof(IReverbParametersGetter);
 
 
-        private RangeInt32? _DATALocation;
         #region DecayMilliseconds
-        private int _DecayMillisecondsLocation => _DATALocation!.Value.Min;
-        private bool _DecayMilliseconds_IsSet => _DATALocation.HasValue;
+        private int _DecayMillisecondsLocation => Payload.DATALocation!.Value.Min;
+        private bool _DecayMilliseconds_IsSet => Payload.DATALocation.HasValue;
         public UInt16 DecayMilliseconds => _DecayMilliseconds_IsSet ? BinaryPrimitives.ReadUInt16LittleEndian(_recordData.Slice(_DecayMillisecondsLocation, 2)) : default(UInt16);
         #endregion
         #region HfReferenceHertz
-        private int _HfReferenceHertzLocation => _DATALocation!.Value.Min + 0x2;
-        private bool _HfReferenceHertz_IsSet => _DATALocation.HasValue;
+        private int _HfReferenceHertzLocation => Payload.DATALocation!.Value.Min + 0x2;
+        private bool _HfReferenceHertz_IsSet => Payload.DATALocation.HasValue;
         public UInt16 HfReferenceHertz => _HfReferenceHertz_IsSet ? BinaryPrimitives.ReadUInt16LittleEndian(_recordData.Slice(_HfReferenceHertzLocation, 2)) : default(UInt16);
         #endregion
         #region RoomFilter
-        private int _RoomFilterLocation => _DATALocation!.Value.Min + 0x4;
-        private bool _RoomFilter_IsSet => _DATALocation.HasValue;
+        private int _RoomFilterLocation => Payload.DATALocation!.Value.Min + 0x4;
+        private bool _RoomFilter_IsSet => Payload.DATALocation.HasValue;
         public SByte RoomFilter => _RoomFilter_IsSet ? (sbyte)_recordData.Slice(_RoomFilterLocation, 1)[0] : default(SByte);
         #endregion
         #region RoomHfFilter
-        private int _RoomHfFilterLocation => _DATALocation!.Value.Min + 0x5;
-        private bool _RoomHfFilter_IsSet => _DATALocation.HasValue;
+        private int _RoomHfFilterLocation => Payload.DATALocation!.Value.Min + 0x5;
+        private bool _RoomHfFilter_IsSet => Payload.DATALocation.HasValue;
         public SByte RoomHfFilter => _RoomHfFilter_IsSet ? (sbyte)_recordData.Slice(_RoomHfFilterLocation, 1)[0] : default(SByte);
         #endregion
         #region Reflections
-        private int _ReflectionsLocation => _DATALocation!.Value.Min + 0x6;
-        private bool _Reflections_IsSet => _DATALocation.HasValue;
+        private int _ReflectionsLocation => Payload.DATALocation!.Value.Min + 0x6;
+        private bool _Reflections_IsSet => Payload.DATALocation.HasValue;
         public SByte Reflections => _Reflections_IsSet ? (sbyte)_recordData.Slice(_ReflectionsLocation, 1)[0] : default(SByte);
         #endregion
         #region ReverbAmp
-        private int _ReverbAmpLocation => _DATALocation!.Value.Min + 0x7;
-        private bool _ReverbAmp_IsSet => _DATALocation.HasValue;
+        private int _ReverbAmpLocation => Payload.DATALocation!.Value.Min + 0x7;
+        private bool _ReverbAmp_IsSet => Payload.DATALocation.HasValue;
         public SByte ReverbAmp => _ReverbAmp_IsSet ? (sbyte)_recordData.Slice(_ReverbAmpLocation, 1)[0] : default(SByte);
         #endregion
         #region DecayHfRatio
-        private int _DecayHfRatioLocation => _DATALocation!.Value.Min + 0x8;
-        private bool _DecayHfRatio_IsSet => _DATALocation.HasValue;
+        private int _DecayHfRatioLocation => Payload.DATALocation!.Value.Min + 0x8;
+        private bool _DecayHfRatio_IsSet => Payload.DATALocation.HasValue;
         public Single DecayHfRatio => _DecayHfRatio_IsSet ? FloatBinaryTranslation<MutagenFrame, MutagenWriter>.Instance.GetFloat(_recordData.Slice(_DecayHfRatioLocation, 1), FloatIntegerType.Byte, multiplier: null, divisor: 100f) : default(Single);
         #endregion
         #region ReflectDelayMS
-        private int _ReflectDelayMSLocation => _DATALocation!.Value.Min + 0x9;
-        private bool _ReflectDelayMS_IsSet => _DATALocation.HasValue;
+        private int _ReflectDelayMSLocation => Payload.DATALocation!.Value.Min + 0x9;
+        private bool _ReflectDelayMS_IsSet => Payload.DATALocation.HasValue;
         public Byte ReflectDelayMS => _ReflectDelayMS_IsSet ? _recordData.Span[_ReflectDelayMSLocation] : default;
         #endregion
         #region ReverbDelayMS
-        private int _ReverbDelayMSLocation => _DATALocation!.Value.Min + 0xA;
-        private bool _ReverbDelayMS_IsSet => _DATALocation.HasValue;
+        private int _ReverbDelayMSLocation => Payload.DATALocation!.Value.Min + 0xA;
+        private bool _ReverbDelayMS_IsSet => Payload.DATALocation.HasValue;
         public Byte ReverbDelayMS => _ReverbDelayMS_IsSet ? _recordData.Span[_ReverbDelayMSLocation] : default;
         #endregion
         #region DiffusionPercent
-        private int _DiffusionPercentLocation => _DATALocation!.Value.Min + 0xB;
-        private bool _DiffusionPercent_IsSet => _DATALocation.HasValue;
+        private int _DiffusionPercentLocation => Payload.DATALocation!.Value.Min + 0xB;
+        private bool _DiffusionPercent_IsSet => Payload.DATALocation.HasValue;
         public Percent DiffusionPercent => _DiffusionPercent_IsSet ? PercentBinaryTranslation.GetPercent(_recordData.Slice(_DiffusionPercentLocation, 1), FloatIntegerType.Byte) : default(Percent);
         #endregion
         #region DensityPercent
-        private int _DensityPercentLocation => _DATALocation!.Value.Min + 0xC;
-        private bool _DensityPercent_IsSet => _DATALocation.HasValue;
+        private int _DensityPercentLocation => Payload.DATALocation!.Value.Min + 0xC;
+        private bool _DensityPercent_IsSet => Payload.DATALocation.HasValue;
         public Percent DensityPercent => _DensityPercent_IsSet ? PercentBinaryTranslation.GetPercent(_recordData.Slice(_DensityPercentLocation, 1), FloatIntegerType.Byte) : default(Percent);
         #endregion
         #region Unknown
-        private int _UnknownLocation => _DATALocation!.Value.Min + 0xD;
-        private bool _Unknown_IsSet => _DATALocation.HasValue;
+        private int _UnknownLocation => Payload.DATALocation!.Value.Min + 0xD;
+        private bool _Unknown_IsSet => Payload.DATALocation.HasValue;
         public Byte Unknown => _Unknown_IsSet ? _recordData.Span[_UnknownLocation] : default;
         #endregion
-        #region ReverbClass
-        private int? _ReverbClassLocation;
-        public ReverbClass ReverbClass => EnumBinaryTranslation<ReverbClass, MutagenFrame, MutagenWriter>.Instance.ParseRecord(_ReverbClassLocation, _recordData, _package, 4);
-        #endregion
+        public ReverbClass ReverbClass => EnumBinaryTranslation<ReverbClass, MutagenFrame, MutagenWriter>.Instance.ParseRecord(Payload.ReverbClassLocation, _recordData, _package, 4);
+
+        internal partial class ReverbParametersRecordDataPayload
+        {
+            public RangeInt32? DATALocation;
+            public int? ReverbClassLocation;
+        }
+
+        private LazyPayload<ReverbParametersRecordDataPayload> _payload = null!;
+
+        internal ReverbParametersRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<ReverbParametersRecordDataPayload>(init, new ReverbParametersRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -2146,10 +2159,10 @@ namespace Mutagen.Bethesda.Fallout4
 
         partial void CustomCtor();
         protected ReverbParametersBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -2160,28 +2173,51 @@ namespace Mutagen.Bethesda.Fallout4
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new ReverbParametersBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -2210,12 +2246,12 @@ namespace Mutagen.Bethesda.Fallout4
             {
                 case RecordTypeInts.DATA:
                 {
-                    _DATALocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.DATALocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     return (int)ReverbParameters_FieldIndex.Unknown;
                 }
                 case RecordTypeInts.ANAM:
                 {
-                    _ReverbClassLocation = (stream.Position - offset);
+                    _payload.Fields.ReverbClassLocation = (stream.Position - offset);
                     return (int)ReverbParameters_FieldIndex.ReverbClass;
                 }
                 default:

@@ -2,6 +2,7 @@ using Noggog;
 using Loqui.Generation;
 using System.Xml.Linq;
 using Mutagen.Bethesda.Generation.Fields;
+using Mutagen.Bethesda.Generation.Modules.Plugin;
 using Mutagen.Bethesda.Plugins.Binary.Overlay;
 using Mutagen.Bethesda.Plugins.Binary.Streams;
 using Noggog.StructuredStrings;
@@ -311,10 +312,11 @@ public class DictBinaryTranslationGeneration : BinaryTranslationGeneration
             throw new ArgumentException("Unsupported type generator: " + dict.ValueTypeGen);
         }
 
+        var payloadSb = (this.Module as PluginTranslationModule)?.CurrentPayloadFieldsSb;
         var posStr = data == null ? passedLengthAccessor : $"_{typeGen.Name}Location";
         if (data != null)
         {
-            DataBinaryTranslationGeneration.GenerateWrapperExtraMembers(sb, data, objGen, typeGen, passedLengthAccessor);
+            DataBinaryTranslationGeneration.GenerateWrapperExtraMembers(sb, data, objGen, typeGen, passedLengthAccessor, isMajorRecord: payloadSb != null);
         }
 
         var accessor = data == null ? structDataAccessor : recordDataAccessor;

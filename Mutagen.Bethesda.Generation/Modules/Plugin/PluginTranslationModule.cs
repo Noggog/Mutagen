@@ -28,6 +28,18 @@ namespace Mutagen.Bethesda.Generation.Modules.Plugin;
 
 public class PluginTranslationModule : BinaryTranslationModule
 {
+    /// <summary>
+    /// When set, type-specific generators should write payload field declarations here
+    /// instead of to the main string builder. Used for major record overlay generation.
+    /// Thread-safe via AsyncLocal so parallel generation doesn't interfere.
+    /// </summary>
+    private readonly AsyncLocal<StructuredStringBuilder?> _currentPayloadFieldsSb = new();
+    internal StructuredStringBuilder? CurrentPayloadFieldsSb
+    {
+        get => _currentPayloadFieldsSb.Value;
+        set => _currentPayloadFieldsSb.Value = value;
+    }
+
     public override string WriterClass => nameof(MutagenWriter);
     public override string WriterMemberName => "writer";
     public override string ReaderClass => nameof(MutagenFrame);
@@ -618,6 +630,12 @@ public class PluginTranslationModule : BinaryTranslationModule
         await foreach (var u in base.RequiredUsingStatements(obj))
         {
             yield return u;
+        }
+
+        // Major records need System.Threading for LazyThreadSafetyMode in lazy decompression
+        if (await obj.IsMajorRecord())
+        {
+            yield return "System.Threading";
         }
 
         if (obj.GetObjectType() == ObjectType.Mod)
@@ -2276,6 +2294,7 @@ public class PluginTranslationModule : BinaryTranslationModule
         var objData = obj.GetObjectData();
         if (objData.BinaryOverlay != BinaryGenerationType.Normal) return;
 
+        var isMajorRecord = await obj.IsMajorRecord();
         var structDataAccessor = new Accessor("_structData");
         var recordDataAccessor = obj.GetObjectType() == ObjectType.Mod ? "_stream" : "_recordData";
         var packageAccessor = new Accessor("_package");
@@ -2419,6 +2438,13 @@ public class PluginTranslationModule : BinaryTranslationModule
                 }
             }
 
+            StructuredStringBuilder? payloadSb = null;
+            if (isMajorRecord)
+            {
+                payloadSb = new StructuredStringBuilder();
+                CurrentPayloadFieldsSb = payloadSb;
+            }
+
             TypeGeneration lastVersionedField = null;
             await foreach (var lengths in IteratePassedLengths(obj, forOverlay: true))
             {
@@ -2471,6 +2497,42 @@ public class PluginTranslationModule : BinaryTranslationModule
                 }
             }
 
+            if (isMajorRecord)
+            {
+                CurrentPayloadFieldsSb = null;
+
+                // Generate RecordDataPayload class
+                sb.AppendLine();
+                sb.AppendLine($"internal partial class {obj.Name}RecordDataPayload");
+                using (sb.CurlyBrace())
+                {
+                    if (payloadSb != null && payloadSb.Count > 0)
+                    {
+                        sb.AppendLines(payloadSb);
+                    }
+                }
+                sb.AppendLine();
+
+                // Generate payload field + property using LazyPayload wrapper
+                sb.AppendLine($"private LazyPayload<{obj.Name}RecordDataPayload> _payload = null!;");
+                sb.AppendLine();
+                sb.AppendLine($"internal {obj.Name}RecordDataPayload Payload => _payload.Value;");
+                sb.AppendLine();
+
+                // Generate InitPayload method (virtual at root, override at derived)
+                var baseIsMajor = obj.HasLoquiBaseObject && await obj.BaseClass.IsMajorRecord();
+                var modifier = baseIsMajor ? "override" : "virtual";
+                sb.AppendLine($"protected {modifier} void InitPayload(Lazy<bool> init)");
+                using (sb.CurlyBrace())
+                {
+                    if (baseIsMajor)
+                    {
+                        sb.AppendLine("base.InitPayload(init);");
+                    }
+                    sb.AppendLine($"_payload = new LazyPayload<{obj.Name}RecordDataPayload>(init, new {obj.Name}RecordDataPayload());");
+                }
+            }
+
             if (obj.GetObjectType() != ObjectType.Mod)
             {
                 using (var args = sb.Call(
@@ -2510,6 +2572,12 @@ public class PluginTranslationModule : BinaryTranslationModule
                         args.Add($"{ModModule.ReleaseEnumName(obj)} release");
                     }
                 }
+                else if (isMajorRecord)
+                {
+                    // Major records use lazy decompression
+                    args.Add($"{nameof(LazyMajorRecordData)} lazyRecordData");
+                    args.Add($"{nameof(BinaryOverlayFactoryPackage)} package");
+                }
                 else
                 {
                     args.Add($"MemoryPair memoryPair");
@@ -2523,7 +2591,14 @@ public class PluginTranslationModule : BinaryTranslationModule
                     using (var args = sb.Function(
                                ": base"))
                     {
-                        args.AddPassArg("memoryPair");
+                        if (isMajorRecord)
+                        {
+                            args.AddPassArg("lazyRecordData");
+                        }
+                        else
+                        {
+                            args.AddPassArg("memoryPair");
+                        }
                         args.AddPassArg($"package");
                     }
                 }
@@ -2806,13 +2881,14 @@ public class PluginTranslationModule : BinaryTranslationModule
         }
         using (sb.CurlyBrace())
         {
-            if (await obj.IsMajorRecord())
+            var isMajorRecord = await obj.IsMajorRecord();
+            if (isMajorRecord)
             {
                 if (objData.CustomBinaryEnd != CustomEnd.Off || SubgroupsModule.HasSubgroups(obj))
                 {
                     sb.AppendLine("var origStream = stream;");
                 }
-                sb.AppendLine($"stream = {nameof(Decompression)}.{nameof(Decompression.DecompressStream)}(stream);");
+                // Lazy decompression: decompression is deferred until content is actually accessed
             }
             if (obj.TryGetCustomRecordTypeTriggers(out var customLogicTriggers))
             {
@@ -2852,7 +2928,9 @@ public class PluginTranslationModule : BinaryTranslationModule
             switch (obj.GetObjectType())
             {
                 case ObjectType.Record:
-                    callName = nameof(PluginBinaryOverlay.ExtractRecordMemory);
+                    callName = isMajorRecord
+                        ? nameof(PluginBinaryOverlay.ExtractRecordMemoryLazy)
+                        : nameof(PluginBinaryOverlay.ExtractRecordMemory);
                     break;
                 case ObjectType.Group:
                     callName = nameof(PluginBinaryOverlay.ExtractGroupMemory);
@@ -2886,31 +2964,47 @@ public class PluginTranslationModule : BinaryTranslationModule
                                         || anyHasRecordTypes
                                         || totalPassedLength == null
                                         || totalPassedLength.Value == 0;
-                using (var c = sb.Call($"stream = {callName}"))
+                // Major records use void ExtractRecordMemoryLazy (does not return modified stream)
+                if (isMajorRecord)
                 {
-                    c.AddPassArg("stream");
-                    c.Add($"meta: package.{nameof(BinaryOverlayFactoryPackage.MetaData)}.{nameof(ParsingMeta.Constants)}");
-                    if (obj.GetObjectType() == ObjectType.Subrecord)
+                    using (var c = sb.Call($"{nameof(PluginBinaryOverlay)}.{callName}"))
                     {
-                        c.AddPassArg("translationParams");
+                        c.AddPassArg("stream");
+                        c.Add($"meta: package.{nameof(BinaryOverlayFactoryPackage.MetaData)}.{nameof(ParsingMeta.Constants)}");
+                        c.Add("lazyRecordData: out var lazyRecordData");
+                        c.Add("originalSlice: out var originalSlice");
+                        c.Add("offset: out var offset");
+                        c.Add("totalLength: out var totalLength");
                     }
+                }
+                else
+                {
+                    using (var c = sb.Call($"stream = {callName}"))
+                    {
+                        c.AddPassArg("stream");
+                        c.Add($"meta: package.{nameof(BinaryOverlayFactoryPackage.MetaData)}.{nameof(ParsingMeta.Constants)}");
+                        if (obj.GetObjectType() == ObjectType.Subrecord)
+                        {
+                            c.AddPassArg("translationParams");
+                        }
 
-                    if (!retrievesFinalPos)
-                    {
-                        if (obj.IsVariableLengthStruct())
+                        if (!retrievesFinalPos)
                         {
-                            c.Add("length: finalPos - stream.Position");
+                            if (obj.IsVariableLengthStruct())
+                            {
+                                c.Add("length: finalPos - stream.Position");
+                            }
+                            else
+                            {
+                                c.Add($"length: 0x{totalPassedLength:X}");
+                            }
                         }
-                        else
+                        c.Add("memoryPair: out var memoryPair");
+                        c.Add("offset: out var offset");
+                        if (retrievesFinalPos)
                         {
-                            c.Add($"length: 0x{totalPassedLength:X}");
+                            c.Add("finalPos: out var finalPos");
                         }
-                    }
-                    c.Add("memoryPair: out var memoryPair");
-                    c.Add("offset: out var offset");
-                    if (retrievesFinalPos)
-                    {
-                        c.Add("finalPos: out var finalPos");
                     }
                 }
             }
@@ -2921,6 +3015,16 @@ public class PluginTranslationModule : BinaryTranslationModule
                 switch (obj.GetObjectType())
                 {
                     case ObjectType.Record:
+                        // Major records use lazy decompression
+                        if (isMajorRecord)
+                        {
+                            args.AddPassArg($"lazyRecordData");
+                        }
+                        else
+                        {
+                            args.AddPassArg($"memoryPair");
+                        }
+                        break;
                     case ObjectType.Group:
                     case ObjectType.Subrecord:
                         args.AddPassArg($"memoryPair");
@@ -2980,83 +3084,164 @@ public class PluginTranslationModule : BinaryTranslationModule
                 }
             }
 
-            if ((await GetParseEndingPositionsBuilder(obj, structPassedAccessor)).Count > 0
-                || (obj.BaseClass != null && (await GetParseEndingPositionsBuilder(obj.BaseClass, structPassedAccessor)).Count > 0))
+            var hasEndingPositions = (await GetParseEndingPositionsBuilder(obj, structPassedAccessor)).Count > 0
+                || (obj.BaseClass != null && (await GetParseEndingPositionsBuilder(obj.BaseClass, structPassedAccessor)).Count > 0);
+
+            // For non-major records, emit ParseEndingPositions before fill calls (original behavior)
+            if (hasEndingPositions && !isMajorRecord)
             {
                 sb.AppendLine($"{obj.Name}ParseEndingPositions(ret, package);");
             }
 
             if (anyHasRecordTypes)
             {
-                if (obj.GetObjectType() != ObjectType.Mod
-                    && !obj.IsTypelessStruct())
+                // Major records: always defer FillSubrecordTypes (lazy init via payload)
+                if (isMajorRecord)
                 {
+                    sb.AppendLine($"var init = new Lazy<bool>(() =>");
+                    using (sb.CurlyBrace())
+                    {
+                        sb.AppendLine("OverlayStream subStream;");
+                        sb.AppendLine("int finalPos;");
+                        sb.AppendLine("if (lazyRecordData.IsCompressed)");
+                        using (sb.CurlyBrace())
+                        {
+                            using (var args = sb.Call($"subStream = {nameof(PluginBinaryOverlay)}.CreateSubrecordStream"))
+                            {
+                                args.AddPassArg("lazyRecordData");
+                                args.AddPassArg("originalSlice");
+                                args.Add($"meta: package.{nameof(BinaryOverlayFactoryPackage.MetaData)}.{nameof(ParsingMeta.Constants)}");
+                                args.AddPassArg("package");
+                                args.Add("finalPos: out finalPos");
+                            }
+                        }
+                        sb.AppendLine("else");
+                        using (sb.CurlyBrace())
+                        {
+                            sb.AppendLine("subStream = new OverlayStream(originalSlice, stream.MetaData);");
+                            sb.AppendLine($"subStream.Position = offset;");
+                            sb.AppendLine("finalPos = offset + lazyRecordData.RecordData.Length;");
+                        }
+                        using (var args = sb.Call($"ret.CustomFactoryEnd"))
+                        {
+                            args.Add("stream: subStream");
+                            args.AddPassArg("finalPos");
+                            args.AddPassArg("offset");
+                        }
+                        using (var args = sb.Call($"ret.{nameof(PluginBinaryOverlay.FillSubrecordTypes)}"))
+                        {
+                            args.Add("majorReference: ret");
+                            args.Add("stream: subStream");
+                            args.AddPassArg("finalPos");
+                            args.AddPassArg("offset");
+                            args.AddPassArg("translationParams");
+                            args.Add("fill: ret.FillRecordType");
+                        }
+                        // For major records, ending position calculations must run inside the lazy lambda
+                        // after FillSubrecordTypes, since they access payload fields that are only
+                        // populated during subrecord parsing.
+                        if (hasEndingPositions)
+                        {
+                            sb.AppendLine($"{obj.Name}ParseEndingPositions(ret, package);");
+                        }
+                        // DataType ending positions also need to be inside the lambda
+                        await foreach (var lengths in IteratePassedLengths(obj, forOverlay: true, passedLenPrefix: "ret."))
+                        {
+                            if (!TryGetTypeGeneration(lengths.Field.GetType(), out var typeGen)) continue;
+                            var data = lengths.Field.GetFieldData();
+                            switch (data.BinaryOverlayFallback)
+                            {
+                                case BinaryGenerationType.Normal:
+                                case BinaryGenerationType.Custom:
+                                    break;
+                                default:
+                                    continue;
+                            }
+                            if (lengths.Field is DataType)
+                            {
+                                await typeGen.GenerateWrapperUnknownLengthParse(
+                                    sb,
+                                    obj,
+                                    lengths.Field,
+                                    recordDataAccessor,
+                                    lengths.PassedLength,
+                                    lengths.PassedAccessor);
+                            }
+                        }
+                        sb.AppendLine("return true;");
+                    }
+                    sb.AppendLine(", LazyThreadSafetyMode.ExecutionAndPublication);");
+                    sb.AppendLine("ret.InitPayload(init);");
+                }
+                else
+                {
+                    // Non-major records: existing logic
+                    if (obj.GetObjectType() != ObjectType.Mod
+                        && !obj.IsTypelessStruct())
+                    {
+                        using (var args = sb.Call(
+                                   $"ret.CustomFactoryEnd"))
+                        {
+                            args.AddPassArg($"stream");
+                            args.AddPassArg($"finalPos");
+                            args.AddPassArg($"offset");
+                        }
+                    }
+
+                    string call;
+                    switch (obj.GetObjectType())
+                    {
+                        case ObjectType.Subrecord:
+                        case ObjectType.Record:
+                            if (obj.IsTypelessStruct())
+                            {
+                                call = $"ret.{nameof(PluginBinaryOverlay.FillTypelessSubrecordTypes)}";
+                            }
+                            else
+                            {
+                                call = $"ret.{nameof(PluginBinaryOverlay.FillSubrecordTypes)}";
+                            }
+                            break;
+                        case ObjectType.Group:
+                            var grupLoqui = await obj.GetGroupLoquiType();
+                            if (grupLoqui.TargetObjectGeneration != null && await grupLoqui.TargetObjectGeneration.IsMajorRecord())
+                            {
+                                call = $"ret.{nameof(PluginBinaryOverlay.FillMajorRecords)}";
+                            }
+                            else
+                            {
+                                call = $"ret.{nameof(PluginBinaryOverlay.FillGroupRecordsForWrapper)}";
+                            }
+                            break;
+                        case ObjectType.Mod:
+                            call = $"{nameof(PluginBinaryOverlay)}.{nameof(PluginBinaryOverlay.FillModTypes)}";
+                            break;
+                        default:
+                            throw new NotImplementedException();
+                    }
                     using (var args = sb.Call(
-                               $"ret.CustomFactoryEnd"))
+                               $"{call}"))
                     {
                         args.AddPassArg($"stream");
-                        args.AddPassArg($"finalPos");
-                        args.AddPassArg($"offset");
-                    }
-                }
-
-                string call;
-                switch (obj.GetObjectType())
-                {
-                    case ObjectType.Subrecord:
-                    case ObjectType.Record:
-                        if (obj.IsTypelessStruct())
+                        if (obj.GetObjectType() != ObjectType.Mod)
                         {
-                            call = $"ret.{nameof(PluginBinaryOverlay.FillTypelessSubrecordTypes)}";
+                            if (obj.IsTypelessStruct())
+                            {
+                                args.Add($"finalPos: stream.Length");
+                            }
+                            else
+                            {
+                                args.AddPassArg($"finalPos");
+                            }
+                            args.AddPassArg($"offset");
+                            args.AddPassArg($"translationParams");
                         }
                         else
                         {
-                            call = $"ret.{nameof(PluginBinaryOverlay.FillSubrecordTypes)}";
+                            args.Add("package: ret._package");
                         }
-                        break;
-                    case ObjectType.Group:
-                        var grupLoqui = await obj.GetGroupLoquiType();
-                        if (grupLoqui.TargetObjectGeneration != null && await grupLoqui.TargetObjectGeneration.IsMajorRecord())
-                        {
-                            call = $"ret.{nameof(PluginBinaryOverlay.FillMajorRecords)}";
-                        }
-                        else
-                        {
-                            call = $"ret.{nameof(PluginBinaryOverlay.FillGroupRecordsForWrapper)}";
-                        }
-                        break;
-                    case ObjectType.Mod:
-                        call = $"{nameof(PluginBinaryOverlay)}.{nameof(PluginBinaryOverlay.FillModTypes)}";
-                        break;
-                    default:
-                        throw new NotImplementedException();
-                }
-                using (var args = sb.Call(
-                           $"{call}"))
-                {
-                    if (await obj.IsMajorRecord())
-                    {
-                        args.Add("majorReference: ret");
+                        args.Add($"fill: ret.FillRecordType");
                     }
-                    args.AddPassArg($"stream");
-                    if (obj.GetObjectType() != ObjectType.Mod)
-                    {
-                        if (obj.IsTypelessStruct())
-                        {
-                            args.Add($"finalPos: stream.Length");
-                        }
-                        else
-                        {
-                            args.AddPassArg($"finalPos");
-                        }
-                        args.AddPassArg($"offset");
-                        args.AddPassArg($"translationParams");
-                    }
-                    else
-                    {
-                        args.Add("package: ret._package");
-                    }
-                    args.Add($"fill: ret.FillRecordType");
                 }
             }
             else
@@ -3143,28 +3328,32 @@ public class PluginTranslationModule : BinaryTranslationModule
                 }
             }
 
-            // Parse ending positions  
-            await foreach (var lengths in IteratePassedLengths(obj, forOverlay: true, passedLenPrefix: "ret."))
+            // Parse ending positions for DataType fields
+            // For major records, these were already emitted inside the lazy lambda
+            if (!isMajorRecord)
             {
-                if (!TryGetTypeGeneration(lengths.Field.GetType(), out var typeGen)) continue;
-                var data = lengths.Field.GetFieldData();
-                switch (data.BinaryOverlayFallback)
+                await foreach (var lengths in IteratePassedLengths(obj, forOverlay: true, passedLenPrefix: "ret."))
                 {
-                    case BinaryGenerationType.Normal:
-                    case BinaryGenerationType.Custom:
-                        break;
-                    default:
-                        continue;
-                }
-                if (lengths.Field is DataType)
-                {
-                    await typeGen.GenerateWrapperUnknownLengthParse(
-                        sb,
-                        obj,
-                        lengths.Field,
-                        recordDataAccessor,
-                        lengths.PassedLength,
-                        lengths.PassedAccessor);
+                    if (!TryGetTypeGeneration(lengths.Field.GetType(), out var typeGen)) continue;
+                    var data = lengths.Field.GetFieldData();
+                    switch (data.BinaryOverlayFallback)
+                    {
+                        case BinaryGenerationType.Normal:
+                        case BinaryGenerationType.Custom:
+                            break;
+                        default:
+                            continue;
+                    }
+                    if (lengths.Field is DataType)
+                    {
+                        await typeGen.GenerateWrapperUnknownLengthParse(
+                            sb,
+                            obj,
+                            lengths.Field,
+                            recordDataAccessor,
+                            lengths.PassedLength,
+                            lengths.PassedAccessor);
+                    }
                 }
             }
 

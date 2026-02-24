@@ -1,0 +1,4 @@
+RecordTypes.EDID,
+RecordTypes.WSED,
+RecordTypes.CNAM,
+RecordTypes.WTED,

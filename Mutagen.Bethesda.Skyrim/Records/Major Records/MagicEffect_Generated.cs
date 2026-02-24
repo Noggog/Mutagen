@@ -38,6 +38,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -4892,14 +4893,11 @@ namespace Mutagen.Bethesda.Skyrim
 
 
         #region VirtualMachineAdapter
-        private int? _VirtualMachineAdapterLengthOverride;
-        private RangeInt32? _VirtualMachineAdapterLocation;
-        public IVirtualMachineAdapterGetter? VirtualMachineAdapter => _VirtualMachineAdapterLocation.HasValue ? VirtualMachineAdapterBinaryOverlay.VirtualMachineAdapterFactory(_recordData.Slice(_VirtualMachineAdapterLocation!.Value.Min), _package, TypedParseParams.FromLengthOverride(_VirtualMachineAdapterLengthOverride)) : default;
+        public IVirtualMachineAdapterGetter? VirtualMachineAdapter => Payload.VirtualMachineAdapterLocation.HasValue ? VirtualMachineAdapterBinaryOverlay.VirtualMachineAdapterFactory(_recordData.Slice(Payload.VirtualMachineAdapterLocation!.Value.Min), _package, TypedParseParams.FromLengthOverride(Payload.VirtualMachineAdapterLengthOverride)) : default;
         IAVirtualMachineAdapterGetter? IHaveVirtualMachineAdapterGetter.VirtualMachineAdapter => this.VirtualMachineAdapter;
         #endregion
         #region Name
-        private int? _NameLocation;
-        public ITranslatedStringGetter? Name => _NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+        public ITranslatedStringGetter? Name => Payload.NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
         #region Aspects
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         string INamedRequiredGetter.Name => this.Name?.String ?? string.Empty;
@@ -4909,215 +4907,208 @@ namespace Mutagen.Bethesda.Skyrim
         ITranslatedStringGetter ITranslatedNamedRequiredGetter.Name => this.Name ?? TranslatedString.Empty;
         #endregion
         #endregion
-        #region MenuDisplayObject
-        private int? _MenuDisplayObjectLocation;
-        public IFormLinkNullableGetter<IStaticGetter> MenuDisplayObject => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IStaticGetter>(_package, _recordData, _MenuDisplayObjectLocation);
-        #endregion
+        public IFormLinkNullableGetter<IStaticGetter> MenuDisplayObject => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IStaticGetter>(_package, _recordData, Payload.MenuDisplayObjectLocation);
         #region Keywords
-        public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? Keywords { get; private set; }
+        public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? Keywords => Payload.Keywords;
         IReadOnlyList<IFormLinkGetter<IKeywordCommonGetter>>? IKeywordedGetter.Keywords => this.Keywords;
         #endregion
-        private RangeInt32? _DATALocation;
         #region Flags
-        private int _FlagsLocation => _DATALocation!.Value.Min;
-        private bool _Flags_IsSet => _DATALocation.HasValue;
+        private int _FlagsLocation => Payload.DATALocation!.Value.Min;
+        private bool _Flags_IsSet => Payload.DATALocation.HasValue;
         public MagicEffect.Flag Flags => _Flags_IsSet ? (MagicEffect.Flag)BinaryPrimitives.ReadInt32LittleEndian(_recordData.Span.Slice(_FlagsLocation, 0x4)) : default;
         #endregion
         #region BaseCost
-        private int _BaseCostLocation => _DATALocation!.Value.Min + 0x4;
-        private bool _BaseCost_IsSet => _DATALocation.HasValue;
+        private int _BaseCostLocation => Payload.DATALocation!.Value.Min + 0x4;
+        private bool _BaseCost_IsSet => Payload.DATALocation.HasValue;
         public Single BaseCost => _BaseCost_IsSet ? _recordData.Slice(_BaseCostLocation, 4).Float() : default(Single);
         #endregion
         #region AssociatedItem
-        private int _AssociatedItemLocation => _DATALocation!.Value.Min + 0x8;
-        private bool _AssociatedItem_IsSet => _DATALocation.HasValue;
+        private int _AssociatedItemLocation => Payload.DATALocation!.Value.Min + 0x8;
+        private bool _AssociatedItem_IsSet => Payload.DATALocation.HasValue;
         partial void AssociatedItemCustomParse(
             OverlayStream stream,
             int offset);
         #endregion
         #region MagicSkill
-        private int _MagicSkillLocation => _DATALocation!.Value.Min + 0xC;
-        private bool _MagicSkill_IsSet => _DATALocation.HasValue;
+        private int _MagicSkillLocation => Payload.DATALocation!.Value.Min + 0xC;
+        private bool _MagicSkill_IsSet => Payload.DATALocation.HasValue;
         public ActorValue MagicSkill => _MagicSkill_IsSet ? (ActorValue)BinaryPrimitives.ReadInt32LittleEndian(_recordData.Span.Slice(_MagicSkillLocation, 0x4)) : default;
         #endregion
         #region ResistValue
-        private int _ResistValueLocation => _DATALocation!.Value.Min + 0x10;
-        private bool _ResistValue_IsSet => _DATALocation.HasValue;
+        private int _ResistValueLocation => Payload.DATALocation!.Value.Min + 0x10;
+        private bool _ResistValue_IsSet => Payload.DATALocation.HasValue;
         public ActorValue ResistValue => _ResistValue_IsSet ? (ActorValue)BinaryPrimitives.ReadInt32LittleEndian(_recordData.Span.Slice(_ResistValueLocation, 0x4)) : default;
         #endregion
         #region CounterEffectLogic
-        private int _CounterEffectLogicLocation => _DATALocation!.Value.Min + 0x14;
-        private bool _CounterEffectLogic_IsSet => _DATALocation.HasValue;
+        private int _CounterEffectLogicLocation => Payload.DATALocation!.Value.Min + 0x14;
+        private bool _CounterEffectLogic_IsSet => Payload.DATALocation.HasValue;
         partial void CounterEffectLogicCustomParse(
             OverlayStream stream,
             int offset);
         #endregion
         #region Unknown1
-        private int _Unknown1Location => _DATALocation!.Value.Min + 0x16;
-        private bool _Unknown1_IsSet => _DATALocation.HasValue;
+        private int _Unknown1Location => Payload.DATALocation!.Value.Min + 0x16;
+        private bool _Unknown1_IsSet => Payload.DATALocation.HasValue;
         public UInt16 Unknown1 => _Unknown1_IsSet ? BinaryPrimitives.ReadUInt16LittleEndian(_recordData.Slice(_Unknown1Location, 2)) : default(UInt16);
         #endregion
         #region CastingLight
-        private int _CastingLightLocation => _DATALocation!.Value.Min + 0x18;
-        private bool _CastingLight_IsSet => _DATALocation.HasValue;
+        private int _CastingLightLocation => Payload.DATALocation!.Value.Min + 0x18;
+        private bool _CastingLight_IsSet => Payload.DATALocation.HasValue;
         public IFormLinkGetter<ILightGetter> CastingLight => _CastingLight_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<ILightGetter>(_package, _recordData.Span.Slice(_CastingLightLocation, 0x4), isSet: _CastingLight_IsSet) : FormLink<ILightGetter>.Null;
         #endregion
         #region TaperWeight
-        private int _TaperWeightLocation => _DATALocation!.Value.Min + 0x1C;
-        private bool _TaperWeight_IsSet => _DATALocation.HasValue;
+        private int _TaperWeightLocation => Payload.DATALocation!.Value.Min + 0x1C;
+        private bool _TaperWeight_IsSet => Payload.DATALocation.HasValue;
         public Single TaperWeight => _TaperWeight_IsSet ? _recordData.Slice(_TaperWeightLocation, 4).Float() : default(Single);
         #endregion
         #region HitShader
-        private int _HitShaderLocation => _DATALocation!.Value.Min + 0x20;
-        private bool _HitShader_IsSet => _DATALocation.HasValue;
+        private int _HitShaderLocation => Payload.DATALocation!.Value.Min + 0x20;
+        private bool _HitShader_IsSet => Payload.DATALocation.HasValue;
         public IFormLinkGetter<IEffectShaderGetter> HitShader => _HitShader_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IEffectShaderGetter>(_package, _recordData.Span.Slice(_HitShaderLocation, 0x4), isSet: _HitShader_IsSet) : FormLink<IEffectShaderGetter>.Null;
         #endregion
         #region EnchantShader
-        private int _EnchantShaderLocation => _DATALocation!.Value.Min + 0x24;
-        private bool _EnchantShader_IsSet => _DATALocation.HasValue;
+        private int _EnchantShaderLocation => Payload.DATALocation!.Value.Min + 0x24;
+        private bool _EnchantShader_IsSet => Payload.DATALocation.HasValue;
         public IFormLinkGetter<IEffectShaderGetter> EnchantShader => _EnchantShader_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IEffectShaderGetter>(_package, _recordData.Span.Slice(_EnchantShaderLocation, 0x4), isSet: _EnchantShader_IsSet) : FormLink<IEffectShaderGetter>.Null;
         #endregion
         #region MinimumSkillLevel
-        private int _MinimumSkillLevelLocation => _DATALocation!.Value.Min + 0x28;
-        private bool _MinimumSkillLevel_IsSet => _DATALocation.HasValue;
+        private int _MinimumSkillLevelLocation => Payload.DATALocation!.Value.Min + 0x28;
+        private bool _MinimumSkillLevel_IsSet => Payload.DATALocation.HasValue;
         public UInt32 MinimumSkillLevel => _MinimumSkillLevel_IsSet ? BinaryPrimitives.ReadUInt32LittleEndian(_recordData.Slice(_MinimumSkillLevelLocation, 4)) : default(UInt32);
         #endregion
         #region SpellmakingArea
-        private int _SpellmakingAreaLocation => _DATALocation!.Value.Min + 0x2C;
-        private bool _SpellmakingArea_IsSet => _DATALocation.HasValue;
+        private int _SpellmakingAreaLocation => Payload.DATALocation!.Value.Min + 0x2C;
+        private bool _SpellmakingArea_IsSet => Payload.DATALocation.HasValue;
         public UInt32 SpellmakingArea => _SpellmakingArea_IsSet ? BinaryPrimitives.ReadUInt32LittleEndian(_recordData.Slice(_SpellmakingAreaLocation, 4)) : default(UInt32);
         #endregion
         #region SpellmakingCastingTime
-        private int _SpellmakingCastingTimeLocation => _DATALocation!.Value.Min + 0x30;
-        private bool _SpellmakingCastingTime_IsSet => _DATALocation.HasValue;
+        private int _SpellmakingCastingTimeLocation => Payload.DATALocation!.Value.Min + 0x30;
+        private bool _SpellmakingCastingTime_IsSet => Payload.DATALocation.HasValue;
         public Single SpellmakingCastingTime => _SpellmakingCastingTime_IsSet ? _recordData.Slice(_SpellmakingCastingTimeLocation, 4).Float() : default(Single);
         #endregion
         #region TaperCurve
-        private int _TaperCurveLocation => _DATALocation!.Value.Min + 0x34;
-        private bool _TaperCurve_IsSet => _DATALocation.HasValue;
+        private int _TaperCurveLocation => Payload.DATALocation!.Value.Min + 0x34;
+        private bool _TaperCurve_IsSet => Payload.DATALocation.HasValue;
         public Single TaperCurve => _TaperCurve_IsSet ? _recordData.Slice(_TaperCurveLocation, 4).Float() : default(Single);
         #endregion
         #region TaperDuration
-        private int _TaperDurationLocation => _DATALocation!.Value.Min + 0x38;
-        private bool _TaperDuration_IsSet => _DATALocation.HasValue;
+        private int _TaperDurationLocation => Payload.DATALocation!.Value.Min + 0x38;
+        private bool _TaperDuration_IsSet => Payload.DATALocation.HasValue;
         public Single TaperDuration => _TaperDuration_IsSet ? _recordData.Slice(_TaperDurationLocation, 4).Float() : default(Single);
         #endregion
         #region SecondActorValueWeight
-        private int _SecondActorValueWeightLocation => _DATALocation!.Value.Min + 0x3C;
-        private bool _SecondActorValueWeight_IsSet => _DATALocation.HasValue;
+        private int _SecondActorValueWeightLocation => Payload.DATALocation!.Value.Min + 0x3C;
+        private bool _SecondActorValueWeight_IsSet => Payload.DATALocation.HasValue;
         public Single SecondActorValueWeight => _SecondActorValueWeight_IsSet ? _recordData.Slice(_SecondActorValueWeightLocation, 4).Float() : default(Single);
         #endregion
         #region Archetype
-        private int _ArchetypeLocation => _DATALocation!.Value.Min + 0x40;
+        private int _ArchetypeLocation => Payload.DATALocation!.Value.Min + 0x40;
         public partial IAMagicEffectArchetypeGetter GetArchetypeCustom();
         public IAMagicEffectArchetypeGetter Archetype => GetArchetypeCustom();
         #endregion
         #region Projectile
-        private int _ProjectileLocation => _DATALocation!.Value.Min + 0x48;
-        private bool _Projectile_IsSet => _DATALocation.HasValue;
+        private int _ProjectileLocation => Payload.DATALocation!.Value.Min + 0x48;
+        private bool _Projectile_IsSet => Payload.DATALocation.HasValue;
         public IFormLinkGetter<IProjectileGetter> Projectile => _Projectile_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IProjectileGetter>(_package, _recordData.Span.Slice(_ProjectileLocation, 0x4), isSet: _Projectile_IsSet) : FormLink<IProjectileGetter>.Null;
         #endregion
         #region Explosion
-        private int _ExplosionLocation => _DATALocation!.Value.Min + 0x4C;
-        private bool _Explosion_IsSet => _DATALocation.HasValue;
+        private int _ExplosionLocation => Payload.DATALocation!.Value.Min + 0x4C;
+        private bool _Explosion_IsSet => Payload.DATALocation.HasValue;
         public IFormLinkGetter<IExplosionGetter> Explosion => _Explosion_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IExplosionGetter>(_package, _recordData.Span.Slice(_ExplosionLocation, 0x4), isSet: _Explosion_IsSet) : FormLink<IExplosionGetter>.Null;
         #endregion
         #region CastType
-        private int _CastTypeLocation => _DATALocation!.Value.Min + 0x50;
-        private bool _CastType_IsSet => _DATALocation.HasValue;
+        private int _CastTypeLocation => Payload.DATALocation!.Value.Min + 0x50;
+        private bool _CastType_IsSet => Payload.DATALocation.HasValue;
         public CastType CastType => _CastType_IsSet ? (CastType)BinaryPrimitives.ReadInt32LittleEndian(_recordData.Span.Slice(_CastTypeLocation, 0x4)) : default;
         #endregion
         #region TargetType
-        private int _TargetTypeLocation => _DATALocation!.Value.Min + 0x54;
-        private bool _TargetType_IsSet => _DATALocation.HasValue;
+        private int _TargetTypeLocation => Payload.DATALocation!.Value.Min + 0x54;
+        private bool _TargetType_IsSet => Payload.DATALocation.HasValue;
         public TargetType TargetType => _TargetType_IsSet ? (TargetType)BinaryPrimitives.ReadInt32LittleEndian(_recordData.Span.Slice(_TargetTypeLocation, 0x4)) : default;
         #endregion
         #region SecondActorValue
-        private int _SecondActorValueLocation => _DATALocation!.Value.Min + 0x58;
-        private bool _SecondActorValue_IsSet => _DATALocation.HasValue;
+        private int _SecondActorValueLocation => Payload.DATALocation!.Value.Min + 0x58;
+        private bool _SecondActorValue_IsSet => Payload.DATALocation.HasValue;
         public ActorValue SecondActorValue => _SecondActorValue_IsSet ? (ActorValue)BinaryPrimitives.ReadInt32LittleEndian(_recordData.Span.Slice(_SecondActorValueLocation, 0x4)) : default;
         #endregion
         #region CastingArt
-        private int _CastingArtLocation => _DATALocation!.Value.Min + 0x5C;
-        private bool _CastingArt_IsSet => _DATALocation.HasValue;
+        private int _CastingArtLocation => Payload.DATALocation!.Value.Min + 0x5C;
+        private bool _CastingArt_IsSet => Payload.DATALocation.HasValue;
         public IFormLinkGetter<IArtObjectGetter> CastingArt => _CastingArt_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IArtObjectGetter>(_package, _recordData.Span.Slice(_CastingArtLocation, 0x4), isSet: _CastingArt_IsSet) : FormLink<IArtObjectGetter>.Null;
         #endregion
         #region HitEffectArt
-        private int _HitEffectArtLocation => _DATALocation!.Value.Min + 0x60;
-        private bool _HitEffectArt_IsSet => _DATALocation.HasValue;
+        private int _HitEffectArtLocation => Payload.DATALocation!.Value.Min + 0x60;
+        private bool _HitEffectArt_IsSet => Payload.DATALocation.HasValue;
         public IFormLinkGetter<IArtObjectGetter> HitEffectArt => _HitEffectArt_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IArtObjectGetter>(_package, _recordData.Span.Slice(_HitEffectArtLocation, 0x4), isSet: _HitEffectArt_IsSet) : FormLink<IArtObjectGetter>.Null;
         #endregion
         #region ImpactData
-        private int _ImpactDataLocation => _DATALocation!.Value.Min + 0x64;
-        private bool _ImpactData_IsSet => _DATALocation.HasValue;
+        private int _ImpactDataLocation => Payload.DATALocation!.Value.Min + 0x64;
+        private bool _ImpactData_IsSet => Payload.DATALocation.HasValue;
         public IFormLinkGetter<IImpactDataSetGetter> ImpactData => _ImpactData_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IImpactDataSetGetter>(_package, _recordData.Span.Slice(_ImpactDataLocation, 0x4), isSet: _ImpactData_IsSet) : FormLink<IImpactDataSetGetter>.Null;
         #endregion
         #region SkillUsageMultiplier
-        private int _SkillUsageMultiplierLocation => _DATALocation!.Value.Min + 0x68;
-        private bool _SkillUsageMultiplier_IsSet => _DATALocation.HasValue;
+        private int _SkillUsageMultiplierLocation => Payload.DATALocation!.Value.Min + 0x68;
+        private bool _SkillUsageMultiplier_IsSet => Payload.DATALocation.HasValue;
         public Single SkillUsageMultiplier => _SkillUsageMultiplier_IsSet ? _recordData.Slice(_SkillUsageMultiplierLocation, 4).Float() : default(Single);
         #endregion
         #region DualCastArt
-        private int _DualCastArtLocation => _DATALocation!.Value.Min + 0x6C;
-        private bool _DualCastArt_IsSet => _DATALocation.HasValue;
+        private int _DualCastArtLocation => Payload.DATALocation!.Value.Min + 0x6C;
+        private bool _DualCastArt_IsSet => Payload.DATALocation.HasValue;
         public IFormLinkGetter<IDualCastDataGetter> DualCastArt => _DualCastArt_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IDualCastDataGetter>(_package, _recordData.Span.Slice(_DualCastArtLocation, 0x4), isSet: _DualCastArt_IsSet) : FormLink<IDualCastDataGetter>.Null;
         #endregion
         #region DualCastScale
-        private int _DualCastScaleLocation => _DATALocation!.Value.Min + 0x70;
-        private bool _DualCastScale_IsSet => _DATALocation.HasValue;
+        private int _DualCastScaleLocation => Payload.DATALocation!.Value.Min + 0x70;
+        private bool _DualCastScale_IsSet => Payload.DATALocation.HasValue;
         public Single DualCastScale => _DualCastScale_IsSet ? _recordData.Slice(_DualCastScaleLocation, 4).Float() : default(Single);
         #endregion
         #region EnchantArt
-        private int _EnchantArtLocation => _DATALocation!.Value.Min + 0x74;
-        private bool _EnchantArt_IsSet => _DATALocation.HasValue;
+        private int _EnchantArtLocation => Payload.DATALocation!.Value.Min + 0x74;
+        private bool _EnchantArt_IsSet => Payload.DATALocation.HasValue;
         public IFormLinkGetter<IArtObjectGetter> EnchantArt => _EnchantArt_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IArtObjectGetter>(_package, _recordData.Span.Slice(_EnchantArtLocation, 0x4), isSet: _EnchantArt_IsSet) : FormLink<IArtObjectGetter>.Null;
         #endregion
         #region HitVisuals
-        private int _HitVisualsLocation => _DATALocation!.Value.Min + 0x78;
-        private bool _HitVisuals_IsSet => _DATALocation.HasValue;
+        private int _HitVisualsLocation => Payload.DATALocation!.Value.Min + 0x78;
+        private bool _HitVisuals_IsSet => Payload.DATALocation.HasValue;
         public IFormLinkGetter<IVisualEffectGetter> HitVisuals => _HitVisuals_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IVisualEffectGetter>(_package, _recordData.Span.Slice(_HitVisualsLocation, 0x4), isSet: _HitVisuals_IsSet) : FormLink<IVisualEffectGetter>.Null;
         #endregion
         #region EnchantVisuals
-        private int _EnchantVisualsLocation => _DATALocation!.Value.Min + 0x7C;
-        private bool _EnchantVisuals_IsSet => _DATALocation.HasValue;
+        private int _EnchantVisualsLocation => Payload.DATALocation!.Value.Min + 0x7C;
+        private bool _EnchantVisuals_IsSet => Payload.DATALocation.HasValue;
         public IFormLinkGetter<IVisualEffectGetter> EnchantVisuals => _EnchantVisuals_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IVisualEffectGetter>(_package, _recordData.Span.Slice(_EnchantVisualsLocation, 0x4), isSet: _EnchantVisuals_IsSet) : FormLink<IVisualEffectGetter>.Null;
         #endregion
         #region EquipAbility
-        private int _EquipAbilityLocation => _DATALocation!.Value.Min + 0x80;
-        private bool _EquipAbility_IsSet => _DATALocation.HasValue;
+        private int _EquipAbilityLocation => Payload.DATALocation!.Value.Min + 0x80;
+        private bool _EquipAbility_IsSet => Payload.DATALocation.HasValue;
         public IFormLinkGetter<ISpellGetter> EquipAbility => _EquipAbility_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<ISpellGetter>(_package, _recordData.Span.Slice(_EquipAbilityLocation, 0x4), isSet: _EquipAbility_IsSet) : FormLink<ISpellGetter>.Null;
         #endregion
         #region ImageSpaceModifier
-        private int _ImageSpaceModifierLocation => _DATALocation!.Value.Min + 0x84;
-        private bool _ImageSpaceModifier_IsSet => _DATALocation.HasValue;
+        private int _ImageSpaceModifierLocation => Payload.DATALocation!.Value.Min + 0x84;
+        private bool _ImageSpaceModifier_IsSet => Payload.DATALocation.HasValue;
         public IFormLinkGetter<IImageSpaceAdapterGetter> ImageSpaceModifier => _ImageSpaceModifier_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IImageSpaceAdapterGetter>(_package, _recordData.Span.Slice(_ImageSpaceModifierLocation, 0x4), isSet: _ImageSpaceModifier_IsSet) : FormLink<IImageSpaceAdapterGetter>.Null;
         #endregion
         #region PerkToApply
-        private int _PerkToApplyLocation => _DATALocation!.Value.Min + 0x88;
-        private bool _PerkToApply_IsSet => _DATALocation.HasValue;
+        private int _PerkToApplyLocation => Payload.DATALocation!.Value.Min + 0x88;
+        private bool _PerkToApply_IsSet => Payload.DATALocation.HasValue;
         public IFormLinkGetter<IPerkGetter> PerkToApply => _PerkToApply_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IPerkGetter>(_package, _recordData.Span.Slice(_PerkToApplyLocation, 0x4), isSet: _PerkToApply_IsSet) : FormLink<IPerkGetter>.Null;
         #endregion
         #region CastingSoundLevel
-        private int _CastingSoundLevelLocation => _DATALocation!.Value.Min + 0x8C;
-        private bool _CastingSoundLevel_IsSet => _DATALocation.HasValue;
+        private int _CastingSoundLevelLocation => Payload.DATALocation!.Value.Min + 0x8C;
+        private bool _CastingSoundLevel_IsSet => Payload.DATALocation.HasValue;
         public SoundLevel CastingSoundLevel => _CastingSoundLevel_IsSet ? (SoundLevel)BinaryPrimitives.ReadInt32LittleEndian(_recordData.Span.Slice(_CastingSoundLevelLocation, 0x4)) : default;
         #endregion
         #region ScriptEffectAIScore
-        private int _ScriptEffectAIScoreLocation => _DATALocation!.Value.Min + 0x90;
-        private bool _ScriptEffectAIScore_IsSet => _DATALocation.HasValue;
+        private int _ScriptEffectAIScoreLocation => Payload.DATALocation!.Value.Min + 0x90;
+        private bool _ScriptEffectAIScore_IsSet => Payload.DATALocation.HasValue;
         public Single ScriptEffectAIScore => _ScriptEffectAIScore_IsSet ? _recordData.Slice(_ScriptEffectAIScoreLocation, 4).Float() : default(Single);
         #endregion
         #region ScriptEffectAIDelayTime
-        private int _ScriptEffectAIDelayTimeLocation => _DATALocation!.Value.Min + 0x94;
-        private bool _ScriptEffectAIDelayTime_IsSet => _DATALocation.HasValue;
+        private int _ScriptEffectAIDelayTimeLocation => Payload.DATALocation!.Value.Min + 0x94;
+        private bool _ScriptEffectAIDelayTime_IsSet => Payload.DATALocation.HasValue;
         public Single ScriptEffectAIDelayTime => _ScriptEffectAIDelayTime_IsSet ? _recordData.Slice(_ScriptEffectAIDelayTimeLocation, 4).Float() : default(Single);
         #endregion
-        public IReadOnlyList<IFormLinkGetter<IMagicEffectGetter>> CounterEffects { get; private set; } = [];
-        public IReadOnlyList<IMagicEffectSoundGetter>? Sounds { get; private set; }
-        #region Description
-        private int? _DescriptionLocation;
-        public ITranslatedStringGetter? Description => _DescriptionLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _DescriptionLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
-        #endregion
+        public IReadOnlyList<IFormLinkGetter<IMagicEffectGetter>> CounterEffects => Payload.CounterEffects ?? [];
+        public IReadOnlyList<IMagicEffectSoundGetter>? Sounds => Payload.Sounds;
+        public ITranslatedStringGetter? Description => Payload.DescriptionLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.DescriptionLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
         #region Conditions
         partial void ConditionsCustomParse(
             OverlayStream stream,
@@ -5126,6 +5117,29 @@ namespace Mutagen.Bethesda.Skyrim
             RecordType type,
             PreviousParse lastParsed);
         #endregion
+
+        internal partial class MagicEffectRecordDataPayload
+        {
+            public int? VirtualMachineAdapterLengthOverride;
+            public RangeInt32? VirtualMachineAdapterLocation;
+            public int? NameLocation;
+            public int? MenuDisplayObjectLocation;
+            public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? Keywords;
+            public RangeInt32? DATALocation;
+            public IReadOnlyList<IFormLinkGetter<IMagicEffectGetter>> CounterEffects = [];
+            public IReadOnlyList<IMagicEffectSoundGetter>? Sounds;
+            public int? DescriptionLocation;
+        }
+
+        private LazyPayload<MagicEffectRecordDataPayload> _payload = null!;
+
+        internal MagicEffectRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<MagicEffectRecordDataPayload>(init, new MagicEffectRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -5133,10 +5147,10 @@ namespace Mutagen.Bethesda.Skyrim
 
         partial void CustomCtor();
         protected MagicEffectBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -5147,28 +5161,51 @@ namespace Mutagen.Bethesda.Skyrim
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new MagicEffectBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -5197,8 +5234,8 @@ namespace Mutagen.Bethesda.Skyrim
             {
                 case RecordTypeInts.VMAD:
                 {
-                    _VirtualMachineAdapterLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
-                    _VirtualMachineAdapterLengthOverride = lastParsed.LengthOverride;
+                    _payload.Fields.VirtualMachineAdapterLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.VirtualMachineAdapterLengthOverride = lastParsed.LengthOverride;
                     if (lastParsed.LengthOverride.HasValue)
                     {
                         stream.Position += lastParsed.LengthOverride.Value;
@@ -5207,18 +5244,18 @@ namespace Mutagen.Bethesda.Skyrim
                 }
                 case RecordTypeInts.FULL:
                 {
-                    _NameLocation = (stream.Position - offset);
+                    _payload.Fields.NameLocation = (stream.Position - offset);
                     return (int)MagicEffect_FieldIndex.Name;
                 }
                 case RecordTypeInts.MDOB:
                 {
-                    _MenuDisplayObjectLocation = (stream.Position - offset);
+                    _payload.Fields.MenuDisplayObjectLocation = (stream.Position - offset);
                     return (int)MagicEffect_FieldIndex.MenuDisplayObject;
                 }
                 case RecordTypeInts.KSIZ:
                 case RecordTypeInts.KWDA:
                 {
-                    this.Keywords = BinaryOverlayList.FactoryByCount<IFormLinkGetter<IKeywordGetter>>(
+                    _payload.Fields.Keywords = BinaryOverlayList.FactoryByCount<IFormLinkGetter<IKeywordGetter>>(
                         stream: stream,
                         package: _package,
                         itemLength: 0x4,
@@ -5230,12 +5267,12 @@ namespace Mutagen.Bethesda.Skyrim
                 }
                 case RecordTypeInts.DATA:
                 {
-                    _DATALocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.DATALocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     return (int)MagicEffect_FieldIndex.ScriptEffectAIDelayTime;
                 }
                 case RecordTypeInts.ESCE:
                 {
-                    this.CounterEffects = BinaryOverlayList.FactoryByArray<IFormLinkGetter<IMagicEffectGetter>>(
+                    _payload.Fields.CounterEffects = BinaryOverlayList.FactoryByArray<IFormLinkGetter<IMagicEffectGetter>>(
                         mem: stream.RemainingMemory,
                         package: _package,
                         getter: (s, p) => FormLinkBinaryTranslation.Instance.OverlayFactory<IMagicEffectGetter>(p, s),
@@ -5249,7 +5286,7 @@ namespace Mutagen.Bethesda.Skyrim
                 }
                 case RecordTypeInts.SNDD:
                 {
-                    this.Sounds = BinaryOverlayList.FactoryByStartIndexWithTrigger<IMagicEffectSoundGetter>(
+                    _payload.Fields.Sounds = BinaryOverlayList.FactoryByStartIndexWithTrigger<IMagicEffectSoundGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -5259,7 +5296,7 @@ namespace Mutagen.Bethesda.Skyrim
                 }
                 case RecordTypeInts.DNAM:
                 {
-                    _DescriptionLocation = (stream.Position - offset);
+                    _payload.Fields.DescriptionLocation = (stream.Position - offset);
                     return (int)MagicEffect_FieldIndex.Description;
                 }
                 case RecordTypeInts.CTDA:

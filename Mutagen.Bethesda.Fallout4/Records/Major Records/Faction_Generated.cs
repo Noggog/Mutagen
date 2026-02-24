@@ -36,6 +36,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -3057,8 +3058,7 @@ namespace Mutagen.Bethesda.Fallout4
 
 
         #region Name
-        private int? _NameLocation;
-        public ITranslatedStringGetter? Name => _NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+        public ITranslatedStringGetter? Name => Payload.NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
         #region Aspects
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         string INamedRequiredGetter.Name => this.Name?.String ?? string.Empty;
@@ -3068,54 +3068,51 @@ namespace Mutagen.Bethesda.Fallout4
         ITranslatedStringGetter ITranslatedNamedRequiredGetter.Name => this.Name ?? TranslatedString.Empty;
         #endregion
         #endregion
-        public IReadOnlyList<IRelationGetter> Relations { get; private set; } = [];
-        #region Flags
-        private int? _FlagsLocation;
-        public Faction.FactionFlag Flags => EnumBinaryTranslation<Faction.FactionFlag, MutagenFrame, MutagenWriter>.Instance.ParseRecord(_FlagsLocation, _recordData, _package, 4);
-        #endregion
-        #region ExteriorJailMarker
-        private int? _ExteriorJailMarkerLocation;
-        public IFormLinkNullableGetter<IPlacedObjectGetter> ExteriorJailMarker => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IPlacedObjectGetter>(_package, _recordData, _ExteriorJailMarkerLocation);
-        #endregion
-        #region FollowerWaitMarker
-        private int? _FollowerWaitMarkerLocation;
-        public IFormLinkNullableGetter<IPlacedObjectGetter> FollowerWaitMarker => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IPlacedObjectGetter>(_package, _recordData, _FollowerWaitMarkerLocation);
-        #endregion
-        #region StolenGoodsContainer
-        private int? _StolenGoodsContainerLocation;
-        public IFormLinkNullableGetter<IPlacedObjectGetter> StolenGoodsContainer => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IPlacedObjectGetter>(_package, _recordData, _StolenGoodsContainerLocation);
-        #endregion
-        #region PlayerInventoryContainer
-        private int? _PlayerInventoryContainerLocation;
-        public IFormLinkNullableGetter<IPlacedObjectGetter> PlayerInventoryContainer => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IPlacedObjectGetter>(_package, _recordData, _PlayerInventoryContainerLocation);
-        #endregion
-        #region SharedCrimeFactionList
-        private int? _SharedCrimeFactionListLocation;
-        public IFormLinkNullableGetter<IFormListGetter> SharedCrimeFactionList => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IFormListGetter>(_package, _recordData, _SharedCrimeFactionListLocation);
-        #endregion
-        #region JailOutfit
-        private int? _JailOutfitLocation;
-        public IFormLinkNullableGetter<IOutfitGetter> JailOutfit => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IOutfitGetter>(_package, _recordData, _JailOutfitLocation);
-        #endregion
-        #region CrimeValues
-        private RangeInt32? _CrimeValuesLocation;
-        public ICrimeValuesGetter? CrimeValues => _CrimeValuesLocation.HasValue ? CrimeValuesBinaryOverlay.CrimeValuesFactory(_recordData.Slice(_CrimeValuesLocation!.Value.Min), _package) : default;
-        #endregion
-        public IReadOnlyList<IRankGetter> Ranks { get; private set; } = [];
-        #region VendorBuySellList
-        private int? _VendorBuySellListLocation;
-        public IFormLinkNullableGetter<IFormListGetter> VendorBuySellList => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IFormListGetter>(_package, _recordData, _VendorBuySellListLocation);
-        #endregion
-        #region MerchantContainer
-        private int? _MerchantContainerLocation;
-        public IFormLinkNullableGetter<IPlacedObjectGetter> MerchantContainer => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IPlacedObjectGetter>(_package, _recordData, _MerchantContainerLocation);
-        #endregion
-        #region VendorValues
-        private RangeInt32? _VendorValuesLocation;
-        public IVendorValuesGetter? VendorValues => _VendorValuesLocation.HasValue ? VendorValuesBinaryOverlay.VendorValuesFactory(_recordData.Slice(_VendorValuesLocation!.Value.Min), _package) : default;
-        #endregion
-        public ILocationTargetRadiusGetter? VendorLocation { get; private set; }
-        public IReadOnlyList<IConditionGetter>? Conditions { get; private set; }
+        public IReadOnlyList<IRelationGetter> Relations => Payload.Relations ?? [];
+        public Faction.FactionFlag Flags => EnumBinaryTranslation<Faction.FactionFlag, MutagenFrame, MutagenWriter>.Instance.ParseRecord(Payload.FlagsLocation, _recordData, _package, 4);
+        public IFormLinkNullableGetter<IPlacedObjectGetter> ExteriorJailMarker => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IPlacedObjectGetter>(_package, _recordData, Payload.ExteriorJailMarkerLocation);
+        public IFormLinkNullableGetter<IPlacedObjectGetter> FollowerWaitMarker => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IPlacedObjectGetter>(_package, _recordData, Payload.FollowerWaitMarkerLocation);
+        public IFormLinkNullableGetter<IPlacedObjectGetter> StolenGoodsContainer => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IPlacedObjectGetter>(_package, _recordData, Payload.StolenGoodsContainerLocation);
+        public IFormLinkNullableGetter<IPlacedObjectGetter> PlayerInventoryContainer => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IPlacedObjectGetter>(_package, _recordData, Payload.PlayerInventoryContainerLocation);
+        public IFormLinkNullableGetter<IFormListGetter> SharedCrimeFactionList => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IFormListGetter>(_package, _recordData, Payload.SharedCrimeFactionListLocation);
+        public IFormLinkNullableGetter<IOutfitGetter> JailOutfit => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IOutfitGetter>(_package, _recordData, Payload.JailOutfitLocation);
+        public ICrimeValuesGetter? CrimeValues => Payload.CrimeValuesLocation.HasValue ? CrimeValuesBinaryOverlay.CrimeValuesFactory(_recordData.Slice(Payload.CrimeValuesLocation!.Value.Min), _package) : default;
+        public IReadOnlyList<IRankGetter> Ranks => Payload.Ranks ?? [];
+        public IFormLinkNullableGetter<IFormListGetter> VendorBuySellList => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IFormListGetter>(_package, _recordData, Payload.VendorBuySellListLocation);
+        public IFormLinkNullableGetter<IPlacedObjectGetter> MerchantContainer => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IPlacedObjectGetter>(_package, _recordData, Payload.MerchantContainerLocation);
+        public IVendorValuesGetter? VendorValues => Payload.VendorValuesLocation.HasValue ? VendorValuesBinaryOverlay.VendorValuesFactory(_recordData.Slice(Payload.VendorValuesLocation!.Value.Min), _package) : default;
+        public ILocationTargetRadiusGetter? VendorLocation => Payload.VendorLocation;
+        public IReadOnlyList<IConditionGetter>? Conditions => Payload.Conditions;
+
+        internal partial class FactionRecordDataPayload
+        {
+            public int? NameLocation;
+            public IReadOnlyList<IRelationGetter> Relations = [];
+            public int? FlagsLocation;
+            public int? ExteriorJailMarkerLocation;
+            public int? FollowerWaitMarkerLocation;
+            public int? StolenGoodsContainerLocation;
+            public int? PlayerInventoryContainerLocation;
+            public int? SharedCrimeFactionListLocation;
+            public int? JailOutfitLocation;
+            public RangeInt32? CrimeValuesLocation;
+            public IReadOnlyList<IRankGetter> Ranks = [];
+            public int? VendorBuySellListLocation;
+            public int? MerchantContainerLocation;
+            public RangeInt32? VendorValuesLocation;
+            public ILocationTargetRadiusGetter? VendorLocation;
+            public IReadOnlyList<IConditionGetter>? Conditions;
+        }
+
+        private LazyPayload<FactionRecordDataPayload> _payload = null!;
+
+        internal FactionRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<FactionRecordDataPayload>(init, new FactionRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -3123,10 +3120,10 @@ namespace Mutagen.Bethesda.Fallout4
 
         partial void CustomCtor();
         protected FactionBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -3137,28 +3134,51 @@ namespace Mutagen.Bethesda.Fallout4
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new FactionBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -3187,12 +3207,12 @@ namespace Mutagen.Bethesda.Fallout4
             {
                 case RecordTypeInts.FULL:
                 {
-                    _NameLocation = (stream.Position - offset);
+                    _payload.Fields.NameLocation = (stream.Position - offset);
                     return (int)Faction_FieldIndex.Name;
                 }
                 case RecordTypeInts.XNAM:
                 {
-                    this.Relations = BinaryOverlayList.FactoryByArray<IRelationGetter>(
+                    _payload.Fields.Relations = BinaryOverlayList.FactoryByArray<IRelationGetter>(
                         mem: stream.RemainingMemory,
                         package: _package,
                         translationParams: translationParams,
@@ -3207,42 +3227,42 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.DATA:
                 {
-                    _FlagsLocation = (stream.Position - offset);
+                    _payload.Fields.FlagsLocation = (stream.Position - offset);
                     return (int)Faction_FieldIndex.Flags;
                 }
                 case RecordTypeInts.JAIL:
                 {
-                    _ExteriorJailMarkerLocation = (stream.Position - offset);
+                    _payload.Fields.ExteriorJailMarkerLocation = (stream.Position - offset);
                     return (int)Faction_FieldIndex.ExteriorJailMarker;
                 }
                 case RecordTypeInts.WAIT:
                 {
-                    _FollowerWaitMarkerLocation = (stream.Position - offset);
+                    _payload.Fields.FollowerWaitMarkerLocation = (stream.Position - offset);
                     return (int)Faction_FieldIndex.FollowerWaitMarker;
                 }
                 case RecordTypeInts.STOL:
                 {
-                    _StolenGoodsContainerLocation = (stream.Position - offset);
+                    _payload.Fields.StolenGoodsContainerLocation = (stream.Position - offset);
                     return (int)Faction_FieldIndex.StolenGoodsContainer;
                 }
                 case RecordTypeInts.PLCN:
                 {
-                    _PlayerInventoryContainerLocation = (stream.Position - offset);
+                    _payload.Fields.PlayerInventoryContainerLocation = (stream.Position - offset);
                     return (int)Faction_FieldIndex.PlayerInventoryContainer;
                 }
                 case RecordTypeInts.CRGR:
                 {
-                    _SharedCrimeFactionListLocation = (stream.Position - offset);
+                    _payload.Fields.SharedCrimeFactionListLocation = (stream.Position - offset);
                     return (int)Faction_FieldIndex.SharedCrimeFactionList;
                 }
                 case RecordTypeInts.JOUT:
                 {
-                    _JailOutfitLocation = (stream.Position - offset);
+                    _payload.Fields.JailOutfitLocation = (stream.Position - offset);
                     return (int)Faction_FieldIndex.JailOutfit;
                 }
                 case RecordTypeInts.CRVA:
                 {
-                    _CrimeValuesLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.CrimeValuesLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)Faction_FieldIndex.CrimeValues;
                 }
                 case RecordTypeInts.RNAM:
@@ -3250,7 +3270,7 @@ namespace Mutagen.Bethesda.Fallout4
                 case RecordTypeInts.FNAM:
                 case RecordTypeInts.INAM:
                 {
-                    this.Ranks = this.ParseRepeatedTypelessSubrecord<IRankGetter>(
+                    _payload.Fields.Ranks = this.ParseRepeatedTypelessSubrecord<IRankGetter>(
                         stream: stream,
                         translationParams: translationParams,
                         trigger: Rank_Registration.TriggerSpecs,
@@ -3259,23 +3279,23 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.VEND:
                 {
-                    _VendorBuySellListLocation = (stream.Position - offset);
+                    _payload.Fields.VendorBuySellListLocation = (stream.Position - offset);
                     return (int)Faction_FieldIndex.VendorBuySellList;
                 }
                 case RecordTypeInts.VENC:
                 {
-                    _MerchantContainerLocation = (stream.Position - offset);
+                    _payload.Fields.MerchantContainerLocation = (stream.Position - offset);
                     return (int)Faction_FieldIndex.MerchantContainer;
                 }
                 case RecordTypeInts.VENV:
                 {
-                    _VendorValuesLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.VendorValuesLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)Faction_FieldIndex.VendorValues;
                 }
                 case RecordTypeInts.PLVD:
                 {
                     stream.Position += _package.MetaData.Constants.SubConstants.HeaderLength;
-                    this.VendorLocation = LocationTargetRadiusBinaryOverlay.LocationTargetRadiusFactory(
+                    _payload.Fields.VendorLocation = LocationTargetRadiusBinaryOverlay.LocationTargetRadiusFactory(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -3285,7 +3305,7 @@ namespace Mutagen.Bethesda.Fallout4
                 case RecordTypeInts.CTDA:
                 case RecordTypeInts.CITC:
                 {
-                    this.Conditions = BinaryOverlayList.FactoryByCountPerItem<IConditionGetter>(
+                    _payload.Fields.Conditions = BinaryOverlayList.FactoryByCountPerItem<IConditionGetter>(
                         stream: stream,
                         package: _package,
                         countLength: 4,

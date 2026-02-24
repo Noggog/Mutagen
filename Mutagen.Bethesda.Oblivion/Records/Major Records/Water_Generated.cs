@@ -34,6 +34,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -1921,26 +1922,11 @@ namespace Mutagen.Bethesda.Oblivion
         protected override Type LinkType => typeof(IWaterGetter);
 
 
-        #region Texture
-        private int? _TextureLocation;
-        public String? Texture => _TextureLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _TextureLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
-        #region Opacity
-        private int? _OpacityLocation;
-        public Byte? Opacity => _OpacityLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _OpacityLocation.Value, _package.MetaData.Constants)[0] : default(Byte?);
-        #endregion
-        #region Flags
-        private int? _FlagsLocation;
-        public Water.Flag? Flags => EnumBinaryTranslation<Water.Flag, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(_FlagsLocation, _recordData, _package, 1);
-        #endregion
-        #region MaterialID
-        private int? _MaterialIDLocation;
-        public String? MaterialID => _MaterialIDLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _MaterialIDLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
-        #region Sound
-        private int? _SoundLocation;
-        public IFormLinkNullableGetter<ISoundGetter> Sound => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ISoundGetter>(_package, _recordData, _SoundLocation);
-        #endregion
+        public String? Texture => Payload.TextureLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.TextureLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public Byte? Opacity => Payload.OpacityLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.OpacityLocation.Value, _package.MetaData.Constants)[0] : default(Byte?);
+        public Water.Flag? Flags => EnumBinaryTranslation<Water.Flag, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(Payload.FlagsLocation, _recordData, _package, 1);
+        public String? MaterialID => Payload.MaterialIDLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.MaterialIDLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public IFormLinkNullableGetter<ISoundGetter> Sound => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ISoundGetter>(_package, _recordData, Payload.SoundLocation);
         #region Data
         partial void DataCustomParse(
             OverlayStream stream,
@@ -1949,10 +1935,27 @@ namespace Mutagen.Bethesda.Oblivion
         public partial IWaterDataGetter? GetDataCustom();
         public IWaterDataGetter? Data => GetDataCustom();
         #endregion
-        #region RelatedWaters
-        private RangeInt32? _RelatedWatersLocation;
-        public IRelatedWatersGetter? RelatedWaters => _RelatedWatersLocation.HasValue ? RelatedWatersBinaryOverlay.RelatedWatersFactory(_recordData.Slice(_RelatedWatersLocation!.Value.Min), _package) : default;
-        #endregion
+        public IRelatedWatersGetter? RelatedWaters => Payload.RelatedWatersLocation.HasValue ? RelatedWatersBinaryOverlay.RelatedWatersFactory(_recordData.Slice(Payload.RelatedWatersLocation!.Value.Min), _package) : default;
+
+        internal partial class WaterRecordDataPayload
+        {
+            public int? TextureLocation;
+            public int? OpacityLocation;
+            public int? FlagsLocation;
+            public int? MaterialIDLocation;
+            public int? SoundLocation;
+            public RangeInt32? RelatedWatersLocation;
+        }
+
+        private LazyPayload<WaterRecordDataPayload> _payload = null!;
+
+        internal WaterRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<WaterRecordDataPayload>(init, new WaterRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -1960,10 +1963,10 @@ namespace Mutagen.Bethesda.Oblivion
 
         partial void CustomCtor();
         protected WaterBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -1974,28 +1977,51 @@ namespace Mutagen.Bethesda.Oblivion
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new WaterBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -2024,27 +2050,27 @@ namespace Mutagen.Bethesda.Oblivion
             {
                 case RecordTypeInts.TNAM:
                 {
-                    _TextureLocation = (stream.Position - offset);
+                    _payload.Fields.TextureLocation = (stream.Position - offset);
                     return (int)Water_FieldIndex.Texture;
                 }
                 case RecordTypeInts.ANAM:
                 {
-                    _OpacityLocation = (stream.Position - offset);
+                    _payload.Fields.OpacityLocation = (stream.Position - offset);
                     return (int)Water_FieldIndex.Opacity;
                 }
                 case RecordTypeInts.FNAM:
                 {
-                    _FlagsLocation = (stream.Position - offset);
+                    _payload.Fields.FlagsLocation = (stream.Position - offset);
                     return (int)Water_FieldIndex.Flags;
                 }
                 case RecordTypeInts.MNAM:
                 {
-                    _MaterialIDLocation = (stream.Position - offset);
+                    _payload.Fields.MaterialIDLocation = (stream.Position - offset);
                     return (int)Water_FieldIndex.MaterialID;
                 }
                 case RecordTypeInts.SNAM:
                 {
-                    _SoundLocation = (stream.Position - offset);
+                    _payload.Fields.SoundLocation = (stream.Position - offset);
                     return (int)Water_FieldIndex.Sound;
                 }
                 case RecordTypeInts.DATA:
@@ -2057,7 +2083,7 @@ namespace Mutagen.Bethesda.Oblivion
                 }
                 case RecordTypeInts.GNAM:
                 {
-                    _RelatedWatersLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.RelatedWatersLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)Water_FieldIndex.RelatedWaters;
                 }
                 default:

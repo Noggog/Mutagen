@@ -35,6 +35,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -1987,24 +1988,34 @@ namespace Mutagen.Bethesda.Starfield
 
 
         #region ObjectBounds
-        private RangeInt32? _ObjectBoundsLocation;
-        private IObjectBoundsGetter? _ObjectBounds => _ObjectBoundsLocation.HasValue ? ObjectBoundsBinaryOverlay.ObjectBoundsFactory(_recordData.Slice(_ObjectBoundsLocation!.Value.Min), _package) : default;
+        private IObjectBoundsGetter? _ObjectBounds => Payload.ObjectBoundsLocation.HasValue ? ObjectBoundsBinaryOverlay.ObjectBoundsFactory(_recordData.Slice(Payload.ObjectBoundsLocation!.Value.Min), _package) : default;
         public IObjectBoundsGetter ObjectBounds => _ObjectBounds ?? new ObjectBounds();
         #endregion
-        #region DirtinessScale
-        private int? _DirtinessScaleLocation;
-        public Percent DirtinessScale => _DirtinessScaleLocation.HasValue ? PercentBinaryTranslation.GetPercent(HeaderTranslation.ExtractSubrecordMemory(_recordData, _DirtinessScaleLocation.Value, _package.MetaData.Constants), FloatIntegerType.UInt) : default(Percent);
-        #endregion
-        #region XALG
-        private int? _XALGLocation;
-        public UInt64? XALG => _XALGLocation.HasValue ? BinaryPrimitives.ReadUInt64LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _XALGLocation.Value, _package.MetaData.Constants)) : default(UInt64?);
-        #endregion
-        #region Description
-        private int? _DescriptionLocation;
-        public String? Description => _DescriptionLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _DescriptionLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
-        public IReadOnlyList<IEchoMarkerGetter> Markers { get; private set; } = [];
-        public IEchoMarkerGetter? DefaultStartMarker { get; private set; }
+        public Percent DirtinessScale => Payload.DirtinessScaleLocation.HasValue ? PercentBinaryTranslation.GetPercent(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.DirtinessScaleLocation.Value, _package.MetaData.Constants), FloatIntegerType.UInt) : default(Percent);
+        public UInt64? XALG => Payload.XALGLocation.HasValue ? BinaryPrimitives.ReadUInt64LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.XALGLocation.Value, _package.MetaData.Constants)) : default(UInt64?);
+        public String? Description => Payload.DescriptionLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.DescriptionLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public IReadOnlyList<IEchoMarkerGetter> Markers => Payload.Markers ?? [];
+        public IEchoMarkerGetter? DefaultStartMarker => Payload.DefaultStartMarker;
+
+        internal partial class SoundEchoMarkerRecordDataPayload
+        {
+            public RangeInt32? ObjectBoundsLocation;
+            public int? DirtinessScaleLocation;
+            public int? XALGLocation;
+            public int? DescriptionLocation;
+            public IReadOnlyList<IEchoMarkerGetter> Markers = [];
+            public IEchoMarkerGetter? DefaultStartMarker;
+        }
+
+        private LazyPayload<SoundEchoMarkerRecordDataPayload> _payload = null!;
+
+        internal SoundEchoMarkerRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<SoundEchoMarkerRecordDataPayload>(init, new SoundEchoMarkerRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -2012,10 +2023,10 @@ namespace Mutagen.Bethesda.Starfield
 
         partial void CustomCtor();
         protected SoundEchoMarkerBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -2026,28 +2037,51 @@ namespace Mutagen.Bethesda.Starfield
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new SoundEchoMarkerBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -2076,28 +2110,28 @@ namespace Mutagen.Bethesda.Starfield
             {
                 case RecordTypeInts.OBND:
                 {
-                    _ObjectBoundsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.ObjectBoundsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)SoundEchoMarker_FieldIndex.ObjectBounds;
                 }
                 case RecordTypeInts.ODTY:
                 {
-                    _DirtinessScaleLocation = (stream.Position - offset);
+                    _payload.Fields.DirtinessScaleLocation = (stream.Position - offset);
                     return (int)SoundEchoMarker_FieldIndex.DirtinessScale;
                 }
                 case RecordTypeInts.XALG:
                 {
-                    _XALGLocation = (stream.Position - offset);
+                    _payload.Fields.XALGLocation = (stream.Position - offset);
                     return (int)SoundEchoMarker_FieldIndex.XALG;
                 }
                 case RecordTypeInts.NNAM:
                 {
-                    _DescriptionLocation = (stream.Position - offset);
+                    _payload.Fields.DescriptionLocation = (stream.Position - offset);
                     return (int)SoundEchoMarker_FieldIndex.Description;
                 }
                 case RecordTypeInts.ECHO:
                 case RecordTypeInts.ECHE:
                 {
-                    this.Markers = this.ParseRepeatedTypelessSubrecord<IEchoMarkerGetter>(
+                    _payload.Fields.Markers = this.ParseRepeatedTypelessSubrecord<IEchoMarkerGetter>(
                         stream: stream,
                         translationParams: translationParams,
                         itemStartMarker: RecordTypes.ECHO,
@@ -2108,7 +2142,7 @@ namespace Mutagen.Bethesda.Starfield
                 case RecordTypeInts.ECHD:
                 {
                     stream.Position += _package.MetaData.Constants.SubConstants.HeaderLength; // Skip marker
-                    this.DefaultStartMarker = EchoMarkerBinaryOverlay.EchoMarkerFactory(
+                    _payload.Fields.DefaultStartMarker = EchoMarkerBinaryOverlay.EchoMarkerFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());

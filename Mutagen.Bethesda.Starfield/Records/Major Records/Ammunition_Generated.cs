@@ -38,6 +38,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -3123,21 +3124,13 @@ namespace Mutagen.Bethesda.Starfield
         public Ammunition.MajorFlag MajorFlags => (Ammunition.MajorFlag)this.MajorRecordFlagsRaw;
 
         #region ObjectBounds
-        private RangeInt32? _ObjectBoundsLocation;
-        private IObjectBoundsGetter? _ObjectBounds => _ObjectBoundsLocation.HasValue ? ObjectBoundsBinaryOverlay.ObjectBoundsFactory(_recordData.Slice(_ObjectBoundsLocation!.Value.Min), _package) : default;
+        private IObjectBoundsGetter? _ObjectBounds => Payload.ObjectBoundsLocation.HasValue ? ObjectBoundsBinaryOverlay.ObjectBoundsFactory(_recordData.Slice(Payload.ObjectBoundsLocation!.Value.Min), _package) : default;
         public IObjectBoundsGetter ObjectBounds => _ObjectBounds ?? new ObjectBounds();
         #endregion
-        #region DirtinessScale
-        private int? _DirtinessScaleLocation;
-        public Percent DirtinessScale => _DirtinessScaleLocation.HasValue ? PercentBinaryTranslation.GetPercent(HeaderTranslation.ExtractSubrecordMemory(_recordData, _DirtinessScaleLocation.Value, _package.MetaData.Constants), FloatIntegerType.UInt) : default(Percent);
-        #endregion
-        #region Transforms
-        private RangeInt32? _TransformsLocation;
-        public ITransformsGetter? Transforms => _TransformsLocation.HasValue ? TransformsBinaryOverlay.TransformsFactory(_recordData.Slice(_TransformsLocation!.Value.Min), _package) : default;
-        #endregion
+        public Percent DirtinessScale => Payload.DirtinessScaleLocation.HasValue ? PercentBinaryTranslation.GetPercent(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.DirtinessScaleLocation.Value, _package.MetaData.Constants), FloatIntegerType.UInt) : default(Percent);
+        public ITransformsGetter? Transforms => Payload.TransformsLocation.HasValue ? TransformsBinaryOverlay.TransformsFactory(_recordData.Slice(Payload.TransformsLocation!.Value.Min), _package) : default;
         #region Name
-        private int? _NameLocation;
-        public ITranslatedStringGetter? Name => _NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+        public ITranslatedStringGetter? Name => Payload.NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
         #region Aspects
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         string INamedRequiredGetter.Name => this.Name?.String ?? string.Empty;
@@ -3147,61 +3140,75 @@ namespace Mutagen.Bethesda.Starfield
         ITranslatedStringGetter ITranslatedNamedRequiredGetter.Name => this.Name ?? TranslatedString.Empty;
         #endregion
         #endregion
-        public IModelGetter? Model { get; private set; }
-        public ISoundReferenceGetter? PickupSound { get; private set; }
-        public ISoundReferenceGetter? DropdownSound { get; private set; }
-        #region Description
-        private int? _DescriptionLocation;
-        public ITranslatedStringGetter Description => _DescriptionLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _DescriptionLocation.Value, _package.MetaData.Constants), StringsSource.DL, parsingBundle: _package.MetaData, eager: false) : TranslatedString.Empty;
-        #endregion
+        public IModelGetter? Model => Payload.Model;
+        public ISoundReferenceGetter? PickupSound => Payload.PickupSound;
+        public ISoundReferenceGetter? DropdownSound => Payload.DropdownSound;
+        public ITranslatedStringGetter Description => Payload.DescriptionLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.DescriptionLocation.Value, _package.MetaData.Constants), StringsSource.DL, parsingBundle: _package.MetaData, eager: false) : TranslatedString.Empty;
         #region Keywords
-        public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? Keywords { get; private set; }
+        public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? Keywords => Payload.Keywords;
         IReadOnlyList<IFormLinkGetter<IKeywordCommonGetter>>? IKeywordedGetter.Keywords => this.Keywords;
         #endregion
-        private RangeInt32? _DATALocation;
         #region Value
-        private int _ValueLocation => _DATALocation!.Value.Min;
-        private bool _Value_IsSet => _DATALocation.HasValue;
+        private int _ValueLocation => Payload.DATALocation!.Value.Min;
+        private bool _Value_IsSet => Payload.DATALocation.HasValue;
         public UInt32 Value => _Value_IsSet ? BinaryPrimitives.ReadUInt32LittleEndian(_recordData.Slice(_ValueLocation, 4)) : default(UInt32);
         #endregion
         #region Weight
-        private int _WeightLocation => _DATALocation!.Value.Min + 0x4;
-        private bool _Weight_IsSet => _DATALocation.HasValue;
+        private int _WeightLocation => Payload.DATALocation!.Value.Min + 0x4;
+        private bool _Weight_IsSet => Payload.DATALocation.HasValue;
         public Single Weight => _Weight_IsSet ? _recordData.Slice(_WeightLocation, 4).Float() : default(Single);
         #endregion
-        private RangeInt32? _DNAMLocation;
         #region Projectile
-        private int _ProjectileLocation => _DNAMLocation!.Value.Min;
-        private bool _Projectile_IsSet => _DNAMLocation.HasValue;
+        private int _ProjectileLocation => Payload.DNAMLocation!.Value.Min;
+        private bool _Projectile_IsSet => Payload.DNAMLocation.HasValue;
         public IFormLinkGetter<IProjectileGetter> Projectile => _Projectile_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IProjectileGetter>(_package, _recordData.Span.Slice(_ProjectileLocation, 0x4), isSet: _Projectile_IsSet) : FormLink<IProjectileGetter>.Null;
         #endregion
         #region Flags
-        private int _FlagsLocation => _DNAMLocation!.Value.Min + 0x4;
-        private bool _Flags_IsSet => _DNAMLocation.HasValue;
+        private int _FlagsLocation => Payload.DNAMLocation!.Value.Min + 0x4;
+        private bool _Flags_IsSet => Payload.DNAMLocation.HasValue;
         public Ammunition.Flag Flags => _Flags_IsSet ? (Ammunition.Flag)BinaryPrimitives.ReadInt32LittleEndian(_recordData.Span.Slice(_FlagsLocation, 0x4)) : default;
         #endregion
         #region Damage
-        private int _DamageLocation => _DNAMLocation!.Value.Min + 0x8;
-        private bool _Damage_IsSet => _DNAMLocation.HasValue;
+        private int _DamageLocation => Payload.DNAMLocation!.Value.Min + 0x8;
+        private bool _Damage_IsSet => Payload.DNAMLocation.HasValue;
         public Single Damage => _Damage_IsSet ? _recordData.Slice(_DamageLocation, 4).Float() : default(Single);
         #endregion
         #region Health
-        private int _HealthLocation => _DNAMLocation!.Value.Min + 0xC;
-        private bool _Health_IsSet => _DNAMLocation.HasValue;
+        private int _HealthLocation => Payload.DNAMLocation!.Value.Min + 0xC;
+        private bool _Health_IsSet => Payload.DNAMLocation.HasValue;
         public UInt32 Health => _Health_IsSet ? BinaryPrimitives.ReadUInt32LittleEndian(_recordData.Slice(_HealthLocation, 4)) : default(UInt32);
         #endregion
-        #region ShortName
-        private int? _ShortNameLocation;
-        public ITranslatedStringGetter? ShortName => _ShortNameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _ShortNameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
-        #endregion
-        #region CasingModel
-        private int? _CasingModelLocation;
-        public String? CasingModel => _CasingModelLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _CasingModelLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
-        #region LightLayer
-        private int? _LightLayerLocation;
-        public UInt32? LightLayer => _LightLayerLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _LightLayerLocation.Value, _package.MetaData.Constants)) : default(UInt32?);
-        #endregion
+        public ITranslatedStringGetter? ShortName => Payload.ShortNameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.ShortNameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+        public String? CasingModel => Payload.CasingModelLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.CasingModelLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public UInt32? LightLayer => Payload.LightLayerLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.LightLayerLocation.Value, _package.MetaData.Constants)) : default(UInt32?);
+
+        internal partial class AmmunitionRecordDataPayload
+        {
+            public RangeInt32? ObjectBoundsLocation;
+            public int? DirtinessScaleLocation;
+            public RangeInt32? TransformsLocation;
+            public int? NameLocation;
+            public IModelGetter? Model;
+            public ISoundReferenceGetter? PickupSound;
+            public ISoundReferenceGetter? DropdownSound;
+            public int? DescriptionLocation;
+            public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? Keywords;
+            public RangeInt32? DATALocation;
+            public RangeInt32? DNAMLocation;
+            public int? ShortNameLocation;
+            public int? CasingModelLocation;
+            public int? LightLayerLocation;
+        }
+
+        private LazyPayload<AmmunitionRecordDataPayload> _payload = null!;
+
+        internal AmmunitionRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<AmmunitionRecordDataPayload>(init, new AmmunitionRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -3209,10 +3216,10 @@ namespace Mutagen.Bethesda.Starfield
 
         partial void CustomCtor();
         protected AmmunitionBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -3223,28 +3230,51 @@ namespace Mutagen.Bethesda.Starfield
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new AmmunitionBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -3273,22 +3303,22 @@ namespace Mutagen.Bethesda.Starfield
             {
                 case RecordTypeInts.OBND:
                 {
-                    _ObjectBoundsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.ObjectBoundsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)Ammunition_FieldIndex.ObjectBounds;
                 }
                 case RecordTypeInts.ODTY:
                 {
-                    _DirtinessScaleLocation = (stream.Position - offset);
+                    _payload.Fields.DirtinessScaleLocation = (stream.Position - offset);
                     return (int)Ammunition_FieldIndex.DirtinessScale;
                 }
                 case RecordTypeInts.PTT2:
                 {
-                    _TransformsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.TransformsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)Ammunition_FieldIndex.Transforms;
                 }
                 case RecordTypeInts.FULL:
                 {
-                    _NameLocation = (stream.Position - offset);
+                    _payload.Fields.NameLocation = (stream.Position - offset);
                     return (int)Ammunition_FieldIndex.Name;
                 }
                 case RecordTypeInts.MODL:
@@ -3302,7 +3332,7 @@ namespace Mutagen.Bethesda.Starfield
                     if (!lastParsed.ParsedIndex.HasValue
                         || lastParsed.ParsedIndex.Value <= (int)Ammunition_FieldIndex.Name)
                     {
-                        this.Model = ModelBinaryOverlay.ModelFactory(
+                        _payload.Fields.Model = ModelBinaryOverlay.ModelFactory(
                             stream: stream,
                             package: _package,
                             translationParams: translationParams.DoNotShortCircuit());
@@ -3310,7 +3340,7 @@ namespace Mutagen.Bethesda.Starfield
                     }
                     else if (lastParsed.ParsedIndex.Value <= (int)Ammunition_FieldIndex.CasingModel)
                     {
-                        _LightLayerLocation = (stream.Position - offset);
+                        _payload.Fields.LightLayerLocation = (stream.Position - offset);
                         return new ParseResult((int)Ammunition_FieldIndex.LightLayer, type);
                     }
                     else
@@ -3319,7 +3349,7 @@ namespace Mutagen.Bethesda.Starfield
                         {
                             case 0:
                             {
-                                this.Model = ModelBinaryOverlay.ModelFactory(
+                                _payload.Fields.Model = ModelBinaryOverlay.ModelFactory(
                                     stream: stream,
                                     package: _package,
                                     translationParams: translationParams.DoNotShortCircuit());
@@ -3327,7 +3357,7 @@ namespace Mutagen.Bethesda.Starfield
                             }
                             case 1:
                             {
-                                _LightLayerLocation = (stream.Position - offset);
+                                _payload.Fields.LightLayerLocation = (stream.Position - offset);
                                 return new ParseResult((int)Ammunition_FieldIndex.LightLayer, type);
                             }
                             default:
@@ -3338,7 +3368,7 @@ namespace Mutagen.Bethesda.Starfield
                 case RecordTypeInts.PUSH:
                 {
                     stream.Position += _package.MetaData.Constants.SubConstants.HeaderLength;
-                    this.PickupSound = SoundReferenceBinaryOverlay.SoundReferenceFactory(
+                    _payload.Fields.PickupSound = SoundReferenceBinaryOverlay.SoundReferenceFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());
@@ -3347,7 +3377,7 @@ namespace Mutagen.Bethesda.Starfield
                 case RecordTypeInts.PDSH:
                 {
                     stream.Position += _package.MetaData.Constants.SubConstants.HeaderLength;
-                    this.DropdownSound = SoundReferenceBinaryOverlay.SoundReferenceFactory(
+                    _payload.Fields.DropdownSound = SoundReferenceBinaryOverlay.SoundReferenceFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());
@@ -3355,13 +3385,13 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.DESC:
                 {
-                    _DescriptionLocation = (stream.Position - offset);
+                    _payload.Fields.DescriptionLocation = (stream.Position - offset);
                     return (int)Ammunition_FieldIndex.Description;
                 }
                 case RecordTypeInts.KSIZ:
                 case RecordTypeInts.KWDA:
                 {
-                    this.Keywords = BinaryOverlayList.FactoryByCount<IFormLinkGetter<IKeywordGetter>>(
+                    _payload.Fields.Keywords = BinaryOverlayList.FactoryByCount<IFormLinkGetter<IKeywordGetter>>(
                         stream: stream,
                         package: _package,
                         itemLength: 0x4,
@@ -3373,22 +3403,22 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.DATA:
                 {
-                    _DATALocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.DATALocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     return (int)Ammunition_FieldIndex.Weight;
                 }
                 case RecordTypeInts.DNAM:
                 {
-                    _DNAMLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.DNAMLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     return (int)Ammunition_FieldIndex.Health;
                 }
                 case RecordTypeInts.ONAM:
                 {
-                    _ShortNameLocation = (stream.Position - offset);
+                    _payload.Fields.ShortNameLocation = (stream.Position - offset);
                     return (int)Ammunition_FieldIndex.ShortName;
                 }
                 case RecordTypeInts.NAM1:
                 {
-                    _CasingModelLocation = (stream.Position - offset);
+                    _payload.Fields.CasingModelLocation = (stream.Position - offset);
                     return (int)Ammunition_FieldIndex.CasingModel;
                 }
                 default:

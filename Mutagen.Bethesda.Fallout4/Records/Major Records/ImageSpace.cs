@@ -187,7 +187,7 @@ partial class ImageSpaceBinaryOverlay
     public partial byte GetDepthOfFieldBlurRadiusCustom()
     {
         ImageSpaceBinaryCreateTranslation.ParseSkyBlurRadius(
-            BinaryPrimitives.ReadUInt16LittleEndian(_recordData.Slice(_DNAMLocation!.Value.Min + 0xE)),
+            BinaryPrimitives.ReadUInt16LittleEndian(_recordData.Slice(Payload.DNAMLocation!.Value.Min + 0xE)),
             out var radius,
             out _);
         return radius;
@@ -196,7 +196,7 @@ partial class ImageSpaceBinaryOverlay
     public partial Boolean GetDepthOfFieldSkyCustom()
     {
         ImageSpaceBinaryCreateTranslation.ParseSkyBlurRadius(
-            BinaryPrimitives.ReadUInt16LittleEndian(_recordData.Slice(_DNAMLocation!.Value.Min + 0xE)),
+            BinaryPrimitives.ReadUInt16LittleEndian(_recordData.Slice(Payload.DNAMLocation!.Value.Min + 0xE)),
             out var _,
             out var sky);
         return sky;
@@ -217,28 +217,50 @@ partial class ImageSpaceBinaryOverlay
         {
             return ImageSpace.CreateFromBinary(new MutagenFrame(stream));
         }
-        stream = Decompression.DecompressStream(stream);
-        stream = ExtractRecordMemory(
+        PluginBinaryOverlay.ExtractRecordMemoryLazy(
             stream,
             package.MetaData.Constants,
-            out var memoryPair,
+            out var lazyRecordData,
+            out var originalSlice,
             out var offset,
-            out var finalPos);
+            out var totalLength);
         var ret = new ImageSpaceBinaryOverlay(
-            memoryPair: memoryPair,
+            lazyRecordData: lazyRecordData,
             package: package);
         ret._package.FormVersion = ret;
-        ret.CustomFactoryEnd(
-            stream: stream,
-            finalPos: finalPos,
-            offset: offset);
-        ret.FillSubrecordTypes(
-            majorReference: ret,
-            stream: stream,
-            finalPos: finalPos,
-            offset: offset,
-            translationParams: translationParams,
-            fill: ret.FillRecordType);
+        var init = new Lazy<bool>(() =>
+        {
+            OverlayStream subStream;
+            int finalPos;
+            if (lazyRecordData.IsCompressed)
+            {
+                subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                    lazyRecordData,
+                    originalSlice,
+                    package.MetaData.Constants,
+                    package,
+                    out finalPos);
+            }
+            else
+            {
+                subStream = new OverlayStream(originalSlice, package.MetaData);
+                subStream.Position = offset;
+                finalPos = offset + lazyRecordData.RecordData.Length;
+            }
+            ret.CustomFactoryEnd(
+                stream: subStream,
+                finalPos: finalPos,
+                offset: offset);
+            ret.FillSubrecordTypes(
+                majorReference: ret,
+                stream: subStream,
+                finalPos: finalPos,
+                offset: offset,
+                translationParams: translationParams,
+                fill: ret.FillRecordType);
+            return true;
+        }, LazyThreadSafetyMode.ExecutionAndPublication);
+        ret.InitPayload(init);
         return ret;
     }
 

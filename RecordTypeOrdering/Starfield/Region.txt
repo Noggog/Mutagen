@@ -1,0 +1,6 @@
+RecordTypes.EDID,
+RecordTypes.RCLR,
+RecordTypes.RPLI,
+RecordTypes.RPLD,
+RecordTypes.RDAT,
+RecordTypes.RDWT,

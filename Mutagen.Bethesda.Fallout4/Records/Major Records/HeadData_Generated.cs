@@ -2648,7 +2648,14 @@ namespace Mutagen.Bethesda.Fallout4
         public IReadOnlyList<IFaceMorphGetter> FaceMorphs { get; private set; } = [];
         #region MaleWrinkleMapPath
         private int? _MaleWrinkleMapPathLocation;
-        public String? MaleWrinkleMapPath => _MaleWrinkleMapPathLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _MaleWrinkleMapPathLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? MaleWrinkleMapPath
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _MaleWrinkleMapPathLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_data, _MaleWrinkleMapPathLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+            }
+        }
         #endregion
         partial void CustomFactoryEnd(
             OverlayStream stream,

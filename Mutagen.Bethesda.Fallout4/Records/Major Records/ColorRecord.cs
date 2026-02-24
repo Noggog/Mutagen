@@ -96,28 +96,32 @@ partial class ColorRecordBinaryWriteTranslation
 
 partial class ColorRecordBinaryOverlay
 {
-    private int? _cnamLocation;
-    private int? _fnamLocation;
+    internal partial class ColorRecordRecordDataPayload
+    {
+        public int? CnamLocation;
+        public int? FnamLocation;
+    }
+
     private int RawFlag
     {
         get
         {
-            if (_fnamLocation == null)
+            if (Payload.FnamLocation == null)
             {
                 throw new MalformedDataException("Did not find expected FNAM subrecord");
             }
-            return BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _fnamLocation.Value, _package.MetaData));
+            return BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.FnamLocation.Value, _package.MetaData));
         }
     }
 
     public partial IAColorRecordDataGetter GetDataCustom()
     {
-        if (_cnamLocation == null)
+        if (Payload.CnamLocation == null)
         {
             throw new MalformedDataException("Did not find expected CNAM subrecord");
         }
 
-        var cnamMem = HeaderTranslation.ExtractSubrecordMemory(_recordData, _cnamLocation.Value, _package.MetaData);
+        var cnamMem = HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.CnamLocation.Value, _package.MetaData);
 
         var flag = RawFlag;
         if (Enums.HasFlag(flag, ColorRecordBinaryCreateTranslation.RemappingIndexFlag))
@@ -141,7 +145,7 @@ partial class ColorRecordBinaryOverlay
         int finalPos,
         int offset)
     {
-        _cnamLocation = (stream.Position - offset);
+        _payload.Fields.CnamLocation = (stream.Position - offset);
     }
 
     partial void FlagsCustomParse(
@@ -149,7 +153,7 @@ partial class ColorRecordBinaryOverlay
         int finalPos,
         int offset)
     {
-        _fnamLocation = (stream.Position - offset);
+        _payload.Fields.FnamLocation = (stream.Position - offset);
     }
 
     public partial ColorRecord.Flag GetFlagsCustom()

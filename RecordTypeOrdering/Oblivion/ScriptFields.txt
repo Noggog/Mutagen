@@ -1,0 +1,7 @@
+RecordTypes.SCHR,
+RecordTypes.SCDA,
+RecordTypes.SCTX,
+RecordTypes.SLSD,
+RecordTypes.SCVR,
+RecordTypes.SCRV,
+RecordTypes.SCRO,

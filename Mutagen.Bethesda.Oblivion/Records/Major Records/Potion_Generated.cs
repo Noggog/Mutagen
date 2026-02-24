@@ -35,6 +35,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -2065,31 +2066,39 @@ namespace Mutagen.Bethesda.Oblivion
 
 
         #region Name
-        private int? _NameLocation;
-        public String? Name => _NameLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NameLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? Name => Payload.NameLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NameLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
         #region Aspects
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         string INamedRequiredGetter.Name => this.Name ?? string.Empty;
         #endregion
         #endregion
-        public IModelGetter? Model { get; private set; }
-        #region Icon
-        private int? _IconLocation;
-        public String? Icon => _IconLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _IconLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
-        #region Script
-        private int? _ScriptLocation;
-        public IFormLinkNullableGetter<IScriptGetter> Script => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IScriptGetter>(_package, _recordData, _ScriptLocation);
-        #endregion
-        #region Weight
-        private int? _WeightLocation;
-        public Single? Weight => _WeightLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _WeightLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
-        #endregion
-        #region Data
-        private RangeInt32? _DataLocation;
-        public IPotionDataGetter? Data => _DataLocation.HasValue ? PotionDataBinaryOverlay.PotionDataFactory(_recordData.Slice(_DataLocation!.Value.Min), _package) : default;
-        #endregion
-        public IReadOnlyList<IEffectGetter> Effects { get; private set; } = [];
+        public IModelGetter? Model => Payload.Model;
+        public String? Icon => Payload.IconLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.IconLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public IFormLinkNullableGetter<IScriptGetter> Script => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IScriptGetter>(_package, _recordData, Payload.ScriptLocation);
+        public Single? Weight => Payload.WeightLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.WeightLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public IPotionDataGetter? Data => Payload.DataLocation.HasValue ? PotionDataBinaryOverlay.PotionDataFactory(_recordData.Slice(Payload.DataLocation!.Value.Min), _package) : default;
+        public IReadOnlyList<IEffectGetter> Effects => Payload.Effects ?? [];
+
+        internal partial class PotionRecordDataPayload
+        {
+            public int? NameLocation;
+            public IModelGetter? Model;
+            public int? IconLocation;
+            public int? ScriptLocation;
+            public int? WeightLocation;
+            public RangeInt32? DataLocation;
+            public IReadOnlyList<IEffectGetter> Effects = [];
+        }
+
+        private LazyPayload<PotionRecordDataPayload> _payload = null!;
+
+        internal PotionRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<PotionRecordDataPayload>(init, new PotionRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -2097,10 +2106,10 @@ namespace Mutagen.Bethesda.Oblivion
 
         partial void CustomCtor();
         protected PotionBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -2111,28 +2120,51 @@ namespace Mutagen.Bethesda.Oblivion
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new PotionBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -2161,12 +2193,12 @@ namespace Mutagen.Bethesda.Oblivion
             {
                 case RecordTypeInts.FULL:
                 {
-                    _NameLocation = (stream.Position - offset);
+                    _payload.Fields.NameLocation = (stream.Position - offset);
                     return (int)Potion_FieldIndex.Name;
                 }
                 case RecordTypeInts.MODL:
                 {
-                    this.Model = ModelBinaryOverlay.ModelFactory(
+                    _payload.Fields.Model = ModelBinaryOverlay.ModelFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());
@@ -2174,28 +2206,28 @@ namespace Mutagen.Bethesda.Oblivion
                 }
                 case RecordTypeInts.ICON:
                 {
-                    _IconLocation = (stream.Position - offset);
+                    _payload.Fields.IconLocation = (stream.Position - offset);
                     return (int)Potion_FieldIndex.Icon;
                 }
                 case RecordTypeInts.SCRI:
                 {
-                    _ScriptLocation = (stream.Position - offset);
+                    _payload.Fields.ScriptLocation = (stream.Position - offset);
                     return (int)Potion_FieldIndex.Script;
                 }
                 case RecordTypeInts.DATA:
                 {
-                    _WeightLocation = (stream.Position - offset);
+                    _payload.Fields.WeightLocation = (stream.Position - offset);
                     return (int)Potion_FieldIndex.Weight;
                 }
                 case RecordTypeInts.ENIT:
                 {
-                    _DataLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.DataLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)Potion_FieldIndex.Data;
                 }
                 case RecordTypeInts.EFID:
                 case RecordTypeInts.EFIT:
                 {
-                    this.Effects = this.ParseRepeatedTypelessSubrecord<IEffectGetter>(
+                    _payload.Fields.Effects = this.ParseRepeatedTypelessSubrecord<IEffectGetter>(
                         stream: stream,
                         translationParams: translationParams,
                         trigger: Effect_Registration.TriggerSpecs,

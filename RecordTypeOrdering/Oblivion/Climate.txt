@@ -1,0 +1,8 @@
+RecordTypes.EDID,
+RecordTypes.WLST,
+RecordTypes.FNAM,
+RecordTypes.GNAM,
+RecordTypes.MODL,
+RecordTypes.MODB,
+RecordTypes.MODT,
+RecordTypes.TNAM,

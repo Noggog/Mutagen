@@ -36,6 +36,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -3759,101 +3760,88 @@ namespace Mutagen.Bethesda.Starfield
 
         public ArmorAddon.MajorFlag MajorFlags => (ArmorAddon.MajorFlag)this.MajorRecordFlagsRaw;
 
-        public IReadOnlyList<IAComponentGetter> Components { get; private set; } = [];
-        #region FirstPersonFlags
-        private int? _FirstPersonFlagsLocation;
-        public FirstPersonFlag? FirstPersonFlags => EnumBinaryTranslation<FirstPersonFlag, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(_FirstPersonFlagsLocation, _recordData, _package, 8);
-        #endregion
-        #region Race
-        private int? _RaceLocation;
-        public IFormLinkNullableGetter<IRaceGetter> Race => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IRaceGetter>(_package, _recordData, _RaceLocation);
-        #endregion
-        private RangeInt32? _DNAMLocation;
+        public IReadOnlyList<IAComponentGetter> Components => Payload.Components ?? [];
+        public FirstPersonFlag? FirstPersonFlags => EnumBinaryTranslation<FirstPersonFlag, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(Payload.FirstPersonFlagsLocation, _recordData, _package, 8);
+        public IFormLinkNullableGetter<IRaceGetter> Race => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IRaceGetter>(_package, _recordData, Payload.RaceLocation);
         #region WeaponAdjust
-        private int _WeaponAdjustLocation => _DNAMLocation!.Value.Min;
-        private bool _WeaponAdjust_IsSet => _DNAMLocation.HasValue;
+        private int _WeaponAdjustLocation => Payload.DNAMLocation!.Value.Min;
+        private bool _WeaponAdjust_IsSet => Payload.DNAMLocation.HasValue;
         public Single WeaponAdjust => _WeaponAdjust_IsSet ? _recordData.Slice(_WeaponAdjustLocation, 4).Float() : default(Single);
         #endregion
         #region MalePriority
-        private int _MalePriorityLocation => _DNAMLocation!.Value.Min + 0x4;
-        private bool _MalePriority_IsSet => _DNAMLocation.HasValue;
+        private int _MalePriorityLocation => Payload.DNAMLocation!.Value.Min + 0x4;
+        private bool _MalePriority_IsSet => Payload.DNAMLocation.HasValue;
         public Byte MalePriority => _MalePriority_IsSet ? _recordData.Span[_MalePriorityLocation] : default;
         #endregion
         #region FemalePriority
-        private int _FemalePriorityLocation => _DNAMLocation!.Value.Min + 0x5;
-        private bool _FemalePriority_IsSet => _DNAMLocation.HasValue;
+        private int _FemalePriorityLocation => Payload.DNAMLocation!.Value.Min + 0x5;
+        private bool _FemalePriority_IsSet => Payload.DNAMLocation.HasValue;
         public Byte FemalePriority => _FemalePriority_IsSet ? _recordData.Span[_FemalePriorityLocation] : default;
         #endregion
         #region Unknown
-        private int _UnknownLocation => _DNAMLocation!.Value.Min + 0x6;
-        private bool _Unknown_IsSet => _DNAMLocation.HasValue;
+        private int _UnknownLocation => Payload.DNAMLocation!.Value.Min + 0x6;
+        private bool _Unknown_IsSet => Payload.DNAMLocation.HasValue;
         public UInt16 Unknown => _Unknown_IsSet ? BinaryPrimitives.ReadUInt16LittleEndian(_recordData.Slice(_UnknownLocation, 2)) : default(UInt16);
         #endregion
         #region DetectionSoundValue
-        private int _DetectionSoundValueLocation => _DNAMLocation!.Value.Min + 0x8;
-        private bool _DetectionSoundValue_IsSet => _DNAMLocation.HasValue;
+        private int _DetectionSoundValueLocation => Payload.DNAMLocation!.Value.Min + 0x8;
+        private bool _DetectionSoundValue_IsSet => Payload.DNAMLocation.HasValue;
         public Byte DetectionSoundValue => _DetectionSoundValue_IsSet ? _recordData.Span[_DetectionSoundValueLocation] : default;
         #endregion
         #region HealthBarOffset
-        private int _HealthBarOffsetLocation => _DNAMLocation!.Value.Min + 0x9;
-        private bool _HealthBarOffset_IsSet => _DNAMLocation.HasValue;
+        private int _HealthBarOffsetLocation => Payload.DNAMLocation!.Value.Min + 0x9;
+        private bool _HealthBarOffset_IsSet => Payload.DNAMLocation.HasValue;
         public Single HealthBarOffset => _HealthBarOffset_IsSet ? _recordData.Slice(_HealthBarOffsetLocation, 4).Float() : default(Single);
         #endregion
-        #region WorldModel
-        private IGenderedItemGetter<IModelGetter?>? _WorldModelOverlay;
-        public IGenderedItemGetter<IModelGetter?>? WorldModel => _WorldModelOverlay;
-        #endregion
-        #region FirstPersonModel
-        private IGenderedItemGetter<IModelGetter?>? _FirstPersonModelOverlay;
-        public IGenderedItemGetter<IModelGetter?>? FirstPersonModel => _FirstPersonModelOverlay;
-        #endregion
-        #region AltSkeleton
-        private IGenderedItemGetter<String?>? _AltSkeletonOverlay;
-        public IGenderedItemGetter<String?>? AltSkeleton => _AltSkeletonOverlay;
-        #endregion
-        public IReadOnlyList<UInt32> ExtraLightLayers { get; private set; } = [];
-        #region SkinTexture
-        private IGenderedItemGetter<IArmorAddonSkinTextureGetter?>? _SkinTextureOverlay;
-        public IGenderedItemGetter<IArmorAddonSkinTextureGetter?>? SkinTexture => _SkinTextureOverlay;
-        #endregion
-        #region Morphs
-        private IGenderedItemGetter<IArmorAddonMorphGetter?>? _MorphsOverlay;
-        public IGenderedItemGetter<IArmorAddonMorphGetter?>? Morphs => _MorphsOverlay;
-        #endregion
-        public IReadOnlyList<IFormLinkGetter<IRaceGetter>> AdditionalRaces { get; private set; } = [];
-        #region FootstepSound
-        private int? _FootstepSoundLocation;
-        public IFormLinkNullableGetter<IFootstepSetGetter> FootstepSound => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IFootstepSetGetter>(_package, _recordData, _FootstepSoundLocation);
-        #endregion
-        #region ArtObject
-        private int? _ArtObjectLocation;
-        public IFormLinkNullableGetter<IArtObjectGetter> ArtObject => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IArtObjectGetter>(_package, _recordData, _ArtObjectLocation);
-        #endregion
-        #region BodyPartData
-        private int? _BodyPartDataLocation;
-        public IFormLinkNullableGetter<IBodyPartDataGetter> BodyPartData => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IBodyPartDataGetter>(_package, _recordData, _BodyPartDataLocation);
-        #endregion
-        #region ActorValueModulationGroupType
-        private int? _ActorValueModulationGroupTypeLocation;
-        public ActorValueModulation.GroupType ActorValueModulationGroupType => EnumBinaryTranslation<ActorValueModulation.GroupType, MutagenFrame, MutagenWriter>.Instance.ParseRecord(_ActorValueModulationGroupTypeLocation, _recordData, _package, 4);
-        #endregion
-        #region ActorValueModulationEntryType
-        private int? _ActorValueModulationEntryTypeLocation;
-        public String? ActorValueModulationEntryType => _ActorValueModulationEntryTypeLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _ActorValueModulationEntryTypeLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
-        #region ActorValueModulationSubType
-        private int? _ActorValueModulationSubTypeLocation;
-        public String? ActorValueModulationSubType => _ActorValueModulationSubTypeLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _ActorValueModulationSubTypeLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
-        #region ActorValueModulationEntryValue
-        private int? _ActorValueModulationEntryValueLocation;
-        public String? ActorValueModulationEntryValue => _ActorValueModulationEntryValueLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _ActorValueModulationEntryValueLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
-        #region BoneDataModifiers
-        private int? _BoneDataModifiersLocation;
-        private IGenderedItemGetter<IReadOnlyList<IFormLinkGetter<IBoneModifierGetter>>>? _BoneDataModifiersOverlay;
-        public IGenderedItemGetter<IReadOnlyList<IFormLinkGetter<IBoneModifierGetter>>> BoneDataModifiers => _BoneDataModifiersOverlay ?? new GenderedItem<IReadOnlyList<IFormLinkGetter<IBoneModifierGetter>>>(Array.Empty<IFormLinkGetter<IBoneModifierGetter>>(), Array.Empty<IFormLinkGetter<IBoneModifierGetter>>());
-        #endregion
+        public IGenderedItemGetter<IModelGetter?>? WorldModel => Payload.WorldModelOverlay;
+        public IGenderedItemGetter<IModelGetter?>? FirstPersonModel => Payload.FirstPersonModelOverlay;
+        public IGenderedItemGetter<String?>? AltSkeleton => Payload.AltSkeletonOverlay;
+        public IReadOnlyList<UInt32> ExtraLightLayers => Payload.ExtraLightLayers ?? [];
+        public IGenderedItemGetter<IArmorAddonSkinTextureGetter?>? SkinTexture => Payload.SkinTextureOverlay;
+        public IGenderedItemGetter<IArmorAddonMorphGetter?>? Morphs => Payload.MorphsOverlay;
+        public IReadOnlyList<IFormLinkGetter<IRaceGetter>> AdditionalRaces => Payload.AdditionalRaces ?? [];
+        public IFormLinkNullableGetter<IFootstepSetGetter> FootstepSound => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IFootstepSetGetter>(_package, _recordData, Payload.FootstepSoundLocation);
+        public IFormLinkNullableGetter<IArtObjectGetter> ArtObject => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IArtObjectGetter>(_package, _recordData, Payload.ArtObjectLocation);
+        public IFormLinkNullableGetter<IBodyPartDataGetter> BodyPartData => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IBodyPartDataGetter>(_package, _recordData, Payload.BodyPartDataLocation);
+        public ActorValueModulation.GroupType ActorValueModulationGroupType => EnumBinaryTranslation<ActorValueModulation.GroupType, MutagenFrame, MutagenWriter>.Instance.ParseRecord(Payload.ActorValueModulationGroupTypeLocation, _recordData, _package, 4);
+        public String? ActorValueModulationEntryType => Payload.ActorValueModulationEntryTypeLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.ActorValueModulationEntryTypeLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? ActorValueModulationSubType => Payload.ActorValueModulationSubTypeLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.ActorValueModulationSubTypeLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? ActorValueModulationEntryValue => Payload.ActorValueModulationEntryValueLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.ActorValueModulationEntryValueLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public IGenderedItemGetter<IReadOnlyList<IFormLinkGetter<IBoneModifierGetter>>> BoneDataModifiers => Payload.BoneDataModifiersOverlay ?? new GenderedItem<IReadOnlyList<IFormLinkGetter<IBoneModifierGetter>>>(Array.Empty<IFormLinkGetter<IBoneModifierGetter>>(), Array.Empty<IFormLinkGetter<IBoneModifierGetter>>());
+
+        internal partial class ArmorAddonRecordDataPayload
+        {
+            public IReadOnlyList<IAComponentGetter> Components = [];
+            public int? FirstPersonFlagsLocation;
+            public int? RaceLocation;
+            public RangeInt32? DNAMLocation;
+            public IGenderedItemGetter<IModelGetter?>? WorldModelOverlay;
+            public IGenderedItemGetter<IModelGetter?>? FirstPersonModelOverlay;
+            public IGenderedItemGetter<String?>? AltSkeletonOverlay;
+            public IReadOnlyList<UInt32> ExtraLightLayers = [];
+            public IGenderedItemGetter<IArmorAddonSkinTextureGetter?>? SkinTextureOverlay;
+            public IGenderedItemGetter<IArmorAddonMorphGetter?>? MorphsOverlay;
+            public IReadOnlyList<IFormLinkGetter<IRaceGetter>> AdditionalRaces = [];
+            public int? FootstepSoundLocation;
+            public int? ArtObjectLocation;
+            public int? BodyPartDataLocation;
+            public int? ActorValueModulationGroupTypeLocation;
+            public int? ActorValueModulationEntryTypeLocation;
+            public int? ActorValueModulationSubTypeLocation;
+            public int? ActorValueModulationEntryValueLocation;
+            public int? BoneDataModifiersLocation;
+            public IGenderedItemGetter<IReadOnlyList<IFormLinkGetter<IBoneModifierGetter>>>? BoneDataModifiersOverlay;
+        }
+
+        private LazyPayload<ArmorAddonRecordDataPayload> _payload = null!;
+
+        internal ArmorAddonRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<ArmorAddonRecordDataPayload>(init, new ArmorAddonRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -3861,10 +3849,10 @@ namespace Mutagen.Bethesda.Starfield
 
         partial void CustomCtor();
         protected ArmorAddonBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -3875,28 +3863,51 @@ namespace Mutagen.Bethesda.Starfield
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new ArmorAddonBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -3925,7 +3936,7 @@ namespace Mutagen.Bethesda.Starfield
             {
                 case RecordTypeInts.BFCB:
                 {
-                    this.Components = this.ParseRepeatedTypelessSubrecord<IAComponentGetter>(
+                    _payload.Fields.Components = this.ParseRepeatedTypelessSubrecord<IAComponentGetter>(
                         stream: stream,
                         translationParams: translationParams,
                         trigger: AComponent_Registration.TriggerSpecs,
@@ -3934,17 +3945,17 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.BO64:
                 {
-                    _FirstPersonFlagsLocation = (stream.Position - offset);
+                    _payload.Fields.FirstPersonFlagsLocation = (stream.Position - offset);
                     return (int)ArmorAddon_FieldIndex.FirstPersonFlags;
                 }
                 case RecordTypeInts.RNAM:
                 {
-                    _RaceLocation = (stream.Position - offset);
+                    _payload.Fields.RaceLocation = (stream.Position - offset);
                     return (int)ArmorAddon_FieldIndex.Race;
                 }
                 case RecordTypeInts.DNAM:
                 {
-                    _DNAMLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.DNAMLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     return (int)ArmorAddon_FieldIndex.HealthBarOffset;
                 }
                 case RecordTypeInts.MOD2:
@@ -3963,7 +3974,7 @@ namespace Mutagen.Bethesda.Starfield
                     if (!lastParsed.ParsedIndex.HasValue
                         || lastParsed.ParsedIndex.Value <= (int)ArmorAddon_FieldIndex.HealthBarOffset)
                     {
-                        _WorldModelOverlay = GenderedItemBinaryOverlay.Factory<IModelGetter>(
+                        _payload.Fields.WorldModelOverlay = GenderedItemBinaryOverlay.Factory<IModelGetter>(
                             package: _package,
                             stream: stream,
                             creator: static (s, p, r) => ModelBinaryOverlay.ModelFactory(s, p, r),
@@ -3974,7 +3985,7 @@ namespace Mutagen.Bethesda.Starfield
                     }
                     else if (lastParsed.ParsedIndex.Value <= (int)ArmorAddon_FieldIndex.WorldModel)
                     {
-                        _FirstPersonModelOverlay = GenderedItemBinaryOverlay.Factory<IModelGetter>(
+                        _payload.Fields.FirstPersonModelOverlay = GenderedItemBinaryOverlay.Factory<IModelGetter>(
                             package: _package,
                             stream: stream,
                             creator: static (s, p, r) => ModelBinaryOverlay.ModelFactory(s, p, r),
@@ -3985,7 +3996,7 @@ namespace Mutagen.Bethesda.Starfield
                     }
                     else if (lastParsed.ParsedIndex.Value <= (int)ArmorAddon_FieldIndex.AltSkeleton)
                     {
-                        this.ExtraLightLayers = BinaryOverlayList.FactoryByArray<UInt32>(
+                        _payload.Fields.ExtraLightLayers = BinaryOverlayList.FactoryByArray<UInt32>(
                             mem: stream.RemainingMemory,
                             package: _package,
                             getter: (s, p) => BinaryPrimitives.ReadUInt32LittleEndian(s),
@@ -4003,7 +4014,7 @@ namespace Mutagen.Bethesda.Starfield
                         {
                             case 0:
                             {
-                                _WorldModelOverlay = GenderedItemBinaryOverlay.Factory<IModelGetter>(
+                                _payload.Fields.WorldModelOverlay = GenderedItemBinaryOverlay.Factory<IModelGetter>(
                                     package: _package,
                                     stream: stream,
                                     creator: static (s, p, r) => ModelBinaryOverlay.ModelFactory(s, p, r),
@@ -4014,7 +4025,7 @@ namespace Mutagen.Bethesda.Starfield
                             }
                             case 1:
                             {
-                                _FirstPersonModelOverlay = GenderedItemBinaryOverlay.Factory<IModelGetter>(
+                                _payload.Fields.FirstPersonModelOverlay = GenderedItemBinaryOverlay.Factory<IModelGetter>(
                                     package: _package,
                                     stream: stream,
                                     creator: static (s, p, r) => ModelBinaryOverlay.ModelFactory(s, p, r),
@@ -4025,7 +4036,7 @@ namespace Mutagen.Bethesda.Starfield
                             }
                             case 2:
                             {
-                                this.ExtraLightLayers = BinaryOverlayList.FactoryByArray<UInt32>(
+                                _payload.Fields.ExtraLightLayers = BinaryOverlayList.FactoryByArray<UInt32>(
                                     mem: stream.RemainingMemory,
                                     package: _package,
                                     getter: (s, p) => BinaryPrimitives.ReadUInt32LittleEndian(s),
@@ -4053,7 +4064,7 @@ namespace Mutagen.Bethesda.Starfield
                 case RecordTypeInts.MO4F:
                 case RecordTypeInts.MO5F:
                 {
-                    _FirstPersonModelOverlay = GenderedItemBinaryOverlay.Factory<IModelGetter>(
+                    _payload.Fields.FirstPersonModelOverlay = GenderedItemBinaryOverlay.Factory<IModelGetter>(
                         package: _package,
                         stream: stream,
                         creator: static (s, p, r) => ModelBinaryOverlay.ModelFactory(s, p, r),
@@ -4065,7 +4076,7 @@ namespace Mutagen.Bethesda.Starfield
                 case RecordTypeInts.MOD6:
                 case RecordTypeInts.MOD7:
                 {
-                    _AltSkeletonOverlay = GenderedItemBinaryOverlay.Factory<String>(
+                    _payload.Fields.AltSkeletonOverlay = GenderedItemBinaryOverlay.Factory<String>(
                         package: _package,
                         male: RecordTypes.MOD6,
                         female: RecordTypes.MOD7,
@@ -4078,7 +4089,7 @@ namespace Mutagen.Bethesda.Starfield
                 case RecordTypeInts.NAM3:
                 case RecordTypeInts.NAM2:
                 {
-                    _SkinTextureOverlay = GenderedItemBinaryOverlay.Factory<IArmorAddonSkinTextureGetter>(
+                    _payload.Fields.SkinTextureOverlay = GenderedItemBinaryOverlay.Factory<IArmorAddonSkinTextureGetter>(
                         package: _package,
                         stream: stream,
                         creator: static (s, p, r) => ArmorAddonSkinTextureBinaryOverlay.ArmorAddonSkinTextureFactory(s, p, r),
@@ -4091,7 +4102,7 @@ namespace Mutagen.Bethesda.Starfield
                 case RecordTypeInts.NAM7:
                 case RecordTypeInts.NAM5:
                 {
-                    _MorphsOverlay = GenderedItemBinaryOverlay.Factory<IArmorAddonMorphGetter>(
+                    _payload.Fields.MorphsOverlay = GenderedItemBinaryOverlay.Factory<IArmorAddonMorphGetter>(
                         package: _package,
                         stream: stream,
                         creator: static (s, p, r) => ArmorAddonMorphBinaryOverlay.ArmorAddonMorphFactory(s, p, r),
@@ -4101,7 +4112,7 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.MODL:
                 {
-                    this.AdditionalRaces = BinaryOverlayList.FactoryByArray<IFormLinkGetter<IRaceGetter>>(
+                    _payload.Fields.AdditionalRaces = BinaryOverlayList.FactoryByArray<IFormLinkGetter<IRaceGetter>>(
                         mem: stream.RemainingMemory,
                         package: _package,
                         getter: (s, p) => FormLinkBinaryTranslation.Instance.OverlayFactory<IRaceGetter>(p, s),
@@ -4115,42 +4126,42 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.SNDD:
                 {
-                    _FootstepSoundLocation = (stream.Position - offset);
+                    _payload.Fields.FootstepSoundLocation = (stream.Position - offset);
                     return (int)ArmorAddon_FieldIndex.FootstepSound;
                 }
                 case RecordTypeInts.ONAM:
                 {
-                    _ArtObjectLocation = (stream.Position - offset);
+                    _payload.Fields.ArtObjectLocation = (stream.Position - offset);
                     return (int)ArmorAddon_FieldIndex.ArtObject;
                 }
                 case RecordTypeInts.PNAM:
                 {
-                    _BodyPartDataLocation = (stream.Position - offset);
+                    _payload.Fields.BodyPartDataLocation = (stream.Position - offset);
                     return (int)ArmorAddon_FieldIndex.BodyPartData;
                 }
                 case RecordTypeInts.MNAM:
                 {
-                    _ActorValueModulationGroupTypeLocation = (stream.Position - offset);
+                    _payload.Fields.ActorValueModulationGroupTypeLocation = (stream.Position - offset);
                     return (int)ArmorAddon_FieldIndex.ActorValueModulationGroupType;
                 }
                 case RecordTypeInts.TNAM:
                 {
-                    _ActorValueModulationEntryTypeLocation = (stream.Position - offset);
+                    _payload.Fields.ActorValueModulationEntryTypeLocation = (stream.Position - offset);
                     return (int)ArmorAddon_FieldIndex.ActorValueModulationEntryType;
                 }
                 case RecordTypeInts.SNAM:
                 {
-                    _ActorValueModulationSubTypeLocation = (stream.Position - offset);
+                    _payload.Fields.ActorValueModulationSubTypeLocation = (stream.Position - offset);
                     return (int)ArmorAddon_FieldIndex.ActorValueModulationSubType;
                 }
                 case RecordTypeInts.VNAM:
                 {
-                    _ActorValueModulationEntryValueLocation = (stream.Position - offset);
+                    _payload.Fields.ActorValueModulationEntryValueLocation = (stream.Position - offset);
                     return (int)ArmorAddon_FieldIndex.ActorValueModulationEntryValue;
                 }
                 case RecordTypeInts.BSMP:
                 {
-                    _BoneDataModifiersOverlay = GenderedItemBinaryOverlay.Factory<IReadOnlyList<IFormLinkGetter<IBoneModifierGetter>>>(
+                    _payload.Fields.BoneDataModifiersOverlay = GenderedItemBinaryOverlay.Factory<IReadOnlyList<IFormLinkGetter<IBoneModifierGetter>>>(
                         package: _package,
                         genderEnumRecord: RecordTypes.BSMP,
                         getDefault: () => Array.Empty<IFormLinkGetter<IBoneModifierGetter>>(),

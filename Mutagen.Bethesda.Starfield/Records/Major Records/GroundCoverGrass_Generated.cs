@@ -1165,7 +1165,14 @@ namespace Mutagen.Bethesda.Starfield
         #endregion
         #region OverrideDensity
         private int? _OverrideDensityLocation;
-        public Int16? OverrideDensity => _OverrideDensityLocation.HasValue ? BinaryPrimitives.ReadInt16LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _OverrideDensityLocation.Value, _package.MetaData.Constants)) : default(Int16?);
+        public Int16? OverrideDensity
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _OverrideDensityLocation.HasValue ? BinaryPrimitives.ReadInt16LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _OverrideDensityLocation.Value, _package.MetaData.Constants)) : default(Int16?);
+            }
+        }
         #endregion
         partial void CustomFactoryEnd(
             OverlayStream stream,

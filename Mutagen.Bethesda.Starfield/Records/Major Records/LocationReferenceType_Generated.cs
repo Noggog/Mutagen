@@ -37,6 +37,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -1807,19 +1808,28 @@ namespace Mutagen.Bethesda.Starfield
         protected override Type LinkType => typeof(ILocationReferenceTypeGetter);
 
 
-        public IReadOnlyList<IAComponentGetter> Components { get; private set; } = [];
-        #region Color
-        private int? _ColorLocation;
-        public Color? Color => _ColorLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _ColorLocation.Value, _package.MetaData.Constants).ReadColor(ColorBinaryType.Alpha) : default(Color?);
-        #endregion
-        #region TNAM
-        private int? _TNAMLocation;
-        public ReadOnlyMemorySlice<Byte>? TNAM => _TNAMLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _TNAMLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
-        #endregion
-        #region FNAM
-        private int? _FNAMLocation;
-        public ReadOnlyMemorySlice<Byte>? FNAM => _FNAMLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _FNAMLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
-        #endregion
+        public IReadOnlyList<IAComponentGetter> Components => Payload.Components ?? [];
+        public Color? Color => Payload.ColorLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.ColorLocation.Value, _package.MetaData.Constants).ReadColor(ColorBinaryType.Alpha) : default(Color?);
+        public ReadOnlyMemorySlice<Byte>? TNAM => Payload.TNAMLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.TNAMLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
+        public ReadOnlyMemorySlice<Byte>? FNAM => Payload.FNAMLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.FNAMLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
+
+        internal partial class LocationReferenceTypeRecordDataPayload
+        {
+            public IReadOnlyList<IAComponentGetter> Components = [];
+            public int? ColorLocation;
+            public int? TNAMLocation;
+            public int? FNAMLocation;
+        }
+
+        private LazyPayload<LocationReferenceTypeRecordDataPayload> _payload = null!;
+
+        internal LocationReferenceTypeRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<LocationReferenceTypeRecordDataPayload>(init, new LocationReferenceTypeRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -1827,10 +1837,10 @@ namespace Mutagen.Bethesda.Starfield
 
         partial void CustomCtor();
         protected LocationReferenceTypeBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -1841,28 +1851,51 @@ namespace Mutagen.Bethesda.Starfield
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new LocationReferenceTypeBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -1891,7 +1924,7 @@ namespace Mutagen.Bethesda.Starfield
             {
                 case RecordTypeInts.BFCB:
                 {
-                    this.Components = this.ParseRepeatedTypelessSubrecord<IAComponentGetter>(
+                    _payload.Fields.Components = this.ParseRepeatedTypelessSubrecord<IAComponentGetter>(
                         stream: stream,
                         translationParams: translationParams,
                         trigger: AComponent_Registration.TriggerSpecs,
@@ -1900,17 +1933,17 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.CNAM:
                 {
-                    _ColorLocation = (stream.Position - offset);
+                    _payload.Fields.ColorLocation = (stream.Position - offset);
                     return (int)LocationReferenceType_FieldIndex.Color;
                 }
                 case RecordTypeInts.TNAM:
                 {
-                    _TNAMLocation = (stream.Position - offset);
+                    _payload.Fields.TNAMLocation = (stream.Position - offset);
                     return (int)LocationReferenceType_FieldIndex.TNAM;
                 }
                 case RecordTypeInts.FNAM:
                 {
-                    _FNAMLocation = (stream.Position - offset);
+                    _payload.Fields.FNAMLocation = (stream.Position - offset);
                     return (int)LocationReferenceType_FieldIndex.FNAM;
                 }
                 default:

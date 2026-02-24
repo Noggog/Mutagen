@@ -236,7 +236,7 @@ partial class RaceBinaryOverlay
 
     public partial Race.Flag GetFlagsCustom()
     {
-        if (!_DATALocation.HasValue) return default;
+        if (!Payload.DATALocation.HasValue) return default;
         var flag = (Race.Flag)BinaryPrimitives.ReadInt32LittleEndian(_recordData.Span.Slice(_FlagsLocation, 4));
 
         // Clear out upper flags

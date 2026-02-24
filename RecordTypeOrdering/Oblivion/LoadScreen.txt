@@ -1,0 +1,4 @@
+RecordTypes.EDID,
+RecordTypes.ICON,
+RecordTypes.DESC,
+RecordTypes.LNAM,

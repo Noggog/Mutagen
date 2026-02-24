@@ -38,6 +38,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -3998,36 +3999,20 @@ namespace Mutagen.Bethesda.Starfield
         public Terminal.MajorFlag MajorFlags => (Terminal.MajorFlag)this.MajorRecordFlagsRaw;
 
         #region VirtualMachineAdapter
-        private int? _VirtualMachineAdapterLengthOverride;
-        private RangeInt32? _VirtualMachineAdapterLocation;
-        public IVirtualMachineAdapterIndexedGetter? VirtualMachineAdapter => _VirtualMachineAdapterLocation.HasValue ? VirtualMachineAdapterIndexedBinaryOverlay.VirtualMachineAdapterIndexedFactory(_recordData.Slice(_VirtualMachineAdapterLocation!.Value.Min), _package, TypedParseParams.FromLengthOverride(_VirtualMachineAdapterLengthOverride)) : default;
+        public IVirtualMachineAdapterIndexedGetter? VirtualMachineAdapter => Payload.VirtualMachineAdapterLocation.HasValue ? VirtualMachineAdapterIndexedBinaryOverlay.VirtualMachineAdapterIndexedFactory(_recordData.Slice(Payload.VirtualMachineAdapterLocation!.Value.Min), _package, TypedParseParams.FromLengthOverride(Payload.VirtualMachineAdapterLengthOverride)) : default;
         IAVirtualMachineAdapterGetter? IHaveVirtualMachineAdapterGetter.VirtualMachineAdapter => this.VirtualMachineAdapter;
         #endregion
         #region ObjectBounds
-        private RangeInt32? _ObjectBoundsLocation;
-        private IObjectBoundsGetter? _ObjectBounds => _ObjectBoundsLocation.HasValue ? ObjectBoundsBinaryOverlay.ObjectBoundsFactory(_recordData.Slice(_ObjectBoundsLocation!.Value.Min), _package) : default;
+        private IObjectBoundsGetter? _ObjectBounds => Payload.ObjectBoundsLocation.HasValue ? ObjectBoundsBinaryOverlay.ObjectBoundsFactory(_recordData.Slice(Payload.ObjectBoundsLocation!.Value.Min), _package) : default;
         public IObjectBoundsGetter ObjectBounds => _ObjectBounds ?? new ObjectBounds();
         #endregion
-        #region DirtinessScale
-        private int? _DirtinessScaleLocation;
-        public Percent DirtinessScale => _DirtinessScaleLocation.HasValue ? PercentBinaryTranslation.GetPercent(HeaderTranslation.ExtractSubrecordMemory(_recordData, _DirtinessScaleLocation.Value, _package.MetaData.Constants), FloatIntegerType.UInt) : default(Percent);
-        #endregion
-        #region Transforms
-        private RangeInt32? _TransformsLocation;
-        public ITransformsGetter? Transforms => _TransformsLocation.HasValue ? TransformsBinaryOverlay.TransformsFactory(_recordData.Slice(_TransformsLocation!.Value.Min), _package) : default;
-        #endregion
-        public IReadOnlyList<IAComponentGetter> Components { get; private set; } = [];
-        #region Menu
-        private int? _MenuLocation;
-        public IFormLinkNullableGetter<ITerminalMenuGetter> Menu => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ITerminalMenuGetter>(_package, _recordData, _MenuLocation);
-        #endregion
-        #region Background
-        private int? _BackgroundLocation;
-        public Terminal.BackgroundType? Background => EnumBinaryTranslation<Terminal.BackgroundType, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(_BackgroundLocation, _recordData, _package, 1);
-        #endregion
+        public Percent DirtinessScale => Payload.DirtinessScaleLocation.HasValue ? PercentBinaryTranslation.GetPercent(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.DirtinessScaleLocation.Value, _package.MetaData.Constants), FloatIntegerType.UInt) : default(Percent);
+        public ITransformsGetter? Transforms => Payload.TransformsLocation.HasValue ? TransformsBinaryOverlay.TransformsFactory(_recordData.Slice(Payload.TransformsLocation!.Value.Min), _package) : default;
+        public IReadOnlyList<IAComponentGetter> Components => Payload.Components ?? [];
+        public IFormLinkNullableGetter<ITerminalMenuGetter> Menu => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ITerminalMenuGetter>(_package, _recordData, Payload.MenuLocation);
+        public Terminal.BackgroundType? Background => EnumBinaryTranslation<Terminal.BackgroundType, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(Payload.BackgroundLocation, _recordData, _package, 1);
         #region Name
-        private int? _NameLocation;
-        public ITranslatedStringGetter? Name => _NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+        public ITranslatedStringGetter? Name => Payload.NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
         #region Aspects
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         string INamedRequiredGetter.Name => this.Name?.String ?? string.Empty;
@@ -4037,50 +4022,60 @@ namespace Mutagen.Bethesda.Starfield
         ITranslatedStringGetter ITranslatedNamedRequiredGetter.Name => this.Name ?? TranslatedString.Empty;
         #endregion
         #endregion
-        public IModelGetter? Model { get; private set; }
+        public IModelGetter? Model => Payload.Model;
         #region Keywords
-        public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? Keywords { get; private set; }
+        public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? Keywords => Payload.Keywords;
         IReadOnlyList<IFormLinkGetter<IKeywordCommonGetter>>? IKeywordedGetter.Keywords => this.Keywords;
         #endregion
-        public IReadOnlyList<IObjectPropertyGetter>? Properties { get; private set; }
-        public IReadOnlyList<IFormLinkGetter<ILocationReferenceTypeGetter>>? ForcedLocations { get; private set; }
-        #region PNAM
-        private int? _PNAMLocation;
-        public ReadOnlyMemorySlice<Byte>? PNAM => _PNAMLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _PNAMLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
-        #endregion
-        #region FNAM
-        private int? _FNAMLocation;
-        public ReadOnlyMemorySlice<Byte>? FNAM => _FNAMLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _FNAMLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
-        #endregion
-        #region JNAM
-        private int? _JNAMLocation;
-        public ReadOnlyMemorySlice<Byte>? JNAM => _JNAMLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _JNAMLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
-        #endregion
-        #region MarkerFlags
-        private int? _MarkerFlagsLocation;
-        public FurnitureMarkerFlags? MarkerFlags => EnumBinaryTranslation<FurnitureMarkerFlags, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(_MarkerFlagsLocation, _recordData, _package, 4);
-        #endregion
-        #region GNAM
-        private int? _GNAMLocation;
-        public ReadOnlyMemorySlice<Byte>? GNAM => _GNAMLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _GNAMLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
-        #endregion
-        #region WorkbenchData
-        private int? _WorkbenchDataLocation;
-        public ReadOnlyMemorySlice<Byte>? WorkbenchData => _WorkbenchDataLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _WorkbenchDataLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
-        #endregion
-        #region FurnitureTemplate
-        private int? _FurnitureTemplateLocation;
-        public IFormLinkNullableGetter<IFurnitureGetter> FurnitureTemplate => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IFurnitureGetter>(_package, _recordData, _FurnitureTemplateLocation);
-        #endregion
-        #region FNPR
-        private int? _FNPRLocation;
-        public ReadOnlyMemorySlice<Byte>? FNPR => _FNPRLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _FNPRLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
-        #endregion
-        #region MarkerModel
-        private int? _MarkerModelLocation;
-        public String? MarkerModel => _MarkerModelLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _MarkerModelLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
-        public IReadOnlyList<IFurnitureMarkerParametersGetter>? MarkerParameters { get; private set; }
+        public IReadOnlyList<IObjectPropertyGetter>? Properties => Payload.Properties;
+        public IReadOnlyList<IFormLinkGetter<ILocationReferenceTypeGetter>>? ForcedLocations => Payload.ForcedLocations;
+        public ReadOnlyMemorySlice<Byte>? PNAM => Payload.PNAMLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.PNAMLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
+        public ReadOnlyMemorySlice<Byte>? FNAM => Payload.FNAMLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.FNAMLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
+        public ReadOnlyMemorySlice<Byte>? JNAM => Payload.JNAMLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.JNAMLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
+        public FurnitureMarkerFlags? MarkerFlags => EnumBinaryTranslation<FurnitureMarkerFlags, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(Payload.MarkerFlagsLocation, _recordData, _package, 4);
+        public ReadOnlyMemorySlice<Byte>? GNAM => Payload.GNAMLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.GNAMLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
+        public ReadOnlyMemorySlice<Byte>? WorkbenchData => Payload.WorkbenchDataLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.WorkbenchDataLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
+        public IFormLinkNullableGetter<IFurnitureGetter> FurnitureTemplate => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IFurnitureGetter>(_package, _recordData, Payload.FurnitureTemplateLocation);
+        public ReadOnlyMemorySlice<Byte>? FNPR => Payload.FNPRLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.FNPRLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
+        public String? MarkerModel => Payload.MarkerModelLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.MarkerModelLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public IReadOnlyList<IFurnitureMarkerParametersGetter>? MarkerParameters => Payload.MarkerParameters;
+
+        internal partial class TerminalRecordDataPayload
+        {
+            public int? VirtualMachineAdapterLengthOverride;
+            public RangeInt32? VirtualMachineAdapterLocation;
+            public RangeInt32? ObjectBoundsLocation;
+            public int? DirtinessScaleLocation;
+            public RangeInt32? TransformsLocation;
+            public IReadOnlyList<IAComponentGetter> Components = [];
+            public int? MenuLocation;
+            public int? BackgroundLocation;
+            public int? NameLocation;
+            public IModelGetter? Model;
+            public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? Keywords;
+            public IReadOnlyList<IObjectPropertyGetter>? Properties;
+            public IReadOnlyList<IFormLinkGetter<ILocationReferenceTypeGetter>>? ForcedLocations;
+            public int? PNAMLocation;
+            public int? FNAMLocation;
+            public int? JNAMLocation;
+            public int? MarkerFlagsLocation;
+            public int? GNAMLocation;
+            public int? WorkbenchDataLocation;
+            public int? FurnitureTemplateLocation;
+            public int? FNPRLocation;
+            public int? MarkerModelLocation;
+            public IReadOnlyList<IFurnitureMarkerParametersGetter>? MarkerParameters;
+        }
+
+        private LazyPayload<TerminalRecordDataPayload> _payload = null!;
+
+        internal TerminalRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<TerminalRecordDataPayload>(init, new TerminalRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -4088,10 +4083,10 @@ namespace Mutagen.Bethesda.Starfield
 
         partial void CustomCtor();
         protected TerminalBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -4102,28 +4097,51 @@ namespace Mutagen.Bethesda.Starfield
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new TerminalBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -4152,8 +4170,8 @@ namespace Mutagen.Bethesda.Starfield
             {
                 case RecordTypeInts.VMAD:
                 {
-                    _VirtualMachineAdapterLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
-                    _VirtualMachineAdapterLengthOverride = lastParsed.LengthOverride;
+                    _payload.Fields.VirtualMachineAdapterLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.VirtualMachineAdapterLengthOverride = lastParsed.LengthOverride;
                     if (lastParsed.LengthOverride.HasValue)
                     {
                         stream.Position += lastParsed.LengthOverride.Value;
@@ -4162,22 +4180,22 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.OBND:
                 {
-                    _ObjectBoundsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.ObjectBoundsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)Terminal_FieldIndex.ObjectBounds;
                 }
                 case RecordTypeInts.ODTY:
                 {
-                    _DirtinessScaleLocation = (stream.Position - offset);
+                    _payload.Fields.DirtinessScaleLocation = (stream.Position - offset);
                     return (int)Terminal_FieldIndex.DirtinessScale;
                 }
                 case RecordTypeInts.PTT2:
                 {
-                    _TransformsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.TransformsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)Terminal_FieldIndex.Transforms;
                 }
                 case RecordTypeInts.BFCB:
                 {
-                    this.Components = this.ParseRepeatedTypelessSubrecord<IAComponentGetter>(
+                    _payload.Fields.Components = this.ParseRepeatedTypelessSubrecord<IAComponentGetter>(
                         stream: stream,
                         translationParams: translationParams,
                         trigger: AComponent_Registration.TriggerSpecs,
@@ -4186,17 +4204,17 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.DNAM:
                 {
-                    _MenuLocation = (stream.Position - offset);
+                    _payload.Fields.MenuLocation = (stream.Position - offset);
                     return (int)Terminal_FieldIndex.Menu;
                 }
                 case RecordTypeInts.NAM1:
                 {
-                    _BackgroundLocation = (stream.Position - offset);
+                    _payload.Fields.BackgroundLocation = (stream.Position - offset);
                     return (int)Terminal_FieldIndex.Background;
                 }
                 case RecordTypeInts.FULL:
                 {
-                    _NameLocation = (stream.Position - offset);
+                    _payload.Fields.NameLocation = (stream.Position - offset);
                     return (int)Terminal_FieldIndex.Name;
                 }
                 case RecordTypeInts.MODL:
@@ -4207,7 +4225,7 @@ namespace Mutagen.Bethesda.Starfield
                 case RecordTypeInts.MODC:
                 case RecordTypeInts.MODF:
                 {
-                    this.Model = ModelBinaryOverlay.ModelFactory(
+                    _payload.Fields.Model = ModelBinaryOverlay.ModelFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());
@@ -4216,7 +4234,7 @@ namespace Mutagen.Bethesda.Starfield
                 case RecordTypeInts.KSIZ:
                 case RecordTypeInts.KWDA:
                 {
-                    this.Keywords = BinaryOverlayList.FactoryByCount<IFormLinkGetter<IKeywordGetter>>(
+                    _payload.Fields.Keywords = BinaryOverlayList.FactoryByCount<IFormLinkGetter<IKeywordGetter>>(
                         stream: stream,
                         package: _package,
                         itemLength: 0x4,
@@ -4228,7 +4246,7 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.PRPS:
                 {
-                    this.Properties = BinaryOverlayList.FactoryByStartIndexWithTrigger<IObjectPropertyGetter>(
+                    _payload.Fields.Properties = BinaryOverlayList.FactoryByStartIndexWithTrigger<IObjectPropertyGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -4238,7 +4256,7 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.FTYP:
                 {
-                    this.ForcedLocations = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<ILocationReferenceTypeGetter>>(
+                    _payload.Fields.ForcedLocations = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<ILocationReferenceTypeGetter>>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -4248,52 +4266,52 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.PNAM:
                 {
-                    _PNAMLocation = (stream.Position - offset);
+                    _payload.Fields.PNAMLocation = (stream.Position - offset);
                     return (int)Terminal_FieldIndex.PNAM;
                 }
                 case RecordTypeInts.FNAM:
                 {
-                    _FNAMLocation = (stream.Position - offset);
+                    _payload.Fields.FNAMLocation = (stream.Position - offset);
                     return (int)Terminal_FieldIndex.FNAM;
                 }
                 case RecordTypeInts.JNAM:
                 {
-                    _JNAMLocation = (stream.Position - offset);
+                    _payload.Fields.JNAMLocation = (stream.Position - offset);
                     return (int)Terminal_FieldIndex.JNAM;
                 }
                 case RecordTypeInts.MNAM:
                 {
-                    _MarkerFlagsLocation = (stream.Position - offset);
+                    _payload.Fields.MarkerFlagsLocation = (stream.Position - offset);
                     return (int)Terminal_FieldIndex.MarkerFlags;
                 }
                 case RecordTypeInts.GNAM:
                 {
-                    _GNAMLocation = (stream.Position - offset);
+                    _payload.Fields.GNAMLocation = (stream.Position - offset);
                     return (int)Terminal_FieldIndex.GNAM;
                 }
                 case RecordTypeInts.WBDT:
                 {
-                    _WorkbenchDataLocation = (stream.Position - offset);
+                    _payload.Fields.WorkbenchDataLocation = (stream.Position - offset);
                     return (int)Terminal_FieldIndex.WorkbenchData;
                 }
                 case RecordTypeInts.FTMP:
                 {
-                    _FurnitureTemplateLocation = (stream.Position - offset);
+                    _payload.Fields.FurnitureTemplateLocation = (stream.Position - offset);
                     return (int)Terminal_FieldIndex.FurnitureTemplate;
                 }
                 case RecordTypeInts.FNPR:
                 {
-                    _FNPRLocation = (stream.Position - offset);
+                    _payload.Fields.FNPRLocation = (stream.Position - offset);
                     return (int)Terminal_FieldIndex.FNPR;
                 }
                 case RecordTypeInts.XMRK:
                 {
-                    _MarkerModelLocation = (stream.Position - offset);
+                    _payload.Fields.MarkerModelLocation = (stream.Position - offset);
                     return (int)Terminal_FieldIndex.MarkerModel;
                 }
                 case RecordTypeInts.SNAM:
                 {
-                    this.MarkerParameters = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFurnitureMarkerParametersGetter>(
+                    _payload.Fields.MarkerParameters = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFurnitureMarkerParametersGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,

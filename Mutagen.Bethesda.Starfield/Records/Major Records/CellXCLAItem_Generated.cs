@@ -1150,11 +1150,25 @@ namespace Mutagen.Bethesda.Starfield
 
         #region XCLA
         private int? _XCLALocation;
-        public Int32? XCLA => _XCLALocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _XCLALocation.Value, _package.MetaData.Constants)) : default(Int32?);
+        public Int32? XCLA
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _XCLALocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _XCLALocation.Value, _package.MetaData.Constants)) : default(Int32?);
+            }
+        }
         #endregion
         #region XCLD
         private int? _XCLDLocation;
-        public String? XCLD => _XCLDLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _XCLDLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? XCLD
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _XCLDLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_data, _XCLDLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+            }
+        }
         #endregion
         partial void CustomFactoryEnd(
             OverlayStream stream,

@@ -1593,15 +1593,36 @@ namespace Mutagen.Bethesda.Starfield
         #endregion
         #region INTTPhaseIndex
         private int? _INTTPhaseIndexLocation;
-        public UInt16 INTTPhaseIndex => _INTTPhaseIndexLocation.HasValue ? BinaryPrimitives.ReadUInt16LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _INTTPhaseIndexLocation.Value, _package.MetaData.Constants)) : default(UInt16);
+        public UInt16 INTTPhaseIndex
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _INTTPhaseIndexLocation.HasValue ? BinaryPrimitives.ReadUInt16LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _INTTPhaseIndexLocation.Value, _package.MetaData.Constants)) : default(UInt16);
+            }
+        }
         #endregion
         #region ACTVPhaseIndex
         private int? _ACTVPhaseIndexLocation;
-        public UInt16? ACTVPhaseIndex => _ACTVPhaseIndexLocation.HasValue ? BinaryPrimitives.ReadUInt16LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _ACTVPhaseIndexLocation.Value, _package.MetaData.Constants)) : default(UInt16?);
+        public UInt16? ACTVPhaseIndex
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _ACTVPhaseIndexLocation.HasValue ? BinaryPrimitives.ReadUInt16LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _ACTVPhaseIndexLocation.Value, _package.MetaData.Constants)) : default(UInt16?);
+            }
+        }
         #endregion
         #region StartPhaseForScene
         private int? _StartPhaseForSceneLocation;
-        public String? StartPhaseForScene => _StartPhaseForSceneLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _StartPhaseForSceneLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? StartPhaseForScene
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _StartPhaseForSceneLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_data, _StartPhaseForSceneLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+            }
+        }
         #endregion
         public IReadOnlyList<IConditionGetter>? Conditions { get; private set; }
         partial void CustomFactoryEnd(

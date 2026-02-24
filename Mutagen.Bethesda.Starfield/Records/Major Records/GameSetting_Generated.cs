@@ -33,6 +33,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -1369,10 +1370,22 @@ namespace Mutagen.Bethesda.Starfield
                 translationParams: translationParams);
         }
 
-        #region XALG
-        private int? _XALGLocation;
-        public UInt64? XALG => _XALGLocation.HasValue ? BinaryPrimitives.ReadUInt64LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _XALGLocation.Value, _package.MetaData.Constants)) : default(UInt64?);
-        #endregion
+        public UInt64? XALG => Payload.XALGLocation.HasValue ? BinaryPrimitives.ReadUInt64LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.XALGLocation.Value, _package.MetaData.Constants)) : default(UInt64?);
+
+        internal partial class GameSettingRecordDataPayload
+        {
+            public int? XALGLocation;
+        }
+
+        private LazyPayload<GameSettingRecordDataPayload> _payload = null!;
+
+        internal GameSettingRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<GameSettingRecordDataPayload>(init, new GameSettingRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -1380,10 +1393,10 @@ namespace Mutagen.Bethesda.Starfield
 
         partial void CustomCtor();
         protected GameSettingBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -1404,7 +1417,7 @@ namespace Mutagen.Bethesda.Starfield
             {
                 case RecordTypeInts.XALG:
                 {
-                    _XALGLocation = (stream.Position - offset);
+                    _payload.Fields.XALGLocation = (stream.Position - offset);
                     return (int)GameSetting_FieldIndex.XALG;
                 }
                 default:

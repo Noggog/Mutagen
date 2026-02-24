@@ -1460,23 +1460,58 @@ namespace Mutagen.Bethesda.Starfield
 
         #region TNAM
         private int? _TNAMLocation;
-        public Int32? TNAM => _TNAMLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _TNAMLocation.Value, _package.MetaData.Constants)) : default(Int32?);
+        public Int32? TNAM
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _TNAMLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _TNAMLocation.Value, _package.MetaData.Constants)) : default(Int32?);
+            }
+        }
         #endregion
         #region SNAM
         private int? _SNAMLocation;
-        public Int32? SNAM => _SNAMLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _SNAMLocation.Value, _package.MetaData.Constants)) : default(Int32?);
+        public Int32? SNAM
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _SNAMLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _SNAMLocation.Value, _package.MetaData.Constants)) : default(Int32?);
+            }
+        }
         #endregion
         #region UNAM
         private int? _UNAMLocation;
-        public Int32? UNAM => _UNAMLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _UNAMLocation.Value, _package.MetaData.Constants)) : default(Int32?);
+        public Int32? UNAM
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _UNAMLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _UNAMLocation.Value, _package.MetaData.Constants)) : default(Int32?);
+            }
+        }
         #endregion
         #region LNAM
         private int? _LNAMLocation;
-        public Int32? LNAM => _LNAMLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _LNAMLocation.Value, _package.MetaData.Constants)) : default(Int32?);
+        public Int32? LNAM
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _LNAMLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _LNAMLocation.Value, _package.MetaData.Constants)) : default(Int32?);
+            }
+        }
         #endregion
         #region CNAM
         private int? _CNAMLocation;
-        public Int32? CNAM => _CNAMLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _CNAMLocation.Value, _package.MetaData.Constants)) : default(Int32?);
+        public Int32? CNAM
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _CNAMLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _CNAMLocation.Value, _package.MetaData.Constants)) : default(Int32?);
+            }
+        }
         #endregion
         partial void CustomFactoryEnd(
             OverlayStream stream,

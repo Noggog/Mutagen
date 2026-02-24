@@ -33,6 +33,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -2290,92 +2291,106 @@ namespace Mutagen.Bethesda.Starfield
         protected override Type LinkType => typeof(IAimModelGetter);
 
 
-        private RangeInt32? _ANAMLocation;
         #region ConeOfFireDegreesX
-        private int _ConeOfFireDegreesXLocation => _ANAMLocation!.Value.Min;
-        private bool _ConeOfFireDegreesX_IsSet => _ANAMLocation.HasValue;
+        private int _ConeOfFireDegreesXLocation => Payload.ANAMLocation!.Value.Min;
+        private bool _ConeOfFireDegreesX_IsSet => Payload.ANAMLocation.HasValue;
         public Single ConeOfFireDegreesX => _ConeOfFireDegreesX_IsSet ? _recordData.Slice(_ConeOfFireDegreesXLocation, 4).Float() : default(Single);
         #endregion
         #region ConeOfFireDegreesY
-        private int _ConeOfFireDegreesYLocation => _ANAMLocation!.Value.Min + 0x4;
-        private bool _ConeOfFireDegreesY_IsSet => _ANAMLocation.HasValue;
+        private int _ConeOfFireDegreesYLocation => Payload.ANAMLocation!.Value.Min + 0x4;
+        private bool _ConeOfFireDegreesY_IsSet => Payload.ANAMLocation.HasValue;
         public Single ConeOfFireDegreesY => _ConeOfFireDegreesY_IsSet ? _recordData.Slice(_ConeOfFireDegreesYLocation, 4).Float() : default(Single);
         #endregion
         #region ConeOfFireIncreasePerShot
-        private int _ConeOfFireIncreasePerShotLocation => _ANAMLocation!.Value.Min + 0x8;
-        private bool _ConeOfFireIncreasePerShot_IsSet => _ANAMLocation.HasValue;
+        private int _ConeOfFireIncreasePerShotLocation => Payload.ANAMLocation!.Value.Min + 0x8;
+        private bool _ConeOfFireIncreasePerShot_IsSet => Payload.ANAMLocation.HasValue;
         public Single ConeOfFireIncreasePerShot => _ConeOfFireIncreasePerShot_IsSet ? _recordData.Slice(_ConeOfFireIncreasePerShotLocation, 4).Float() : default(Single);
         #endregion
         #region ConeOfFireIncreasePerSec
-        private int _ConeOfFireIncreasePerSecLocation => _ANAMLocation!.Value.Min + 0xC;
-        private bool _ConeOfFireIncreasePerSec_IsSet => _ANAMLocation.HasValue;
+        private int _ConeOfFireIncreasePerSecLocation => Payload.ANAMLocation!.Value.Min + 0xC;
+        private bool _ConeOfFireIncreasePerSec_IsSet => Payload.ANAMLocation.HasValue;
         public Single ConeOfFireIncreasePerSec => _ConeOfFireIncreasePerSec_IsSet ? _recordData.Slice(_ConeOfFireIncreasePerSecLocation, 4).Float() : default(Single);
         #endregion
         #region ConeOfFireDecreaseDelaySeconds
-        private int _ConeOfFireDecreaseDelaySecondsLocation => _ANAMLocation!.Value.Min + 0x10;
-        private bool _ConeOfFireDecreaseDelaySeconds_IsSet => _ANAMLocation.HasValue;
+        private int _ConeOfFireDecreaseDelaySecondsLocation => Payload.ANAMLocation!.Value.Min + 0x10;
+        private bool _ConeOfFireDecreaseDelaySeconds_IsSet => Payload.ANAMLocation.HasValue;
         public Single ConeOfFireDecreaseDelaySeconds => _ConeOfFireDecreaseDelaySeconds_IsSet ? _recordData.Slice(_ConeOfFireDecreaseDelaySecondsLocation, 4).Float() : default(Single);
         #endregion
         #region ConeOfFireSneakMult
-        private int _ConeOfFireSneakMultLocation => _ANAMLocation!.Value.Min + 0x14;
-        private bool _ConeOfFireSneakMult_IsSet => _ANAMLocation.HasValue;
+        private int _ConeOfFireSneakMultLocation => Payload.ANAMLocation!.Value.Min + 0x14;
+        private bool _ConeOfFireSneakMult_IsSet => Payload.ANAMLocation.HasValue;
         public Single ConeOfFireSneakMult => _ConeOfFireSneakMult_IsSet ? _recordData.Slice(_ConeOfFireSneakMultLocation, 4).Float() : default(Single);
         #endregion
         #region RecoilDiminishSpringForce
-        private int _RecoilDiminishSpringForceLocation => _ANAMLocation!.Value.Min + 0x18;
-        private bool _RecoilDiminishSpringForce_IsSet => _ANAMLocation.HasValue;
+        private int _RecoilDiminishSpringForceLocation => Payload.ANAMLocation!.Value.Min + 0x18;
+        private bool _RecoilDiminishSpringForce_IsSet => Payload.ANAMLocation.HasValue;
         public Single RecoilDiminishSpringForce => _RecoilDiminishSpringForce_IsSet ? _recordData.Slice(_RecoilDiminishSpringForceLocation, 4).Float() : default(Single);
         #endregion
         #region RecoilDiminishSightsMult
-        private int _RecoilDiminishSightsMultLocation => _ANAMLocation!.Value.Min + 0x1C;
-        private bool _RecoilDiminishSightsMult_IsSet => _ANAMLocation.HasValue;
+        private int _RecoilDiminishSightsMultLocation => Payload.ANAMLocation!.Value.Min + 0x1C;
+        private bool _RecoilDiminishSightsMult_IsSet => Payload.ANAMLocation.HasValue;
         public Single RecoilDiminishSightsMult => _RecoilDiminishSightsMult_IsSet ? _recordData.Slice(_RecoilDiminishSightsMultLocation, 4).Float() : default(Single);
         #endregion
         #region RecoilDegreesPerShotX
-        private int _RecoilDegreesPerShotXLocation => _ANAMLocation!.Value.Min + 0x20;
-        private bool _RecoilDegreesPerShotX_IsSet => _ANAMLocation.HasValue;
+        private int _RecoilDegreesPerShotXLocation => Payload.ANAMLocation!.Value.Min + 0x20;
+        private bool _RecoilDegreesPerShotX_IsSet => Payload.ANAMLocation.HasValue;
         public Single RecoilDegreesPerShotX => _RecoilDegreesPerShotX_IsSet ? _recordData.Slice(_RecoilDegreesPerShotXLocation, 4).Float() : default(Single);
         #endregion
         #region RecoilDegreesPerShotY
-        private int _RecoilDegreesPerShotYLocation => _ANAMLocation!.Value.Min + 0x24;
-        private bool _RecoilDegreesPerShotY_IsSet => _ANAMLocation.HasValue;
+        private int _RecoilDegreesPerShotYLocation => Payload.ANAMLocation!.Value.Min + 0x24;
+        private bool _RecoilDegreesPerShotY_IsSet => Payload.ANAMLocation.HasValue;
         public Single RecoilDegreesPerShotY => _RecoilDegreesPerShotY_IsSet ? _recordData.Slice(_RecoilDegreesPerShotYLocation, 4).Float() : default(Single);
         #endregion
         #region RecoilHipMult
-        private int _RecoilHipMultLocation => _ANAMLocation!.Value.Min + 0x28;
-        private bool _RecoilHipMult_IsSet => _ANAMLocation.HasValue;
+        private int _RecoilHipMultLocation => Payload.ANAMLocation!.Value.Min + 0x28;
+        private bool _RecoilHipMult_IsSet => Payload.ANAMLocation.HasValue;
         public Single RecoilHipMult => _RecoilHipMult_IsSet ? _recordData.Slice(_RecoilHipMultLocation, 4).Float() : default(Single);
         #endregion
         #region RecoilShotsForRunaway
-        private int _RecoilShotsForRunawayLocation => _ANAMLocation!.Value.Min + 0x2C;
-        private bool _RecoilShotsForRunaway_IsSet => _ANAMLocation.HasValue;
+        private int _RecoilShotsForRunawayLocation => Payload.ANAMLocation!.Value.Min + 0x2C;
+        private bool _RecoilShotsForRunaway_IsSet => Payload.ANAMLocation.HasValue;
         public UInt32 RecoilShotsForRunaway => _RecoilShotsForRunaway_IsSet ? BinaryPrimitives.ReadUInt32LittleEndian(_recordData.Slice(_RecoilShotsForRunawayLocation, 4)) : default(UInt32);
         #endregion
         #region RecoilArc
-        private int _RecoilArcLocation => _ANAMLocation!.Value.Min + 0x30;
-        private bool _RecoilArc_IsSet => _ANAMLocation.HasValue;
+        private int _RecoilArcLocation => Payload.ANAMLocation!.Value.Min + 0x30;
+        private bool _RecoilArc_IsSet => Payload.ANAMLocation.HasValue;
         public Single RecoilArc => _RecoilArc_IsSet ? _recordData.Slice(_RecoilArcLocation, 4).Float() : default(Single);
         #endregion
         #region RecoilArcRotate
-        private int _RecoilArcRotateLocation => _ANAMLocation!.Value.Min + 0x34;
-        private bool _RecoilArcRotate_IsSet => _ANAMLocation.HasValue;
+        private int _RecoilArcRotateLocation => Payload.ANAMLocation!.Value.Min + 0x34;
+        private bool _RecoilArcRotate_IsSet => Payload.ANAMLocation.HasValue;
         public Single RecoilArcRotate => _RecoilArcRotate_IsSet ? _recordData.Slice(_RecoilArcRotateLocation, 4).Float() : default(Single);
         #endregion
         #region ConeOfFireIronSightsMult
-        private int _ConeOfFireIronSightsMultLocation => _ANAMLocation!.Value.Min + 0x38;
-        private bool _ConeOfFireIronSightsMult_IsSet => _ANAMLocation.HasValue;
+        private int _ConeOfFireIronSightsMultLocation => Payload.ANAMLocation!.Value.Min + 0x38;
+        private bool _ConeOfFireIronSightsMult_IsSet => Payload.ANAMLocation.HasValue;
         public Single ConeOfFireIronSightsMult => _ConeOfFireIronSightsMult_IsSet ? _recordData.Slice(_ConeOfFireIronSightsMultLocation, 4).Float() : default(Single);
         #endregion
         #region RecoilBaseStability
-        private int _RecoilBaseStabilityLocation => _ANAMLocation!.Value.Min + 0x3C;
-        private bool _RecoilBaseStability_IsSet => _ANAMLocation.HasValue;
+        private int _RecoilBaseStabilityLocation => Payload.ANAMLocation!.Value.Min + 0x3C;
+        private bool _RecoilBaseStability_IsSet => Payload.ANAMLocation.HasValue;
         public Single RecoilBaseStability => _RecoilBaseStability_IsSet ? _recordData.Slice(_RecoilBaseStabilityLocation, 4).Float() : default(Single);
         #endregion
         #region ConeOfFireIgnoresMovement
-        private int _ConeOfFireIgnoresMovementLocation => _ANAMLocation!.Value.Min + 0x40;
-        private bool _ConeOfFireIgnoresMovement_IsSet => _ANAMLocation.HasValue;
+        private int _ConeOfFireIgnoresMovementLocation => Payload.ANAMLocation!.Value.Min + 0x40;
+        private bool _ConeOfFireIgnoresMovement_IsSet => Payload.ANAMLocation.HasValue;
         public Boolean ConeOfFireIgnoresMovement => _ConeOfFireIgnoresMovement_IsSet ? _recordData.Slice(_ConeOfFireIgnoresMovementLocation, 1)[0] >= 1 : default(Boolean);
         #endregion
+
+        internal partial class AimModelRecordDataPayload
+        {
+            public RangeInt32? ANAMLocation;
+        }
+
+        private LazyPayload<AimModelRecordDataPayload> _payload = null!;
+
+        internal AimModelRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<AimModelRecordDataPayload>(init, new AimModelRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -2383,10 +2398,10 @@ namespace Mutagen.Bethesda.Starfield
 
         partial void CustomCtor();
         protected AimModelBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -2397,28 +2412,51 @@ namespace Mutagen.Bethesda.Starfield
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new AimModelBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -2447,7 +2485,7 @@ namespace Mutagen.Bethesda.Starfield
             {
                 case RecordTypeInts.ANAM:
                 {
-                    _ANAMLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.ANAMLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     return (int)AimModel_FieldIndex.ConeOfFireIgnoresMovement;
                 }
                 default:

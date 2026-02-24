@@ -1,0 +1,7 @@
+RecordTypes.EDID,
+RecordTypes.AAAP,
+RecordTypes.ANAM,
+RecordTypes.BNAM,
+RecordTypes.RADR,
+RecordTypes.WTMX,
+RecordTypes.AAPS,

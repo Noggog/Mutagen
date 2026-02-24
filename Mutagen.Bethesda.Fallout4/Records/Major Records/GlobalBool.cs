@@ -49,20 +49,24 @@ partial class GlobalBoolBinaryWriteTranslation
 
 partial class GlobalBoolBinaryOverlay
 {
+    internal partial class GlobalBoolRecordDataPayload
+    {
+        public int? DataLocation;
+    }
+
     char IGlobalGetter.TypeChar => GlobalInt.TRIGGER_CHAR;
     public override float? RawFloat => this.Data is {} data ? (data ? 1 : 0) : default;
 
-    private int? _DataLocation;
-    public bool GetDataIsSetCustom() => _DataLocation.HasValue;
+    public bool GetDataIsSetCustom() => Payload.DataLocation.HasValue;
     public partial bool? GetDataCustom()
     {
-        if (!_DataLocation.HasValue) return default;
+        if (!Payload.DataLocation.HasValue) return default;
         return HeaderTranslation
-            .ExtractSubrecordMemory(_recordData, _DataLocation.Value, _package.MetaData.Constants).Float() != 0;
+            .ExtractSubrecordMemory(_recordData, Payload.DataLocation.Value, _package.MetaData.Constants).Float() != 0;
     }
 
     partial void DataCustomParse(OverlayStream stream, int finalPos, int offset)
     {
-        _DataLocation = (ushort)(stream.Position - offset);
+        _payload.Fields.DataLocation = (ushort)(stream.Position - offset);
     }
 }

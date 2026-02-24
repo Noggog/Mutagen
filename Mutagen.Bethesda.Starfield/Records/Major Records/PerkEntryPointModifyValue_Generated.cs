@@ -1316,7 +1316,14 @@ namespace Mutagen.Bethesda.Starfield
         public PerkEntryPointModifyValue.ModificationType Modification => (PerkEntryPointModifyValue.ModificationType)BinaryPrimitives.ReadInt32LittleEndian(_structData.Span.Slice(0x2, 0x4));
         #region Value
         private int? _ValueLocation;
-        public Single? Value => _ValueLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _ValueLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public Single? Value
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _ValueLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_data, _ValueLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+            }
+        }
         #endregion
         partial void CustomFactoryEnd(
             OverlayStream stream,

@@ -34,6 +34,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -1782,9 +1783,23 @@ namespace Mutagen.Bethesda.Plugins.Records
         public FormKey FormKey => FormKeyBinaryTranslation.Instance.Parse(_structData.Span.Slice(0x4, 4), this._package.MetaData.MasterReferences, reference: false);
         public UInt32 VersionControl => BinaryPrimitives.ReadUInt32LittleEndian(_structData.Slice(0x8, 0x4));
         #region EditorID
-        private int? _EditorIDLocation;
-        public String? EditorID => _EditorIDLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _EditorIDLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? EditorID => Payload.EditorIDLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.EditorIDLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
         #endregion
+
+        internal partial class MajorRecordRecordDataPayload
+        {
+            public int? EditorIDLocation;
+        }
+
+        private LazyPayload<MajorRecordRecordDataPayload> _payload = null!;
+
+        internal MajorRecordRecordDataPayload Payload => _payload.Value;
+
+        protected virtual void InitPayload(Lazy<bool> init)
+        {
+            _payload = new LazyPayload<MajorRecordRecordDataPayload>(init, new MajorRecordRecordDataPayload());
+        }
+
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -1792,10 +1807,10 @@ namespace Mutagen.Bethesda.Plugins.Records
 
         partial void CustomCtor();
         protected MajorRecordBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -1816,7 +1831,7 @@ namespace Mutagen.Bethesda.Plugins.Records
             {
                 case RecordTypeInts.EDID:
                 {
-                    _EditorIDLocation = (stream.Position - offset);
+                    _payload.Fields.EditorIDLocation = (stream.Position - offset);
                     return (int)MajorRecord_FieldIndex.EditorID;
                 }
                 default:

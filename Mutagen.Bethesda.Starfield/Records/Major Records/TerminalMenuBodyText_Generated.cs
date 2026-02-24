@@ -1352,12 +1352,26 @@ namespace Mutagen.Bethesda.Starfield
 
         #region Text
         private int? _TextLocation;
-        public ITranslatedStringGetter Text => _TextLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _TextLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : TranslatedString.Empty;
+        public ITranslatedStringGetter Text
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _TextLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_data, _TextLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : TranslatedString.Empty;
+            }
+        }
         #endregion
         public IReadOnlyList<IConditionGetter> Conditions { get; private set; } = [];
         #region UseTemplatedText
         private int? _UseTemplatedTextLocation;
-        public Boolean? UseTemplatedText => _UseTemplatedTextLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _UseTemplatedTextLocation.Value, _package.MetaData.Constants)[0] >= 1 : default(Boolean?);
+        public Boolean? UseTemplatedText
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _UseTemplatedTextLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_data, _UseTemplatedTextLocation.Value, _package.MetaData.Constants)[0] >= 1 : default(Boolean?);
+            }
+        }
         #endregion
         partial void CustomFactoryEnd(
             OverlayStream stream,

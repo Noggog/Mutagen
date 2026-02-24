@@ -1453,23 +1453,58 @@ namespace Mutagen.Bethesda.Starfield
 
         #region MaxSeconds
         private int? _MaxSecondsLocation;
-        public Single? MaxSeconds => _MaxSecondsLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _MaxSecondsLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public Single? MaxSeconds
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _MaxSecondsLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_data, _MaxSecondsLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+            }
+        }
         #endregion
         #region MinSeconds
         private int? _MinSecondsLocation;
-        public Single? MinSeconds => _MinSecondsLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _MinSecondsLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public Single? MinSeconds
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _MinSecondsLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_data, _MinSecondsLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+            }
+        }
         #endregion
         #region HNAM
         private int? _HNAMLocation;
-        public Boolean HNAM => _HNAMLocation.HasValue ? true : default(Boolean);
+        public Boolean HNAM
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _HNAMLocation.HasValue ? true : default(Boolean);
+            }
+        }
         #endregion
         #region SCQS
         private int? _SCQSLocation;
-        public Int16? SCQS => _SCQSLocation.HasValue ? BinaryPrimitives.ReadInt16LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _SCQSLocation.Value, _package.MetaData.Constants)) : default(Int16?);
+        public Int16? SCQS
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _SCQSLocation.HasValue ? BinaryPrimitives.ReadInt16LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _SCQSLocation.Value, _package.MetaData.Constants)) : default(Int16?);
+            }
+        }
         #endregion
         #region INTV
         private int? _INTVLocation;
-        public Int16? INTV => _INTVLocation.HasValue ? BinaryPrimitives.ReadInt16LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _INTVLocation.Value, _package.MetaData.Constants)) : default(Int16?);
+        public Int16? INTV
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _INTVLocation.HasValue ? BinaryPrimitives.ReadInt16LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _INTVLocation.Value, _package.MetaData.Constants)) : default(Int16?);
+            }
+        }
         #endregion
         partial void CustomFactoryEnd(
             OverlayStream stream,

@@ -38,6 +38,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -3886,10 +3887,9 @@ namespace Mutagen.Bethesda.Starfield
 
         public DialogTopic.MajorFlag MajorFlags => (DialogTopic.MajorFlag)this.MajorRecordFlagsRaw;
 
-        public IReadOnlyList<IAComponentGetter> Components { get; private set; } = [];
+        public IReadOnlyList<IAComponentGetter> Components => Payload.Components ?? [];
         #region Name
-        private int? _NameLocation;
-        public ITranslatedStringGetter? Name => _NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+        public ITranslatedStringGetter? Name => Payload.NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
         #region Aspects
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         string INamedRequiredGetter.Name => this.Name?.String ?? string.Empty;
@@ -3899,53 +3899,58 @@ namespace Mutagen.Bethesda.Starfield
         ITranslatedStringGetter ITranslatedNamedRequiredGetter.Name => this.Name ?? TranslatedString.Empty;
         #endregion
         #endregion
-        #region Priority
-        private int? _PriorityLocation;
-        public Single Priority => _PriorityLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _PriorityLocation.Value, _package.MetaData.Constants).Float() : default(Single);
-        #endregion
-        #region Branch
-        private int? _BranchLocation;
-        public IFormLinkNullableGetter<IDialogBranchGetter> Branch => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IDialogBranchGetter>(_package, _recordData, _BranchLocation);
-        #endregion
-        #region Quest
-        private int? _QuestLocation;
-        public IFormLinkGetter<IQuestGetter> Quest => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IQuestGetter>(_package, _recordData, _QuestLocation);
-        #endregion
-        #region Keyword
-        private int? _KeywordLocation;
-        public IFormLinkNullableGetter<IKeywordGetter> Keyword => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IKeywordGetter>(_package, _recordData, _KeywordLocation);
-        #endregion
-        #region AffinityEvent
-        private int? _AffinityEventLocation;
-        public IFormLinkNullableGetter<IAffinityEventGetter> AffinityEvent => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IAffinityEventGetter>(_package, _recordData, _AffinityEventLocation);
-        #endregion
-        private RangeInt32? _DATALocation;
+        public Single Priority => Payload.PriorityLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.PriorityLocation.Value, _package.MetaData.Constants).Float() : default(Single);
+        public IFormLinkNullableGetter<IDialogBranchGetter> Branch => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IDialogBranchGetter>(_package, _recordData, Payload.BranchLocation);
+        public IFormLinkGetter<IQuestGetter> Quest => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IQuestGetter>(_package, _recordData, Payload.QuestLocation);
+        public IFormLinkNullableGetter<IKeywordGetter> Keyword => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IKeywordGetter>(_package, _recordData, Payload.KeywordLocation);
+        public IFormLinkNullableGetter<IAffinityEventGetter> AffinityEvent => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IAffinityEventGetter>(_package, _recordData, Payload.AffinityEventLocation);
         #region TopicFlags
-        private int _TopicFlagsLocation => _DATALocation!.Value.Min;
-        private bool _TopicFlags_IsSet => _DATALocation.HasValue;
+        private int _TopicFlagsLocation => Payload.DATALocation!.Value.Min;
+        private bool _TopicFlags_IsSet => Payload.DATALocation.HasValue;
         public DialogTopic.TopicFlag TopicFlags => _TopicFlags_IsSet ? (DialogTopic.TopicFlag)_recordData.Span.Slice(_TopicFlagsLocation, 0x1)[0] : default;
         #endregion
         #region Category
-        private int _CategoryLocation => _DATALocation!.Value.Min + 0x1;
-        private bool _Category_IsSet => _DATALocation.HasValue;
+        private int _CategoryLocation => Payload.DATALocation!.Value.Min + 0x1;
+        private bool _Category_IsSet => Payload.DATALocation.HasValue;
         public DialogTopic.CategoryEnum Category => _Category_IsSet ? (DialogTopic.CategoryEnum)_recordData.Span.Slice(_CategoryLocation, 0x1)[0] : default;
         #endregion
         #region Subtype
-        private int _SubtypeLocation => _DATALocation!.Value.Min + 0x2;
-        private bool _Subtype_IsSet => _DATALocation.HasValue;
+        private int _SubtypeLocation => Payload.DATALocation!.Value.Min + 0x2;
+        private bool _Subtype_IsSet => Payload.DATALocation.HasValue;
         public DialogTopic.SubtypeEnum Subtype => _Subtype_IsSet ? (DialogTopic.SubtypeEnum)BinaryPrimitives.ReadUInt16LittleEndian(_recordData.Span.Slice(_SubtypeLocation, 0x2)) : default;
         #endregion
-        #region SubtypeName
-        private int? _SubtypeNameLocation;
-        public DialogTopic.SubtypeNameEnum SubtypeName => EnumBinaryTranslation<DialogTopic.SubtypeNameEnum, MutagenFrame, MutagenWriter>.Instance.ParseRecord(_SubtypeNameLocation, _recordData, _package, 4);
-        #endregion
-        public IReadOnlyList<IFormLinkGetter<IDialogResponsesGetter>>? TopicInfoList { get; private set; }
+        public DialogTopic.SubtypeNameEnum SubtypeName => EnumBinaryTranslation<DialogTopic.SubtypeNameEnum, MutagenFrame, MutagenWriter>.Instance.ParseRecord(Payload.SubtypeNameLocation, _recordData, _package, 4);
+        public IReadOnlyList<IFormLinkGetter<IDialogResponsesGetter>>? TopicInfoList => Payload.TopicInfoList;
         #region InfoListCount
         public partial ParseResult InfoListCountCustomParse(
             OverlayStream stream,
             int offset,
             PreviousParse lastParsed);
         #endregion
+
+        internal partial class DialogTopicRecordDataPayload
+        {
+            public IReadOnlyList<IAComponentGetter> Components = [];
+            public int? NameLocation;
+            public int? PriorityLocation;
+            public int? BranchLocation;
+            public int? QuestLocation;
+            public int? KeywordLocation;
+            public int? AffinityEventLocation;
+            public RangeInt32? DATALocation;
+            public int? SubtypeNameLocation;
+            public IReadOnlyList<IFormLinkGetter<IDialogResponsesGetter>>? TopicInfoList;
+        }
+
+        private LazyPayload<DialogTopicRecordDataPayload> _payload = null!;
+
+        internal DialogTopicRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<DialogTopicRecordDataPayload>(init, new DialogTopicRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -3957,10 +3962,10 @@ namespace Mutagen.Bethesda.Starfield
 
         partial void CustomCtor();
         protected DialogTopicBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -3972,28 +3977,51 @@ namespace Mutagen.Bethesda.Starfield
             TypedParseParams translationParams = default)
         {
             var origStream = stream;
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new DialogTopicBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             ret.CustomEnd(
                 stream: origStream,
                 finalPos: stream.Length,
@@ -4026,7 +4054,7 @@ namespace Mutagen.Bethesda.Starfield
             {
                 case RecordTypeInts.BFCB:
                 {
-                    this.Components = this.ParseRepeatedTypelessSubrecord<IAComponentGetter>(
+                    _payload.Fields.Components = this.ParseRepeatedTypelessSubrecord<IAComponentGetter>(
                         stream: stream,
                         translationParams: translationParams,
                         trigger: AComponent_Registration.TriggerSpecs,
@@ -4035,47 +4063,47 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.FULL:
                 {
-                    _NameLocation = (stream.Position - offset);
+                    _payload.Fields.NameLocation = (stream.Position - offset);
                     return (int)DialogTopic_FieldIndex.Name;
                 }
                 case RecordTypeInts.PNAM:
                 {
-                    _PriorityLocation = (stream.Position - offset);
+                    _payload.Fields.PriorityLocation = (stream.Position - offset);
                     return (int)DialogTopic_FieldIndex.Priority;
                 }
                 case RecordTypeInts.BNAM:
                 {
-                    _BranchLocation = (stream.Position - offset);
+                    _payload.Fields.BranchLocation = (stream.Position - offset);
                     return (int)DialogTopic_FieldIndex.Branch;
                 }
                 case RecordTypeInts.QNAM:
                 {
-                    _QuestLocation = (stream.Position - offset);
+                    _payload.Fields.QuestLocation = (stream.Position - offset);
                     return (int)DialogTopic_FieldIndex.Quest;
                 }
                 case RecordTypeInts.KNAM:
                 {
-                    _KeywordLocation = (stream.Position - offset);
+                    _payload.Fields.KeywordLocation = (stream.Position - offset);
                     return (int)DialogTopic_FieldIndex.Keyword;
                 }
                 case RecordTypeInts.ANAM:
                 {
-                    _AffinityEventLocation = (stream.Position - offset);
+                    _payload.Fields.AffinityEventLocation = (stream.Position - offset);
                     return (int)DialogTopic_FieldIndex.AffinityEvent;
                 }
                 case RecordTypeInts.DATA:
                 {
-                    _DATALocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.DATALocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     return (int)DialogTopic_FieldIndex.Subtype;
                 }
                 case RecordTypeInts.SNAM:
                 {
-                    _SubtypeNameLocation = (stream.Position - offset);
+                    _payload.Fields.SubtypeNameLocation = (stream.Position - offset);
                     return (int)DialogTopic_FieldIndex.SubtypeName;
                 }
                 case RecordTypeInts.TIFL:
                 {
-                    this.TopicInfoList = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<IDialogResponsesGetter>>(
+                    _payload.Fields.TopicInfoList = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<IDialogResponsesGetter>>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,

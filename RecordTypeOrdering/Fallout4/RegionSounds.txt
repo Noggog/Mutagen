@@ -1,0 +1,6 @@
+RecordTypes.ICON,
+RecordTypes.MICO,
+RecordTypes.RDMO,
+RecordTypes.RDSA,
+RecordTypes.RLDM,
+RecordTypes.ANAM,

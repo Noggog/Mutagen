@@ -36,6 +36,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -3048,13 +3049,11 @@ namespace Mutagen.Bethesda.Fallout4
 
 
         #region ObjectBounds
-        private RangeInt32? _ObjectBoundsLocation;
-        private IObjectBoundsGetter? _ObjectBounds => _ObjectBoundsLocation.HasValue ? ObjectBoundsBinaryOverlay.ObjectBoundsFactory(_recordData.Slice(_ObjectBoundsLocation!.Value.Min), _package) : default;
+        private IObjectBoundsGetter? _ObjectBounds => Payload.ObjectBoundsLocation.HasValue ? ObjectBoundsBinaryOverlay.ObjectBoundsFactory(_recordData.Slice(Payload.ObjectBoundsLocation!.Value.Min), _package) : default;
         public IObjectBoundsGetter ObjectBounds => _ObjectBounds ?? new ObjectBounds();
         #endregion
         #region Name
-        private int? _NameLocation;
-        public ITranslatedStringGetter? Name => _NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+        public ITranslatedStringGetter? Name => Payload.NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
         #region Aspects
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         string INamedRequiredGetter.Name => this.Name?.String ?? string.Empty;
@@ -3064,117 +3063,130 @@ namespace Mutagen.Bethesda.Fallout4
         ITranslatedStringGetter ITranslatedNamedRequiredGetter.Name => this.Name ?? TranslatedString.Empty;
         #endregion
         #endregion
-        public IModelGetter? Model { get; private set; }
-        #region ObjectEffect
-        private int? _ObjectEffectLocation;
-        public IFormLinkNullableGetter<IObjectEffectGetter> ObjectEffect => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IObjectEffectGetter>(_package, _recordData, _ObjectEffectLocation);
-        #endregion
-        #region ImageSpaceModifier
-        private int? _ImageSpaceModifierLocation;
-        public IFormLinkNullableGetter<IImageSpaceAdapterGetter> ImageSpaceModifier => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IImageSpaceAdapterGetter>(_package, _recordData, _ImageSpaceModifierLocation);
-        #endregion
-        private RangeInt32? _DATALocation;
+        public IModelGetter? Model => Payload.Model;
+        public IFormLinkNullableGetter<IObjectEffectGetter> ObjectEffect => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IObjectEffectGetter>(_package, _recordData, Payload.ObjectEffectLocation);
+        public IFormLinkNullableGetter<IImageSpaceAdapterGetter> ImageSpaceModifier => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IImageSpaceAdapterGetter>(_package, _recordData, Payload.ImageSpaceModifierLocation);
         #region Light
-        private int _LightLocation => _DATALocation!.Value.Min;
-        private bool _Light_IsSet => _DATALocation.HasValue;
+        private int _LightLocation => Payload.DATALocation!.Value.Min;
+        private bool _Light_IsSet => Payload.DATALocation.HasValue;
         public IFormLinkGetter<ILightGetter> Light => _Light_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<ILightGetter>(_package, _recordData.Span.Slice(_LightLocation, 0x4), isSet: _Light_IsSet) : FormLink<ILightGetter>.Null;
         #endregion
         #region Sound1
-        private int _Sound1Location => _DATALocation!.Value.Min + 0x4;
-        private bool _Sound1_IsSet => _DATALocation.HasValue;
+        private int _Sound1Location => Payload.DATALocation!.Value.Min + 0x4;
+        private bool _Sound1_IsSet => Payload.DATALocation.HasValue;
         public IFormLinkGetter<ISoundDescriptorGetter> Sound1 => _Sound1_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<ISoundDescriptorGetter>(_package, _recordData.Span.Slice(_Sound1Location, 0x4), isSet: _Sound1_IsSet) : FormLink<ISoundDescriptorGetter>.Null;
         #endregion
         #region Sound2
-        private int _Sound2Location => _DATALocation!.Value.Min + 0x8;
-        private bool _Sound2_IsSet => _DATALocation.HasValue;
+        private int _Sound2Location => Payload.DATALocation!.Value.Min + 0x8;
+        private bool _Sound2_IsSet => Payload.DATALocation.HasValue;
         public IFormLinkGetter<ISoundDescriptorGetter> Sound2 => _Sound2_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<ISoundDescriptorGetter>(_package, _recordData.Span.Slice(_Sound2Location, 0x4), isSet: _Sound2_IsSet) : FormLink<ISoundDescriptorGetter>.Null;
         #endregion
         #region ImpactDataSet
-        private int _ImpactDataSetLocation => _DATALocation!.Value.Min + 0xC;
-        private bool _ImpactDataSet_IsSet => _DATALocation.HasValue;
+        private int _ImpactDataSetLocation => Payload.DATALocation!.Value.Min + 0xC;
+        private bool _ImpactDataSet_IsSet => Payload.DATALocation.HasValue;
         public IFormLinkGetter<IImpactDataSetGetter> ImpactDataSet => _ImpactDataSet_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IImpactDataSetGetter>(_package, _recordData.Span.Slice(_ImpactDataSetLocation, 0x4), isSet: _ImpactDataSet_IsSet) : FormLink<IImpactDataSetGetter>.Null;
         #endregion
         #region PlacedObject
-        private int _PlacedObjectLocation => _DATALocation!.Value.Min + 0x10;
-        private bool _PlacedObject_IsSet => _DATALocation.HasValue;
+        private int _PlacedObjectLocation => Payload.DATALocation!.Value.Min + 0x10;
+        private bool _PlacedObject_IsSet => Payload.DATALocation.HasValue;
         public IFormLinkGetter<IExplodeSpawnGetter> PlacedObject => _PlacedObject_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IExplodeSpawnGetter>(_package, _recordData.Span.Slice(_PlacedObjectLocation, 0x4), isSet: _PlacedObject_IsSet) : FormLink<IExplodeSpawnGetter>.Null;
         #endregion
         #region SpawnProjectile
-        private int _SpawnProjectileLocation => _DATALocation!.Value.Min + 0x14;
-        private bool _SpawnProjectile_IsSet => _DATALocation.HasValue;
+        private int _SpawnProjectileLocation => Payload.DATALocation!.Value.Min + 0x14;
+        private bool _SpawnProjectile_IsSet => Payload.DATALocation.HasValue;
         public IFormLinkGetter<IProjectileGetter> SpawnProjectile => _SpawnProjectile_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IProjectileGetter>(_package, _recordData.Span.Slice(_SpawnProjectileLocation, 0x4), isSet: _SpawnProjectile_IsSet) : FormLink<IProjectileGetter>.Null;
         #endregion
         #region Force
-        private int _ForceLocation => _DATALocation!.Value.Min + 0x18;
-        private bool _Force_IsSet => _DATALocation.HasValue;
+        private int _ForceLocation => Payload.DATALocation!.Value.Min + 0x18;
+        private bool _Force_IsSet => Payload.DATALocation.HasValue;
         public Single Force => _Force_IsSet ? _recordData.Slice(_ForceLocation, 4).Float() : default(Single);
         #endregion
         #region Damage
-        private int _DamageLocation => _DATALocation!.Value.Min + 0x1C;
-        private bool _Damage_IsSet => _DATALocation.HasValue;
+        private int _DamageLocation => Payload.DATALocation!.Value.Min + 0x1C;
+        private bool _Damage_IsSet => Payload.DATALocation.HasValue;
         public Single Damage => _Damage_IsSet ? _recordData.Slice(_DamageLocation, 4).Float() : default(Single);
         #endregion
         #region InnerRadius
-        private int _InnerRadiusLocation => _DATALocation!.Value.Min + 0x20;
-        private bool _InnerRadius_IsSet => _DATALocation.HasValue && _package.FormVersion!.FormVersion!.Value >= 97;
+        private int _InnerRadiusLocation => Payload.DATALocation!.Value.Min + 0x20;
+        private bool _InnerRadius_IsSet => Payload.DATALocation.HasValue && _package.FormVersion!.FormVersion!.Value >= 97;
         public Single InnerRadius => _InnerRadius_IsSet ? _recordData.Slice(_InnerRadiusLocation, 4).Float() : default(Single);
         int InnerRadiusVersioningOffset => _package.FormVersion!.FormVersion!.Value < 97 ? -4 : 0;
         #endregion
         #region OuterRadius
-        private int _OuterRadiusLocation => _DATALocation!.Value.Min + InnerRadiusVersioningOffset + 0x24;
-        private bool _OuterRadius_IsSet => _DATALocation.HasValue;
+        private int _OuterRadiusLocation => Payload.DATALocation!.Value.Min + InnerRadiusVersioningOffset + 0x24;
+        private bool _OuterRadius_IsSet => Payload.DATALocation.HasValue;
         public Single OuterRadius => _OuterRadius_IsSet ? _recordData.Slice(_OuterRadiusLocation, 4).Float() : default(Single);
         #endregion
         #region ISRadius
-        private int _ISRadiusLocation => _DATALocation!.Value.Min + InnerRadiusVersioningOffset + 0x28;
-        private bool _ISRadius_IsSet => _DATALocation.HasValue;
+        private int _ISRadiusLocation => Payload.DATALocation!.Value.Min + InnerRadiusVersioningOffset + 0x28;
+        private bool _ISRadius_IsSet => Payload.DATALocation.HasValue;
         public Single ISRadius => _ISRadius_IsSet ? _recordData.Slice(_ISRadiusLocation, 4).Float() : default(Single);
         #endregion
         #region VerticalOffsetMult
-        private int _VerticalOffsetMultLocation => _DATALocation!.Value.Min + InnerRadiusVersioningOffset + 0x2C;
-        private bool _VerticalOffsetMult_IsSet => _DATALocation.HasValue;
+        private int _VerticalOffsetMultLocation => Payload.DATALocation!.Value.Min + InnerRadiusVersioningOffset + 0x2C;
+        private bool _VerticalOffsetMult_IsSet => Payload.DATALocation.HasValue;
         public Single VerticalOffsetMult => _VerticalOffsetMult_IsSet ? _recordData.Slice(_VerticalOffsetMultLocation, 4).Float() : default(Single);
         #endregion
         #region Flags
-        private int _FlagsLocation => _DATALocation!.Value.Min + InnerRadiusVersioningOffset + 0x30;
-        private bool _Flags_IsSet => _DATALocation.HasValue;
+        private int _FlagsLocation => Payload.DATALocation!.Value.Min + InnerRadiusVersioningOffset + 0x30;
+        private bool _Flags_IsSet => Payload.DATALocation.HasValue;
         public Explosion.Flag Flags => _Flags_IsSet ? (Explosion.Flag)BinaryPrimitives.ReadInt32LittleEndian(_recordData.Span.Slice(_FlagsLocation, 0x4)) : default;
         #endregion
         #region SoundLevel
-        private int _SoundLevelLocation => _DATALocation!.Value.Min + InnerRadiusVersioningOffset + 0x34;
-        private bool _SoundLevel_IsSet => _DATALocation.HasValue;
+        private int _SoundLevelLocation => Payload.DATALocation!.Value.Min + InnerRadiusVersioningOffset + 0x34;
+        private bool _SoundLevel_IsSet => Payload.DATALocation.HasValue;
         public SoundLevel SoundLevel => _SoundLevel_IsSet ? (SoundLevel)BinaryPrimitives.ReadInt32LittleEndian(_recordData.Span.Slice(_SoundLevelLocation, 0x4)) : default;
         #endregion
         #region PlacedObjectAutoFadeDelay
-        private int _PlacedObjectAutoFadeDelayLocation => _DATALocation!.Value.Min + InnerRadiusVersioningOffset + 0x38;
-        private bool _PlacedObjectAutoFadeDelay_IsSet => _DATALocation.HasValue && _package.FormVersion!.FormVersion!.Value >= 70;
+        private int _PlacedObjectAutoFadeDelayLocation => Payload.DATALocation!.Value.Min + InnerRadiusVersioningOffset + 0x38;
+        private bool _PlacedObjectAutoFadeDelay_IsSet => Payload.DATALocation.HasValue && _package.FormVersion!.FormVersion!.Value >= 70;
         public Single PlacedObjectAutoFadeDelay => _PlacedObjectAutoFadeDelay_IsSet ? _recordData.Slice(_PlacedObjectAutoFadeDelayLocation, 4).Float() : default(Single);
         int PlacedObjectAutoFadeDelayVersioningOffset => InnerRadiusVersioningOffset + (_package.FormVersion!.FormVersion!.Value < 70 ? -4 : 0);
         #endregion
         #region Stagger
-        private int _StaggerLocation => _DATALocation!.Value.Min + PlacedObjectAutoFadeDelayVersioningOffset + 0x3C;
-        private bool _Stagger_IsSet => _DATALocation.HasValue && _package.FormVersion!.FormVersion!.Value >= 91;
+        private int _StaggerLocation => Payload.DATALocation!.Value.Min + PlacedObjectAutoFadeDelayVersioningOffset + 0x3C;
+        private bool _Stagger_IsSet => Payload.DATALocation.HasValue && _package.FormVersion!.FormVersion!.Value >= 91;
         public Explosion.StaggerAmount Stagger => _Stagger_IsSet ? (Explosion.StaggerAmount)BinaryPrimitives.ReadInt32LittleEndian(_recordData.Span.Slice(_StaggerLocation, 0x4)) : default;
         int StaggerVersioningOffset => PlacedObjectAutoFadeDelayVersioningOffset + (_package.FormVersion!.FormVersion!.Value < 91 ? -4 : 0);
         #endregion
         #region SpawnPosition
-        private int _SpawnPositionLocation => _DATALocation!.Value.Min + StaggerVersioningOffset + 0x40;
-        private bool _SpawnPosition_IsSet => _DATALocation.HasValue && _package.FormVersion!.FormVersion!.Value >= 112;
+        private int _SpawnPositionLocation => Payload.DATALocation!.Value.Min + StaggerVersioningOffset + 0x40;
+        private bool _SpawnPosition_IsSet => Payload.DATALocation.HasValue && _package.FormVersion!.FormVersion!.Value >= 112;
         public P3Float SpawnPosition => _SpawnPosition_IsSet ? P3FloatBinaryTranslation<MutagenFrame, MutagenWriter>.Instance.Read(_recordData.Slice(_SpawnPositionLocation, 12)) : default(P3Float);
         int SpawnPositionVersioningOffset => StaggerVersioningOffset + (_package.FormVersion!.FormVersion!.Value < 112 ? -12 : 0);
         #endregion
         #region SpawnSpreadDegrees
-        private int _SpawnSpreadDegreesLocation => _DATALocation!.Value.Min + SpawnPositionVersioningOffset + 0x4C;
-        private bool _SpawnSpreadDegrees_IsSet => _DATALocation.HasValue && _package.FormVersion!.FormVersion!.Value >= 112;
+        private int _SpawnSpreadDegreesLocation => Payload.DATALocation!.Value.Min + SpawnPositionVersioningOffset + 0x4C;
+        private bool _SpawnSpreadDegrees_IsSet => Payload.DATALocation.HasValue && _package.FormVersion!.FormVersion!.Value >= 112;
         public Single SpawnSpreadDegrees => _SpawnSpreadDegrees_IsSet ? _recordData.Slice(_SpawnSpreadDegreesLocation, 4).Float() : default(Single);
         int SpawnSpreadDegreesVersioningOffset => SpawnPositionVersioningOffset + (_package.FormVersion!.FormVersion!.Value < 112 ? -4 : 0);
         #endregion
         #region SpawnCount
-        private int _SpawnCountLocation => _DATALocation!.Value.Min + SpawnSpreadDegreesVersioningOffset + 0x50;
-        private bool _SpawnCount_IsSet => _DATALocation.HasValue && _package.FormVersion!.FormVersion!.Value >= 112;
+        private int _SpawnCountLocation => Payload.DATALocation!.Value.Min + SpawnSpreadDegreesVersioningOffset + 0x50;
+        private bool _SpawnCount_IsSet => Payload.DATALocation.HasValue && _package.FormVersion!.FormVersion!.Value >= 112;
         public UInt32 SpawnCount => _SpawnCount_IsSet ? BinaryPrimitives.ReadUInt32LittleEndian(_recordData.Slice(_SpawnCountLocation, 4)) : default(UInt32);
         int SpawnCountVersioningOffset => SpawnSpreadDegreesVersioningOffset + (_package.FormVersion!.FormVersion!.Value < 112 ? -4 : 0);
         #endregion
+
+        internal partial class ExplosionRecordDataPayload
+        {
+            public RangeInt32? ObjectBoundsLocation;
+            public int? NameLocation;
+            public IModelGetter? Model;
+            public int? ObjectEffectLocation;
+            public int? ImageSpaceModifierLocation;
+            public RangeInt32? DATALocation;
+        }
+
+        private LazyPayload<ExplosionRecordDataPayload> _payload = null!;
+
+        internal ExplosionRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<ExplosionRecordDataPayload>(init, new ExplosionRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -3182,10 +3194,10 @@ namespace Mutagen.Bethesda.Fallout4
 
         partial void CustomCtor();
         protected ExplosionBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -3196,28 +3208,51 @@ namespace Mutagen.Bethesda.Fallout4
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new ExplosionBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -3246,12 +3281,12 @@ namespace Mutagen.Bethesda.Fallout4
             {
                 case RecordTypeInts.OBND:
                 {
-                    _ObjectBoundsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.ObjectBoundsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)Explosion_FieldIndex.ObjectBounds;
                 }
                 case RecordTypeInts.FULL:
                 {
-                    _NameLocation = (stream.Position - offset);
+                    _payload.Fields.NameLocation = (stream.Position - offset);
                     return (int)Explosion_FieldIndex.Name;
                 }
                 case RecordTypeInts.MODL:
@@ -3259,7 +3294,7 @@ namespace Mutagen.Bethesda.Fallout4
                 case RecordTypeInts.MODT:
                 case RecordTypeInts.MODS:
                 {
-                    this.Model = ModelBinaryOverlay.ModelFactory(
+                    _payload.Fields.Model = ModelBinaryOverlay.ModelFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());
@@ -3267,17 +3302,17 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.EITM:
                 {
-                    _ObjectEffectLocation = (stream.Position - offset);
+                    _payload.Fields.ObjectEffectLocation = (stream.Position - offset);
                     return (int)Explosion_FieldIndex.ObjectEffect;
                 }
                 case RecordTypeInts.MNAM:
                 {
-                    _ImageSpaceModifierLocation = (stream.Position - offset);
+                    _payload.Fields.ImageSpaceModifierLocation = (stream.Position - offset);
                     return (int)Explosion_FieldIndex.ImageSpaceModifier;
                 }
                 case RecordTypeInts.DATA:
                 {
-                    _DATALocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.DATALocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     return (int)Explosion_FieldIndex.SpawnCount;
                 }
                 default:

@@ -11,7 +11,7 @@ public class TypicalRecordProtocolAdder
         new ProtocolGeneration(
             gen,
             new ProtocolKey(name),
-            new DirectoryInfo($"../../../../Mutagen.Bethesda.{name}/Records"))
+            new DirectoryInfo($"./Mutagen.Bethesda.{name}/Records"))
         {
             DefaultNamespace = $"Mutagen.Bethesda.{name}",
         });

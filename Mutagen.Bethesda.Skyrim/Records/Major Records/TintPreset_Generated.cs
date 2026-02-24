@@ -1234,11 +1234,25 @@ namespace Mutagen.Bethesda.Skyrim
         #endregion
         #region DefaultValue
         private int? _DefaultValueLocation;
-        public Single? DefaultValue => _DefaultValueLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _DefaultValueLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public Single? DefaultValue
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _DefaultValueLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_data, _DefaultValueLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+            }
+        }
         #endregion
         #region Index
         private int? _IndexLocation;
-        public UInt16? Index => _IndexLocation.HasValue ? BinaryPrimitives.ReadUInt16LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _IndexLocation.Value, _package.MetaData.Constants)) : default(UInt16?);
+        public UInt16? Index
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _IndexLocation.HasValue ? BinaryPrimitives.ReadUInt16LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _IndexLocation.Value, _package.MetaData.Constants)) : default(UInt16?);
+            }
+        }
         #endregion
         partial void CustomFactoryEnd(
             OverlayStream stream,

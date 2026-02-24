@@ -1347,15 +1347,36 @@ namespace Mutagen.Bethesda.Starfield
 
         #region Description
         private int? _DescriptionLocation;
-        public ITranslatedStringGetter? Description => _DescriptionLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _DescriptionLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+        public ITranslatedStringGetter? Description
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _DescriptionLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_data, _DescriptionLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+            }
+        }
         #endregion
         #region SettingValue
         private int? _SettingValueLocation;
-        public Single? SettingValue => _SettingValueLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _SettingValueLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public Single? SettingValue
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _SettingValueLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_data, _SettingValueLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+            }
+        }
         #endregion
         #region Name
         private int? _NameLocation;
-        public ITranslatedStringGetter? Name => _NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+        public ITranslatedStringGetter? Name
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_data, _NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+            }
+        }
         #region Aspects
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         string INamedRequiredGetter.Name => this.Name?.String ?? string.Empty;
@@ -1367,7 +1388,14 @@ namespace Mutagen.Bethesda.Starfield
         #endregion
         #region RewardValue
         private int? _RewardValueLocation;
-        public Single? RewardValue => _RewardValueLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _RewardValueLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public Single? RewardValue
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _RewardValueLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_data, _RewardValueLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+            }
+        }
         #endregion
         partial void CustomFactoryEnd(
             OverlayStream stream,

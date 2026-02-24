@@ -38,6 +38,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -6757,14 +6758,11 @@ namespace Mutagen.Bethesda.Starfield
         public Quest.MajorFlag MajorFlags => (Quest.MajorFlag)this.MajorRecordFlagsRaw;
 
         #region VirtualMachineAdapter
-        private int? _VirtualMachineAdapterLengthOverride;
-        private RangeInt32? _VirtualMachineAdapterLocation;
-        public IQuestAdapterGetter? VirtualMachineAdapter => _VirtualMachineAdapterLocation.HasValue ? QuestAdapterBinaryOverlay.QuestAdapterFactory(_recordData.Slice(_VirtualMachineAdapterLocation!.Value.Min), _package, TypedParseParams.FromLengthOverride(_VirtualMachineAdapterLengthOverride)) : default;
+        public IQuestAdapterGetter? VirtualMachineAdapter => Payload.VirtualMachineAdapterLocation.HasValue ? QuestAdapterBinaryOverlay.QuestAdapterFactory(_recordData.Slice(Payload.VirtualMachineAdapterLocation!.Value.Min), _package, TypedParseParams.FromLengthOverride(Payload.VirtualMachineAdapterLengthOverride)) : default;
         IAVirtualMachineAdapterGetter? IHaveVirtualMachineAdapterGetter.VirtualMachineAdapter => this.VirtualMachineAdapter;
         #endregion
         #region Name
-        private int? _NameLocation;
-        public ITranslatedStringGetter? Name => _NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+        public ITranslatedStringGetter? Name => Payload.NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
         #region Aspects
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         string INamedRequiredGetter.Name => this.Name?.String ?? string.Empty;
@@ -6774,45 +6772,18 @@ namespace Mutagen.Bethesda.Starfield
         ITranslatedStringGetter ITranslatedNamedRequiredGetter.Name => this.Name ?? TranslatedString.Empty;
         #endregion
         #endregion
-        public IReadOnlyList<IAComponentGetter> Components { get; private set; } = [];
-        #region Data
-        private RangeInt32? _DataLocation;
-        public IQuestDataGetter? Data => _DataLocation.HasValue ? QuestDataBinaryOverlay.QuestDataFactory(_recordData.Slice(_DataLocation!.Value.Min), _package) : default;
-        #endregion
-        #region QuestType
-        private int? _QuestTypeLocation;
-        public IFormLinkNullableGetter<IKeywordGetter> QuestType => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IKeywordGetter>(_package, _recordData, _QuestTypeLocation);
-        #endregion
-        #region QuestFaction
-        private int? _QuestFactionLocation;
-        public IFormLinkNullableGetter<IKeywordGetter> QuestFaction => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IKeywordGetter>(_package, _recordData, _QuestFactionLocation);
-        #endregion
-        #region Event
-        private int? _EventLocation;
-        public RecordType? Event => _EventLocation.HasValue ? new RecordType(BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _EventLocation.Value, _package.MetaData.Constants))) : default(RecordType?);
-        #endregion
-        #region Location
-        private int? _LocationLocation;
-        public IFormLinkNullableGetter<ILocationGetter> Location => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ILocationGetter>(_package, _recordData, _LocationLocation);
-        #endregion
-        #region QuestTimeLimit
-        private int? _QuestTimeLimitLocation;
-        public IFormLinkNullableGetter<IGlobalGetter> QuestTimeLimit => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IGlobalGetter>(_package, _recordData, _QuestTimeLimitLocation);
-        #endregion
-        #region SourceQuest
-        private int? _SourceQuestLocation;
-        public IFormLinkNullableGetter<IQuestGetter> SourceQuest => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IQuestGetter>(_package, _recordData, _SourceQuestLocation);
-        #endregion
-        public IReadOnlyList<IFormLinkGetter<IDialogResponsesGetter>>? QDUPs { get; private set; }
-        public IReadOnlyList<IFormLinkGetter<IGlobalGetter>> TextDisplayGlobals { get; private set; } = [];
-        #region Filter
-        private int? _FilterLocation;
-        public String? Filter => _FilterLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _FilterLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
-        #region Summary
-        private int? _SummaryLocation;
-        public String? Summary => _SummaryLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _SummaryLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
+        public IReadOnlyList<IAComponentGetter> Components => Payload.Components ?? [];
+        public IQuestDataGetter? Data => Payload.DataLocation.HasValue ? QuestDataBinaryOverlay.QuestDataFactory(_recordData.Slice(Payload.DataLocation!.Value.Min), _package) : default;
+        public IFormLinkNullableGetter<IKeywordGetter> QuestType => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IKeywordGetter>(_package, _recordData, Payload.QuestTypeLocation);
+        public IFormLinkNullableGetter<IKeywordGetter> QuestFaction => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IKeywordGetter>(_package, _recordData, Payload.QuestFactionLocation);
+        public RecordType? Event => Payload.EventLocation.HasValue ? new RecordType(BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.EventLocation.Value, _package.MetaData.Constants))) : default(RecordType?);
+        public IFormLinkNullableGetter<ILocationGetter> Location => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ILocationGetter>(_package, _recordData, Payload.LocationLocation);
+        public IFormLinkNullableGetter<IGlobalGetter> QuestTimeLimit => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IGlobalGetter>(_package, _recordData, Payload.QuestTimeLimitLocation);
+        public IFormLinkNullableGetter<IQuestGetter> SourceQuest => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IQuestGetter>(_package, _recordData, Payload.SourceQuestLocation);
+        public IReadOnlyList<IFormLinkGetter<IDialogResponsesGetter>>? QDUPs => Payload.QDUPs;
+        public IReadOnlyList<IFormLinkGetter<IGlobalGetter>> TextDisplayGlobals => Payload.TextDisplayGlobals ?? [];
+        public String? Filter => Payload.FilterLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.FilterLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? Summary => Payload.SummaryLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.SummaryLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
         #region DialogConditions
         partial void DialogConditionsCustomParse(
             OverlayStream stream,
@@ -6827,39 +6798,62 @@ namespace Mutagen.Bethesda.Starfield
             int offset,
             PreviousParse lastParsed);
         #endregion
-        public IReadOnlyList<IQuestStageGetter> Stages { get; private set; } = [];
-        public IReadOnlyList<IQuestObjectiveGetter> Objectives { get; private set; } = [];
+        public IReadOnlyList<IQuestStageGetter> Stages => Payload.Stages ?? [];
+        public IReadOnlyList<IQuestObjectiveGetter> Objectives => Payload.Objectives ?? [];
         #region AliasParse
         public partial ParseResult AliasParseCustomParse(
             OverlayStream stream,
             int offset,
             PreviousParse lastParsed);
         #endregion
-        #region QuestGroup
-        private int? _QuestGroupLocation;
-        public IFormLinkNullableGetter<IKeywordGetter> QuestGroup => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IKeywordGetter>(_package, _recordData, _QuestGroupLocation);
-        #endregion
-        #region SwfFile
-        private int? _SwfFileLocation;
-        public String? SwfFile => _SwfFileLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _SwfFileLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
-        #region MissionTypeKeyword
-        private int? _MissionTypeKeywordLocation;
-        public IFormLinkNullableGetter<IKeywordGetter> MissionTypeKeyword => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IKeywordGetter>(_package, _recordData, _MissionTypeKeywordLocation);
-        #endregion
-        #region MissionBoardDescription
-        private int? _MissionBoardDescriptionLocation;
-        public ITranslatedStringGetter? MissionBoardDescription => _MissionBoardDescriptionLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _MissionBoardDescriptionLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
-        #endregion
-        public IReadOnlyList<IQuestMissionBoardPanelGetter> MissionBoardInfoPanels { get; private set; } = [];
+        public IFormLinkNullableGetter<IKeywordGetter> QuestGroup => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IKeywordGetter>(_package, _recordData, Payload.QuestGroupLocation);
+        public String? SwfFile => Payload.SwfFileLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.SwfFileLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public IFormLinkNullableGetter<IKeywordGetter> MissionTypeKeyword => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IKeywordGetter>(_package, _recordData, Payload.MissionTypeKeywordLocation);
+        public ITranslatedStringGetter? MissionBoardDescription => Payload.MissionBoardDescriptionLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.MissionBoardDescriptionLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+        public IReadOnlyList<IQuestMissionBoardPanelGetter> MissionBoardInfoPanels => Payload.MissionBoardInfoPanels ?? [];
         #region Keywords
-        public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? Keywords { get; private set; }
+        public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? Keywords => Payload.Keywords;
         IReadOnlyList<IFormLinkGetter<IKeywordCommonGetter>>? IKeywordedGetter.Keywords => this.Keywords;
         #endregion
-        #region ScriptComment
-        private int? _ScriptCommentLocation;
-        public String? ScriptComment => _ScriptCommentLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _ScriptCommentLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
+        public String? ScriptComment => Payload.ScriptCommentLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.ScriptCommentLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+
+        internal partial class QuestRecordDataPayload
+        {
+            public int? VirtualMachineAdapterLengthOverride;
+            public RangeInt32? VirtualMachineAdapterLocation;
+            public int? NameLocation;
+            public IReadOnlyList<IAComponentGetter> Components = [];
+            public RangeInt32? DataLocation;
+            public int? QuestTypeLocation;
+            public int? QuestFactionLocation;
+            public int? EventLocation;
+            public int? LocationLocation;
+            public int? QuestTimeLimitLocation;
+            public int? SourceQuestLocation;
+            public IReadOnlyList<IFormLinkGetter<IDialogResponsesGetter>>? QDUPs;
+            public IReadOnlyList<IFormLinkGetter<IGlobalGetter>> TextDisplayGlobals = [];
+            public int? FilterLocation;
+            public int? SummaryLocation;
+            public IReadOnlyList<IQuestStageGetter> Stages = [];
+            public IReadOnlyList<IQuestObjectiveGetter> Objectives = [];
+            public int? QuestGroupLocation;
+            public int? SwfFileLocation;
+            public int? MissionTypeKeywordLocation;
+            public int? MissionBoardDescriptionLocation;
+            public IReadOnlyList<IQuestMissionBoardPanelGetter> MissionBoardInfoPanels = [];
+            public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? Keywords;
+            public int? ScriptCommentLocation;
+        }
+
+        private LazyPayload<QuestRecordDataPayload> _payload = null!;
+
+        internal QuestRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<QuestRecordDataPayload>(init, new QuestRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -6867,10 +6861,10 @@ namespace Mutagen.Bethesda.Starfield
 
         partial void CustomCtor();
         protected QuestBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -6882,28 +6876,51 @@ namespace Mutagen.Bethesda.Starfield
             TypedParseParams translationParams = default)
         {
             var origStream = stream;
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new QuestBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             ret.ParseSubgroupsLogic(
                 stream: origStream,
                 finalPos: stream.Length,
@@ -6936,8 +6953,8 @@ namespace Mutagen.Bethesda.Starfield
             {
                 case RecordTypeInts.VMAD:
                 {
-                    _VirtualMachineAdapterLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
-                    _VirtualMachineAdapterLengthOverride = lastParsed.LengthOverride;
+                    _payload.Fields.VirtualMachineAdapterLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.VirtualMachineAdapterLengthOverride = lastParsed.LengthOverride;
                     if (lastParsed.LengthOverride.HasValue)
                     {
                         stream.Position += lastParsed.LengthOverride.Value;
@@ -6946,12 +6963,12 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.FULL:
                 {
-                    _NameLocation = (stream.Position - offset);
+                    _payload.Fields.NameLocation = (stream.Position - offset);
                     return (int)Quest_FieldIndex.Name;
                 }
                 case RecordTypeInts.BFCB:
                 {
-                    this.Components = this.ParseRepeatedTypelessSubrecord<IAComponentGetter>(
+                    _payload.Fields.Components = this.ParseRepeatedTypelessSubrecord<IAComponentGetter>(
                         stream: stream,
                         translationParams: translationParams,
                         trigger: AComponent_Registration.TriggerSpecs,
@@ -6960,42 +6977,42 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.DNAM:
                 {
-                    _DataLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.DataLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)Quest_FieldIndex.Data;
                 }
                 case RecordTypeInts.QTYP:
                 {
-                    _QuestTypeLocation = (stream.Position - offset);
+                    _payload.Fields.QuestTypeLocation = (stream.Position - offset);
                     return (int)Quest_FieldIndex.QuestType;
                 }
                 case RecordTypeInts.FTYP:
                 {
-                    _QuestFactionLocation = (stream.Position - offset);
+                    _payload.Fields.QuestFactionLocation = (stream.Position - offset);
                     return (int)Quest_FieldIndex.QuestFaction;
                 }
                 case RecordTypeInts.ENAM:
                 {
-                    _EventLocation = (stream.Position - offset);
+                    _payload.Fields.EventLocation = (stream.Position - offset);
                     return (int)Quest_FieldIndex.Event;
                 }
                 case RecordTypeInts.LNAM:
                 {
-                    _LocationLocation = (stream.Position - offset);
+                    _payload.Fields.LocationLocation = (stream.Position - offset);
                     return (int)Quest_FieldIndex.Location;
                 }
                 case RecordTypeInts.QTLM:
                 {
-                    _QuestTimeLimitLocation = (stream.Position - offset);
+                    _payload.Fields.QuestTimeLimitLocation = (stream.Position - offset);
                     return (int)Quest_FieldIndex.QuestTimeLimit;
                 }
                 case RecordTypeInts.QSRC:
                 {
-                    _SourceQuestLocation = (stream.Position - offset);
+                    _payload.Fields.SourceQuestLocation = (stream.Position - offset);
                     return (int)Quest_FieldIndex.SourceQuest;
                 }
                 case RecordTypeInts.QDUP:
                 {
-                    this.QDUPs = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<IDialogResponsesGetter>>(
+                    _payload.Fields.QDUPs = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<IDialogResponsesGetter>>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -7005,7 +7022,7 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.QTGL:
                 {
-                    this.TextDisplayGlobals = BinaryOverlayList.FactoryByArray<IFormLinkGetter<IGlobalGetter>>(
+                    _payload.Fields.TextDisplayGlobals = BinaryOverlayList.FactoryByArray<IFormLinkGetter<IGlobalGetter>>(
                         mem: stream.RemainingMemory,
                         package: _package,
                         getter: (s, p) => FormLinkBinaryTranslation.Instance.OverlayFactory<IGlobalGetter>(p, s),
@@ -7019,12 +7036,12 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.FLTR:
                 {
-                    _FilterLocation = (stream.Position - offset);
+                    _payload.Fields.FilterLocation = (stream.Position - offset);
                     return (int)Quest_FieldIndex.Filter;
                 }
                 case RecordTypeInts.NAM3:
                 {
-                    _SummaryLocation = (stream.Position - offset);
+                    _payload.Fields.SummaryLocation = (stream.Position - offset);
                     return (int)Quest_FieldIndex.Summary;
                 }
                 case RecordTypeInts.CTDA:
@@ -7046,7 +7063,7 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.INDX:
                 {
-                    this.Stages = this.ParseRepeatedTypelessSubrecord<IQuestStageGetter>(
+                    _payload.Fields.Stages = this.ParseRepeatedTypelessSubrecord<IQuestStageGetter>(
                         stream: stream,
                         translationParams: translationParams,
                         trigger: QuestStage_Registration.TriggerSpecs,
@@ -7055,7 +7072,7 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.QOBJ:
                 {
-                    this.Objectives = this.ParseRepeatedTypelessSubrecord<IQuestObjectiveGetter>(
+                    _payload.Fields.Objectives = this.ParseRepeatedTypelessSubrecord<IQuestObjectiveGetter>(
                         stream: stream,
                         translationParams: translationParams,
                         trigger: QuestObjective_Registration.TriggerSpecs,
@@ -7075,29 +7092,29 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.GNAM:
                 {
-                    _QuestGroupLocation = (stream.Position - offset);
+                    _payload.Fields.QuestGroupLocation = (stream.Position - offset);
                     return (int)Quest_FieldIndex.QuestGroup;
                 }
                 case RecordTypeInts.SNAM:
                 {
-                    _SwfFileLocation = (stream.Position - offset);
+                    _payload.Fields.SwfFileLocation = (stream.Position - offset);
                     return (int)Quest_FieldIndex.SwfFile;
                 }
                 case RecordTypeInts.QMTY:
                 {
-                    _MissionTypeKeywordLocation = (stream.Position - offset);
+                    _payload.Fields.MissionTypeKeywordLocation = (stream.Position - offset);
                     return (int)Quest_FieldIndex.MissionTypeKeyword;
                 }
                 case RecordTypeInts.QMSU:
                 {
-                    _MissionBoardDescriptionLocation = (stream.Position - offset);
+                    _payload.Fields.MissionBoardDescriptionLocation = (stream.Position - offset);
                     return (int)Quest_FieldIndex.MissionBoardDescription;
                 }
                 case RecordTypeInts.QMDT:
                 case RecordTypeInts.QMDP:
                 case RecordTypeInts.QMDS:
                 {
-                    this.MissionBoardInfoPanels = this.ParseRepeatedTypelessSubrecord<IQuestMissionBoardPanelGetter>(
+                    _payload.Fields.MissionBoardInfoPanels = this.ParseRepeatedTypelessSubrecord<IQuestMissionBoardPanelGetter>(
                         stream: stream,
                         translationParams: translationParams,
                         trigger: QuestMissionBoardPanel_Registration.TriggerSpecs,
@@ -7107,7 +7124,7 @@ namespace Mutagen.Bethesda.Starfield
                 case RecordTypeInts.KSIZ:
                 case RecordTypeInts.KWDA:
                 {
-                    this.Keywords = BinaryOverlayList.FactoryByCount<IFormLinkGetter<IKeywordGetter>>(
+                    _payload.Fields.Keywords = BinaryOverlayList.FactoryByCount<IFormLinkGetter<IKeywordGetter>>(
                         stream: stream,
                         package: _package,
                         itemLength: 0x4,
@@ -7119,7 +7136,7 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.SCCM:
                 {
-                    _ScriptCommentLocation = (stream.Position - offset);
+                    _payload.Fields.ScriptCommentLocation = (stream.Position - offset);
                     return (int)Quest_FieldIndex.ScriptComment;
                 }
                 case RecordTypeInts.XXXX:

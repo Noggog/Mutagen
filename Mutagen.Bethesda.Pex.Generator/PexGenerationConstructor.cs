@@ -16,7 +16,7 @@ public class PexGenerationConstructor : IGenerationConstructor
         gen.AddTypicalTypeAssociations();
         gen.Add(gen.MaskModule);
 
-        var dir = new DirectoryInfo("../../../../Mutagen.Bethesda.Core/Pex/DataTypes");
+        var dir = new DirectoryInfo("./Mutagen.Bethesda.Core/Pex/DataTypes");
         var pexProto = gen.AddProtocol(
             new ProtocolGeneration(
                 gen,

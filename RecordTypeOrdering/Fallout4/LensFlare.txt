@@ -1,0 +1,6 @@
+RecordTypes.EDID,
+RecordTypes.CNAM,
+RecordTypes.DNAM,
+RecordTypes.LFSP,
+RecordTypes.FNAM,
+RecordTypes.LFSD,

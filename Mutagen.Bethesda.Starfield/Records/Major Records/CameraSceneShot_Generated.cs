@@ -1987,7 +1987,14 @@ namespace Mutagen.Bethesda.Starfield
         #endregion
         #region ALLA
         private int? _ALLALocation;
-        public Int32 ALLA => _ALLALocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _ALLALocation.Value, _package.MetaData.Constants)) : default(Int32);
+        public Int32 ALLA
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _ALLALocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _ALLALocation.Value, _package.MetaData.Constants)) : default(Int32);
+            }
+        }
         #endregion
         #region REPL
         private int? _REPLLocation;
@@ -1995,39 +2002,102 @@ namespace Mutagen.Bethesda.Starfield
         #endregion
         #region HNAM
         private int? _HNAMLocation;
-        public Int32 HNAM => _HNAMLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _HNAMLocation.Value, _package.MetaData.Constants)) : default(Int32);
+        public Int32 HNAM
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _HNAMLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _HNAMLocation.Value, _package.MetaData.Constants)) : default(Int32);
+            }
+        }
         #endregion
         #region VCLR
         private int? _VCLRLocation;
-        public Int32 VCLR => _VCLRLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _VCLRLocation.Value, _package.MetaData.Constants)) : default(Int32);
+        public Int32 VCLR
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _VCLRLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _VCLRLocation.Value, _package.MetaData.Constants)) : default(Int32);
+            }
+        }
         #endregion
         #region LVCR
         private int? _LVCRLocation;
-        public Int32 LVCR => _LVCRLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _LVCRLocation.Value, _package.MetaData.Constants)) : default(Int32);
+        public Int32 LVCR
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _LVCRLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _LVCRLocation.Value, _package.MetaData.Constants)) : default(Int32);
+            }
+        }
         #endregion
         #region BTXT
         private int? _BTXTLocation;
-        public Boolean BTXT => _BTXTLocation.HasValue ? true : default(Boolean);
+        public Boolean BTXT
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _BTXTLocation.HasValue ? true : default(Boolean);
+            }
+        }
         #endregion
         #region ATXT
         private int? _ATXTLocation;
-        public Boolean ATXT => _ATXTLocation.HasValue ? true : default(Boolean);
+        public Boolean ATXT
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _ATXTLocation.HasValue ? true : default(Boolean);
+            }
+        }
         #endregion
         #region VTXT
         private int? _VTXTLocation;
-        public Boolean VTXT => _VTXTLocation.HasValue ? true : default(Boolean);
+        public Boolean VTXT
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _VTXTLocation.HasValue ? true : default(Boolean);
+            }
+        }
         #endregion
         #region AIDT
         private int? _AIDTLocation;
-        public Boolean AIDT => _AIDTLocation.HasValue ? true : default(Boolean);
+        public Boolean AIDT
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _AIDTLocation.HasValue ? true : default(Boolean);
+            }
+        }
         #endregion
         #region MPCD
         private int? _MPCDLocation;
-        public Boolean MPCD => _MPCDLocation.HasValue ? true : default(Boolean);
+        public Boolean MPCD
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _MPCDLocation.HasValue ? true : default(Boolean);
+            }
+        }
         #endregion
         #region VNAM
         private int? _VNAMLocation;
-        public Boolean VNAM => _VNAMLocation.HasValue ? true : default(Boolean);
+        public Boolean VNAM
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _VNAMLocation.HasValue ? true : default(Boolean);
+            }
+        }
         #endregion
         public IReadOnlyList<IConditionGetter> Conditions { get; private set; } = [];
         partial void CustomFactoryEnd(

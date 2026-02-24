@@ -38,6 +38,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -12669,36 +12670,20 @@ namespace Mutagen.Bethesda.Starfield
         public Weapon.MajorFlag MajorFlags => (Weapon.MajorFlag)this.MajorRecordFlagsRaw;
 
         #region VirtualMachineAdapter
-        private int? _VirtualMachineAdapterLengthOverride;
-        private RangeInt32? _VirtualMachineAdapterLocation;
-        public IVirtualMachineAdapterGetter? VirtualMachineAdapter => _VirtualMachineAdapterLocation.HasValue ? VirtualMachineAdapterBinaryOverlay.VirtualMachineAdapterFactory(_recordData.Slice(_VirtualMachineAdapterLocation!.Value.Min), _package, TypedParseParams.FromLengthOverride(_VirtualMachineAdapterLengthOverride)) : default;
+        public IVirtualMachineAdapterGetter? VirtualMachineAdapter => Payload.VirtualMachineAdapterLocation.HasValue ? VirtualMachineAdapterBinaryOverlay.VirtualMachineAdapterFactory(_recordData.Slice(Payload.VirtualMachineAdapterLocation!.Value.Min), _package, TypedParseParams.FromLengthOverride(Payload.VirtualMachineAdapterLengthOverride)) : default;
         IAVirtualMachineAdapterGetter? IHaveVirtualMachineAdapterGetter.VirtualMachineAdapter => this.VirtualMachineAdapter;
         #endregion
         #region ObjectBounds
-        private RangeInt32? _ObjectBoundsLocation;
-        private IObjectBoundsGetter? _ObjectBounds => _ObjectBoundsLocation.HasValue ? ObjectBoundsBinaryOverlay.ObjectBoundsFactory(_recordData.Slice(_ObjectBoundsLocation!.Value.Min), _package) : default;
+        private IObjectBoundsGetter? _ObjectBounds => Payload.ObjectBoundsLocation.HasValue ? ObjectBoundsBinaryOverlay.ObjectBoundsFactory(_recordData.Slice(Payload.ObjectBoundsLocation!.Value.Min), _package) : default;
         public IObjectBoundsGetter ObjectBounds => _ObjectBounds ?? new ObjectBounds();
         #endregion
-        #region DirtinessScale
-        private int? _DirtinessScaleLocation;
-        public Percent DirtinessScale => _DirtinessScaleLocation.HasValue ? PercentBinaryTranslation.GetPercent(HeaderTranslation.ExtractSubrecordMemory(_recordData, _DirtinessScaleLocation.Value, _package.MetaData.Constants), FloatIntegerType.UInt) : default(Percent);
-        #endregion
-        #region ObjectPaletteDefaults
-        private RangeInt32? _ObjectPaletteDefaultsLocation;
-        public IObjectPaletteDefaultsGetter? ObjectPaletteDefaults => _ObjectPaletteDefaultsLocation.HasValue ? ObjectPaletteDefaultsBinaryOverlay.ObjectPaletteDefaultsFactory(_recordData.Slice(_ObjectPaletteDefaultsLocation!.Value.Min), _package) : default;
-        #endregion
-        #region Transforms
-        private RangeInt32? _TransformsLocation;
-        public ITransformsGetter? Transforms => _TransformsLocation.HasValue ? TransformsBinaryOverlay.TransformsFactory(_recordData.Slice(_TransformsLocation!.Value.Min), _package) : default;
-        #endregion
-        #region XALG
-        private int? _XALGLocation;
-        public UInt64? XALG => _XALGLocation.HasValue ? BinaryPrimitives.ReadUInt64LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _XALGLocation.Value, _package.MetaData.Constants)) : default(UInt64?);
-        #endregion
-        public IReadOnlyList<IAComponentGetter> Components { get; private set; } = [];
+        public Percent DirtinessScale => Payload.DirtinessScaleLocation.HasValue ? PercentBinaryTranslation.GetPercent(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.DirtinessScaleLocation.Value, _package.MetaData.Constants), FloatIntegerType.UInt) : default(Percent);
+        public IObjectPaletteDefaultsGetter? ObjectPaletteDefaults => Payload.ObjectPaletteDefaultsLocation.HasValue ? ObjectPaletteDefaultsBinaryOverlay.ObjectPaletteDefaultsFactory(_recordData.Slice(Payload.ObjectPaletteDefaultsLocation!.Value.Min), _package) : default;
+        public ITransformsGetter? Transforms => Payload.TransformsLocation.HasValue ? TransformsBinaryOverlay.TransformsFactory(_recordData.Slice(Payload.TransformsLocation!.Value.Min), _package) : default;
+        public UInt64? XALG => Payload.XALGLocation.HasValue ? BinaryPrimitives.ReadUInt64LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.XALGLocation.Value, _package.MetaData.Constants)) : default(UInt64?);
+        public IReadOnlyList<IAComponentGetter> Components => Payload.Components ?? [];
         #region Name
-        private int? _NameLocation;
-        public ITranslatedStringGetter? Name => _NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+        public ITranslatedStringGetter? Name => Payload.NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
         #region Aspects
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         string INamedRequiredGetter.Name => this.Name?.String ?? string.Empty;
@@ -12708,755 +12693,760 @@ namespace Mutagen.Bethesda.Starfield
         ITranslatedStringGetter ITranslatedNamedRequiredGetter.Name => this.Name ?? TranslatedString.Empty;
         #endregion
         #endregion
-        public IModelGetter? Model { get; private set; }
-        #region ObjectEffect
-        private int? _ObjectEffectLocation;
-        public IFormLinkNullableGetter<IObjectEffectGetter> ObjectEffect => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IObjectEffectGetter>(_package, _recordData, _ObjectEffectLocation);
-        #endregion
-        #region EnchantmentAmount
-        private int? _EnchantmentAmountLocation;
-        public UInt16? EnchantmentAmount => _EnchantmentAmountLocation.HasValue ? BinaryPrimitives.ReadUInt16LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _EnchantmentAmountLocation.Value, _package.MetaData.Constants)) : default(UInt16?);
-        #endregion
-        #region EquipmentType
-        private int? _EquipmentTypeLocation;
-        public IFormLinkNullableGetter<IEquipTypeGetter> EquipmentType => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IEquipTypeGetter>(_package, _recordData, _EquipmentTypeLocation);
-        #endregion
-        #region BlockBashImpactDataSet
-        private int? _BlockBashImpactDataSetLocation;
-        public IFormLinkNullableGetter<IImpactDataSetGetter> BlockBashImpactDataSet => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IImpactDataSetGetter>(_package, _recordData, _BlockBashImpactDataSetLocation);
-        #endregion
-        #region AlternateBlockMaterial
-        private int? _AlternateBlockMaterialLocation;
-        public IFormLinkNullableGetter<IMaterialTypeGetter> AlternateBlockMaterial => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IMaterialTypeGetter>(_package, _recordData, _AlternateBlockMaterialLocation);
-        #endregion
-        public ISoundReferenceGetter? PickupSound { get; private set; }
-        public ISoundReferenceGetter? DropdownSound { get; private set; }
+        public IModelGetter? Model => Payload.Model;
+        public IFormLinkNullableGetter<IObjectEffectGetter> ObjectEffect => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IObjectEffectGetter>(_package, _recordData, Payload.ObjectEffectLocation);
+        public UInt16? EnchantmentAmount => Payload.EnchantmentAmountLocation.HasValue ? BinaryPrimitives.ReadUInt16LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.EnchantmentAmountLocation.Value, _package.MetaData.Constants)) : default(UInt16?);
+        public IFormLinkNullableGetter<IEquipTypeGetter> EquipmentType => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IEquipTypeGetter>(_package, _recordData, Payload.EquipmentTypeLocation);
+        public IFormLinkNullableGetter<IImpactDataSetGetter> BlockBashImpactDataSet => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IImpactDataSetGetter>(_package, _recordData, Payload.BlockBashImpactDataSetLocation);
+        public IFormLinkNullableGetter<IMaterialTypeGetter> AlternateBlockMaterial => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IMaterialTypeGetter>(_package, _recordData, Payload.AlternateBlockMaterialLocation);
+        public ISoundReferenceGetter? PickupSound => Payload.PickupSound;
+        public ISoundReferenceGetter? DropdownSound => Payload.DropdownSound;
         #region Keywords
-        public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? Keywords { get; private set; }
+        public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? Keywords => Payload.Keywords;
         IReadOnlyList<IFormLinkGetter<IKeywordCommonGetter>>? IKeywordedGetter.Keywords => this.Keywords;
         #endregion
-        #region Description
-        private int? _DescriptionLocation;
-        public ITranslatedStringGetter? Description => _DescriptionLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _DescriptionLocation.Value, _package.MetaData.Constants), StringsSource.DL, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
-        #endregion
-        #region InstanceNaming
-        private int? _InstanceNamingLocation;
-        public IFormLinkNullableGetter<IInstanceNamingRulesGetter> InstanceNaming => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IInstanceNamingRulesGetter>(_package, _recordData, _InstanceNamingLocation);
-        #endregion
-        public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? AttachParentSlots { get; private set; }
-        public IReadOnlyList<IObjectTemplateGetter<Weapon.Property>>? ObjectTemplates { get; private set; }
-        #region EmbeddedWeaponMod
-        private int? _EmbeddedWeaponModLocation;
-        public IFormLinkNullableGetter<IAObjectModificationGetter> EmbeddedWeaponMod => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IAObjectModificationGetter>(_package, _recordData, _EmbeddedWeaponModLocation);
-        #endregion
-        #region BNAM
-        private int? _BNAMLocation;
-        public ReadOnlyMemorySlice<Byte>? BNAM => _BNAMLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _BNAMLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
-        #endregion
-        private RangeInt32? _WAIMLocation;
+        public ITranslatedStringGetter? Description => Payload.DescriptionLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.DescriptionLocation.Value, _package.MetaData.Constants), StringsSource.DL, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+        public IFormLinkNullableGetter<IInstanceNamingRulesGetter> InstanceNaming => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IInstanceNamingRulesGetter>(_package, _recordData, Payload.InstanceNamingLocation);
+        public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? AttachParentSlots => Payload.AttachParentSlots;
+        public IReadOnlyList<IObjectTemplateGetter<Weapon.Property>>? ObjectTemplates => Payload.ObjectTemplates;
+        public IFormLinkNullableGetter<IAObjectModificationGetter> EmbeddedWeaponMod => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IAObjectModificationGetter>(_package, _recordData, Payload.EmbeddedWeaponModLocation);
+        public ReadOnlyMemorySlice<Byte>? BNAM => Payload.BNAMLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.BNAMLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
         #region SightedTransitionSeconds
-        private int _SightedTransitionSecondsLocation => _WAIMLocation!.Value.Min;
-        private bool _SightedTransitionSeconds_IsSet => _WAIMLocation.HasValue;
+        private int _SightedTransitionSecondsLocation => Payload.WAIMLocation!.Value.Min;
+        private bool _SightedTransitionSeconds_IsSet => Payload.WAIMLocation.HasValue;
         public Single SightedTransitionSeconds => _SightedTransitionSeconds_IsSet ? _recordData.Slice(_SightedTransitionSecondsLocation, 4).Float() : default(Single);
         #endregion
         #region AimDownSightTemplate
-        private int _AimDownSightTemplateLocation => _WAIMLocation!.Value.Min + 0x4;
-        private bool _AimDownSightTemplate_IsSet => _WAIMLocation.HasValue;
+        private int _AimDownSightTemplateLocation => Payload.WAIMLocation!.Value.Min + 0x4;
+        private bool _AimDownSightTemplate_IsSet => Payload.WAIMLocation.HasValue;
         public IFormLinkGetter<IZoomGetter> AimDownSightTemplate => _AimDownSightTemplate_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IZoomGetter>(_package, _recordData.Span.Slice(_AimDownSightTemplateLocation, 0x4), isSet: _AimDownSightTemplate_IsSet) : FormLink<IZoomGetter>.Null;
         #endregion
         #region AimModel
-        private int _AimModelLocation => _WAIMLocation!.Value.Min + 0x8;
-        private bool _AimModel_IsSet => _WAIMLocation.HasValue;
+        private int _AimModelLocation => Payload.WAIMLocation!.Value.Min + 0x8;
+        private bool _AimModel_IsSet => Payload.WAIMLocation.HasValue;
         public IFormLinkGetter<IAimModelGetter> AimModel => _AimModel_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IAimModelGetter>(_package, _recordData.Span.Slice(_AimModelLocation, 0x4), isSet: _AimModel_IsSet) : FormLink<IAimModelGetter>.Null;
         #endregion
         #region AccuracyBonus
-        private int _AccuracyBonusLocation => _WAIMLocation!.Value.Min + 0xC;
-        private bool _AccuracyBonus_IsSet => _WAIMLocation.HasValue;
+        private int _AccuracyBonusLocation => Payload.WAIMLocation!.Value.Min + 0xC;
+        private bool _AccuracyBonus_IsSet => Payload.WAIMLocation.HasValue;
         public Byte AccuracyBonus => _AccuracyBonus_IsSet ? _recordData.Span[_AccuracyBonusLocation] : default;
         #endregion
         #region HasScope
-        private int _HasScopeLocation => _WAIMLocation!.Value.Min + 0xD;
-        private bool _HasScope_IsSet => _WAIMLocation.HasValue;
+        private int _HasScopeLocation => Payload.WAIMLocation!.Value.Min + 0xD;
+        private bool _HasScope_IsSet => Payload.WAIMLocation.HasValue;
         public Boolean HasScope => _HasScope_IsSet ? _recordData.Slice(_HasScopeLocation, 1)[0] >= 1 : default(Boolean);
         #endregion
         #region AimAssistTemplate
-        private int _AimAssistTemplateLocation => _WAIMLocation!.Value.Min + 0xE;
-        private bool _AimAssistTemplate_IsSet => _WAIMLocation.HasValue;
+        private int _AimAssistTemplateLocation => Payload.WAIMLocation!.Value.Min + 0xE;
+        private bool _AimAssistTemplate_IsSet => Payload.WAIMLocation.HasValue;
         public IFormLinkGetter<IAimAssistModelGetter> AimAssistTemplate => _AimAssistTemplate_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IAimAssistModelGetter>(_package, _recordData.Span.Slice(_AimAssistTemplateLocation, 0x4), isSet: _AimAssistTemplate_IsSet) : FormLink<IAimAssistModelGetter>.Null;
         #endregion
         #region AimOpticalSightModel
-        private int _AimOpticalSightModelLocation => _WAIMLocation!.Value.Min + 0x12;
-        private bool _AimOpticalSightModel_IsSet => _WAIMLocation.HasValue;
+        private int _AimOpticalSightModelLocation => Payload.WAIMLocation!.Value.Min + 0x12;
+        private bool _AimOpticalSightModel_IsSet => Payload.WAIMLocation.HasValue;
         public IFormLinkGetter<IAimOpticalSightMarkerGetter> AimOpticalSightModel => _AimOpticalSightModel_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IAimOpticalSightMarkerGetter>(_package, _recordData.Span.Slice(_AimOpticalSightModelLocation, 0x4), isSet: _AimOpticalSightModel_IsSet) : FormLink<IAimOpticalSightMarkerGetter>.Null;
         #endregion
         #region MeleeAimAssistModel
-        private int _MeleeAimAssistModelLocation => _WAIMLocation!.Value.Min + 0x16;
-        private bool _MeleeAimAssistModel_IsSet => _WAIMLocation.HasValue;
+        private int _MeleeAimAssistModelLocation => Payload.WAIMLocation!.Value.Min + 0x16;
+        private bool _MeleeAimAssistModel_IsSet => Payload.WAIMLocation.HasValue;
         public IFormLinkGetter<IMeleeAimAssistModelGetter> MeleeAimAssistModel => _MeleeAimAssistModel_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IMeleeAimAssistModelGetter>(_package, _recordData.Span.Slice(_MeleeAimAssistModelLocation, 0x4), isSet: _MeleeAimAssistModel_IsSet) : FormLink<IMeleeAimAssistModelGetter>.Null;
         #endregion
         #region WAIMUnknown1
-        private int _WAIMUnknown1Location => _WAIMLocation!.Value.Min + 0x1A;
-        private bool _WAIMUnknown1_IsSet => _WAIMLocation.HasValue;
+        private int _WAIMUnknown1Location => Payload.WAIMLocation!.Value.Min + 0x1A;
+        private bool _WAIMUnknown1_IsSet => Payload.WAIMLocation.HasValue;
         public Byte WAIMUnknown1 => _WAIMUnknown1_IsSet ? _recordData.Span[_WAIMUnknown1Location] : default;
         #endregion
         #region WAIMUnknown2
-        private int _WAIMUnknown2Location => _WAIMLocation!.Value.Min + 0x1B;
-        private bool _WAIMUnknown2_IsSet => _WAIMLocation.HasValue;
+        private int _WAIMUnknown2Location => Payload.WAIMLocation!.Value.Min + 0x1B;
+        private bool _WAIMUnknown2_IsSet => Payload.WAIMLocation.HasValue;
         public Byte WAIMUnknown2 => _WAIMUnknown2_IsSet ? _recordData.Span[_WAIMUnknown2Location] : default;
         #endregion
         #region EnableMarkingTargets
-        private int _EnableMarkingTargetsLocation => _WAIMLocation!.Value.Min + 0x1C;
-        private bool _EnableMarkingTargets_IsSet => _WAIMLocation.HasValue;
+        private int _EnableMarkingTargetsLocation => Payload.WAIMLocation!.Value.Min + 0x1C;
+        private bool _EnableMarkingTargets_IsSet => Payload.WAIMLocation.HasValue;
         public Boolean EnableMarkingTargets => _EnableMarkingTargets_IsSet ? _recordData.Slice(_EnableMarkingTargetsLocation, 1)[0] >= 1 : default(Boolean);
         #endregion
         #region ReticleType
-        private int _ReticleTypeLocation => _WAIMLocation!.Value.Min + 0x1D;
-        private bool _ReticleType_IsSet => _WAIMLocation.HasValue;
+        private int _ReticleTypeLocation => Payload.WAIMLocation!.Value.Min + 0x1D;
+        private bool _ReticleType_IsSet => Payload.WAIMLocation.HasValue;
         public UInt32 ReticleType => _ReticleType_IsSet ? BinaryPrimitives.ReadUInt32LittleEndian(_recordData.Slice(_ReticleTypeLocation, 4)) : default(UInt32);
         #endregion
         #region WAIMUnknown3
-        private int _WAIMUnknown3Location => _WAIMLocation!.Value.Min + 0x21;
-        private bool _WAIMUnknown3_IsSet => _WAIMLocation.HasValue;
+        private int _WAIMUnknown3Location => Payload.WAIMLocation!.Value.Min + 0x21;
+        private bool _WAIMUnknown3_IsSet => Payload.WAIMLocation.HasValue;
         public Byte WAIMUnknown3 => _WAIMUnknown3_IsSet ? _recordData.Span[_WAIMUnknown3Location] : default;
         #endregion
         #region WAIMUnknown4
-        private int _WAIMUnknown4Location => _WAIMLocation!.Value.Min + 0x22;
-        private bool _WAIMUnknown4_IsSet => _WAIMLocation.HasValue;
+        private int _WAIMUnknown4Location => Payload.WAIMLocation!.Value.Min + 0x22;
+        private bool _WAIMUnknown4_IsSet => Payload.WAIMLocation.HasValue;
         public Byte WAIMUnknown4 => _WAIMUnknown4_IsSet ? _recordData.Span[_WAIMUnknown4Location] : default;
         #endregion
-        private RangeInt32? _WAM2Location;
         #region AmmoType
-        private int _AmmoTypeLocation => _WAM2Location!.Value.Min;
-        private bool _AmmoType_IsSet => _WAM2Location.HasValue;
+        private int _AmmoTypeLocation => Payload.WAM2Location!.Value.Min;
+        private bool _AmmoType_IsSet => Payload.WAM2Location.HasValue;
         public IFormLinkGetter<IAmmunitionGetter> AmmoType => _AmmoType_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IAmmunitionGetter>(_package, _recordData.Span.Slice(_AmmoTypeLocation, 0x4), isSet: _AmmoType_IsSet) : FormLink<IAmmunitionGetter>.Null;
         #endregion
         #region AmmoCapacity
-        private int _AmmoCapacityLocation => _WAM2Location!.Value.Min + 0x4;
-        private bool _AmmoCapacity_IsSet => _WAM2Location.HasValue;
+        private int _AmmoCapacityLocation => Payload.WAM2Location!.Value.Min + 0x4;
+        private bool _AmmoCapacity_IsSet => Payload.WAM2Location.HasValue;
         public UInt32 AmmoCapacity => _AmmoCapacity_IsSet ? BinaryPrimitives.ReadUInt32LittleEndian(_recordData.Slice(_AmmoCapacityLocation, 4)) : default(UInt32);
         #endregion
         #region AmmoList
-        private int _AmmoListLocation => _WAM2Location!.Value.Min + 0x8;
-        private bool _AmmoList_IsSet => _WAM2Location.HasValue;
+        private int _AmmoListLocation => Payload.WAM2Location!.Value.Min + 0x8;
+        private bool _AmmoList_IsSet => Payload.WAM2Location.HasValue;
         public IFormLinkGetter<ILeveledItemGetter> AmmoList => _AmmoList_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<ILeveledItemGetter>(_package, _recordData.Span.Slice(_AmmoListLocation, 0x4), isSet: _AmmoList_IsSet) : FormLink<ILeveledItemGetter>.Null;
         #endregion
         #region OverrideProjectile
-        private int _OverrideProjectileLocation => _WAM2Location!.Value.Min + 0xC;
-        private bool _OverrideProjectile_IsSet => _WAM2Location.HasValue;
+        private int _OverrideProjectileLocation => Payload.WAM2Location!.Value.Min + 0xC;
+        private bool _OverrideProjectile_IsSet => Payload.WAM2Location.HasValue;
         public IFormLinkGetter<IProjectileGetter> OverrideProjectile => _OverrideProjectile_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IProjectileGetter>(_package, _recordData.Span.Slice(_OverrideProjectileLocation, 0x4), isSet: _OverrideProjectile_IsSet) : FormLink<IProjectileGetter>.Null;
         #endregion
         #region OverrideShellCasing
-        private int _OverrideShellCasingLocation => _WAM2Location!.Value.Min + 0x10;
-        private bool _OverrideShellCasing_IsSet => _WAM2Location.HasValue;
+        private int _OverrideShellCasingLocation => Payload.WAM2Location!.Value.Min + 0x10;
+        private bool _OverrideShellCasing_IsSet => Payload.WAM2Location.HasValue;
         public IFormLinkGetter<IArtObjectGetter> OverrideShellCasing => _OverrideShellCasing_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IArtObjectGetter>(_package, _recordData.Span.Slice(_OverrideShellCasingLocation, 0x4), isSet: _OverrideShellCasing_IsSet) : FormLink<IArtObjectGetter>.Null;
         #endregion
         #region ProjectilesCount
-        private int _ProjectilesCountLocation => _WAM2Location!.Value.Min + 0x14;
-        private bool _ProjectilesCount_IsSet => _WAM2Location.HasValue;
+        private int _ProjectilesCountLocation => Payload.WAM2Location!.Value.Min + 0x14;
+        private bool _ProjectilesCount_IsSet => Payload.WAM2Location.HasValue;
         public Byte ProjectilesCount => _ProjectilesCount_IsSet ? _recordData.Span[_ProjectilesCountLocation] : default;
         #endregion
         #region NpcsUseAmmo
-        private int _NpcsUseAmmoLocation => _WAM2Location!.Value.Min + 0x15;
-        private bool _NpcsUseAmmo_IsSet => _WAM2Location.HasValue;
+        private int _NpcsUseAmmoLocation => Payload.WAM2Location!.Value.Min + 0x15;
+        private bool _NpcsUseAmmo_IsSet => Payload.WAM2Location.HasValue;
         public Boolean NpcsUseAmmo => _NpcsUseAmmo_IsSet ? _recordData.Slice(_NpcsUseAmmoLocation, 1)[0] >= 1 : default(Boolean);
         #endregion
         #region WAM2Unknown1
-        private int _WAM2Unknown1Location => _WAM2Location!.Value.Min + 0x16;
-        private bool _WAM2Unknown1_IsSet => _WAM2Location.HasValue;
+        private int _WAM2Unknown1Location => Payload.WAM2Location!.Value.Min + 0x16;
+        private bool _WAM2Unknown1_IsSet => Payload.WAM2Location.HasValue;
         public Byte WAM2Unknown1 => _WAM2Unknown1_IsSet ? _recordData.Span[_WAM2Unknown1Location] : default;
         #endregion
-        #region WAMM
-        private int? _WAMMLocation;
-        public ReadOnlyMemorySlice<Byte>? WAMM => _WAMMLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _WAMMLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
-        #endregion
-        private RangeInt32? _WAUDLocation;
+        public ReadOnlyMemorySlice<Byte>? WAMM => Payload.WAMMLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.WAMMLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
         #region MeleeOrCreature
-        private int _MeleeOrCreatureLocation => _WAUDLocation!.Value.Min;
-        private bool _MeleeOrCreature_IsSet => _WAUDLocation.HasValue;
+        private int _MeleeOrCreatureLocation => Payload.WAUDLocation!.Value.Min;
+        private bool _MeleeOrCreature_IsSet => Payload.WAUDLocation.HasValue;
         private ISoundReferenceGetter? _MeleeOrCreature => _MeleeOrCreature_IsSet ? SoundReferenceBinaryOverlay.SoundReferenceFactory(_recordData.Slice(_MeleeOrCreatureLocation), _package) : default;
         public ISoundReferenceGetter MeleeOrCreature => _MeleeOrCreature ?? new SoundReference();
         #endregion
         #region PrimedExplosive
-        private int _PrimedExplosiveLocation => _WAUDLocation!.Value.Min + 0x28;
-        private bool _PrimedExplosive_IsSet => _WAUDLocation.HasValue;
+        private int _PrimedExplosiveLocation => Payload.WAUDLocation!.Value.Min + 0x28;
+        private bool _PrimedExplosive_IsSet => Payload.WAUDLocation.HasValue;
         private ISoundReferenceGetter? _PrimedExplosive => _PrimedExplosive_IsSet ? SoundReferenceBinaryOverlay.SoundReferenceFactory(_recordData.Slice(_PrimedExplosiveLocation), _package) : default;
         public ISoundReferenceGetter PrimedExplosive => _PrimedExplosive ?? new SoundReference();
         #endregion
         #region DryFire
-        private int _DryFireLocation => _WAUDLocation!.Value.Min + 0x50;
-        private bool _DryFire_IsSet => _WAUDLocation.HasValue;
+        private int _DryFireLocation => Payload.WAUDLocation!.Value.Min + 0x50;
+        private bool _DryFire_IsSet => Payload.WAUDLocation.HasValue;
         private ISoundReferenceGetter? _DryFire => _DryFire_IsSet ? SoundReferenceBinaryOverlay.SoundReferenceFactory(_recordData.Slice(_DryFireLocation), _package) : default;
         public ISoundReferenceGetter DryFire => _DryFire ?? new SoundReference();
         #endregion
         #region Idle
-        private int _IdleLocation => _WAUDLocation!.Value.Min + 0x78;
-        private bool _Idle_IsSet => _WAUDLocation.HasValue;
+        private int _IdleLocation => Payload.WAUDLocation!.Value.Min + 0x78;
+        private bool _Idle_IsSet => Payload.WAUDLocation.HasValue;
         private ISoundReferenceGetter? _Idle => _Idle_IsSet ? SoundReferenceBinaryOverlay.SoundReferenceFactory(_recordData.Slice(_IdleLocation), _package) : default;
         public ISoundReferenceGetter Idle => _Idle ?? new SoundReference();
         #endregion
         #region Equip
-        private int _EquipLocation => _WAUDLocation!.Value.Min + 0xA0;
-        private bool _Equip_IsSet => _WAUDLocation.HasValue;
+        private int _EquipLocation => Payload.WAUDLocation!.Value.Min + 0xA0;
+        private bool _Equip_IsSet => Payload.WAUDLocation.HasValue;
         private ISoundReferenceGetter? _Equip => _Equip_IsSet ? SoundReferenceBinaryOverlay.SoundReferenceFactory(_recordData.Slice(_EquipLocation), _package) : default;
         public ISoundReferenceGetter Equip => _Equip ?? new SoundReference();
         #endregion
         #region Unequip
-        private int _UnequipLocation => _WAUDLocation!.Value.Min + 0xC8;
-        private bool _Unequip_IsSet => _WAUDLocation.HasValue;
+        private int _UnequipLocation => Payload.WAUDLocation!.Value.Min + 0xC8;
+        private bool _Unequip_IsSet => Payload.WAUDLocation.HasValue;
         private ISoundReferenceGetter? _Unequip => _Unequip_IsSet ? SoundReferenceBinaryOverlay.SoundReferenceFactory(_recordData.Slice(_UnequipLocation), _package) : default;
         public ISoundReferenceGetter Unequip => _Unequip ?? new SoundReference();
         #endregion
         #region FastEquip
-        private int _FastEquipLocation => _WAUDLocation!.Value.Min + 0xF0;
-        private bool _FastEquip_IsSet => _WAUDLocation.HasValue;
+        private int _FastEquipLocation => Payload.WAUDLocation!.Value.Min + 0xF0;
+        private bool _FastEquip_IsSet => Payload.WAUDLocation.HasValue;
         private ISoundReferenceGetter? _FastEquip => _FastEquip_IsSet ? SoundReferenceBinaryOverlay.SoundReferenceFactory(_recordData.Slice(_FastEquipLocation), _package) : default;
         public ISoundReferenceGetter FastEquip => _FastEquip ?? new SoundReference();
         #endregion
         #region SoundLevel
-        private int _SoundLevelLocation => _WAUDLocation!.Value.Min + 0x118;
-        private bool _SoundLevel_IsSet => _WAUDLocation.HasValue;
+        private int _SoundLevelLocation => Payload.WAUDLocation!.Value.Min + 0x118;
+        private bool _SoundLevel_IsSet => Payload.WAUDLocation.HasValue;
         public SoundLevel SoundLevel => _SoundLevel_IsSet ? (SoundLevel)BinaryPrimitives.ReadInt32LittleEndian(_recordData.Span.Slice(_SoundLevelLocation, 0x4)) : default;
         #endregion
         #region WAUDUnknown2
-        private int _WAUDUnknown2Location => _WAUDLocation!.Value.Min + 0x11C;
-        private bool _WAUDUnknown2_IsSet => _WAUDLocation.HasValue;
+        private int _WAUDUnknown2Location => Payload.WAUDLocation!.Value.Min + 0x11C;
+        private bool _WAUDUnknown2_IsSet => Payload.WAUDLocation.HasValue;
         public Int32 WAUDUnknown2 => _WAUDUnknown2_IsSet ? BinaryPrimitives.ReadInt32LittleEndian(_recordData.Slice(_WAUDUnknown2Location, 4)) : default(Int32);
         #endregion
-        #region WTUR
-        private int? _WTURLocation;
-        public ReadOnlyMemorySlice<Byte>? WTUR => _WTURLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _WTURLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
-        #endregion
-        private RangeInt32? _WCHGLocation;
+        public ReadOnlyMemorySlice<Byte>? WTUR => Payload.WTURLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.WTURLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
         #region ChargeFullPowerSeconds
-        private int _ChargeFullPowerSecondsLocation => _WCHGLocation!.Value.Min;
-        private bool _ChargeFullPowerSeconds_IsSet => _WCHGLocation.HasValue;
+        private int _ChargeFullPowerSecondsLocation => Payload.WCHGLocation!.Value.Min;
+        private bool _ChargeFullPowerSeconds_IsSet => Payload.WCHGLocation.HasValue;
         public Single ChargeFullPowerSeconds => _ChargeFullPowerSeconds_IsSet ? _recordData.Slice(_ChargeFullPowerSecondsLocation, 4).Float() : default(Single);
         #endregion
         #region ChargeMinPowerPerShot
-        private int _ChargeMinPowerPerShotLocation => _WCHGLocation!.Value.Min + 0x4;
-        private bool _ChargeMinPowerPerShot_IsSet => _WCHGLocation.HasValue;
+        private int _ChargeMinPowerPerShotLocation => Payload.WCHGLocation!.Value.Min + 0x4;
+        private bool _ChargeMinPowerPerShot_IsSet => Payload.WCHGLocation.HasValue;
         public Single ChargeMinPowerPerShot => _ChargeMinPowerPerShot_IsSet ? _recordData.Slice(_ChargeMinPowerPerShotLocation, 4).Float() : default(Single);
         #endregion
         #region ChargeCritBonus
-        private int _ChargeCritBonusLocation => _WCHGLocation!.Value.Min + 0x8;
-        private bool _ChargeCritBonus_IsSet => _WCHGLocation.HasValue;
+        private int _ChargeCritBonusLocation => Payload.WCHGLocation!.Value.Min + 0x8;
+        private bool _ChargeCritBonus_IsSet => Payload.WCHGLocation.HasValue;
         public Single ChargeCritBonus => _ChargeCritBonus_IsSet ? _recordData.Slice(_ChargeCritBonusLocation, 4).Float() : default(Single);
         #endregion
         #region ChargeHoldInput
-        private int _ChargeHoldInputLocation => _WCHGLocation!.Value.Min + 0xC;
-        private bool _ChargeHoldInput_IsSet => _WCHGLocation.HasValue;
+        private int _ChargeHoldInputLocation => Payload.WCHGLocation!.Value.Min + 0xC;
+        private bool _ChargeHoldInput_IsSet => Payload.WCHGLocation.HasValue;
         public Boolean ChargeHoldInput => _ChargeHoldInput_IsSet ? _recordData.Slice(_ChargeHoldInputLocation, 1)[0] >= 1 : default(Boolean);
         #endregion
         #region ChargingAttack
-        private int _ChargingAttackLocation => _WCHGLocation!.Value.Min + 0xD;
-        private bool _ChargingAttack_IsSet => _WCHGLocation.HasValue;
+        private int _ChargingAttackLocation => Payload.WCHGLocation!.Value.Min + 0xD;
+        private bool _ChargingAttack_IsSet => Payload.WCHGLocation.HasValue;
         public Boolean ChargingAttack => _ChargingAttack_IsSet ? _recordData.Slice(_ChargingAttackLocation, 1)[0] >= 1 : default(Boolean);
         #endregion
-        private RangeInt32? _WDMGLocation;
         #region AttackDamage
-        private int _AttackDamageLocation => _WDMGLocation!.Value.Min;
-        private bool _AttackDamage_IsSet => _WDMGLocation.HasValue;
+        private int _AttackDamageLocation => Payload.WDMGLocation!.Value.Min;
+        private bool _AttackDamage_IsSet => Payload.WDMGLocation.HasValue;
         public Single AttackDamage => _AttackDamage_IsSet ? _recordData.Slice(_AttackDamageLocation, 4).Float() : default(Single);
         #endregion
         #region MinRange
-        private int _MinRangeLocation => _WDMGLocation!.Value.Min + 0x4;
-        private bool _MinRange_IsSet => _WDMGLocation.HasValue;
+        private int _MinRangeLocation => Payload.WDMGLocation!.Value.Min + 0x4;
+        private bool _MinRange_IsSet => Payload.WDMGLocation.HasValue;
         public Single MinRange => _MinRange_IsSet ? _recordData.Slice(_MinRangeLocation, 4).Float() : default(Single);
         #endregion
         #region MaxRange
-        private int _MaxRangeLocation => _WDMGLocation!.Value.Min + 0x8;
-        private bool _MaxRange_IsSet => _WDMGLocation.HasValue;
+        private int _MaxRangeLocation => Payload.WDMGLocation!.Value.Min + 0x8;
+        private bool _MaxRange_IsSet => Payload.WDMGLocation.HasValue;
         public Single MaxRange => _MaxRange_IsSet ? _recordData.Slice(_MaxRangeLocation, 4).Float() : default(Single);
         #endregion
         #region OutOfRangeDamageMult
-        private int _OutOfRangeDamageMultLocation => _WDMGLocation!.Value.Min + 0xC;
-        private bool _OutOfRangeDamageMult_IsSet => _WDMGLocation.HasValue;
+        private int _OutOfRangeDamageMultLocation => Payload.WDMGLocation!.Value.Min + 0xC;
+        private bool _OutOfRangeDamageMult_IsSet => Payload.WDMGLocation.HasValue;
         public Single OutOfRangeDamageMult => _OutOfRangeDamageMult_IsSet ? _recordData.Slice(_OutOfRangeDamageMultLocation, 4).Float() : default(Single);
         #endregion
         #region CritDamageMult
-        private int _CritDamageMultLocation => _WDMGLocation!.Value.Min + 0x10;
-        private bool _CritDamageMult_IsSet => _WDMGLocation.HasValue;
+        private int _CritDamageMultLocation => Payload.WDMGLocation!.Value.Min + 0x10;
+        private bool _CritDamageMult_IsSet => Payload.WDMGLocation.HasValue;
         public Single CritDamageMult => _CritDamageMult_IsSet ? _recordData.Slice(_CritDamageMultLocation, 4).Float() : default(Single);
         #endregion
         #region CriticalHitSpell
-        private int _CriticalHitSpellLocation => _WDMGLocation!.Value.Min + 0x14;
-        private bool _CriticalHitSpell_IsSet => _WDMGLocation.HasValue;
+        private int _CriticalHitSpellLocation => Payload.WDMGLocation!.Value.Min + 0x14;
+        private bool _CriticalHitSpell_IsSet => Payload.WDMGLocation.HasValue;
         public IFormLinkGetter<ISpellGetter> CriticalHitSpell => _CriticalHitSpell_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<ISpellGetter>(_package, _recordData.Span.Slice(_CriticalHitSpellLocation, 0x4), isSet: _CriticalHitSpell_IsSet) : FormLink<ISpellGetter>.Null;
         #endregion
         #region CritEffectOnDeathOnly
-        private int _CritEffectOnDeathOnlyLocation => _WDMGLocation!.Value.Min + 0x18;
-        private bool _CritEffectOnDeathOnly_IsSet => _WDMGLocation.HasValue;
+        private int _CritEffectOnDeathOnlyLocation => Payload.WDMGLocation!.Value.Min + 0x18;
+        private bool _CritEffectOnDeathOnly_IsSet => Payload.WDMGLocation.HasValue;
         public Boolean CritEffectOnDeathOnly => _CritEffectOnDeathOnly_IsSet ? _recordData.Slice(_CritEffectOnDeathOnlyLocation, 1)[0] >= 1 : default(Boolean);
         #endregion
         #region HitBehavior
-        private int _HitBehaviorLocation => _WDMGLocation!.Value.Min + 0x19;
-        private bool _HitBehavior_IsSet => _WDMGLocation.HasValue;
+        private int _HitBehaviorLocation => Payload.WDMGLocation!.Value.Min + 0x19;
+        private bool _HitBehavior_IsSet => Payload.WDMGLocation.HasValue;
         public HitBehavior HitBehavior => _HitBehavior_IsSet ? (HitBehavior)_recordData.Span.Slice(_HitBehaviorLocation, 0x1)[0] : default;
         #endregion
         #region Resistance
-        private int _ResistanceLocation => _WDMGLocation!.Value.Min + 0x1A;
-        private bool _Resistance_IsSet => _WDMGLocation.HasValue;
+        private int _ResistanceLocation => Payload.WDMGLocation!.Value.Min + 0x1A;
+        private bool _Resistance_IsSet => Payload.WDMGLocation.HasValue;
         public IFormLinkGetter<IActorValueInformationGetter> Resistance => _Resistance_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IActorValueInformationGetter>(_package, _recordData.Span.Slice(_ResistanceLocation, 0x4), isSet: _Resistance_IsSet) : FormLink<IActorValueInformationGetter>.Null;
         #endregion
         #region Skill
-        private int _SkillLocation => _WDMGLocation!.Value.Min + 0x1E;
-        private bool _Skill_IsSet => _WDMGLocation.HasValue;
+        private int _SkillLocation => Payload.WDMGLocation!.Value.Min + 0x1E;
+        private bool _Skill_IsSet => Payload.WDMGLocation.HasValue;
         public IFormLinkGetter<IActorValueInformationGetter> Skill => _Skill_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IActorValueInformationGetter>(_package, _recordData.Span.Slice(_SkillLocation, 0x4), isSet: _Skill_IsSet) : FormLink<IActorValueInformationGetter>.Null;
         #endregion
         #region WDMGUnknown4
-        private int _WDMGUnknown4Location => _WDMGLocation!.Value.Min + 0x22;
-        private bool _WDMGUnknown4_IsSet => _WDMGLocation.HasValue;
+        private int _WDMGUnknown4Location => Payload.WDMGLocation!.Value.Min + 0x22;
+        private bool _WDMGUnknown4_IsSet => Payload.WDMGLocation.HasValue;
         public Single WDMGUnknown4 => _WDMGUnknown4_IsSet ? _recordData.Slice(_WDMGUnknown4Location, 4).Float() : default(Single);
         #endregion
         #region WDMGUnknown5
-        private int _WDMGUnknown5Location => _WDMGLocation!.Value.Min + 0x26;
-        private bool _WDMGUnknown5_IsSet => _WDMGLocation.HasValue;
+        private int _WDMGUnknown5Location => Payload.WDMGLocation!.Value.Min + 0x26;
+        private bool _WDMGUnknown5_IsSet => Payload.WDMGLocation.HasValue;
         public Single WDMGUnknown5 => _WDMGUnknown5_IsSet ? _recordData.Slice(_WDMGUnknown5Location, 4).Float() : default(Single);
         #endregion
         #region WDMGUnknown6
-        private int _WDMGUnknown6Location => _WDMGLocation!.Value.Min + 0x2A;
-        private bool _WDMGUnknown6_IsSet => _WDMGLocation.HasValue;
+        private int _WDMGUnknown6Location => Payload.WDMGLocation!.Value.Min + 0x2A;
+        private bool _WDMGUnknown6_IsSet => Payload.WDMGLocation.HasValue;
         public Single WDMGUnknown6 => _WDMGUnknown6_IsSet ? _recordData.Slice(_WDMGUnknown6Location, 4).Float() : default(Single);
         #endregion
         #region WDMGUnknown7
-        private int _WDMGUnknown7Location => _WDMGLocation!.Value.Min + 0x2E;
-        private bool _WDMGUnknown7_IsSet => _WDMGLocation.HasValue;
+        private int _WDMGUnknown7Location => Payload.WDMGLocation!.Value.Min + 0x2E;
+        private bool _WDMGUnknown7_IsSet => Payload.WDMGLocation.HasValue;
         public Single WDMGUnknown7 => _WDMGUnknown7_IsSet ? _recordData.Slice(_WDMGUnknown7Location, 4).Float() : default(Single);
         #endregion
         #region WDMGUnknown8
-        private int _WDMGUnknown8Location => _WDMGLocation!.Value.Min + 0x32;
-        private bool _WDMGUnknown8_IsSet => _WDMGLocation.HasValue;
+        private int _WDMGUnknown8Location => Payload.WDMGLocation!.Value.Min + 0x32;
+        private bool _WDMGUnknown8_IsSet => Payload.WDMGLocation.HasValue;
         public Single WDMGUnknown8 => _WDMGUnknown8_IsSet ? _recordData.Slice(_WDMGUnknown8Location, 4).Float() : default(Single);
         #endregion
         #region WDMGUnknown9
-        private int _WDMGUnknown9Location => _WDMGLocation!.Value.Min + 0x36;
-        private bool _WDMGUnknown9_IsSet => _WDMGLocation.HasValue;
+        private int _WDMGUnknown9Location => Payload.WDMGLocation!.Value.Min + 0x36;
+        private bool _WDMGUnknown9_IsSet => Payload.WDMGLocation.HasValue;
         public Single WDMGUnknown9 => _WDMGUnknown9_IsSet ? _recordData.Slice(_WDMGUnknown9Location, 4).Float() : default(Single);
         #endregion
         #region CritChanceIncMult
-        private int _CritChanceIncMultLocation => _WDMGLocation!.Value.Min + 0x3A;
-        private bool _CritChanceIncMult_IsSet => _WDMGLocation.HasValue;
+        private int _CritChanceIncMultLocation => Payload.WDMGLocation!.Value.Min + 0x3A;
+        private bool _CritChanceIncMult_IsSet => Payload.WDMGLocation.HasValue;
         public Single CritChanceIncMult => _CritChanceIncMult_IsSet ? _recordData.Slice(_CritChanceIncMultLocation, 4).Float() : default(Single);
         #endregion
-        public IReadOnlyList<IWeaponDamageTypeGetter>? DamageTypes { get; private set; }
-        private RangeInt32? _WFIRLocation;
+        public IReadOnlyList<IWeaponDamageTypeGetter>? DamageTypes => Payload.DamageTypes;
         #region FiringType
-        private int _FiringTypeLocation => _WFIRLocation!.Value.Min;
-        private bool _FiringType_IsSet => _WFIRLocation.HasValue;
+        private int _FiringTypeLocation => Payload.WFIRLocation!.Value.Min;
+        private bool _FiringType_IsSet => Payload.WFIRLocation.HasValue;
         public Weapon.FiringTypeEnum FiringType => _FiringType_IsSet ? (Weapon.FiringTypeEnum)_recordData.Span.Slice(_FiringTypeLocation, 0x1)[0] : default;
         #endregion
         #region BurstCount
-        private int _BurstCountLocation => _WFIRLocation!.Value.Min + 0x1;
-        private bool _BurstCount_IsSet => _WFIRLocation.HasValue;
+        private int _BurstCountLocation => Payload.WFIRLocation!.Value.Min + 0x1;
+        private bool _BurstCount_IsSet => Payload.WFIRLocation.HasValue;
         public Byte BurstCount => _BurstCount_IsSet ? _recordData.Span[_BurstCountLocation] : default;
         #endregion
         #region RepeatableFire
-        private int _RepeatableFireLocation => _WFIRLocation!.Value.Min + 0x2;
-        private bool _RepeatableFire_IsSet => _WFIRLocation.HasValue;
+        private int _RepeatableFireLocation => Payload.WFIRLocation!.Value.Min + 0x2;
+        private bool _RepeatableFire_IsSet => Payload.WFIRLocation.HasValue;
         public Boolean RepeatableFire => _RepeatableFire_IsSet ? _recordData.Slice(_RepeatableFireLocation, 1)[0] >= 1 : default(Boolean);
         #endregion
         #region AttackSeconds
-        private int _AttackSecondsLocation => _WFIRLocation!.Value.Min + 0x3;
-        private bool _AttackSeconds_IsSet => _WFIRLocation.HasValue;
+        private int _AttackSecondsLocation => Payload.WFIRLocation!.Value.Min + 0x3;
+        private bool _AttackSeconds_IsSet => Payload.WFIRLocation.HasValue;
         public Single AttackSeconds => _AttackSeconds_IsSet ? _recordData.Slice(_AttackSecondsLocation, 4).Float() : default(Single);
         #endregion
         #region FireSeconds
-        private int _FireSecondsLocation => _WFIRLocation!.Value.Min + 0x7;
-        private bool _FireSeconds_IsSet => _WFIRLocation.HasValue;
+        private int _FireSecondsLocation => Payload.WFIRLocation!.Value.Min + 0x7;
+        private bool _FireSeconds_IsSet => Payload.WFIRLocation.HasValue;
         public Single FireSeconds => _FireSeconds_IsSet ? _recordData.Slice(_FireSecondsLocation, 4).Float() : default(Single);
         #endregion
         #region AttackDelaySeconds
-        private int _AttackDelaySecondsLocation => _WFIRLocation!.Value.Min + 0xB;
-        private bool _AttackDelaySeconds_IsSet => _WFIRLocation.HasValue;
+        private int _AttackDelaySecondsLocation => Payload.WFIRLocation!.Value.Min + 0xB;
+        private bool _AttackDelaySeconds_IsSet => Payload.WFIRLocation.HasValue;
         public Single AttackDelaySeconds => _AttackDelaySeconds_IsSet ? _recordData.Slice(_AttackDelaySecondsLocation, 4).Float() : default(Single);
         #endregion
         #region BoltChargeSeconds
-        private int _BoltChargeSecondsLocation => _WFIRLocation!.Value.Min + 0xF;
-        private bool _BoltChargeSeconds_IsSet => _WFIRLocation.HasValue;
+        private int _BoltChargeSecondsLocation => Payload.WFIRLocation!.Value.Min + 0xF;
+        private bool _BoltChargeSeconds_IsSet => Payload.WFIRLocation.HasValue;
         public Single BoltChargeSeconds => _BoltChargeSeconds_IsSet ? _recordData.Slice(_BoltChargeSecondsLocation, 4).Float() : default(Single);
         #endregion
         #region BoltAction
-        private int _BoltActionLocation => _WFIRLocation!.Value.Min + 0x13;
-        private bool _BoltAction_IsSet => _WFIRLocation.HasValue;
+        private int _BoltActionLocation => Payload.WFIRLocation!.Value.Min + 0x13;
+        private bool _BoltAction_IsSet => Payload.WFIRLocation.HasValue;
         public Boolean BoltAction => _BoltAction_IsSet ? _recordData.Slice(_BoltActionLocation, 1)[0] >= 1 : default(Boolean);
         #endregion
         #region DisableShellCaseEject
-        private int _DisableShellCaseEjectLocation => _WFIRLocation!.Value.Min + 0x14;
-        private bool _DisableShellCaseEject_IsSet => _WFIRLocation.HasValue;
+        private int _DisableShellCaseEjectLocation => Payload.WFIRLocation!.Value.Min + 0x14;
+        private bool _DisableShellCaseEject_IsSet => Payload.WFIRLocation.HasValue;
         public Boolean DisableShellCaseEject => _DisableShellCaseEject_IsSet ? _recordData.Slice(_DisableShellCaseEjectLocation, 1)[0] >= 1 : default(Boolean);
         #endregion
         #region ShotsPerSecond
-        private int _ShotsPerSecondLocation => _WFIRLocation!.Value.Min + 0x15;
-        private bool _ShotsPerSecond_IsSet => _WFIRLocation.HasValue;
+        private int _ShotsPerSecondLocation => Payload.WFIRLocation!.Value.Min + 0x15;
+        private bool _ShotsPerSecond_IsSet => Payload.WFIRLocation.HasValue;
         public Single ShotsPerSecond => _ShotsPerSecond_IsSet ? _recordData.Slice(_ShotsPerSecondLocation, 4).Float() : default(Single);
         #endregion
         #region WFIRUnknown7
-        private int _WFIRUnknown7Location => _WFIRLocation!.Value.Min + 0x19;
-        private bool _WFIRUnknown7_IsSet => _WFIRLocation.HasValue;
+        private int _WFIRUnknown7Location => Payload.WFIRLocation!.Value.Min + 0x19;
+        private bool _WFIRUnknown7_IsSet => Payload.WFIRLocation.HasValue;
         public Single WFIRUnknown7 => _WFIRUnknown7_IsSet ? _recordData.Slice(_WFIRUnknown7Location, 4).Float() : default(Single);
         #endregion
         #region OverrideRateOfFire
-        private int _OverrideRateOfFireLocation => _WFIRLocation!.Value.Min + 0x1D;
-        private bool _OverrideRateOfFire_IsSet => _WFIRLocation.HasValue;
+        private int _OverrideRateOfFireLocation => Payload.WFIRLocation!.Value.Min + 0x1D;
+        private bool _OverrideRateOfFire_IsSet => Payload.WFIRLocation.HasValue;
         public Boolean OverrideRateOfFire => _OverrideRateOfFire_IsSet ? _recordData.Slice(_OverrideRateOfFireLocation, 1)[0] >= 1 : default(Boolean);
         #endregion
         #region TriggerThresholdPrimaryTrigger
-        private int _TriggerThresholdPrimaryTriggerLocation => _WFIRLocation!.Value.Min + 0x1E;
-        private bool _TriggerThresholdPrimaryTrigger_IsSet => _WFIRLocation.HasValue;
+        private int _TriggerThresholdPrimaryTriggerLocation => Payload.WFIRLocation!.Value.Min + 0x1E;
+        private bool _TriggerThresholdPrimaryTrigger_IsSet => Payload.WFIRLocation.HasValue;
         public Single TriggerThresholdPrimaryTrigger => _TriggerThresholdPrimaryTrigger_IsSet ? _recordData.Slice(_TriggerThresholdPrimaryTriggerLocation, 4).Float() : default(Single);
         #endregion
         #region WFIRUnknown10
-        private int _WFIRUnknown10Location => _WFIRLocation!.Value.Min + 0x22;
-        private bool _WFIRUnknown10_IsSet => _WFIRLocation.HasValue;
+        private int _WFIRUnknown10Location => Payload.WFIRLocation!.Value.Min + 0x22;
+        private bool _WFIRUnknown10_IsSet => Payload.WFIRLocation.HasValue;
         public Byte WFIRUnknown10 => _WFIRUnknown10_IsSet ? _recordData.Span[_WFIRUnknown10Location] : default;
         #endregion
         #region TriggerThresholdSecondStage
-        private int _TriggerThresholdSecondStageLocation => _WFIRLocation!.Value.Min + 0x23;
-        private bool _TriggerThresholdSecondStage_IsSet => _WFIRLocation.HasValue;
+        private int _TriggerThresholdSecondStageLocation => Payload.WFIRLocation!.Value.Min + 0x23;
+        private bool _TriggerThresholdSecondStage_IsSet => Payload.WFIRLocation.HasValue;
         public Single TriggerThresholdSecondStage => _TriggerThresholdSecondStage_IsSet ? _recordData.Slice(_TriggerThresholdSecondStageLocation, 4).Float() : default(Single);
         #endregion
         #region HasStagedTrigger
-        private int _HasStagedTriggerLocation => _WFIRLocation!.Value.Min + 0x27;
-        private bool _HasStagedTrigger_IsSet => _WFIRLocation.HasValue;
+        private int _HasStagedTriggerLocation => Payload.WFIRLocation!.Value.Min + 0x27;
+        private bool _HasStagedTrigger_IsSet => Payload.WFIRLocation.HasValue;
         public Boolean HasStagedTrigger => _HasStagedTrigger_IsSet ? _recordData.Slice(_HasStagedTriggerLocation, 1)[0] >= 1 : default(Boolean);
         #endregion
         #region HasDualTrigger
-        private int _HasDualTriggerLocation => _WFIRLocation!.Value.Min + 0x28;
-        private bool _HasDualTrigger_IsSet => _WFIRLocation.HasValue;
+        private int _HasDualTriggerLocation => Payload.WFIRLocation!.Value.Min + 0x28;
+        private bool _HasDualTrigger_IsSet => Payload.WFIRLocation.HasValue;
         public Boolean HasDualTrigger => _HasDualTrigger_IsSet ? _recordData.Slice(_HasDualTriggerLocation, 1)[0] >= 1 : default(Boolean);
         #endregion
         #region BurstDelaySeconds
-        private int _BurstDelaySecondsLocation => _WFIRLocation!.Value.Min + 0x29;
-        private bool _BurstDelaySeconds_IsSet => _WFIRLocation.HasValue;
+        private int _BurstDelaySecondsLocation => Payload.WFIRLocation!.Value.Min + 0x29;
+        private bool _BurstDelaySeconds_IsSet => Payload.WFIRLocation.HasValue;
         public Single BurstDelaySeconds => _BurstDelaySeconds_IsSet ? _recordData.Slice(_BurstDelaySecondsLocation, 4).Float() : default(Single);
         #endregion
-        private RangeInt32? _WFLGLocation;
         #region NonPlayable
-        private int _NonPlayableLocation => _WFLGLocation!.Value.Min;
-        private bool _NonPlayable_IsSet => _WFLGLocation.HasValue;
+        private int _NonPlayableLocation => Payload.WFLGLocation!.Value.Min;
+        private bool _NonPlayable_IsSet => Payload.WFLGLocation.HasValue;
         public Boolean NonPlayable => _NonPlayable_IsSet ? _recordData.Slice(_NonPlayableLocation, 1)[0] >= 1 : default(Boolean);
         #endregion
         #region PlayerOnly
-        private int _PlayerOnlyLocation => _WFLGLocation!.Value.Min + 0x1;
-        private bool _PlayerOnly_IsSet => _WFLGLocation.HasValue;
+        private int _PlayerOnlyLocation => Payload.WFLGLocation!.Value.Min + 0x1;
+        private bool _PlayerOnly_IsSet => Payload.WFLGLocation.HasValue;
         public Boolean PlayerOnly => _PlayerOnly_IsSet ? _recordData.Slice(_PlayerOnlyLocation, 1)[0] >= 1 : default(Boolean);
         #endregion
         #region WFLGUnknown1
-        private int _WFLGUnknown1Location => _WFLGLocation!.Value.Min + 0x2;
-        private bool _WFLGUnknown1_IsSet => _WFLGLocation.HasValue;
+        private int _WFLGUnknown1Location => Payload.WFLGLocation!.Value.Min + 0x2;
+        private bool _WFLGUnknown1_IsSet => Payload.WFLGLocation.HasValue;
         public Boolean WFLGUnknown1 => _WFLGUnknown1_IsSet ? _recordData.Slice(_WFLGUnknown1Location, 1)[0] >= 1 : default(Boolean);
         #endregion
         #region WFLGUnknown2
-        private int _WFLGUnknown2Location => _WFLGLocation!.Value.Min + 0x3;
-        private bool _WFLGUnknown2_IsSet => _WFLGLocation.HasValue;
+        private int _WFLGUnknown2Location => Payload.WFLGLocation!.Value.Min + 0x3;
+        private bool _WFLGUnknown2_IsSet => Payload.WFLGLocation.HasValue;
         public Boolean WFLGUnknown2 => _WFLGUnknown2_IsSet ? _recordData.Slice(_WFLGUnknown2Location, 1)[0] >= 1 : default(Boolean);
         #endregion
         #region CannotDrop
-        private int _CannotDropLocation => _WFLGLocation!.Value.Min + 0x4;
-        private bool _CannotDrop_IsSet => _WFLGLocation.HasValue;
+        private int _CannotDropLocation => Payload.WFLGLocation!.Value.Min + 0x4;
+        private bool _CannotDrop_IsSet => Payload.WFLGLocation.HasValue;
         public Boolean CannotDrop => _CannotDrop_IsSet ? _recordData.Slice(_CannotDropLocation, 1)[0] >= 1 : default(Boolean);
         #endregion
         #region MinorCrime
-        private int _MinorCrimeLocation => _WFLGLocation!.Value.Min + 0x5;
-        private bool _MinorCrime_IsSet => _WFLGLocation.HasValue;
+        private int _MinorCrimeLocation => Payload.WFLGLocation!.Value.Min + 0x5;
+        private bool _MinorCrime_IsSet => Payload.WFLGLocation.HasValue;
         public Boolean MinorCrime => _MinorCrime_IsSet ? _recordData.Slice(_MinorCrimeLocation, 1)[0] >= 1 : default(Boolean);
         #endregion
         #region NonHostile
-        private int _NonHostileLocation => _WFLGLocation!.Value.Min + 0x6;
-        private bool _NonHostile_IsSet => _WFLGLocation.HasValue;
+        private int _NonHostileLocation => Payload.WFLGLocation!.Value.Min + 0x6;
+        private bool _NonHostile_IsSet => Payload.WFLGLocation.HasValue;
         public Boolean NonHostile => _NonHostile_IsSet ? _recordData.Slice(_NonHostileLocation, 1)[0] >= 1 : default(Boolean);
         #endregion
         #region WFLGUnknown3
-        private int _WFLGUnknown3Location => _WFLGLocation!.Value.Min + 0x7;
-        private bool _WFLGUnknown3_IsSet => _WFLGLocation.HasValue;
+        private int _WFLGUnknown3Location => Payload.WFLGLocation!.Value.Min + 0x7;
+        private bool _WFLGUnknown3_IsSet => Payload.WFLGLocation.HasValue;
         public Boolean WFLGUnknown3 => _WFLGUnknown3_IsSet ? _recordData.Slice(_WFLGUnknown3Location, 1)[0] >= 1 : default(Boolean);
         #endregion
         #region WFLGUnknown4
-        private int _WFLGUnknown4Location => _WFLGLocation!.Value.Min + 0x8;
-        private bool _WFLGUnknown4_IsSet => _WFLGLocation.HasValue;
+        private int _WFLGUnknown4Location => Payload.WFLGLocation!.Value.Min + 0x8;
+        private bool _WFLGUnknown4_IsSet => Payload.WFLGLocation.HasValue;
         public Boolean WFLGUnknown4 => _WFLGUnknown4_IsSet ? _recordData.Slice(_WFLGUnknown4Location, 1)[0] >= 1 : default(Boolean);
         #endregion
         #region WFLGUnknown5
-        private int _WFLGUnknown5Location => _WFLGLocation!.Value.Min + 0x9;
-        private bool _WFLGUnknown5_IsSet => _WFLGLocation.HasValue;
+        private int _WFLGUnknown5Location => Payload.WFLGLocation!.Value.Min + 0x9;
+        private bool _WFLGUnknown5_IsSet => Payload.WFLGLocation.HasValue;
         public Boolean WFLGUnknown5 => _WFLGUnknown5_IsSet ? _recordData.Slice(_WFLGUnknown5Location, 1)[0] >= 1 : default(Boolean);
         #endregion
         #region WFLGUnknown6
-        private int _WFLGUnknown6Location => _WFLGLocation!.Value.Min + 0xA;
-        private bool _WFLGUnknown6_IsSet => _WFLGLocation.HasValue;
+        private int _WFLGUnknown6Location => Payload.WFLGLocation!.Value.Min + 0xA;
+        private bool _WFLGUnknown6_IsSet => Payload.WFLGLocation.HasValue;
         public Boolean WFLGUnknown6 => _WFLGUnknown6_IsSet ? _recordData.Slice(_WFLGUnknown6Location, 1)[0] >= 1 : default(Boolean);
         #endregion
         #region WFLGUnknown7
-        private int _WFLGUnknown7Location => _WFLGLocation!.Value.Min + 0xB;
-        private bool _WFLGUnknown7_IsSet => _WFLGLocation.HasValue;
+        private int _WFLGUnknown7Location => Payload.WFLGLocation!.Value.Min + 0xB;
+        private bool _WFLGUnknown7_IsSet => Payload.WFLGLocation.HasValue;
         public Boolean WFLGUnknown7 => _WFLGUnknown7_IsSet ? _recordData.Slice(_WFLGUnknown7Location, 1)[0] >= 1 : default(Boolean);
         #endregion
-        private RangeInt32? _WGENLocation;
         #region WGENUnknown1
-        private int _WGENUnknown1Location => _WGENLocation!.Value.Min;
-        private bool _WGENUnknown1_IsSet => _WGENLocation.HasValue;
+        private int _WGENUnknown1Location => Payload.WGENLocation!.Value.Min;
+        private bool _WGENUnknown1_IsSet => Payload.WGENLocation.HasValue;
         public UInt32 WGENUnknown1 => _WGENUnknown1_IsSet ? BinaryPrimitives.ReadUInt32LittleEndian(_recordData.Slice(_WGENUnknown1Location, 4)) : default(UInt32);
         #endregion
         #region BaseWeight
-        private int _BaseWeightLocation => _WGENLocation!.Value.Min + 0x4;
-        private bool _BaseWeight_IsSet => _WGENLocation.HasValue;
+        private int _BaseWeightLocation => Payload.WGENLocation!.Value.Min + 0x4;
+        private bool _BaseWeight_IsSet => Payload.WGENLocation.HasValue;
         public Single BaseWeight => _BaseWeight_IsSet ? _recordData.Slice(_BaseWeightLocation, 4).Float() : default(Single);
         #endregion
         #region BaseValue
-        private int _BaseValueLocation => _WGENLocation!.Value.Min + 0x8;
-        private bool _BaseValue_IsSet => _WGENLocation.HasValue;
+        private int _BaseValueLocation => Payload.WGENLocation!.Value.Min + 0x8;
+        private bool _BaseValue_IsSet => Payload.WGENLocation.HasValue;
         public UInt32 BaseValue => _BaseValue_IsSet ? BinaryPrimitives.ReadUInt32LittleEndian(_recordData.Slice(_BaseValueLocation, 4)) : default(UInt32);
         #endregion
         #region BaseSpeed
-        private int _BaseSpeedLocation => _WGENLocation!.Value.Min + 0xC;
-        private bool _BaseSpeed_IsSet => _WGENLocation.HasValue;
+        private int _BaseSpeedLocation => Payload.WGENLocation!.Value.Min + 0xC;
+        private bool _BaseSpeed_IsSet => Payload.WGENLocation.HasValue;
         public Single BaseSpeed => _BaseSpeed_IsSet ? _recordData.Slice(_BaseSpeedLocation, 4).Float() : default(Single);
         #endregion
         #region AttackOxygenCost
-        private int _AttackOxygenCostLocation => _WGENLocation!.Value.Min + 0x10;
-        private bool _AttackOxygenCost_IsSet => _WGENLocation.HasValue;
+        private int _AttackOxygenCostLocation => Payload.WGENLocation!.Value.Min + 0x10;
+        private bool _AttackOxygenCost_IsSet => Payload.WGENLocation.HasValue;
         public Single AttackOxygenCost => _AttackOxygenCost_IsSet ? _recordData.Slice(_AttackOxygenCostLocation, 4).Float() : default(Single);
         #endregion
         #region WeaponBarrel
-        private int _WeaponBarrelLocation => _WGENLocation!.Value.Min + 0x14;
-        private bool _WeaponBarrel_IsSet => _WGENLocation.HasValue;
+        private int _WeaponBarrelLocation => Payload.WGENLocation!.Value.Min + 0x14;
+        private bool _WeaponBarrel_IsSet => Payload.WGENLocation.HasValue;
         public IFormLinkGetter<IWeaponBarrelModelGetter> WeaponBarrel => _WeaponBarrel_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IWeaponBarrelModelGetter>(_package, _recordData.Span.Slice(_WeaponBarrelLocation, 0x4), isSet: _WeaponBarrel_IsSet) : FormLink<IWeaponBarrelModelGetter>.Null;
         #endregion
-        #region General
-        private int? _GeneralLocation;
-        public ITranslatedStringGetter? General => _GeneralLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _GeneralLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
-        #endregion
-        private RangeInt32? _WMELLocation;
+        public ITranslatedStringGetter? General => Payload.GeneralLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.GeneralLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
         #region WMELUnknown1
-        private int _WMELUnknown1Location => _WMELLocation!.Value.Min;
-        private bool _WMELUnknown1_IsSet => _WMELLocation.HasValue;
+        private int _WMELUnknown1Location => Payload.WMELLocation!.Value.Min;
+        private bool _WMELUnknown1_IsSet => Payload.WMELLocation.HasValue;
         public Byte WMELUnknown1 => _WMELUnknown1_IsSet ? _recordData.Span[_WMELUnknown1Location] : default;
         #endregion
         #region MeleeBashDamage
-        private int _MeleeBashDamageLocation => _WMELLocation!.Value.Min + 0x1;
-        private bool _MeleeBashDamage_IsSet => _WMELLocation.HasValue;
+        private int _MeleeBashDamageLocation => Payload.WMELLocation!.Value.Min + 0x1;
+        private bool _MeleeBashDamage_IsSet => Payload.WMELLocation.HasValue;
         public Single MeleeBashDamage => _MeleeBashDamage_IsSet ? _recordData.Slice(_MeleeBashDamageLocation, 4).Float() : default(Single);
         #endregion
         #region MeleeReach
-        private int _MeleeReachLocation => _WMELLocation!.Value.Min + 0x5;
-        private bool _MeleeReach_IsSet => _WMELLocation.HasValue;
+        private int _MeleeReachLocation => Payload.WMELLocation!.Value.Min + 0x5;
+        private bool _MeleeReach_IsSet => Payload.WMELLocation.HasValue;
         public Single MeleeReach => _MeleeReach_IsSet ? _recordData.Slice(_MeleeReachLocation, 4).Float() : default(Single);
         #endregion
         #region MeleeStagger
-        private int _MeleeStaggerLocation => _WMELLocation!.Value.Min + 0x9;
-        private bool _MeleeStagger_IsSet => _WMELLocation.HasValue;
+        private int _MeleeStaggerLocation => Payload.WMELLocation!.Value.Min + 0x9;
+        private bool _MeleeStagger_IsSet => Payload.WMELLocation.HasValue;
         public Stagger MeleeStagger => _MeleeStagger_IsSet ? (Stagger)BinaryPrimitives.ReadInt32LittleEndian(_recordData.Span.Slice(_MeleeStaggerLocation, 0x4)) : default;
         #endregion
-        private RangeInt32? _QNAMLocation;
         #region Power
-        private int _PowerLocation => _QNAMLocation!.Value.Min;
-        private bool _Power_IsSet => _QNAMLocation.HasValue;
+        private int _PowerLocation => Payload.QNAMLocation!.Value.Min;
+        private bool _Power_IsSet => Payload.QNAMLocation.HasValue;
         public IFormLinkGetter<IActorValueInformationGetter> Power => _Power_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IActorValueInformationGetter>(_package, _recordData.Span.Slice(_PowerLocation, 0x4), isSet: _Power_IsSet) : FormLink<IActorValueInformationGetter>.Null;
         #endregion
         #region PowerRechargeTime
-        private int _PowerRechargeTimeLocation => _QNAMLocation!.Value.Min + 0x4;
-        private bool _PowerRechargeTime_IsSet => _QNAMLocation.HasValue;
+        private int _PowerRechargeTimeLocation => Payload.QNAMLocation!.Value.Min + 0x4;
+        private bool _PowerRechargeTime_IsSet => Payload.QNAMLocation.HasValue;
         public Single PowerRechargeTime => _PowerRechargeTime_IsSet ? _recordData.Slice(_PowerRechargeTimeLocation, 4).Float() : default(Single);
         #endregion
         #region PowerRechargeDelay
-        private int _PowerRechargeDelayLocation => _QNAMLocation!.Value.Min + 0x8;
-        private bool _PowerRechargeDelay_IsSet => _QNAMLocation.HasValue;
+        private int _PowerRechargeDelayLocation => Payload.QNAMLocation!.Value.Min + 0x8;
+        private bool _PowerRechargeDelay_IsSet => Payload.QNAMLocation.HasValue;
         public Single PowerRechargeDelay => _PowerRechargeDelay_IsSet ? _recordData.Slice(_PowerRechargeDelayLocation, 4).Float() : default(Single);
         #endregion
         #region ConsumeAmmo
-        private int _ConsumeAmmoLocation => _QNAMLocation!.Value.Min + 0xC;
-        private bool _ConsumeAmmo_IsSet => _QNAMLocation.HasValue;
+        private int _ConsumeAmmoLocation => Payload.QNAMLocation!.Value.Min + 0xC;
+        private bool _ConsumeAmmo_IsSet => Payload.QNAMLocation.HasValue;
         public Boolean ConsumeAmmo => _ConsumeAmmo_IsSet ? _recordData.Slice(_ConsumeAmmoLocation, 1)[0] >= 1 : default(Boolean);
         #endregion
         #region PowerBonus
-        private int _PowerBonusLocation => _QNAMLocation!.Value.Min + 0xD;
-        private bool _PowerBonus_IsSet => _QNAMLocation.HasValue;
+        private int _PowerBonusLocation => Payload.QNAMLocation!.Value.Min + 0xD;
+        private bool _PowerBonus_IsSet => Payload.QNAMLocation.HasValue;
         public IFormLinkGetter<IActorValueInformationGetter> PowerBonus => _PowerBonus_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IActorValueInformationGetter>(_package, _recordData.Span.Slice(_PowerBonusLocation, 0x4), isSet: _PowerBonus_IsSet) : FormLink<IActorValueInformationGetter>.Null;
         #endregion
         #region UsePower
-        private int _UsePowerLocation => _QNAMLocation!.Value.Min + 0x11;
-        private bool _UsePower_IsSet => _QNAMLocation.HasValue;
+        private int _UsePowerLocation => Payload.QNAMLocation!.Value.Min + 0x11;
+        private bool _UsePower_IsSet => Payload.QNAMLocation.HasValue;
         public Boolean UsePower => _UsePower_IsSet ? _recordData.Slice(_UsePowerLocation, 1)[0] >= 1 : default(Boolean);
         #endregion
         #region QNAMUnknown1
-        private int _QNAMUnknown1Location => _QNAMLocation!.Value.Min + 0x12;
-        private bool _QNAMUnknown1_IsSet => _QNAMLocation.HasValue;
+        private int _QNAMUnknown1Location => Payload.QNAMLocation!.Value.Min + 0x12;
+        private bool _QNAMUnknown1_IsSet => Payload.QNAMLocation.HasValue;
         public Byte QNAMUnknown1 => _QNAMUnknown1_IsSet ? _recordData.Span[_QNAMUnknown1Location] : default;
         #endregion
         #region QNAMUnknown2
-        private int _QNAMUnknown2Location => _QNAMLocation!.Value.Min + 0x13;
-        private bool _QNAMUnknown2_IsSet => _QNAMLocation.HasValue;
+        private int _QNAMUnknown2Location => Payload.QNAMLocation!.Value.Min + 0x13;
+        private bool _QNAMUnknown2_IsSet => Payload.QNAMLocation.HasValue;
         public Single QNAMUnknown2 => _QNAMUnknown2_IsSet ? _recordData.Slice(_QNAMUnknown2Location, 4).Float() : default(Single);
         #endregion
         #region QNAMUnknown3
-        private int _QNAMUnknown3Location => _QNAMLocation!.Value.Min + 0x17;
-        private bool _QNAMUnknown3_IsSet => _QNAMLocation.HasValue;
+        private int _QNAMUnknown3Location => Payload.QNAMLocation!.Value.Min + 0x17;
+        private bool _QNAMUnknown3_IsSet => Payload.QNAMLocation.HasValue;
         public Byte QNAMUnknown3 => _QNAMUnknown3_IsSet ? _recordData.Span[_QNAMUnknown3Location] : default;
         #endregion
         #region QNAMUnknown4
-        private int _QNAMUnknown4Location => _QNAMLocation!.Value.Min + 0x18;
-        private bool _QNAMUnknown4_IsSet => _QNAMLocation.HasValue;
+        private int _QNAMUnknown4Location => Payload.QNAMLocation!.Value.Min + 0x18;
+        private bool _QNAMUnknown4_IsSet => Payload.QNAMLocation.HasValue;
         public IFormLinkGetter<ICurveTableGetter> QNAMUnknown4 => _QNAMUnknown4_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<ICurveTableGetter>(_package, _recordData.Span.Slice(_QNAMUnknown4Location, 0x4), isSet: _QNAMUnknown4_IsSet) : FormLink<ICurveTableGetter>.Null;
         #endregion
         #region QNAMUnknown5
-        private int _QNAMUnknown5Location => _QNAMLocation!.Value.Min + 0x1C;
-        private bool _QNAMUnknown5_IsSet => _QNAMLocation.HasValue;
+        private int _QNAMUnknown5Location => Payload.QNAMLocation!.Value.Min + 0x1C;
+        private bool _QNAMUnknown5_IsSet => Payload.QNAMLocation.HasValue;
         public Single QNAMUnknown5 => _QNAMUnknown5_IsSet ? _recordData.Slice(_QNAMUnknown5Location, 4).Float() : default(Single);
         #endregion
         #region PowerConsumption
-        private int _PowerConsumptionLocation => _QNAMLocation!.Value.Min + 0x20;
-        private bool _PowerConsumption_IsSet => _QNAMLocation.HasValue;
+        private int _PowerConsumptionLocation => Payload.QNAMLocation!.Value.Min + 0x20;
+        private bool _PowerConsumption_IsSet => Payload.QNAMLocation.HasValue;
         public IFormLinkGetter<ICurveTableGetter> PowerConsumption => _PowerConsumption_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<ICurveTableGetter>(_package, _recordData.Span.Slice(_PowerConsumptionLocation, 0x4), isSet: _PowerConsumption_IsSet) : FormLink<ICurveTableGetter>.Null;
         #endregion
-        private RangeInt32? _WRLOLocation;
         #region WRLOUnknown1
-        private int _WRLOUnknown1Location => _WRLOLocation!.Value.Min;
-        private bool _WRLOUnknown1_IsSet => _WRLOLocation.HasValue;
+        private int _WRLOUnknown1Location => Payload.WRLOLocation!.Value.Min;
+        private bool _WRLOUnknown1_IsSet => Payload.WRLOLocation.HasValue;
         public Single WRLOUnknown1 => _WRLOUnknown1_IsSet ? _recordData.Slice(_WRLOUnknown1Location, 4).Float() : default(Single);
         #endregion
         #region ReloadSpeed
-        private int _ReloadSpeedLocation => _WRLOLocation!.Value.Min + 0x4;
-        private bool _ReloadSpeed_IsSet => _WRLOLocation.HasValue;
+        private int _ReloadSpeedLocation => Payload.WRLOLocation!.Value.Min + 0x4;
+        private bool _ReloadSpeed_IsSet => Payload.WRLOLocation.HasValue;
         public Single ReloadSpeed => _ReloadSpeed_IsSet ? _recordData.Slice(_ReloadSpeedLocation, 4).Float() : default(Single);
         #endregion
         #region ReloadCharging
-        private int _ReloadChargingLocation => _WRLOLocation!.Value.Min + 0x8;
-        private bool _ReloadCharging_IsSet => _WRLOLocation.HasValue;
+        private int _ReloadChargingLocation => Payload.WRLOLocation!.Value.Min + 0x8;
+        private bool _ReloadCharging_IsSet => Payload.WRLOLocation.HasValue;
         public Boolean ReloadCharging => _ReloadCharging_IsSet ? _recordData.Slice(_ReloadChargingLocation, 1)[0] >= 1 : default(Boolean);
         #endregion
         #region ReloadSingle
-        private int _ReloadSingleLocation => _WRLOLocation!.Value.Min + 0x9;
-        private bool _ReloadSingle_IsSet => _WRLOLocation.HasValue;
+        private int _ReloadSingleLocation => Payload.WRLOLocation!.Value.Min + 0x9;
+        private bool _ReloadSingle_IsSet => Payload.WRLOLocation.HasValue;
         public Boolean ReloadSingle => _ReloadSingle_IsSet ? _recordData.Slice(_ReloadSingleLocation, 1)[0] >= 1 : default(Boolean);
         #endregion
-        #region WRUM
-        private int? _WRUMLocation;
-        public ReadOnlyMemorySlice<Byte>? WRUM => _WRUMLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _WRUMLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
-        #endregion
-        private RangeInt32? _WVARLocation;
+        public ReadOnlyMemorySlice<Byte>? WRUM => Payload.WRUMLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.WRUMLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
         #region ApertureValueMin
-        private int _ApertureValueMinLocation => _WVARLocation!.Value.Min;
-        private bool _ApertureValueMin_IsSet => _WVARLocation.HasValue;
+        private int _ApertureValueMinLocation => Payload.WVARLocation!.Value.Min;
+        private bool _ApertureValueMin_IsSet => Payload.WVARLocation.HasValue;
         public Single ApertureValueMin => _ApertureValueMin_IsSet ? _recordData.Slice(_ApertureValueMinLocation, 4).Float() : default(Single);
         #endregion
         #region ApertureValueMax
-        private int _ApertureValueMaxLocation => _WVARLocation!.Value.Min + 0x4;
-        private bool _ApertureValueMax_IsSet => _WVARLocation.HasValue;
+        private int _ApertureValueMaxLocation => Payload.WVARLocation!.Value.Min + 0x4;
+        private bool _ApertureValueMax_IsSet => Payload.WVARLocation.HasValue;
         public Single ApertureValueMax => _ApertureValueMax_IsSet ? _recordData.Slice(_ApertureValueMaxLocation, 4).Float() : default(Single);
         #endregion
         #region ApertureInputMin
-        private int _ApertureInputMinLocation => _WVARLocation!.Value.Min + 0x8;
-        private bool _ApertureInputMin_IsSet => _WVARLocation.HasValue;
+        private int _ApertureInputMinLocation => Payload.WVARLocation!.Value.Min + 0x8;
+        private bool _ApertureInputMin_IsSet => Payload.WVARLocation.HasValue;
         public Single ApertureInputMin => _ApertureInputMin_IsSet ? _recordData.Slice(_ApertureInputMinLocation, 4).Float() : default(Single);
         #endregion
         #region ApertureInputMax
-        private int _ApertureInputMaxLocation => _WVARLocation!.Value.Min + 0xC;
-        private bool _ApertureInputMax_IsSet => _WVARLocation.HasValue;
+        private int _ApertureInputMaxLocation => Payload.WVARLocation!.Value.Min + 0xC;
+        private bool _ApertureInputMax_IsSet => Payload.WVARLocation.HasValue;
         public Single ApertureInputMax => _ApertureInputMax_IsSet ? _recordData.Slice(_ApertureInputMaxLocation, 4).Float() : default(Single);
         #endregion
         #region ApertureAcceleration
-        private int _ApertureAccelerationLocation => _WVARLocation!.Value.Min + 0x10;
-        private bool _ApertureAcceleration_IsSet => _WVARLocation.HasValue;
+        private int _ApertureAccelerationLocation => Payload.WVARLocation!.Value.Min + 0x10;
+        private bool _ApertureAcceleration_IsSet => Payload.WVARLocation.HasValue;
         public Single ApertureAcceleration => _ApertureAcceleration_IsSet ? _recordData.Slice(_ApertureAccelerationLocation, 4).Float() : default(Single);
         #endregion
         #region ApertureDeceleration
-        private int _ApertureDecelerationLocation => _WVARLocation!.Value.Min + 0x14;
-        private bool _ApertureDeceleration_IsSet => _WVARLocation.HasValue;
+        private int _ApertureDecelerationLocation => Payload.WVARLocation!.Value.Min + 0x14;
+        private bool _ApertureDeceleration_IsSet => Payload.WVARLocation.HasValue;
         public Single ApertureDeceleration => _ApertureDeceleration_IsSet ? _recordData.Slice(_ApertureDecelerationLocation, 4).Float() : default(Single);
         #endregion
         #region DistanceValueMin
-        private int _DistanceValueMinLocation => _WVARLocation!.Value.Min + 0x18;
-        private bool _DistanceValueMin_IsSet => _WVARLocation.HasValue;
+        private int _DistanceValueMinLocation => Payload.WVARLocation!.Value.Min + 0x18;
+        private bool _DistanceValueMin_IsSet => Payload.WVARLocation.HasValue;
         public Single DistanceValueMin => _DistanceValueMin_IsSet ? _recordData.Slice(_DistanceValueMinLocation, 4).Float() : default(Single);
         #endregion
         #region DistanceValueMax
-        private int _DistanceValueMaxLocation => _WVARLocation!.Value.Min + 0x1C;
-        private bool _DistanceValueMax_IsSet => _WVARLocation.HasValue;
+        private int _DistanceValueMaxLocation => Payload.WVARLocation!.Value.Min + 0x1C;
+        private bool _DistanceValueMax_IsSet => Payload.WVARLocation.HasValue;
         public Single DistanceValueMax => _DistanceValueMax_IsSet ? _recordData.Slice(_DistanceValueMaxLocation, 4).Float() : default(Single);
         #endregion
         #region DistanceInputMin
-        private int _DistanceInputMinLocation => _WVARLocation!.Value.Min + 0x20;
-        private bool _DistanceInputMin_IsSet => _WVARLocation.HasValue;
+        private int _DistanceInputMinLocation => Payload.WVARLocation!.Value.Min + 0x20;
+        private bool _DistanceInputMin_IsSet => Payload.WVARLocation.HasValue;
         public Single DistanceInputMin => _DistanceInputMin_IsSet ? _recordData.Slice(_DistanceInputMinLocation, 4).Float() : default(Single);
         #endregion
         #region DistanceInputMax
-        private int _DistanceInputMaxLocation => _WVARLocation!.Value.Min + 0x24;
-        private bool _DistanceInputMax_IsSet => _WVARLocation.HasValue;
+        private int _DistanceInputMaxLocation => Payload.WVARLocation!.Value.Min + 0x24;
+        private bool _DistanceInputMax_IsSet => Payload.WVARLocation.HasValue;
         public Single DistanceInputMax => _DistanceInputMax_IsSet ? _recordData.Slice(_DistanceInputMaxLocation, 4).Float() : default(Single);
         #endregion
         #region DistanceAcceleration
-        private int _DistanceAccelerationLocation => _WVARLocation!.Value.Min + 0x28;
-        private bool _DistanceAcceleration_IsSet => _WVARLocation.HasValue;
+        private int _DistanceAccelerationLocation => Payload.WVARLocation!.Value.Min + 0x28;
+        private bool _DistanceAcceleration_IsSet => Payload.WVARLocation.HasValue;
         public Single DistanceAcceleration => _DistanceAcceleration_IsSet ? _recordData.Slice(_DistanceAccelerationLocation, 4).Float() : default(Single);
         #endregion
         #region DistanceDeceleration
-        private int _DistanceDecelerationLocation => _WVARLocation!.Value.Min + 0x2C;
-        private bool _DistanceDeceleration_IsSet => _WVARLocation.HasValue;
+        private int _DistanceDecelerationLocation => Payload.WVARLocation!.Value.Min + 0x2C;
+        private bool _DistanceDeceleration_IsSet => Payload.WVARLocation.HasValue;
         public Single DistanceDeceleration => _DistanceDeceleration_IsSet ? _recordData.Slice(_DistanceDecelerationLocation, 4).Float() : default(Single);
         #endregion
         #region UseVariableRange
-        private int _UseVariableRangeLocation => _WVARLocation!.Value.Min + 0x30;
-        private bool _UseVariableRange_IsSet => _WVARLocation.HasValue;
+        private int _UseVariableRangeLocation => Payload.WVARLocation!.Value.Min + 0x30;
+        private bool _UseVariableRange_IsSet => Payload.WVARLocation.HasValue;
         public Boolean UseVariableRange => _UseVariableRange_IsSet ? _recordData.Slice(_UseVariableRangeLocation, 1)[0] >= 1 : default(Boolean);
         #endregion
-        public IFirstPersonModelGetter? FirstPersonModel { get; private set; }
-        private RangeInt32? _WVISLocation;
+        public IFirstPersonModelGetter? FirstPersonModel => Payload.FirstPersonModel;
         #region WVISUnknown1
-        private int _WVISUnknown1Location => _WVISLocation!.Value.Min;
-        private bool _WVISUnknown1_IsSet => _WVISLocation.HasValue;
+        private int _WVISUnknown1Location => Payload.WVISLocation!.Value.Min;
+        private bool _WVISUnknown1_IsSet => Payload.WVISLocation.HasValue;
         public UInt32 WVISUnknown1 => _WVISUnknown1_IsSet ? BinaryPrimitives.ReadUInt32LittleEndian(_recordData.Slice(_WVISUnknown1Location, 4)) : default(UInt32);
         #endregion
         #region WVISUnknown2
-        private int _WVISUnknown2Location => _WVISLocation!.Value.Min + 0x4;
-        private bool _WVISUnknown2_IsSet => _WVISLocation.HasValue;
+        private int _WVISUnknown2Location => Payload.WVISLocation!.Value.Min + 0x4;
+        private bool _WVISUnknown2_IsSet => Payload.WVISLocation.HasValue;
         public UInt32 WVISUnknown2 => _WVISUnknown2_IsSet ? BinaryPrimitives.ReadUInt32LittleEndian(_recordData.Slice(_WVISUnknown2Location, 4)) : default(UInt32);
         #endregion
         #region WVISUnknown3
-        private int _WVISUnknown3Location => _WVISLocation!.Value.Min + 0x8;
-        private bool _WVISUnknown3_IsSet => _WVISLocation.HasValue;
+        private int _WVISUnknown3Location => Payload.WVISLocation!.Value.Min + 0x8;
+        private bool _WVISUnknown3_IsSet => Payload.WVISLocation.HasValue;
         public UInt32 WVISUnknown3 => _WVISUnknown3_IsSet ? BinaryPrimitives.ReadUInt32LittleEndian(_recordData.Slice(_WVISUnknown3Location, 4)) : default(UInt32);
         #endregion
         #region ImpactDataSet
-        private int _ImpactDataSetLocation => _WVISLocation!.Value.Min + 0xC;
-        private bool _ImpactDataSet_IsSet => _WVISLocation.HasValue;
+        private int _ImpactDataSetLocation => Payload.WVISLocation!.Value.Min + 0xC;
+        private bool _ImpactDataSet_IsSet => Payload.WVISLocation.HasValue;
         public IFormLinkGetter<IImpactDataSetGetter> ImpactDataSet => _ImpactDataSet_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IImpactDataSetGetter>(_package, _recordData.Span.Slice(_ImpactDataSetLocation, 0x4), isSet: _ImpactDataSet_IsSet) : FormLink<IImpactDataSetGetter>.Null;
         #endregion
         #region ColorRemappingIndex
-        private int _ColorRemappingIndexLocation => _WVISLocation!.Value.Min + 0x10;
-        private bool _ColorRemappingIndex_IsSet => _WVISLocation.HasValue;
+        private int _ColorRemappingIndexLocation => Payload.WVISLocation!.Value.Min + 0x10;
+        private bool _ColorRemappingIndex_IsSet => Payload.WVISLocation.HasValue;
         public Single ColorRemappingIndex => _ColorRemappingIndex_IsSet ? _recordData.Slice(_ColorRemappingIndexLocation, 4).Float() : default(Single);
         #endregion
         #region ImageSpaceAdapter
-        private int _ImageSpaceAdapterLocation => _WVISLocation!.Value.Min + 0x14;
-        private bool _ImageSpaceAdapter_IsSet => _WVISLocation.HasValue;
+        private int _ImageSpaceAdapterLocation => Payload.WVISLocation!.Value.Min + 0x14;
+        private bool _ImageSpaceAdapter_IsSet => Payload.WVISLocation.HasValue;
         public IFormLinkGetter<IImageSpaceAdapterGetter> ImageSpaceAdapter => _ImageSpaceAdapter_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IImageSpaceAdapterGetter>(_package, _recordData.Span.Slice(_ImageSpaceAdapterLocation, 0x4), isSet: _ImageSpaceAdapter_IsSet) : FormLink<IImageSpaceAdapterGetter>.Null;
         #endregion
-        private RangeInt32? _WTRMLocation;
         #region WTRMUnknown1
-        private int _WTRMUnknown1Location => _WTRMLocation!.Value.Min;
-        private bool _WTRMUnknown1_IsSet => _WTRMLocation.HasValue;
+        private int _WTRMUnknown1Location => Payload.WTRMLocation!.Value.Min;
+        private bool _WTRMUnknown1_IsSet => Payload.WTRMLocation.HasValue;
         public Single WTRMUnknown1 => _WTRMUnknown1_IsSet ? _recordData.Slice(_WTRMUnknown1Location, 4).Float() : default(Single);
         #endregion
         #region WTRMUnknown2
-        private int _WTRMUnknown2Location => _WTRMLocation!.Value.Min + 0x4;
-        private bool _WTRMUnknown2_IsSet => _WTRMLocation.HasValue;
+        private int _WTRMUnknown2Location => Payload.WTRMLocation!.Value.Min + 0x4;
+        private bool _WTRMUnknown2_IsSet => Payload.WTRMLocation.HasValue;
         public Byte WTRMUnknown2 => _WTRMUnknown2_IsSet ? _recordData.Span[_WTRMUnknown2Location] : default;
         #endregion
         #region WTRMUnknown3
-        private int _WTRMUnknown3Location => _WTRMLocation!.Value.Min + 0x5;
-        private bool _WTRMUnknown3_IsSet => _WTRMLocation.HasValue;
+        private int _WTRMUnknown3Location => Payload.WTRMLocation!.Value.Min + 0x5;
+        private bool _WTRMUnknown3_IsSet => Payload.WTRMLocation.HasValue;
         public Single WTRMUnknown3 => _WTRMUnknown3_IsSet ? _recordData.Slice(_WTRMUnknown3Location, 4).Float() : default(Single);
         #endregion
         #region WTRMUnknown4
-        private int _WTRMUnknown4Location => _WTRMLocation!.Value.Min + 0x9;
-        private bool _WTRMUnknown4_IsSet => _WTRMLocation.HasValue;
+        private int _WTRMUnknown4Location => Payload.WTRMLocation!.Value.Min + 0x9;
+        private bool _WTRMUnknown4_IsSet => Payload.WTRMLocation.HasValue;
         public Single WTRMUnknown4 => _WTRMUnknown4_IsSet ? _recordData.Slice(_WTRMUnknown4Location, 4).Float() : default(Single);
         #endregion
         #region WTRMUnknown5
-        private int _WTRMUnknown5Location => _WTRMLocation!.Value.Min + 0xD;
-        private bool _WTRMUnknown5_IsSet => _WTRMLocation.HasValue;
+        private int _WTRMUnknown5Location => Payload.WTRMLocation!.Value.Min + 0xD;
+        private bool _WTRMUnknown5_IsSet => Payload.WTRMLocation.HasValue;
         public Single WTRMUnknown5 => _WTRMUnknown5_IsSet ? _recordData.Slice(_WTRMUnknown5Location, 4).Float() : default(Single);
         #endregion
+
+        internal partial class WeaponRecordDataPayload
+        {
+            public int? VirtualMachineAdapterLengthOverride;
+            public RangeInt32? VirtualMachineAdapterLocation;
+            public RangeInt32? ObjectBoundsLocation;
+            public int? DirtinessScaleLocation;
+            public RangeInt32? ObjectPaletteDefaultsLocation;
+            public RangeInt32? TransformsLocation;
+            public int? XALGLocation;
+            public IReadOnlyList<IAComponentGetter> Components = [];
+            public int? NameLocation;
+            public IModelGetter? Model;
+            public int? ObjectEffectLocation;
+            public int? EnchantmentAmountLocation;
+            public int? EquipmentTypeLocation;
+            public int? BlockBashImpactDataSetLocation;
+            public int? AlternateBlockMaterialLocation;
+            public ISoundReferenceGetter? PickupSound;
+            public ISoundReferenceGetter? DropdownSound;
+            public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? Keywords;
+            public int? DescriptionLocation;
+            public int? InstanceNamingLocation;
+            public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? AttachParentSlots;
+            public IReadOnlyList<IObjectTemplateGetter<Weapon.Property>>? ObjectTemplates;
+            public int? EmbeddedWeaponModLocation;
+            public int? BNAMLocation;
+            public RangeInt32? WAIMLocation;
+            public RangeInt32? WAM2Location;
+            public int? WAMMLocation;
+            public RangeInt32? WAUDLocation;
+            public int? WTURLocation;
+            public RangeInt32? WCHGLocation;
+            public RangeInt32? WDMGLocation;
+            public IReadOnlyList<IWeaponDamageTypeGetter>? DamageTypes;
+            public RangeInt32? WFIRLocation;
+            public RangeInt32? WFLGLocation;
+            public RangeInt32? WGENLocation;
+            public int? GeneralLocation;
+            public RangeInt32? WMELLocation;
+            public RangeInt32? QNAMLocation;
+            public RangeInt32? WRLOLocation;
+            public int? WRUMLocation;
+            public RangeInt32? WVARLocation;
+            public IFirstPersonModelGetter? FirstPersonModel;
+            public RangeInt32? WVISLocation;
+            public RangeInt32? WTRMLocation;
+        }
+
+        private LazyPayload<WeaponRecordDataPayload> _payload = null!;
+
+        internal WeaponRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<WeaponRecordDataPayload>(init, new WeaponRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -13464,10 +13454,10 @@ namespace Mutagen.Bethesda.Starfield
 
         partial void CustomCtor();
         protected WeaponBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -13478,28 +13468,51 @@ namespace Mutagen.Bethesda.Starfield
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new WeaponBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -13528,8 +13541,8 @@ namespace Mutagen.Bethesda.Starfield
             {
                 case RecordTypeInts.VMAD:
                 {
-                    _VirtualMachineAdapterLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
-                    _VirtualMachineAdapterLengthOverride = lastParsed.LengthOverride;
+                    _payload.Fields.VirtualMachineAdapterLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.VirtualMachineAdapterLengthOverride = lastParsed.LengthOverride;
                     if (lastParsed.LengthOverride.HasValue)
                     {
                         stream.Position += lastParsed.LengthOverride.Value;
@@ -13538,32 +13551,32 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.OBND:
                 {
-                    _ObjectBoundsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.ObjectBoundsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)Weapon_FieldIndex.ObjectBounds;
                 }
                 case RecordTypeInts.ODTY:
                 {
-                    _DirtinessScaleLocation = (stream.Position - offset);
+                    _payload.Fields.DirtinessScaleLocation = (stream.Position - offset);
                     return (int)Weapon_FieldIndex.DirtinessScale;
                 }
                 case RecordTypeInts.OPDS:
                 {
-                    _ObjectPaletteDefaultsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.ObjectPaletteDefaultsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)Weapon_FieldIndex.ObjectPaletteDefaults;
                 }
                 case RecordTypeInts.PTT2:
                 {
-                    _TransformsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.TransformsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)Weapon_FieldIndex.Transforms;
                 }
                 case RecordTypeInts.XALG:
                 {
-                    _XALGLocation = (stream.Position - offset);
+                    _payload.Fields.XALGLocation = (stream.Position - offset);
                     return (int)Weapon_FieldIndex.XALG;
                 }
                 case RecordTypeInts.BFCB:
                 {
-                    this.Components = this.ParseRepeatedTypelessSubrecord<IAComponentGetter>(
+                    _payload.Fields.Components = this.ParseRepeatedTypelessSubrecord<IAComponentGetter>(
                         stream: stream,
                         translationParams: translationParams,
                         trigger: AComponent_Registration.TriggerSpecs,
@@ -13572,7 +13585,7 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.FULL:
                 {
-                    _NameLocation = (stream.Position - offset);
+                    _payload.Fields.NameLocation = (stream.Position - offset);
                     return (int)Weapon_FieldIndex.Name;
                 }
                 case RecordTypeInts.MODL:
@@ -13586,7 +13599,7 @@ namespace Mutagen.Bethesda.Starfield
                     if (!lastParsed.ParsedIndex.HasValue
                         || lastParsed.ParsedIndex.Value <= (int)Weapon_FieldIndex.Name)
                     {
-                        this.Model = ModelBinaryOverlay.ModelFactory(
+                        _payload.Fields.Model = ModelBinaryOverlay.ModelFactory(
                             stream: stream,
                             package: _package,
                             translationParams: translationParams.DoNotShortCircuit());
@@ -13594,7 +13607,7 @@ namespace Mutagen.Bethesda.Starfield
                     }
                     else if (lastParsed.ParsedIndex.Value <= (int)Weapon_FieldIndex.UseVariableRange)
                     {
-                        this.FirstPersonModel = FirstPersonModelBinaryOverlay.FirstPersonModelFactory(
+                        _payload.Fields.FirstPersonModel = FirstPersonModelBinaryOverlay.FirstPersonModelFactory(
                             stream: stream,
                             package: _package,
                             translationParams: translationParams.DoNotShortCircuit());
@@ -13606,7 +13619,7 @@ namespace Mutagen.Bethesda.Starfield
                         {
                             case 0:
                             {
-                                this.Model = ModelBinaryOverlay.ModelFactory(
+                                _payload.Fields.Model = ModelBinaryOverlay.ModelFactory(
                                     stream: stream,
                                     package: _package,
                                     translationParams: translationParams.DoNotShortCircuit());
@@ -13614,7 +13627,7 @@ namespace Mutagen.Bethesda.Starfield
                             }
                             case 1:
                             {
-                                this.FirstPersonModel = FirstPersonModelBinaryOverlay.FirstPersonModelFactory(
+                                _payload.Fields.FirstPersonModel = FirstPersonModelBinaryOverlay.FirstPersonModelFactory(
                                     stream: stream,
                                     package: _package,
                                     translationParams: translationParams.DoNotShortCircuit());
@@ -13627,33 +13640,33 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.EITM:
                 {
-                    _ObjectEffectLocation = (stream.Position - offset);
+                    _payload.Fields.ObjectEffectLocation = (stream.Position - offset);
                     return (int)Weapon_FieldIndex.ObjectEffect;
                 }
                 case RecordTypeInts.EAMT:
                 {
-                    _EnchantmentAmountLocation = (stream.Position - offset);
+                    _payload.Fields.EnchantmentAmountLocation = (stream.Position - offset);
                     return (int)Weapon_FieldIndex.EnchantmentAmount;
                 }
                 case RecordTypeInts.ETYP:
                 {
-                    _EquipmentTypeLocation = (stream.Position - offset);
+                    _payload.Fields.EquipmentTypeLocation = (stream.Position - offset);
                     return (int)Weapon_FieldIndex.EquipmentType;
                 }
                 case RecordTypeInts.BIDS:
                 {
-                    _BlockBashImpactDataSetLocation = (stream.Position - offset);
+                    _payload.Fields.BlockBashImpactDataSetLocation = (stream.Position - offset);
                     return (int)Weapon_FieldIndex.BlockBashImpactDataSet;
                 }
                 case RecordTypeInts.BAMT:
                 {
-                    _AlternateBlockMaterialLocation = (stream.Position - offset);
+                    _payload.Fields.AlternateBlockMaterialLocation = (stream.Position - offset);
                     return (int)Weapon_FieldIndex.AlternateBlockMaterial;
                 }
                 case RecordTypeInts.PUSH:
                 {
                     stream.Position += _package.MetaData.Constants.SubConstants.HeaderLength;
-                    this.PickupSound = SoundReferenceBinaryOverlay.SoundReferenceFactory(
+                    _payload.Fields.PickupSound = SoundReferenceBinaryOverlay.SoundReferenceFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());
@@ -13662,7 +13675,7 @@ namespace Mutagen.Bethesda.Starfield
                 case RecordTypeInts.PDSH:
                 {
                     stream.Position += _package.MetaData.Constants.SubConstants.HeaderLength;
-                    this.DropdownSound = SoundReferenceBinaryOverlay.SoundReferenceFactory(
+                    _payload.Fields.DropdownSound = SoundReferenceBinaryOverlay.SoundReferenceFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());
@@ -13671,7 +13684,7 @@ namespace Mutagen.Bethesda.Starfield
                 case RecordTypeInts.KSIZ:
                 case RecordTypeInts.KWDA:
                 {
-                    this.Keywords = BinaryOverlayList.FactoryByCount<IFormLinkGetter<IKeywordGetter>>(
+                    _payload.Fields.Keywords = BinaryOverlayList.FactoryByCount<IFormLinkGetter<IKeywordGetter>>(
                         stream: stream,
                         package: _package,
                         itemLength: 0x4,
@@ -13683,17 +13696,17 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.DESC:
                 {
-                    _DescriptionLocation = (stream.Position - offset);
+                    _payload.Fields.DescriptionLocation = (stream.Position - offset);
                     return (int)Weapon_FieldIndex.Description;
                 }
                 case RecordTypeInts.INRD:
                 {
-                    _InstanceNamingLocation = (stream.Position - offset);
+                    _payload.Fields.InstanceNamingLocation = (stream.Position - offset);
                     return (int)Weapon_FieldIndex.InstanceNaming;
                 }
                 case RecordTypeInts.APPR:
                 {
-                    this.AttachParentSlots = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<IKeywordGetter>>(
+                    _payload.Fields.AttachParentSlots = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<IKeywordGetter>>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -13703,7 +13716,7 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.OBTE:
                 {
-                    this.ObjectTemplates = BinaryOverlayList.FactoryByCountPerItem<IObjectTemplateGetter<Weapon.Property>>(
+                    _payload.Fields.ObjectTemplates = BinaryOverlayList.FactoryByCountPerItem<IObjectTemplateGetter<Weapon.Property>>(
                         stream: stream,
                         package: _package,
                         countLength: 4,
@@ -13721,52 +13734,52 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.NNAM:
                 {
-                    _EmbeddedWeaponModLocation = (stream.Position - offset);
+                    _payload.Fields.EmbeddedWeaponModLocation = (stream.Position - offset);
                     return (int)Weapon_FieldIndex.EmbeddedWeaponMod;
                 }
                 case RecordTypeInts.BNAM:
                 {
-                    _BNAMLocation = (stream.Position - offset);
+                    _payload.Fields.BNAMLocation = (stream.Position - offset);
                     return (int)Weapon_FieldIndex.BNAM;
                 }
                 case RecordTypeInts.WAIM:
                 {
-                    _WAIMLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.WAIMLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     return (int)Weapon_FieldIndex.WAIMUnknown4;
                 }
                 case RecordTypeInts.WAM2:
                 {
-                    _WAM2Location = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.WAM2Location = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     return (int)Weapon_FieldIndex.WAM2Unknown1;
                 }
                 case RecordTypeInts.WAMM:
                 {
-                    _WAMMLocation = (stream.Position - offset);
+                    _payload.Fields.WAMMLocation = (stream.Position - offset);
                     return (int)Weapon_FieldIndex.WAMM;
                 }
                 case RecordTypeInts.WAUD:
                 {
-                    _WAUDLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.WAUDLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     return (int)Weapon_FieldIndex.WAUDUnknown2;
                 }
                 case RecordTypeInts.WTUR:
                 {
-                    _WTURLocation = (stream.Position - offset);
+                    _payload.Fields.WTURLocation = (stream.Position - offset);
                     return (int)Weapon_FieldIndex.WTUR;
                 }
                 case RecordTypeInts.WCHG:
                 {
-                    _WCHGLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.WCHGLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     return (int)Weapon_FieldIndex.ChargingAttack;
                 }
                 case RecordTypeInts.WDMG:
                 {
-                    _WDMGLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.WDMGLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     return (int)Weapon_FieldIndex.CritChanceIncMult;
                 }
                 case RecordTypeInts.DAMA:
                 {
-                    this.DamageTypes = BinaryOverlayList.FactoryByStartIndexWithTrigger<IWeaponDamageTypeGetter>(
+                    _payload.Fields.DamageTypes = BinaryOverlayList.FactoryByStartIndexWithTrigger<IWeaponDamageTypeGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -13776,54 +13789,54 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.WFIR:
                 {
-                    _WFIRLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.WFIRLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     return (int)Weapon_FieldIndex.BurstDelaySeconds;
                 }
                 case RecordTypeInts.WFLG:
                 {
-                    _WFLGLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.WFLGLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     return (int)Weapon_FieldIndex.WFLGUnknown7;
                 }
                 case RecordTypeInts.WGEN:
                 {
-                    _WGENLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.WGENLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     return (int)Weapon_FieldIndex.WeaponBarrel;
                 }
                 case RecordTypeInts.WABB:
                 {
-                    _GeneralLocation = (stream.Position - offset);
+                    _payload.Fields.GeneralLocation = (stream.Position - offset);
                     return (int)Weapon_FieldIndex.General;
                 }
                 case RecordTypeInts.WMEL:
                 {
-                    _WMELLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.WMELLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     return (int)Weapon_FieldIndex.MeleeStagger;
                 }
                 case RecordTypeInts.QNAM:
                 {
-                    _QNAMLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.QNAMLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     return (int)Weapon_FieldIndex.PowerConsumption;
                 }
                 case RecordTypeInts.WRLO:
                 {
-                    _WRLOLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.WRLOLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     return (int)Weapon_FieldIndex.ReloadSingle;
                 }
                 case RecordTypeInts.WRUM:
                 {
-                    _WRUMLocation = (stream.Position - offset);
+                    _payload.Fields.WRUMLocation = (stream.Position - offset);
                     return (int)Weapon_FieldIndex.WRUM;
                 }
                 case RecordTypeInts.WVAR:
                 {
-                    _WVARLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.WVARLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     return (int)Weapon_FieldIndex.UseVariableRange;
                 }
                 case RecordTypeInts.MOD4:
                 case RecordTypeInts.MO4S:
                 case RecordTypeInts.MO4C:
                 {
-                    this.FirstPersonModel = FirstPersonModelBinaryOverlay.FirstPersonModelFactory(
+                    _payload.Fields.FirstPersonModel = FirstPersonModelBinaryOverlay.FirstPersonModelFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());
@@ -13831,12 +13844,12 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.WVIS:
                 {
-                    _WVISLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.WVISLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     return (int)Weapon_FieldIndex.ImageSpaceAdapter;
                 }
                 case RecordTypeInts.WTRM:
                 {
-                    _WTRMLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.WTRMLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     return (int)Weapon_FieldIndex.WTRMUnknown5;
                 }
                 case RecordTypeInts.XXXX:

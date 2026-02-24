@@ -36,6 +36,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -2138,13 +2139,9 @@ namespace Mutagen.Bethesda.Starfield
         protected override Type LinkType => typeof(IMessageGetter);
 
 
-        #region Description
-        private int? _DescriptionLocation;
-        public ITranslatedStringGetter Description => _DescriptionLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _DescriptionLocation.Value, _package.MetaData.Constants), StringsSource.DL, parsingBundle: _package.MetaData, eager: false) : TranslatedString.Empty;
-        #endregion
+        public ITranslatedStringGetter Description => Payload.DescriptionLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.DescriptionLocation.Value, _package.MetaData.Constants), StringsSource.DL, parsingBundle: _package.MetaData, eager: false) : TranslatedString.Empty;
         #region Name
-        private int? _NameLocation;
-        public ITranslatedStringGetter? Name => _NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+        public ITranslatedStringGetter? Name => Payload.NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
         #region Aspects
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         string INamedRequiredGetter.Name => this.Name?.String ?? string.Empty;
@@ -2154,31 +2151,36 @@ namespace Mutagen.Bethesda.Starfield
         ITranslatedStringGetter ITranslatedNamedRequiredGetter.Name => this.Name ?? TranslatedString.Empty;
         #endregion
         #endregion
-        #region INAM
-        private int? _INAMLocation;
-        public Int32 INAM => _INAMLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _INAMLocation.Value, _package.MetaData.Constants)) : default(Int32);
-        #endregion
-        #region OwnerQuest
-        private int? _OwnerQuestLocation;
-        public IFormLinkNullableGetter<IQuestGetter> OwnerQuest => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IQuestGetter>(_package, _recordData, _OwnerQuestLocation);
-        #endregion
-        #region Flags
-        private int? _FlagsLocation;
-        public Message.Flag Flags => EnumBinaryTranslation<Message.Flag, MutagenFrame, MutagenWriter>.Instance.ParseRecord(_FlagsLocation, _recordData, _package, 4);
-        #endregion
-        #region DisplayTime
-        private int? _DisplayTimeLocation;
-        public UInt32? DisplayTime => _DisplayTimeLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _DisplayTimeLocation.Value, _package.MetaData.Constants)) : default(UInt32?);
-        #endregion
-        #region BNAM
-        private int? _BNAMLocation;
-        public UInt32? BNAM => _BNAMLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _BNAMLocation.Value, _package.MetaData.Constants)) : default(UInt32?);
-        #endregion
-        #region ShortTitle
-        private int? _ShortTitleLocation;
-        public ITranslatedStringGetter? ShortTitle => _ShortTitleLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _ShortTitleLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
-        #endregion
-        public IReadOnlyList<IMessageButtonGetter> MenuButtons { get; private set; } = [];
+        public Int32 INAM => Payload.INAMLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.INAMLocation.Value, _package.MetaData.Constants)) : default(Int32);
+        public IFormLinkNullableGetter<IQuestGetter> OwnerQuest => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IQuestGetter>(_package, _recordData, Payload.OwnerQuestLocation);
+        public Message.Flag Flags => EnumBinaryTranslation<Message.Flag, MutagenFrame, MutagenWriter>.Instance.ParseRecord(Payload.FlagsLocation, _recordData, _package, 4);
+        public UInt32? DisplayTime => Payload.DisplayTimeLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.DisplayTimeLocation.Value, _package.MetaData.Constants)) : default(UInt32?);
+        public UInt32? BNAM => Payload.BNAMLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.BNAMLocation.Value, _package.MetaData.Constants)) : default(UInt32?);
+        public ITranslatedStringGetter? ShortTitle => Payload.ShortTitleLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.ShortTitleLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+        public IReadOnlyList<IMessageButtonGetter> MenuButtons => Payload.MenuButtons ?? [];
+
+        internal partial class MessageRecordDataPayload
+        {
+            public int? DescriptionLocation;
+            public int? NameLocation;
+            public int? INAMLocation;
+            public int? OwnerQuestLocation;
+            public int? FlagsLocation;
+            public int? DisplayTimeLocation;
+            public int? BNAMLocation;
+            public int? ShortTitleLocation;
+            public IReadOnlyList<IMessageButtonGetter> MenuButtons = [];
+        }
+
+        private LazyPayload<MessageRecordDataPayload> _payload = null!;
+
+        internal MessageRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<MessageRecordDataPayload>(init, new MessageRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -2186,10 +2188,10 @@ namespace Mutagen.Bethesda.Starfield
 
         partial void CustomCtor();
         protected MessageBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -2200,28 +2202,51 @@ namespace Mutagen.Bethesda.Starfield
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new MessageBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -2250,49 +2275,49 @@ namespace Mutagen.Bethesda.Starfield
             {
                 case RecordTypeInts.DESC:
                 {
-                    _DescriptionLocation = (stream.Position - offset);
+                    _payload.Fields.DescriptionLocation = (stream.Position - offset);
                     return (int)Message_FieldIndex.Description;
                 }
                 case RecordTypeInts.FULL:
                 {
-                    _NameLocation = (stream.Position - offset);
+                    _payload.Fields.NameLocation = (stream.Position - offset);
                     return (int)Message_FieldIndex.Name;
                 }
                 case RecordTypeInts.INAM:
                 {
-                    _INAMLocation = (stream.Position - offset);
+                    _payload.Fields.INAMLocation = (stream.Position - offset);
                     return (int)Message_FieldIndex.INAM;
                 }
                 case RecordTypeInts.QNAM:
                 {
-                    _OwnerQuestLocation = (stream.Position - offset);
+                    _payload.Fields.OwnerQuestLocation = (stream.Position - offset);
                     return (int)Message_FieldIndex.OwnerQuest;
                 }
                 case RecordTypeInts.DNAM:
                 {
-                    _FlagsLocation = (stream.Position - offset);
+                    _payload.Fields.FlagsLocation = (stream.Position - offset);
                     return (int)Message_FieldIndex.Flags;
                 }
                 case RecordTypeInts.TNAM:
                 {
-                    _DisplayTimeLocation = (stream.Position - offset);
+                    _payload.Fields.DisplayTimeLocation = (stream.Position - offset);
                     return (int)Message_FieldIndex.DisplayTime;
                 }
                 case RecordTypeInts.BNAM:
                 {
-                    _BNAMLocation = (stream.Position - offset);
+                    _payload.Fields.BNAMLocation = (stream.Position - offset);
                     return (int)Message_FieldIndex.BNAM;
                 }
                 case RecordTypeInts.NNAM:
                 {
-                    _ShortTitleLocation = (stream.Position - offset);
+                    _payload.Fields.ShortTitleLocation = (stream.Position - offset);
                     return (int)Message_FieldIndex.ShortTitle;
                 }
                 case RecordTypeInts.ITXT:
                 case RecordTypeInts.CTDA:
                 case RecordTypeInts.DODT:
                 {
-                    this.MenuButtons = this.ParseRepeatedTypelessSubrecord<IMessageButtonGetter>(
+                    _payload.Fields.MenuButtons = this.ParseRepeatedTypelessSubrecord<IMessageButtonGetter>(
                         stream: stream,
                         translationParams: translationParams,
                         trigger: MessageButton_Registration.TriggerSpecs,

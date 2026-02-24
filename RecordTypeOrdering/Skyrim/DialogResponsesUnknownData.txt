@@ -1,0 +1,3 @@
+RecordTypes.SCHR,
+RecordTypes.QNAM,
+RecordTypes.NEXT,

@@ -1,0 +1,2 @@
+RecordTypes.SNAM,
+RecordTypes.XNAM,

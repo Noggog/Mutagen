@@ -37,6 +37,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -2822,33 +2823,45 @@ namespace Mutagen.Bethesda.Skyrim
 
 
         #region VirtualMachineAdapter
-        private int? _VirtualMachineAdapterLengthOverride;
-        private RangeInt32? _VirtualMachineAdapterLocation;
-        public ISceneAdapterGetter? VirtualMachineAdapter => _VirtualMachineAdapterLocation.HasValue ? SceneAdapterBinaryOverlay.SceneAdapterFactory(_recordData.Slice(_VirtualMachineAdapterLocation!.Value.Min), _package, TypedParseParams.FromLengthOverride(_VirtualMachineAdapterLengthOverride)) : default;
+        public ISceneAdapterGetter? VirtualMachineAdapter => Payload.VirtualMachineAdapterLocation.HasValue ? SceneAdapterBinaryOverlay.SceneAdapterFactory(_recordData.Slice(Payload.VirtualMachineAdapterLocation!.Value.Min), _package, TypedParseParams.FromLengthOverride(Payload.VirtualMachineAdapterLengthOverride)) : default;
         IAVirtualMachineAdapterGetter? IHaveVirtualMachineAdapterGetter.VirtualMachineAdapter => this.VirtualMachineAdapter;
         #endregion
-        #region Flags
-        private int? _FlagsLocation;
-        public Scene.Flag? Flags => EnumBinaryTranslation<Scene.Flag, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(_FlagsLocation, _recordData, _package, 4);
-        #endregion
-        public IReadOnlyList<IScenePhaseGetter> Phases { get; private set; } = [];
-        public IReadOnlyList<ISceneActorGetter> Actors { get; private set; } = [];
-        public IReadOnlyList<ISceneActionGetter> Actions { get; private set; } = [];
-        public IScenePhaseUnusedDataGetter? Unused { get; private set; }
-        public IScenePhaseUnusedDataGetter? Unused2 { get; private set; }
-        #region Quest
-        private int? _QuestLocation;
-        public IFormLinkNullableGetter<IQuestGetter> Quest => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IQuestGetter>(_package, _recordData, _QuestLocation);
-        #endregion
-        #region LastActionIndex
-        private int? _LastActionIndexLocation;
-        public UInt32? LastActionIndex => _LastActionIndexLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _LastActionIndexLocation.Value, _package.MetaData.Constants)) : default(UInt32?);
-        #endregion
-        #region VNAM
-        private int? _VNAMLocation;
-        public ReadOnlyMemorySlice<Byte>? VNAM => _VNAMLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _VNAMLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
-        #endregion
-        public IReadOnlyList<IConditionGetter> Conditions { get; private set; } = [];
+        public Scene.Flag? Flags => EnumBinaryTranslation<Scene.Flag, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(Payload.FlagsLocation, _recordData, _package, 4);
+        public IReadOnlyList<IScenePhaseGetter> Phases => Payload.Phases ?? [];
+        public IReadOnlyList<ISceneActorGetter> Actors => Payload.Actors ?? [];
+        public IReadOnlyList<ISceneActionGetter> Actions => Payload.Actions ?? [];
+        public IScenePhaseUnusedDataGetter? Unused => Payload.Unused;
+        public IScenePhaseUnusedDataGetter? Unused2 => Payload.Unused2;
+        public IFormLinkNullableGetter<IQuestGetter> Quest => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IQuestGetter>(_package, _recordData, Payload.QuestLocation);
+        public UInt32? LastActionIndex => Payload.LastActionIndexLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.LastActionIndexLocation.Value, _package.MetaData.Constants)) : default(UInt32?);
+        public ReadOnlyMemorySlice<Byte>? VNAM => Payload.VNAMLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.VNAMLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
+        public IReadOnlyList<IConditionGetter> Conditions => Payload.Conditions ?? [];
+
+        internal partial class SceneRecordDataPayload
+        {
+            public int? VirtualMachineAdapterLengthOverride;
+            public RangeInt32? VirtualMachineAdapterLocation;
+            public int? FlagsLocation;
+            public IReadOnlyList<IScenePhaseGetter> Phases = [];
+            public IReadOnlyList<ISceneActorGetter> Actors = [];
+            public IReadOnlyList<ISceneActionGetter> Actions = [];
+            public IScenePhaseUnusedDataGetter? Unused;
+            public IScenePhaseUnusedDataGetter? Unused2;
+            public int? QuestLocation;
+            public int? LastActionIndexLocation;
+            public int? VNAMLocation;
+            public IReadOnlyList<IConditionGetter> Conditions = [];
+        }
+
+        private LazyPayload<SceneRecordDataPayload> _payload = null!;
+
+        internal SceneRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<SceneRecordDataPayload>(init, new SceneRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -2856,10 +2869,10 @@ namespace Mutagen.Bethesda.Skyrim
 
         partial void CustomCtor();
         protected SceneBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -2870,28 +2883,51 @@ namespace Mutagen.Bethesda.Skyrim
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new SceneBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -2920,8 +2956,8 @@ namespace Mutagen.Bethesda.Skyrim
             {
                 case RecordTypeInts.VMAD:
                 {
-                    _VirtualMachineAdapterLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
-                    _VirtualMachineAdapterLengthOverride = lastParsed.LengthOverride;
+                    _payload.Fields.VirtualMachineAdapterLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.VirtualMachineAdapterLengthOverride = lastParsed.LengthOverride;
                     if (lastParsed.LengthOverride.HasValue)
                     {
                         stream.Position += lastParsed.LengthOverride.Value;
@@ -2930,12 +2966,12 @@ namespace Mutagen.Bethesda.Skyrim
                 }
                 case RecordTypeInts.FNAM:
                 {
-                    _FlagsLocation = (stream.Position - offset);
+                    _payload.Fields.FlagsLocation = (stream.Position - offset);
                     return (int)Scene_FieldIndex.Flags;
                 }
                 case RecordTypeInts.HNAM:
                 {
-                    this.Phases = this.ParseRepeatedTypelessSubrecord<IScenePhaseGetter>(
+                    _payload.Fields.Phases = this.ParseRepeatedTypelessSubrecord<IScenePhaseGetter>(
                         stream: stream,
                         translationParams: translationParams,
                         trigger: ScenePhase_Registration.TriggerSpecs,
@@ -2944,7 +2980,7 @@ namespace Mutagen.Bethesda.Skyrim
                 }
                 case RecordTypeInts.ALID:
                 {
-                    this.Actors = this.ParseRepeatedTypelessSubrecord<ISceneActorGetter>(
+                    _payload.Fields.Actors = this.ParseRepeatedTypelessSubrecord<ISceneActorGetter>(
                         stream: stream,
                         translationParams: translationParams,
                         trigger: SceneActor_Registration.TriggerSpecs,
@@ -2953,7 +2989,7 @@ namespace Mutagen.Bethesda.Skyrim
                 }
                 case RecordTypeInts.ANAM:
                 {
-                    this.Actions = this.ParseRepeatedTypelessSubrecord<ISceneActionGetter>(
+                    _payload.Fields.Actions = this.ParseRepeatedTypelessSubrecord<ISceneActionGetter>(
                         stream: stream,
                         translationParams: translationParams,
                         trigger: SceneAction_Registration.TriggerSpecs,
@@ -2966,7 +3002,7 @@ namespace Mutagen.Bethesda.Skyrim
                 case RecordTypeInts.QNAM:
                 case RecordTypeInts.SCRO:
                 {
-                    this.Unused = ScenePhaseUnusedDataBinaryOverlay.ScenePhaseUnusedDataFactory(
+                    _payload.Fields.Unused = ScenePhaseUnusedDataBinaryOverlay.ScenePhaseUnusedDataFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());
@@ -2975,7 +3011,7 @@ namespace Mutagen.Bethesda.Skyrim
                 case RecordTypeInts.NEXT:
                 {
                     stream.Position += _package.MetaData.Constants.SubConstants.HeaderLength; // Skip marker
-                    this.Unused2 = ScenePhaseUnusedDataBinaryOverlay.ScenePhaseUnusedDataFactory(
+                    _payload.Fields.Unused2 = ScenePhaseUnusedDataBinaryOverlay.ScenePhaseUnusedDataFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());
@@ -2983,22 +3019,22 @@ namespace Mutagen.Bethesda.Skyrim
                 }
                 case RecordTypeInts.PNAM:
                 {
-                    _QuestLocation = (stream.Position - offset);
+                    _payload.Fields.QuestLocation = (stream.Position - offset);
                     return (int)Scene_FieldIndex.Quest;
                 }
                 case RecordTypeInts.INAM:
                 {
-                    _LastActionIndexLocation = (stream.Position - offset);
+                    _payload.Fields.LastActionIndexLocation = (stream.Position - offset);
                     return (int)Scene_FieldIndex.LastActionIndex;
                 }
                 case RecordTypeInts.VNAM:
                 {
-                    _VNAMLocation = (stream.Position - offset);
+                    _payload.Fields.VNAMLocation = (stream.Position - offset);
                     return (int)Scene_FieldIndex.VNAM;
                 }
                 case RecordTypeInts.CTDA:
                 {
-                    this.Conditions = BinaryOverlayList.FactoryByArray<IConditionGetter>(
+                    _payload.Fields.Conditions = BinaryOverlayList.FactoryByArray<IConditionGetter>(
                         mem: stream.RemainingMemory,
                         package: _package,
                         translationParams: translationParams,

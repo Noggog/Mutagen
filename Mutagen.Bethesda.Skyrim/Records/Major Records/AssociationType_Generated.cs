@@ -33,6 +33,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -1589,18 +1590,26 @@ namespace Mutagen.Bethesda.Skyrim
         protected override Type LinkType => typeof(IAssociationTypeGetter);
 
 
-        #region ParentTitle
-        private IGenderedItemGetter<String?>? _ParentTitleOverlay;
-        public IGenderedItemGetter<String?>? ParentTitle => _ParentTitleOverlay;
-        #endregion
-        #region Title
-        private IGenderedItemGetter<String?>? _TitleOverlay;
-        public IGenderedItemGetter<String?>? Title => _TitleOverlay;
-        #endregion
-        #region IsFamily
-        private int? _IsFamilyLocation;
-        public Boolean? IsFamily => _IsFamilyLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _IsFamilyLocation.Value, _package.MetaData.Constants)) >= 1 : default(Boolean?);
-        #endregion
+        public IGenderedItemGetter<String?>? ParentTitle => Payload.ParentTitleOverlay;
+        public IGenderedItemGetter<String?>? Title => Payload.TitleOverlay;
+        public Boolean? IsFamily => Payload.IsFamilyLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.IsFamilyLocation.Value, _package.MetaData.Constants)) >= 1 : default(Boolean?);
+
+        internal partial class AssociationTypeRecordDataPayload
+        {
+            public IGenderedItemGetter<String?>? ParentTitleOverlay;
+            public IGenderedItemGetter<String?>? TitleOverlay;
+            public int? IsFamilyLocation;
+        }
+
+        private LazyPayload<AssociationTypeRecordDataPayload> _payload = null!;
+
+        internal AssociationTypeRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<AssociationTypeRecordDataPayload>(init, new AssociationTypeRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -1608,10 +1617,10 @@ namespace Mutagen.Bethesda.Skyrim
 
         partial void CustomCtor();
         protected AssociationTypeBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -1622,28 +1631,51 @@ namespace Mutagen.Bethesda.Skyrim
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new AssociationTypeBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -1673,7 +1705,7 @@ namespace Mutagen.Bethesda.Skyrim
                 case RecordTypeInts.MPRT:
                 case RecordTypeInts.FPRT:
                 {
-                    _ParentTitleOverlay = GenderedItemBinaryOverlay.Factory<String>(
+                    _payload.Fields.ParentTitleOverlay = GenderedItemBinaryOverlay.Factory<String>(
                         package: _package,
                         male: RecordTypes.MPRT,
                         female: RecordTypes.FPRT,
@@ -1684,7 +1716,7 @@ namespace Mutagen.Bethesda.Skyrim
                 case RecordTypeInts.MCHT:
                 case RecordTypeInts.FCHT:
                 {
-                    _TitleOverlay = GenderedItemBinaryOverlay.Factory<String>(
+                    _payload.Fields.TitleOverlay = GenderedItemBinaryOverlay.Factory<String>(
                         package: _package,
                         male: RecordTypes.MCHT,
                         female: RecordTypes.FCHT,
@@ -1694,7 +1726,7 @@ namespace Mutagen.Bethesda.Skyrim
                 }
                 case RecordTypeInts.DATA:
                 {
-                    _IsFamilyLocation = (stream.Position - offset);
+                    _payload.Fields.IsFamilyLocation = (stream.Position - offset);
                     return (int)AssociationType_FieldIndex.IsFamily;
                 }
                 default:

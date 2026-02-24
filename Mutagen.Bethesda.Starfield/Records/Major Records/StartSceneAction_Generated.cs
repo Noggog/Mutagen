@@ -1352,7 +1352,14 @@ namespace Mutagen.Bethesda.Starfield
         public IReadOnlyList<IStartSceneGetter> StartScenes { get; private set; } = [];
         #region HTID
         private int? _HTIDLocation;
-        public Boolean HTID => _HTIDLocation.HasValue ? true : default(Boolean);
+        public Boolean HTID
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _HTIDLocation.HasValue ? true : default(Boolean);
+            }
+        }
         #endregion
         partial void CustomFactoryEnd(
             OverlayStream stream,

@@ -39,6 +39,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -2266,33 +2267,38 @@ namespace Mutagen.Bethesda.Skyrim
 
         public LoadScreen.MajorFlag MajorFlags => (LoadScreen.MajorFlag)this.MajorRecordFlagsRaw;
 
-        public IIconsGetter? Icons { get; private set; }
-        #region Description
-        private int? _DescriptionLocation;
-        public ITranslatedStringGetter Description => _DescriptionLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _DescriptionLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : TranslatedString.Empty;
-        #endregion
-        public IReadOnlyList<IConditionGetter> Conditions { get; private set; } = [];
-        #region LoadingScreenNif
-        private int? _LoadingScreenNifLocation;
-        public IFormLinkGetter<IStaticGetter> LoadingScreenNif => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IStaticGetter>(_package, _recordData, _LoadingScreenNifLocation);
-        #endregion
-        #region InitialScale
-        private int? _InitialScaleLocation;
-        public Single? InitialScale => _InitialScaleLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _InitialScaleLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
-        #endregion
-        #region InitialRotation
-        private int? _InitialRotationLocation;
-        public P3Int16? InitialRotation => _InitialRotationLocation.HasValue ? P3Int16BinaryTranslation<MutagenFrame, MutagenWriter>.Instance.Read(HeaderTranslation.ExtractSubrecordMemory(_recordData, _InitialRotationLocation.Value, _package.MetaData.Constants)) : default(P3Int16?);
-        #endregion
-        public IInt16MinMaxGetter? RotationOffsetConstraints { get; private set; }
-        #region InitialTranslationOffset
-        private int? _InitialTranslationOffsetLocation;
-        public P3Float? InitialTranslationOffset => _InitialTranslationOffsetLocation.HasValue ? P3FloatBinaryTranslation<MutagenFrame, MutagenWriter>.Instance.Read(HeaderTranslation.ExtractSubrecordMemory(_recordData, _InitialTranslationOffsetLocation.Value, _package.MetaData.Constants)) : default(P3Float?);
-        #endregion
-        #region CameraPath
-        private int? _CameraPathLocation;
-        public AssetLinkGetter<SkyrimModelAssetType>? CameraPath => _CameraPathLocation.HasValue ? new AssetLinkGetter<SkyrimModelAssetType>(BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _CameraPathLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated)) : default(AssetLinkGetter<SkyrimModelAssetType>?);
-        #endregion
+        public IIconsGetter? Icons => Payload.Icons;
+        public ITranslatedStringGetter Description => Payload.DescriptionLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.DescriptionLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : TranslatedString.Empty;
+        public IReadOnlyList<IConditionGetter> Conditions => Payload.Conditions ?? [];
+        public IFormLinkGetter<IStaticGetter> LoadingScreenNif => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IStaticGetter>(_package, _recordData, Payload.LoadingScreenNifLocation);
+        public Single? InitialScale => Payload.InitialScaleLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.InitialScaleLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public P3Int16? InitialRotation => Payload.InitialRotationLocation.HasValue ? P3Int16BinaryTranslation<MutagenFrame, MutagenWriter>.Instance.Read(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.InitialRotationLocation.Value, _package.MetaData.Constants)) : default(P3Int16?);
+        public IInt16MinMaxGetter? RotationOffsetConstraints => Payload.RotationOffsetConstraints;
+        public P3Float? InitialTranslationOffset => Payload.InitialTranslationOffsetLocation.HasValue ? P3FloatBinaryTranslation<MutagenFrame, MutagenWriter>.Instance.Read(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.InitialTranslationOffsetLocation.Value, _package.MetaData.Constants)) : default(P3Float?);
+        public AssetLinkGetter<SkyrimModelAssetType>? CameraPath => Payload.CameraPathLocation.HasValue ? new AssetLinkGetter<SkyrimModelAssetType>(BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.CameraPathLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated)) : default(AssetLinkGetter<SkyrimModelAssetType>?);
+
+        internal partial class LoadScreenRecordDataPayload
+        {
+            public IIconsGetter? Icons;
+            public int? DescriptionLocation;
+            public IReadOnlyList<IConditionGetter> Conditions = [];
+            public int? LoadingScreenNifLocation;
+            public int? InitialScaleLocation;
+            public int? InitialRotationLocation;
+            public IInt16MinMaxGetter? RotationOffsetConstraints;
+            public int? InitialTranslationOffsetLocation;
+            public int? CameraPathLocation;
+        }
+
+        private LazyPayload<LoadScreenRecordDataPayload> _payload = null!;
+
+        internal LoadScreenRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<LoadScreenRecordDataPayload>(init, new LoadScreenRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -2300,10 +2306,10 @@ namespace Mutagen.Bethesda.Skyrim
 
         partial void CustomCtor();
         protected LoadScreenBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -2314,28 +2320,51 @@ namespace Mutagen.Bethesda.Skyrim
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new LoadScreenBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -2364,7 +2393,7 @@ namespace Mutagen.Bethesda.Skyrim
             {
                 case RecordTypeInts.ICON:
                 {
-                    this.Icons = IconsBinaryOverlay.IconsFactory(
+                    _payload.Fields.Icons = IconsBinaryOverlay.IconsFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());
@@ -2372,12 +2401,12 @@ namespace Mutagen.Bethesda.Skyrim
                 }
                 case RecordTypeInts.DESC:
                 {
-                    _DescriptionLocation = (stream.Position - offset);
+                    _payload.Fields.DescriptionLocation = (stream.Position - offset);
                     return (int)LoadScreen_FieldIndex.Description;
                 }
                 case RecordTypeInts.CTDA:
                 {
-                    this.Conditions = BinaryOverlayList.FactoryByArray<IConditionGetter>(
+                    _payload.Fields.Conditions = BinaryOverlayList.FactoryByArray<IConditionGetter>(
                         mem: stream.RemainingMemory,
                         package: _package,
                         translationParams: translationParams,
@@ -2392,23 +2421,23 @@ namespace Mutagen.Bethesda.Skyrim
                 }
                 case RecordTypeInts.NNAM:
                 {
-                    _LoadingScreenNifLocation = (stream.Position - offset);
+                    _payload.Fields.LoadingScreenNifLocation = (stream.Position - offset);
                     return (int)LoadScreen_FieldIndex.LoadingScreenNif;
                 }
                 case RecordTypeInts.SNAM:
                 {
-                    _InitialScaleLocation = (stream.Position - offset);
+                    _payload.Fields.InitialScaleLocation = (stream.Position - offset);
                     return (int)LoadScreen_FieldIndex.InitialScale;
                 }
                 case RecordTypeInts.RNAM:
                 {
-                    _InitialRotationLocation = (stream.Position - offset);
+                    _payload.Fields.InitialRotationLocation = (stream.Position - offset);
                     return (int)LoadScreen_FieldIndex.InitialRotation;
                 }
                 case RecordTypeInts.ONAM:
                 {
                     stream.Position += _package.MetaData.Constants.SubConstants.HeaderLength;
-                    this.RotationOffsetConstraints = Int16MinMaxBinaryOverlay.Int16MinMaxFactory(
+                    _payload.Fields.RotationOffsetConstraints = Int16MinMaxBinaryOverlay.Int16MinMaxFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());
@@ -2416,12 +2445,12 @@ namespace Mutagen.Bethesda.Skyrim
                 }
                 case RecordTypeInts.XNAM:
                 {
-                    _InitialTranslationOffsetLocation = (stream.Position - offset);
+                    _payload.Fields.InitialTranslationOffsetLocation = (stream.Position - offset);
                     return (int)LoadScreen_FieldIndex.InitialTranslationOffset;
                 }
                 case RecordTypeInts.MOD2:
                 {
-                    _CameraPathLocation = (stream.Position - offset);
+                    _payload.Fields.CameraPathLocation = (stream.Position - offset);
                     return (int)LoadScreen_FieldIndex.CameraPath;
                 }
                 default:

@@ -121,37 +121,41 @@ partial class RegionBinaryWriteTranslation
 
 partial class RegionBinaryOverlay : IRegionGetter
 {
+    internal partial class RegionRecordDataPayload
+    {
+        public int? IconLocation;
+        public int? SecondaryIconLocation;
+        public ReadOnlyMemorySlice<byte>? ObjectsSpan;
+        public ReadOnlyMemorySlice<byte>? WeatherSpan;
+        public ReadOnlyMemorySlice<byte>? MapSpan;
+        public ReadOnlyMemorySlice<byte>? GrassesSpan;
+        public ReadOnlyMemorySlice<byte>? SoundsSpan;
+    }
+
     #region Icon
-    private int? _iconLocation;
-    private int? _secondaryIconLocation;
     public partial string? GetIconCustom()
     {
-        if (_iconLocation.HasValue)
+        if (Payload.IconLocation.HasValue)
         {
-            return BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _iconLocation.Value, _package.MetaData.Constants), _package.MetaData.Encodings.NonLocalized);
+            return BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.IconLocation.Value, _package.MetaData.Constants), _package.MetaData.Encodings.NonLocalized);
         }
-        if (_secondaryIconLocation.HasValue)
+        if (Payload.SecondaryIconLocation.HasValue)
         {
-            return BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _secondaryIconLocation.Value, _package.MetaData.Constants), _package.MetaData.Encodings.NonLocalized);
+            return BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.SecondaryIconLocation.Value, _package.MetaData.Constants), _package.MetaData.Encodings.NonLocalized);
         }
         return default;
     }
     #endregion
 
-    private ReadOnlyMemorySlice<byte>? _objectsSpan;
-    public IRegionObjectsGetter? Objects => _objectsSpan.HasValue ? RegionObjectsBinaryOverlay.RegionObjectsFactory(new OverlayStream(_objectsSpan.Value, _package), _package) : default;
+    public IRegionObjectsGetter? Objects => Payload.ObjectsSpan.HasValue ? RegionObjectsBinaryOverlay.RegionObjectsFactory(new OverlayStream(Payload.ObjectsSpan.Value, _package), _package) : default;
 
-    private ReadOnlyMemorySlice<byte>? _weatherSpan;
-    public IRegionWeatherGetter? Weather => _weatherSpan.HasValue ? RegionWeatherBinaryOverlay.RegionWeatherFactory(new OverlayStream(_weatherSpan.Value, _package), _package) : default;
-        
-    private ReadOnlyMemorySlice<byte>? _mapSpan;
-    public IRegionMapGetter? MapName => _mapSpan.HasValue ? RegionMapBinaryOverlay.RegionMapFactory(new OverlayStream(_mapSpan.Value, _package), _package) : default;
-        
-    private ReadOnlyMemorySlice<byte>? _grassesSpan;
-    public IRegionGrassesGetter? Grasses => _grassesSpan.HasValue ? RegionGrassesBinaryOverlay.RegionGrassesFactory(new OverlayStream(_grassesSpan.Value, _package), _package) : default;
+    public IRegionWeatherGetter? Weather => Payload.WeatherSpan.HasValue ? RegionWeatherBinaryOverlay.RegionWeatherFactory(new OverlayStream(Payload.WeatherSpan.Value, _package), _package) : default;
 
-    private ReadOnlyMemorySlice<byte>? _soundsSpan;
-    public IRegionSoundsGetter? Sounds => _soundsSpan.HasValue ? RegionSoundsBinaryOverlay.RegionSoundsFactory(new OverlayStream(_soundsSpan.Value, _package), _package) : default;
+    public IRegionMapGetter? MapName => Payload.MapSpan.HasValue ? RegionMapBinaryOverlay.RegionMapFactory(new OverlayStream(Payload.MapSpan.Value, _package), _package) : default;
+
+    public IRegionGrassesGetter? Grasses => Payload.GrassesSpan.HasValue ? RegionGrassesBinaryOverlay.RegionGrassesFactory(new OverlayStream(Payload.GrassesSpan.Value, _package), _package) : default;
+
+    public IRegionSoundsGetter? Sounds => Payload.SoundsSpan.HasValue ? RegionSoundsBinaryOverlay.RegionSoundsFactory(new OverlayStream(Payload.SoundsSpan.Value, _package), _package) : default;
 
     public partial ParseResult RegionAreaLogicCustomParse(
         OverlayStream stream,
@@ -171,7 +175,7 @@ partial class RegionBinaryOverlay : IRegionGetter
 
     partial void IconCustomParse(OverlayStream stream, int finalPos, int offset)
     {
-        _iconLocation = (ushort)(stream.Position - offset);
+        _payload.Fields.IconLocation = (ushort)(stream.Position - offset);
         stream.ReadSubrecord();
     }
 
@@ -193,13 +197,13 @@ partial class RegionBinaryOverlay : IRegionGetter
         switch (dataType)
         {
             case RegionData.RegionDataType.Object:
-                _objectsSpan = _recordData.Slice(loc, len);
+                _payload.Fields.ObjectsSpan = _recordData.Slice(loc, len);
                 break;
             case RegionData.RegionDataType.Map:
-                _mapSpan = _recordData.Slice(loc, len);
+                _payload.Fields.MapSpan = _recordData.Slice(loc, len);
                 break;
             case RegionData.RegionDataType.Grass:
-                _grassesSpan = _recordData.Slice(loc, len);
+                _payload.Fields.GrassesSpan = _recordData.Slice(loc, len);
                 break;
             case RegionData.RegionDataType.Sound:
                 var nextRec = stream.GetSubrecordHeader();
@@ -209,13 +213,13 @@ partial class RegionBinaryOverlay : IRegionGetter
                     stream.Position += nextRec.TotalLength;
                 }
 
-                _soundsSpan = _recordData.Slice(loc, len);
+                _payload.Fields.SoundsSpan = _recordData.Slice(loc, len);
                 break;
             case RegionData.RegionDataType.Weather:
-                _weatherSpan = _recordData.Slice(loc, len);
+                _payload.Fields.WeatherSpan = _recordData.Slice(loc, len);
                 break;
             case RegionData.RegionDataType.Icon:
-                _secondaryIconLocation = loc + rdatFrame.TotalLength;
+                _payload.Fields.SecondaryIconLocation = loc + rdatFrame.TotalLength;
                 break;
             default:
                 throw new NotImplementedException();

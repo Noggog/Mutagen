@@ -1,0 +1,2 @@
+RecordTypes.INAM,
+RecordTypes.PDTO,

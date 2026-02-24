@@ -1,0 +1,6 @@
+RecordTypes.SADD,
+RecordTypes.SAKD,
+RecordTypes.SGNM,
+RecordTypes.SAPT,
+RecordTypes.STKD,
+RecordTypes.SRAF,

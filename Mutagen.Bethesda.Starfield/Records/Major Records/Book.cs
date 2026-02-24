@@ -167,13 +167,13 @@ partial class BookBinaryOverlay
 {
     public partial Book.Flag GetFlagsCustom()
     {
-        if (!_DATALocation.HasValue) return default;
+        if (!Payload.DATALocation.HasValue) return default;
         return (Book.Flag)_recordData[_FlagsLocation];
     }
     
     public partial IBookTeachTargetGetter? GetTeachesCustom()
     {
-        if (!_DATALocation.HasValue) return default;
+        if (!Payload.DATALocation.HasValue) return default;
 
         switch (BookBinaryCreateTranslation.GetTeachingOption((int)this.Flags))
         {

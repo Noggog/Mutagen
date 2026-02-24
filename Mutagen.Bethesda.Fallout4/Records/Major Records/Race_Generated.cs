@@ -36,6 +36,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -9339,13 +9340,9 @@ namespace Mutagen.Bethesda.Fallout4
         protected override Type LinkType => typeof(IRaceGetter);
 
 
-        #region AnimationSound
-        private int? _AnimationSoundLocation;
-        public IFormLinkNullableGetter<IAnimationSoundTagSetGetter> AnimationSound => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IAnimationSoundTagSetGetter>(_package, _recordData, _AnimationSoundLocation);
-        #endregion
+        public IFormLinkNullableGetter<IAnimationSoundTagSetGetter> AnimationSound => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IAnimationSoundTagSetGetter>(_package, _recordData, Payload.AnimationSoundLocation);
         #region Name
-        private int? _NameLocation;
-        public ITranslatedStringGetter? Name => _NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+        public ITranslatedStringGetter? Name => Payload.NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
         #region Aspects
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         string INamedRequiredGetter.Name => this.Name?.String ?? string.Empty;
@@ -9355,29 +9352,19 @@ namespace Mutagen.Bethesda.Fallout4
         ITranslatedStringGetter ITranslatedNamedRequiredGetter.Name => this.Name ?? TranslatedString.Empty;
         #endregion
         #endregion
-        #region Description
-        private int? _DescriptionLocation;
-        public ITranslatedStringGetter Description => _DescriptionLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _DescriptionLocation.Value, _package.MetaData.Constants), StringsSource.DL, parsingBundle: _package.MetaData, eager: false) : TranslatedString.Empty;
-        #endregion
-        public IReadOnlyList<IFormLinkGetter<ISpellRecordGetter>>? ActorEffect { get; private set; }
-        #region Skin
-        private int? _SkinLocation;
-        public IFormLinkNullableGetter<IArmorGetter> Skin => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IArmorGetter>(_package, _recordData, _SkinLocation);
-        #endregion
-        #region BipedBodyTemplate
-        private RangeInt32? _BipedBodyTemplateLocation;
-        public IBipedBodyTemplateGetter? BipedBodyTemplate => _BipedBodyTemplateLocation.HasValue ? BipedBodyTemplateBinaryOverlay.BipedBodyTemplateFactory(_recordData.Slice(_BipedBodyTemplateLocation!.Value.Min), _package) : default;
-        #endregion
+        public ITranslatedStringGetter Description => Payload.DescriptionLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.DescriptionLocation.Value, _package.MetaData.Constants), StringsSource.DL, parsingBundle: _package.MetaData, eager: false) : TranslatedString.Empty;
+        public IReadOnlyList<IFormLinkGetter<ISpellRecordGetter>>? ActorEffect => Payload.ActorEffect;
+        public IFormLinkNullableGetter<IArmorGetter> Skin => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IArmorGetter>(_package, _recordData, Payload.SkinLocation);
+        public IBipedBodyTemplateGetter? BipedBodyTemplate => Payload.BipedBodyTemplateLocation.HasValue ? BipedBodyTemplateBinaryOverlay.BipedBodyTemplateFactory(_recordData.Slice(Payload.BipedBodyTemplateLocation!.Value.Min), _package) : default;
         #region Keywords
-        public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? Keywords { get; private set; }
+        public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? Keywords => Payload.Keywords;
         IReadOnlyList<IFormLinkGetter<IKeywordCommonGetter>>? IKeywordedGetter.Keywords => this.Keywords;
         #endregion
-        public IReadOnlyList<IObjectPropertyGetter>? Properties { get; private set; }
-        public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? AttachParentSlots { get; private set; }
-        private RangeInt32? _DATALocation;
+        public IReadOnlyList<IObjectPropertyGetter>? Properties => Payload.Properties;
+        public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? AttachParentSlots => Payload.AttachParentSlots;
         #region Height
-        private int _HeightLocation => _DATALocation!.Value.Min;
-        private bool _Height_IsSet => _DATALocation.HasValue;
+        private int _HeightLocation => Payload.DATALocation!.Value.Min;
+        private bool _Height_IsSet => Payload.DATALocation.HasValue;
         public IGenderedItemGetter<Single> Height
         {
             get
@@ -9391,8 +9378,8 @@ namespace Mutagen.Bethesda.Fallout4
         }
         #endregion
         #region DefaultWeight
-        private int _DefaultWeightLocation => _DATALocation!.Value.Min + 0x8;
-        private bool _DefaultWeight_IsSet => _DATALocation.HasValue && _package.FormVersion!.FormVersion!.Value >= 109;
+        private int _DefaultWeightLocation => Payload.DATALocation!.Value.Min + 0x8;
+        private bool _DefaultWeight_IsSet => Payload.DATALocation.HasValue && _package.FormVersion!.FormVersion!.Value >= 109;
         public IGenderedItemGetter<IRaceWeightGetter> DefaultWeight
         {
             get
@@ -9407,220 +9394,216 @@ namespace Mutagen.Bethesda.Fallout4
         int DefaultWeightVersioningOffset => _package.FormVersion!.FormVersion!.Value < 109 ? -24 : 0;
         #endregion
         #region Flags
-        private int _FlagsLocation => _DATALocation!.Value.Min + DefaultWeightVersioningOffset + 0x20;
+        private int _FlagsLocation => Payload.DATALocation!.Value.Min + DefaultWeightVersioningOffset + 0x20;
         public partial Race.Flag GetFlagsCustom();
         public Race.Flag Flags => GetFlagsCustom();
         #endregion
         #region AccelerationRate
-        private int _AccelerationRateLocation => _DATALocation!.Value.Min + DefaultWeightVersioningOffset + 0x24;
-        private bool _AccelerationRate_IsSet => _DATALocation.HasValue;
+        private int _AccelerationRateLocation => Payload.DATALocation!.Value.Min + DefaultWeightVersioningOffset + 0x24;
+        private bool _AccelerationRate_IsSet => Payload.DATALocation.HasValue;
         public Single AccelerationRate => _AccelerationRate_IsSet ? _recordData.Slice(_AccelerationRateLocation, 4).Float() : default(Single);
         #endregion
         #region DecelerationRate
-        private int _DecelerationRateLocation => _DATALocation!.Value.Min + DefaultWeightVersioningOffset + 0x28;
-        private bool _DecelerationRate_IsSet => _DATALocation.HasValue;
+        private int _DecelerationRateLocation => Payload.DATALocation!.Value.Min + DefaultWeightVersioningOffset + 0x28;
+        private bool _DecelerationRate_IsSet => Payload.DATALocation.HasValue;
         public Single DecelerationRate => _DecelerationRate_IsSet ? _recordData.Slice(_DecelerationRateLocation, 4).Float() : default(Single);
         #endregion
         #region Size
-        private int _SizeLocation => _DATALocation!.Value.Min + DefaultWeightVersioningOffset + 0x2C;
-        private bool _Size_IsSet => _DATALocation.HasValue;
+        private int _SizeLocation => Payload.DATALocation!.Value.Min + DefaultWeightVersioningOffset + 0x2C;
+        private bool _Size_IsSet => Payload.DATALocation.HasValue;
         public Size Size => _Size_IsSet ? (Size)BinaryPrimitives.ReadInt32LittleEndian(_recordData.Span.Slice(_SizeLocation, 0x4)) : default;
         #endregion
         #region Unknown
-        private int _UnknownLocation => _DATALocation!.Value.Min + DefaultWeightVersioningOffset + 0x30;
-        private bool _Unknown_IsSet => _DATALocation.HasValue;
+        private int _UnknownLocation => Payload.DATALocation!.Value.Min + DefaultWeightVersioningOffset + 0x30;
+        private bool _Unknown_IsSet => Payload.DATALocation.HasValue;
         public ReadOnlyMemorySlice<Byte> Unknown => _Unknown_IsSet ? _recordData.Span.Slice(_UnknownLocation, 8).ToArray() : ReadOnlyMemorySlice<byte>.Empty;
         #endregion
         #region InjuredHealthPercent
-        private int _InjuredHealthPercentLocation => _DATALocation!.Value.Min + DefaultWeightVersioningOffset + 0x38;
-        private bool _InjuredHealthPercent_IsSet => _DATALocation.HasValue;
+        private int _InjuredHealthPercentLocation => Payload.DATALocation!.Value.Min + DefaultWeightVersioningOffset + 0x38;
+        private bool _InjuredHealthPercent_IsSet => Payload.DATALocation.HasValue;
         public Single InjuredHealthPercent => _InjuredHealthPercent_IsSet ? _recordData.Slice(_InjuredHealthPercentLocation, 4).Float() : default(Single);
         #endregion
         #region ShieldBipedObject
-        private int _ShieldBipedObjectLocation => _DATALocation!.Value.Min + DefaultWeightVersioningOffset + 0x3C;
-        private bool _ShieldBipedObject_IsSet => _DATALocation.HasValue;
+        private int _ShieldBipedObjectLocation => Payload.DATALocation!.Value.Min + DefaultWeightVersioningOffset + 0x3C;
+        private bool _ShieldBipedObject_IsSet => Payload.DATALocation.HasValue;
         public BipedObject ShieldBipedObject => _ShieldBipedObject_IsSet ? (BipedObject)BinaryPrimitives.ReadInt32LittleEndian(_recordData.Span.Slice(_ShieldBipedObjectLocation, 0x4)) : default;
         #endregion
         #region BeardBipedObject
-        private int _BeardBipedObjectLocation => _DATALocation!.Value.Min + DefaultWeightVersioningOffset + 0x40;
-        private bool _BeardBipedObject_IsSet => _DATALocation.HasValue && _package.FormVersion!.FormVersion!.Value >= 124;
+        private int _BeardBipedObjectLocation => Payload.DATALocation!.Value.Min + DefaultWeightVersioningOffset + 0x40;
+        private bool _BeardBipedObject_IsSet => Payload.DATALocation.HasValue && _package.FormVersion!.FormVersion!.Value >= 124;
         public BipedObject BeardBipedObject => _BeardBipedObject_IsSet ? (BipedObject)BinaryPrimitives.ReadInt32LittleEndian(_recordData.Span.Slice(_BeardBipedObjectLocation, 0x4)) : default;
         int BeardBipedObjectVersioningOffset => DefaultWeightVersioningOffset + (_package.FormVersion!.FormVersion!.Value < 124 ? -4 : 0);
         #endregion
         #region BodyBipedObject
-        private int _BodyBipedObjectLocation => _DATALocation!.Value.Min + BeardBipedObjectVersioningOffset + 0x44;
-        private bool _BodyBipedObject_IsSet => _DATALocation.HasValue;
+        private int _BodyBipedObjectLocation => Payload.DATALocation!.Value.Min + BeardBipedObjectVersioningOffset + 0x44;
+        private bool _BodyBipedObject_IsSet => Payload.DATALocation.HasValue;
         public BipedObject BodyBipedObject => _BodyBipedObject_IsSet ? (BipedObject)BinaryPrimitives.ReadInt32LittleEndian(_recordData.Span.Slice(_BodyBipedObjectLocation, 0x4)) : default;
         #endregion
         #region AimAngleTolerance
-        private int _AimAngleToleranceLocation => _DATALocation!.Value.Min + BeardBipedObjectVersioningOffset + 0x48;
-        private bool _AimAngleTolerance_IsSet => _DATALocation.HasValue;
+        private int _AimAngleToleranceLocation => Payload.DATALocation!.Value.Min + BeardBipedObjectVersioningOffset + 0x48;
+        private bool _AimAngleTolerance_IsSet => Payload.DATALocation.HasValue;
         public Single AimAngleTolerance => _AimAngleTolerance_IsSet ? _recordData.Slice(_AimAngleToleranceLocation, 4).Float() : default(Single);
         #endregion
         #region FlightRadius
-        private int _FlightRadiusLocation => _DATALocation!.Value.Min + BeardBipedObjectVersioningOffset + 0x4C;
-        private bool _FlightRadius_IsSet => _DATALocation.HasValue;
+        private int _FlightRadiusLocation => Payload.DATALocation!.Value.Min + BeardBipedObjectVersioningOffset + 0x4C;
+        private bool _FlightRadius_IsSet => Payload.DATALocation.HasValue;
         public Single FlightRadius => _FlightRadius_IsSet ? _recordData.Slice(_FlightRadiusLocation, 4).Float() : default(Single);
         #endregion
         #region AngularAccelerationRate
-        private int _AngularAccelerationRateLocation => _DATALocation!.Value.Min + BeardBipedObjectVersioningOffset + 0x50;
-        private bool _AngularAccelerationRate_IsSet => _DATALocation.HasValue;
+        private int _AngularAccelerationRateLocation => Payload.DATALocation!.Value.Min + BeardBipedObjectVersioningOffset + 0x50;
+        private bool _AngularAccelerationRate_IsSet => Payload.DATALocation.HasValue;
         public Single AngularAccelerationRate => _AngularAccelerationRate_IsSet ? _recordData.Slice(_AngularAccelerationRateLocation, 4).Float() : default(Single);
         #endregion
         #region AngularTolerance
-        private int _AngularToleranceLocation => _DATALocation!.Value.Min + BeardBipedObjectVersioningOffset + 0x54;
-        private bool _AngularTolerance_IsSet => _DATALocation.HasValue;
+        private int _AngularToleranceLocation => Payload.DATALocation!.Value.Min + BeardBipedObjectVersioningOffset + 0x54;
+        private bool _AngularTolerance_IsSet => Payload.DATALocation.HasValue;
         public Single AngularTolerance => _AngularTolerance_IsSet ? _recordData.Slice(_AngularToleranceLocation, 4).Float() : default(Single);
         #endregion
         #region Flags2
-        private int _Flags2Location => _DATALocation!.Value.Min + BeardBipedObjectVersioningOffset + 0x58;
-        private bool _Flags2_IsSet => _DATALocation.HasValue;
+        private int _Flags2Location => Payload.DATALocation!.Value.Min + BeardBipedObjectVersioningOffset + 0x58;
+        private bool _Flags2_IsSet => Payload.DATALocation.HasValue;
         partial void Flags2CustomParse(
             OverlayStream stream,
             int offset);
         #endregion
         #region Unknown2
-        private int _Unknown2Location => _DATALocation!.Value.Min + BeardBipedObjectVersioningOffset + 0x5C;
-        private bool _Unknown2_IsSet => _DATALocation.HasValue;
+        private int _Unknown2Location => Payload.DATALocation!.Value.Min + BeardBipedObjectVersioningOffset + 0x5C;
+        private bool _Unknown2_IsSet => Payload.DATALocation.HasValue;
         public ReadOnlyMemorySlice<Byte> Unknown2 => _Unknown2_IsSet ? _recordData.Span.Slice(_Unknown2Location, 36).ToArray() : ReadOnlyMemorySlice<byte>.Empty;
         #endregion
         #region PipboyBipedObject
-        private int _PipboyBipedObjectLocation => _DATALocation!.Value.Min + BeardBipedObjectVersioningOffset + 0x80;
-        private bool _PipboyBipedObject_IsSet => _DATALocation.HasValue;
+        private int _PipboyBipedObjectLocation => Payload.DATALocation!.Value.Min + BeardBipedObjectVersioningOffset + 0x80;
+        private bool _PipboyBipedObject_IsSet => Payload.DATALocation.HasValue;
         public BipedObject PipboyBipedObject => _PipboyBipedObject_IsSet ? (BipedObject)BinaryPrimitives.ReadInt32LittleEndian(_recordData.Span.Slice(_PipboyBipedObjectLocation, 0x4)) : default;
         #endregion
         #region XPValue
-        private int _XPValueLocation => _DATALocation!.Value.Min + BeardBipedObjectVersioningOffset + 0x84;
-        private bool _XPValue_IsSet => _DATALocation.HasValue;
+        private int _XPValueLocation => Payload.DATALocation!.Value.Min + BeardBipedObjectVersioningOffset + 0x84;
+        private bool _XPValue_IsSet => Payload.DATALocation.HasValue;
         public Int16 XPValue => _XPValue_IsSet ? BinaryPrimitives.ReadInt16LittleEndian(_recordData.Slice(_XPValueLocation, 2)) : default(Int16);
         #endregion
         #region SeverableDebrisScale
-        private int _SeverableDebrisScaleLocation => _DATALocation!.Value.Min + BeardBipedObjectVersioningOffset + 0x86;
-        private bool _SeverableDebrisScale_IsSet => _DATALocation.HasValue;
+        private int _SeverableDebrisScaleLocation => Payload.DATALocation!.Value.Min + BeardBipedObjectVersioningOffset + 0x86;
+        private bool _SeverableDebrisScale_IsSet => Payload.DATALocation.HasValue;
         public Single SeverableDebrisScale => _SeverableDebrisScale_IsSet ? _recordData.Slice(_SeverableDebrisScaleLocation, 4).Float() : default(Single);
         #endregion
         #region SeverableDebrisCount
-        private int _SeverableDebrisCountLocation => _DATALocation!.Value.Min + BeardBipedObjectVersioningOffset + 0x8A;
-        private bool _SeverableDebrisCount_IsSet => _DATALocation.HasValue;
+        private int _SeverableDebrisCountLocation => Payload.DATALocation!.Value.Min + BeardBipedObjectVersioningOffset + 0x8A;
+        private bool _SeverableDebrisCount_IsSet => Payload.DATALocation.HasValue;
         public Byte SeverableDebrisCount => _SeverableDebrisCount_IsSet ? _recordData.Span[_SeverableDebrisCountLocation] : default;
         #endregion
         #region SeverableDecalCount
-        private int _SeverableDecalCountLocation => _DATALocation!.Value.Min + BeardBipedObjectVersioningOffset + 0x8B;
-        private bool _SeverableDecalCount_IsSet => _DATALocation.HasValue;
+        private int _SeverableDecalCountLocation => Payload.DATALocation!.Value.Min + BeardBipedObjectVersioningOffset + 0x8B;
+        private bool _SeverableDecalCount_IsSet => Payload.DATALocation.HasValue;
         public Byte SeverableDecalCount => _SeverableDecalCount_IsSet ? _recordData.Span[_SeverableDecalCountLocation] : default;
         #endregion
         #region ExplodableDebrisScale
-        private int _ExplodableDebrisScaleLocation => _DATALocation!.Value.Min + BeardBipedObjectVersioningOffset + 0x8C;
-        private bool _ExplodableDebrisScale_IsSet => _DATALocation.HasValue;
+        private int _ExplodableDebrisScaleLocation => Payload.DATALocation!.Value.Min + BeardBipedObjectVersioningOffset + 0x8C;
+        private bool _ExplodableDebrisScale_IsSet => Payload.DATALocation.HasValue;
         public Single ExplodableDebrisScale => _ExplodableDebrisScale_IsSet ? _recordData.Slice(_ExplodableDebrisScaleLocation, 4).Float() : default(Single);
         #endregion
         #region ExplodableDebrisCount
-        private int _ExplodableDebrisCountLocation => _DATALocation!.Value.Min + BeardBipedObjectVersioningOffset + 0x90;
-        private bool _ExplodableDebrisCount_IsSet => _DATALocation.HasValue;
+        private int _ExplodableDebrisCountLocation => Payload.DATALocation!.Value.Min + BeardBipedObjectVersioningOffset + 0x90;
+        private bool _ExplodableDebrisCount_IsSet => Payload.DATALocation.HasValue;
         public Byte ExplodableDebrisCount => _ExplodableDebrisCount_IsSet ? _recordData.Span[_ExplodableDebrisCountLocation] : default;
         #endregion
         #region ExplodableDecalCount
-        private int _ExplodableDecalCountLocation => _DATALocation!.Value.Min + BeardBipedObjectVersioningOffset + 0x91;
-        private bool _ExplodableDecalCount_IsSet => _DATALocation.HasValue;
+        private int _ExplodableDecalCountLocation => Payload.DATALocation!.Value.Min + BeardBipedObjectVersioningOffset + 0x91;
+        private bool _ExplodableDecalCount_IsSet => Payload.DATALocation.HasValue;
         public Byte ExplodableDecalCount => _ExplodableDecalCount_IsSet ? _recordData.Span[_ExplodableDecalCountLocation] : default;
         #endregion
         #region SeverableExplosion
-        private int _SeverableExplosionLocation => _DATALocation!.Value.Min + BeardBipedObjectVersioningOffset + 0x92;
-        private bool _SeverableExplosion_IsSet => _DATALocation.HasValue;
+        private int _SeverableExplosionLocation => Payload.DATALocation!.Value.Min + BeardBipedObjectVersioningOffset + 0x92;
+        private bool _SeverableExplosion_IsSet => Payload.DATALocation.HasValue;
         public IFormLinkGetter<IExplosionGetter> SeverableExplosion => _SeverableExplosion_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IExplosionGetter>(_package, _recordData.Span.Slice(_SeverableExplosionLocation, 0x4), isSet: _SeverableExplosion_IsSet) : FormLink<IExplosionGetter>.Null;
         #endregion
         #region SeverableDebris
-        private int _SeverableDebrisLocation => _DATALocation!.Value.Min + BeardBipedObjectVersioningOffset + 0x96;
-        private bool _SeverableDebris_IsSet => _DATALocation.HasValue;
+        private int _SeverableDebrisLocation => Payload.DATALocation!.Value.Min + BeardBipedObjectVersioningOffset + 0x96;
+        private bool _SeverableDebris_IsSet => Payload.DATALocation.HasValue;
         public IFormLinkGetter<IDebrisGetter> SeverableDebris => _SeverableDebris_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IDebrisGetter>(_package, _recordData.Span.Slice(_SeverableDebrisLocation, 0x4), isSet: _SeverableDebris_IsSet) : FormLink<IDebrisGetter>.Null;
         #endregion
         #region SeverableImpactDataSet
-        private int _SeverableImpactDataSetLocation => _DATALocation!.Value.Min + BeardBipedObjectVersioningOffset + 0x9A;
-        private bool _SeverableImpactDataSet_IsSet => _DATALocation.HasValue;
+        private int _SeverableImpactDataSetLocation => Payload.DATALocation!.Value.Min + BeardBipedObjectVersioningOffset + 0x9A;
+        private bool _SeverableImpactDataSet_IsSet => Payload.DATALocation.HasValue;
         public IFormLinkGetter<IImpactDataSetGetter> SeverableImpactDataSet => _SeverableImpactDataSet_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IImpactDataSetGetter>(_package, _recordData.Span.Slice(_SeverableImpactDataSetLocation, 0x4), isSet: _SeverableImpactDataSet_IsSet) : FormLink<IImpactDataSetGetter>.Null;
         #endregion
         #region ExplodableExplosion
-        private int _ExplodableExplosionLocation => _DATALocation!.Value.Min + BeardBipedObjectVersioningOffset + 0x9E;
-        private bool _ExplodableExplosion_IsSet => _DATALocation.HasValue;
+        private int _ExplodableExplosionLocation => Payload.DATALocation!.Value.Min + BeardBipedObjectVersioningOffset + 0x9E;
+        private bool _ExplodableExplosion_IsSet => Payload.DATALocation.HasValue;
         public IFormLinkGetter<IExplosionGetter> ExplodableExplosion => _ExplodableExplosion_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IExplosionGetter>(_package, _recordData.Span.Slice(_ExplodableExplosionLocation, 0x4), isSet: _ExplodableExplosion_IsSet) : FormLink<IExplosionGetter>.Null;
         #endregion
         #region ExplodableDebris
-        private int _ExplodableDebrisLocation => _DATALocation!.Value.Min + BeardBipedObjectVersioningOffset + 0xA2;
-        private bool _ExplodableDebris_IsSet => _DATALocation.HasValue;
+        private int _ExplodableDebrisLocation => Payload.DATALocation!.Value.Min + BeardBipedObjectVersioningOffset + 0xA2;
+        private bool _ExplodableDebris_IsSet => Payload.DATALocation.HasValue;
         public IFormLinkGetter<IDebrisGetter> ExplodableDebris => _ExplodableDebris_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IDebrisGetter>(_package, _recordData.Span.Slice(_ExplodableDebrisLocation, 0x4), isSet: _ExplodableDebris_IsSet) : FormLink<IDebrisGetter>.Null;
         #endregion
         #region ExplodableImpactDataSet
-        private int _ExplodableImpactDataSetLocation => _DATALocation!.Value.Min + BeardBipedObjectVersioningOffset + 0xA6;
-        private bool _ExplodableImpactDataSet_IsSet => _DATALocation.HasValue;
+        private int _ExplodableImpactDataSetLocation => Payload.DATALocation!.Value.Min + BeardBipedObjectVersioningOffset + 0xA6;
+        private bool _ExplodableImpactDataSet_IsSet => Payload.DATALocation.HasValue;
         public IFormLinkGetter<IImpactDataSetGetter> ExplodableImpactDataSet => _ExplodableImpactDataSet_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IImpactDataSetGetter>(_package, _recordData.Span.Slice(_ExplodableImpactDataSetLocation, 0x4), isSet: _ExplodableImpactDataSet_IsSet) : FormLink<IImpactDataSetGetter>.Null;
         #endregion
         #region OnCrippleDebrisScale
-        private int _OnCrippleDebrisScaleLocation => _DATALocation!.Value.Min + BeardBipedObjectVersioningOffset + 0xAA;
-        private bool _OnCrippleDebrisScale_IsSet => _DATALocation.HasValue && _package.FormVersion!.FormVersion!.Value >= 96;
+        private int _OnCrippleDebrisScaleLocation => Payload.DATALocation!.Value.Min + BeardBipedObjectVersioningOffset + 0xAA;
+        private bool _OnCrippleDebrisScale_IsSet => Payload.DATALocation.HasValue && _package.FormVersion!.FormVersion!.Value >= 96;
         public Single OnCrippleDebrisScale => _OnCrippleDebrisScale_IsSet ? _recordData.Slice(_OnCrippleDebrisScaleLocation, 4).Float() : default(Single);
         int OnCrippleDebrisScaleVersioningOffset => BeardBipedObjectVersioningOffset + (_package.FormVersion!.FormVersion!.Value < 96 ? -4 : 0);
         #endregion
         #region OnCrippleDebrisCount
-        private int _OnCrippleDebrisCountLocation => _DATALocation!.Value.Min + OnCrippleDebrisScaleVersioningOffset + 0xAE;
-        private bool _OnCrippleDebrisCount_IsSet => _DATALocation.HasValue && _package.FormVersion!.FormVersion!.Value >= 96;
+        private int _OnCrippleDebrisCountLocation => Payload.DATALocation!.Value.Min + OnCrippleDebrisScaleVersioningOffset + 0xAE;
+        private bool _OnCrippleDebrisCount_IsSet => Payload.DATALocation.HasValue && _package.FormVersion!.FormVersion!.Value >= 96;
         public Byte OnCrippleDebrisCount => _OnCrippleDebrisCount_IsSet ? _recordData.Span[_OnCrippleDebrisCountLocation] : default;
         int OnCrippleDebrisCountVersioningOffset => OnCrippleDebrisScaleVersioningOffset + (_package.FormVersion!.FormVersion!.Value < 96 ? -1 : 0);
         #endregion
         #region OnCrippleDecalCount
-        private int _OnCrippleDecalCountLocation => _DATALocation!.Value.Min + OnCrippleDebrisCountVersioningOffset + 0xAF;
-        private bool _OnCrippleDecalCount_IsSet => _DATALocation.HasValue && _package.FormVersion!.FormVersion!.Value >= 96;
+        private int _OnCrippleDecalCountLocation => Payload.DATALocation!.Value.Min + OnCrippleDebrisCountVersioningOffset + 0xAF;
+        private bool _OnCrippleDecalCount_IsSet => Payload.DATALocation.HasValue && _package.FormVersion!.FormVersion!.Value >= 96;
         public Byte OnCrippleDecalCount => _OnCrippleDecalCount_IsSet ? _recordData.Span[_OnCrippleDecalCountLocation] : default;
         int OnCrippleDecalCountVersioningOffset => OnCrippleDebrisCountVersioningOffset + (_package.FormVersion!.FormVersion!.Value < 96 ? -1 : 0);
         #endregion
         #region OnCrippleExplosion
-        private int _OnCrippleExplosionLocation => _DATALocation!.Value.Min + OnCrippleDecalCountVersioningOffset + 0xB0;
-        private bool _OnCrippleExplosion_IsSet => _DATALocation.HasValue && _package.FormVersion!.FormVersion!.Value >= 96;
+        private int _OnCrippleExplosionLocation => Payload.DATALocation!.Value.Min + OnCrippleDecalCountVersioningOffset + 0xB0;
+        private bool _OnCrippleExplosion_IsSet => Payload.DATALocation.HasValue && _package.FormVersion!.FormVersion!.Value >= 96;
         public IFormLinkGetter<IExplosionGetter> OnCrippleExplosion => _OnCrippleExplosion_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IExplosionGetter>(_package, _recordData.Span.Slice(_OnCrippleExplosionLocation, 0x4), isSet: _OnCrippleExplosion_IsSet) : FormLink<IExplosionGetter>.Null;
         int OnCrippleExplosionVersioningOffset => OnCrippleDecalCountVersioningOffset + (_package.FormVersion!.FormVersion!.Value < 96 ? -4 : 0);
         #endregion
         #region OnCrippleDebris
-        private int _OnCrippleDebrisLocation => _DATALocation!.Value.Min + OnCrippleExplosionVersioningOffset + 0xB4;
-        private bool _OnCrippleDebris_IsSet => _DATALocation.HasValue && _package.FormVersion!.FormVersion!.Value >= 96;
+        private int _OnCrippleDebrisLocation => Payload.DATALocation!.Value.Min + OnCrippleExplosionVersioningOffset + 0xB4;
+        private bool _OnCrippleDebris_IsSet => Payload.DATALocation.HasValue && _package.FormVersion!.FormVersion!.Value >= 96;
         public IFormLinkGetter<IDebrisGetter> OnCrippleDebris => _OnCrippleDebris_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IDebrisGetter>(_package, _recordData.Span.Slice(_OnCrippleDebrisLocation, 0x4), isSet: _OnCrippleDebris_IsSet) : FormLink<IDebrisGetter>.Null;
         int OnCrippleDebrisVersioningOffset => OnCrippleExplosionVersioningOffset + (_package.FormVersion!.FormVersion!.Value < 96 ? -4 : 0);
         #endregion
         #region OnCrippleImpactDataSet
-        private int _OnCrippleImpactDataSetLocation => _DATALocation!.Value.Min + OnCrippleDebrisVersioningOffset + 0xB8;
-        private bool _OnCrippleImpactDataSet_IsSet => _DATALocation.HasValue && _package.FormVersion!.FormVersion!.Value >= 96;
+        private int _OnCrippleImpactDataSetLocation => Payload.DATALocation!.Value.Min + OnCrippleDebrisVersioningOffset + 0xB8;
+        private bool _OnCrippleImpactDataSet_IsSet => Payload.DATALocation.HasValue && _package.FormVersion!.FormVersion!.Value >= 96;
         public IFormLinkGetter<IImpactDataSetGetter> OnCrippleImpactDataSet => _OnCrippleImpactDataSet_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IImpactDataSetGetter>(_package, _recordData.Span.Slice(_OnCrippleImpactDataSetLocation, 0x4), isSet: _OnCrippleImpactDataSet_IsSet) : FormLink<IImpactDataSetGetter>.Null;
         int OnCrippleImpactDataSetVersioningOffset => OnCrippleDebrisVersioningOffset + (_package.FormVersion!.FormVersion!.Value < 96 ? -4 : 0);
         #endregion
         #region ExplodableSubsegmentExplosion
-        private int _ExplodableSubsegmentExplosionLocation => _DATALocation!.Value.Min + OnCrippleImpactDataSetVersioningOffset + 0xBC;
-        private bool _ExplodableSubsegmentExplosion_IsSet => _DATALocation.HasValue && _package.FormVersion!.FormVersion!.Value >= 118;
+        private int _ExplodableSubsegmentExplosionLocation => Payload.DATALocation!.Value.Min + OnCrippleImpactDataSetVersioningOffset + 0xBC;
+        private bool _ExplodableSubsegmentExplosion_IsSet => Payload.DATALocation.HasValue && _package.FormVersion!.FormVersion!.Value >= 118;
         public IFormLinkGetter<IExplosionGetter> ExplodableSubsegmentExplosion => _ExplodableSubsegmentExplosion_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IExplosionGetter>(_package, _recordData.Span.Slice(_ExplodableSubsegmentExplosionLocation, 0x4), isSet: _ExplodableSubsegmentExplosion_IsSet) : FormLink<IExplosionGetter>.Null;
         int ExplodableSubsegmentExplosionVersioningOffset => OnCrippleImpactDataSetVersioningOffset + (_package.FormVersion!.FormVersion!.Value < 118 ? -4 : 0);
         #endregion
         #region OrientationLimitsPitch
-        private int _OrientationLimitsPitchLocation => _DATALocation!.Value.Min + ExplodableSubsegmentExplosionVersioningOffset + 0xC0;
-        private bool _OrientationLimitsPitch_IsSet => _DATALocation.HasValue && _package.FormVersion!.FormVersion!.Value >= 98;
+        private int _OrientationLimitsPitchLocation => Payload.DATALocation!.Value.Min + ExplodableSubsegmentExplosionVersioningOffset + 0xC0;
+        private bool _OrientationLimitsPitch_IsSet => Payload.DATALocation.HasValue && _package.FormVersion!.FormVersion!.Value >= 98;
         public Single OrientationLimitsPitch => _OrientationLimitsPitch_IsSet ? _recordData.Slice(_OrientationLimitsPitchLocation, 4).Float() : default(Single);
         int OrientationLimitsPitchVersioningOffset => ExplodableSubsegmentExplosionVersioningOffset + (_package.FormVersion!.FormVersion!.Value < 98 ? -4 : 0);
         #endregion
         #region OrientationLimitsRoll
-        private int _OrientationLimitsRollLocation => _DATALocation!.Value.Min + OrientationLimitsPitchVersioningOffset + 0xC4;
-        private bool _OrientationLimitsRoll_IsSet => _DATALocation.HasValue && _package.FormVersion!.FormVersion!.Value >= 98;
+        private int _OrientationLimitsRollLocation => Payload.DATALocation!.Value.Min + OrientationLimitsPitchVersioningOffset + 0xC4;
+        private bool _OrientationLimitsRoll_IsSet => Payload.DATALocation.HasValue && _package.FormVersion!.FormVersion!.Value >= 98;
         public Single OrientationLimitsRoll => _OrientationLimitsRoll_IsSet ? _recordData.Slice(_OrientationLimitsRollLocation, 4).Float() : default(Single);
         int OrientationLimitsRollVersioningOffset => OrientationLimitsPitchVersioningOffset + (_package.FormVersion!.FormVersion!.Value < 98 ? -4 : 0);
         #endregion
-        #region SkeletalModel
-        private IGenderedItemGetter<ISimpleModelGetter?>? _SkeletalModelOverlay;
-        public IGenderedItemGetter<ISimpleModelGetter?>? SkeletalModel => _SkeletalModelOverlay;
-        #endregion
-        public IReadOnlyList<String> MovementTypeNames { get; private set; } = [];
+        public IGenderedItemGetter<ISimpleModelGetter?>? SkeletalModel => Payload.SkeletalModelOverlay;
+        public IReadOnlyList<String> MovementTypeNames => Payload.MovementTypeNames ?? [];
         #region Voices
-        private int? _VoicesLocation;
         public IGenderedItemGetter<IFormLinkGetter<IVoiceTypeGetter>> Voices
         {
             get
             {
-                if (!_VoicesLocation.HasValue) return new GenderedItem<IFormLinkGetter<IVoiceTypeGetter>>(FormLink<IVoiceTypeGetter>.Null, FormLink<IVoiceTypeGetter>.Null);
-                var data = HeaderTranslation.ExtractSubrecordMemory(_recordData, _VoicesLocation.Value, _package.MetaData.Constants);
+                if (!Payload.VoicesLocation.HasValue) return new GenderedItem<IFormLinkGetter<IVoiceTypeGetter>>(FormLink<IVoiceTypeGetter>.Null, FormLink<IVoiceTypeGetter>.Null);
+                var data = HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.VoicesLocation.Value, _package.MetaData.Constants);
                 return new GenderedItem<IFormLinkGetter<IVoiceTypeGetter>>(
                     FormLinkBinaryTranslation.Instance.OverlayFactory<IVoiceTypeGetter>(_package, data),
                     FormLinkBinaryTranslation.Instance.OverlayFactory<IVoiceTypeGetter>(_package, data.Slice(4)));
@@ -9628,92 +9611,43 @@ namespace Mutagen.Bethesda.Fallout4
         }
         #endregion
         #region DefaultHairColors
-        private int? _DefaultHairColorsLocation;
         public IGenderedItemGetter<IFormLinkGetter<IColorRecordGetter>>? DefaultHairColors
         {
             get
             {
-                if (!_DefaultHairColorsLocation.HasValue) return default;
-                var data = HeaderTranslation.ExtractSubrecordMemory(_recordData, _DefaultHairColorsLocation.Value, _package.MetaData.Constants);
+                if (!Payload.DefaultHairColorsLocation.HasValue) return default;
+                var data = HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.DefaultHairColorsLocation.Value, _package.MetaData.Constants);
                 return new GenderedItem<IFormLinkGetter<IColorRecordGetter>>(
                     FormLinkBinaryTranslation.Instance.OverlayFactory<IColorRecordGetter>(_package, data),
                     FormLinkBinaryTranslation.Instance.OverlayFactory<IColorRecordGetter>(_package, data.Slice(4)));
             }
         }
         #endregion
-        #region NumberOfTintsInList
-        private int? _NumberOfTintsInListLocation;
-        public UInt16? NumberOfTintsInList => _NumberOfTintsInListLocation.HasValue ? BinaryPrimitives.ReadUInt16LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NumberOfTintsInListLocation.Value, _package.MetaData.Constants)) : default(UInt16?);
-        #endregion
-        #region FacegenMainClamp
-        private int? _FacegenMainClampLocation;
-        public Single FacegenMainClamp => _FacegenMainClampLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _FacegenMainClampLocation.Value, _package.MetaData.Constants).Float() : default(Single);
-        #endregion
-        #region FacegenFaceClamp
-        private int? _FacegenFaceClampLocation;
-        public Single FacegenFaceClamp => _FacegenFaceClampLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _FacegenFaceClampLocation.Value, _package.MetaData.Constants).Float() : default(Single);
-        #endregion
-        #region AttackRace
-        private int? _AttackRaceLocation;
-        public IFormLinkNullableGetter<IRaceGetter> AttackRace => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IRaceGetter>(_package, _recordData, _AttackRaceLocation);
-        #endregion
-        public IReadOnlyList<IAttackGetter> Attacks { get; private set; } = [];
-        #region BodyData
-        private IGenderedItemGetter<IBodyDataGetter?>? _BodyDataOverlay;
-        public IGenderedItemGetter<IBodyDataGetter?> BodyData => _BodyDataOverlay ?? new GenderedItem<IBodyDataGetter?>(default, default);
-        #endregion
-        #region BodyPartData
-        private int? _BodyPartDataLocation;
-        public IFormLinkNullableGetter<IBodyPartDataGetter> BodyPartData => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IBodyPartDataGetter>(_package, _recordData, _BodyPartDataLocation);
-        #endregion
+        public UInt16? NumberOfTintsInList => Payload.NumberOfTintsInListLocation.HasValue ? BinaryPrimitives.ReadUInt16LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NumberOfTintsInListLocation.Value, _package.MetaData.Constants)) : default(UInt16?);
+        public Single FacegenMainClamp => Payload.FacegenMainClampLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.FacegenMainClampLocation.Value, _package.MetaData.Constants).Float() : default(Single);
+        public Single FacegenFaceClamp => Payload.FacegenFaceClampLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.FacegenFaceClampLocation.Value, _package.MetaData.Constants).Float() : default(Single);
+        public IFormLinkNullableGetter<IRaceGetter> AttackRace => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IRaceGetter>(_package, _recordData, Payload.AttackRaceLocation);
+        public IReadOnlyList<IAttackGetter> Attacks => Payload.Attacks ?? [];
+        public IGenderedItemGetter<IBodyDataGetter?> BodyData => Payload.BodyDataOverlay ?? new GenderedItem<IBodyDataGetter?>(default, default);
+        public IFormLinkNullableGetter<IBodyPartDataGetter> BodyPartData => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IBodyPartDataGetter>(_package, _recordData, Payload.BodyPartDataLocation);
         #region ExtraNAM2
         partial void ExtraNAM2CustomParse(
             OverlayStream stream,
             int offset);
         protected int ExtraNAM2EndingPos;
         #endregion
-        #region BehaviorGraph
-        private IGenderedItemGetter<IModelGetter?>? _BehaviorGraphOverlay;
-        public IGenderedItemGetter<IModelGetter?> BehaviorGraph => _BehaviorGraphOverlay ?? new GenderedItem<IModelGetter?>(default, default);
-        #endregion
-        #region ImpactMaterialType
-        private int? _ImpactMaterialTypeLocation;
-        public IFormLinkNullableGetter<IMaterialTypeGetter> ImpactMaterialType => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IMaterialTypeGetter>(_package, _recordData, _ImpactMaterialTypeLocation);
-        #endregion
-        #region ImpactDataSet
-        private int? _ImpactDataSetLocation;
-        public IFormLinkNullableGetter<IImpactDataSetGetter> ImpactDataSet => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IImpactDataSetGetter>(_package, _recordData, _ImpactDataSetLocation);
-        #endregion
-        #region DispemberBloodArt
-        private int? _DispemberBloodArtLocation;
-        public IFormLinkNullableGetter<IArtObjectGetter> DispemberBloodArt => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IArtObjectGetter>(_package, _recordData, _DispemberBloodArtLocation);
-        #endregion
-        #region MeatCapTextureSet
-        private int? _MeatCapTextureSetLocation;
-        public IFormLinkNullableGetter<ITextureSetGetter> MeatCapTextureSet => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ITextureSetGetter>(_package, _recordData, _MeatCapTextureSetLocation);
-        #endregion
-        #region CollarTextureSet
-        private int? _CollarTextureSetLocation;
-        public IFormLinkNullableGetter<ITextureSetGetter> CollarTextureSet => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ITextureSetGetter>(_package, _recordData, _CollarTextureSetLocation);
-        #endregion
-        #region SoundOpenCorpse
-        private int? _SoundOpenCorpseLocation;
-        public IFormLinkNullableGetter<ISoundDescriptorGetter> SoundOpenCorpse => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ISoundDescriptorGetter>(_package, _recordData, _SoundOpenCorpseLocation);
-        #endregion
-        #region SoundCloseCorpse
-        private int? _SoundCloseCorpseLocation;
-        public IFormLinkNullableGetter<ISoundDescriptorGetter> SoundCloseCorpse => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ISoundDescriptorGetter>(_package, _recordData, _SoundCloseCorpseLocation);
-        #endregion
-        public IReadOnlyList<IMovementDataOverrideGetter> MovementDataOverrides { get; private set; } = [];
-        #region EquipmentFlags
-        private int? _EquipmentFlagsLocation;
-        public EquipTypeFlag? EquipmentFlags => EnumBinaryTranslation<EquipTypeFlag, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(_EquipmentFlagsLocation, _recordData, _package, 4);
-        #endregion
-        public IReadOnlyList<IEquipmentSlotGetter> EquipmentSlots { get; private set; } = [];
-        #region UnarmedWeapon
-        private int? _UnarmedWeaponLocation;
-        public IFormLinkNullableGetter<IWeaponGetter> UnarmedWeapon => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IWeaponGetter>(_package, _recordData, _UnarmedWeaponLocation);
-        #endregion
+        public IGenderedItemGetter<IModelGetter?> BehaviorGraph => Payload.BehaviorGraphOverlay ?? new GenderedItem<IModelGetter?>(default, default);
+        public IFormLinkNullableGetter<IMaterialTypeGetter> ImpactMaterialType => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IMaterialTypeGetter>(_package, _recordData, Payload.ImpactMaterialTypeLocation);
+        public IFormLinkNullableGetter<IImpactDataSetGetter> ImpactDataSet => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IImpactDataSetGetter>(_package, _recordData, Payload.ImpactDataSetLocation);
+        public IFormLinkNullableGetter<IArtObjectGetter> DispemberBloodArt => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IArtObjectGetter>(_package, _recordData, Payload.DispemberBloodArtLocation);
+        public IFormLinkNullableGetter<ITextureSetGetter> MeatCapTextureSet => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ITextureSetGetter>(_package, _recordData, Payload.MeatCapTextureSetLocation);
+        public IFormLinkNullableGetter<ITextureSetGetter> CollarTextureSet => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ITextureSetGetter>(_package, _recordData, Payload.CollarTextureSetLocation);
+        public IFormLinkNullableGetter<ISoundDescriptorGetter> SoundOpenCorpse => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ISoundDescriptorGetter>(_package, _recordData, Payload.SoundOpenCorpseLocation);
+        public IFormLinkNullableGetter<ISoundDescriptorGetter> SoundCloseCorpse => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ISoundDescriptorGetter>(_package, _recordData, Payload.SoundCloseCorpseLocation);
+        public IReadOnlyList<IMovementDataOverrideGetter> MovementDataOverrides => Payload.MovementDataOverrides ?? [];
+        public EquipTypeFlag? EquipmentFlags => EnumBinaryTranslation<EquipTypeFlag, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(Payload.EquipmentFlagsLocation, _recordData, _package, 4);
+        public IReadOnlyList<IEquipmentSlotGetter> EquipmentSlots => Payload.EquipmentSlots ?? [];
+        public IFormLinkNullableGetter<IWeaponGetter> UnarmedWeapon => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IWeaponGetter>(_package, _recordData, Payload.UnarmedWeaponLocation);
         #region FaceFxPhonemesListingParsing
         public partial ParseResult FaceFxPhonemesListingParsingCustomParse(
             OverlayStream stream,
@@ -9726,51 +9660,18 @@ namespace Mutagen.Bethesda.Fallout4
             int offset,
             PreviousParse lastParsed);
         #endregion
-        #region BaseMovementDefault
-        private int? _BaseMovementDefaultLocation;
-        public IFormLinkNullableGetter<IMovementTypeGetter> BaseMovementDefault => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IMovementTypeGetter>(_package, _recordData, _BaseMovementDefaultLocation);
-        #endregion
-        #region BaseMovementDefaultSwim
-        private int? _BaseMovementDefaultSwimLocation;
-        public IFormLinkNullableGetter<IMovementTypeGetter> BaseMovementDefaultSwim => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IMovementTypeGetter>(_package, _recordData, _BaseMovementDefaultSwimLocation);
-        #endregion
-        #region BaseMovementDefaultFly
-        private int? _BaseMovementDefaultFlyLocation;
-        public IFormLinkNullableGetter<IMovementTypeGetter> BaseMovementDefaultFly => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IMovementTypeGetter>(_package, _recordData, _BaseMovementDefaultFlyLocation);
-        #endregion
-        #region BaseMovementDefaultSneak
-        private int? _BaseMovementDefaultSneakLocation;
-        public IFormLinkNullableGetter<IMovementTypeGetter> BaseMovementDefaultSneak => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IMovementTypeGetter>(_package, _recordData, _BaseMovementDefaultSneakLocation);
-        #endregion
-        #region HeadData
-        private IGenderedItemGetter<IHeadDataGetter?>? _HeadDataOverlay;
-        public IGenderedItemGetter<IHeadDataGetter?>? HeadData => _HeadDataOverlay;
-        #endregion
-        #region MorphRace
-        private int? _MorphRaceLocation;
-        public IFormLinkNullableGetter<IRaceGetter> MorphRace => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IRaceGetter>(_package, _recordData, _MorphRaceLocation);
-        #endregion
-        #region ArmorRace
-        private int? _ArmorRaceLocation;
-        public IFormLinkNullableGetter<IRaceGetter> ArmorRace => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IRaceGetter>(_package, _recordData, _ArmorRaceLocation);
-        #endregion
-        #region SubgraphTemplateRace
-        private int? _SubgraphTemplateRaceLocation;
-        public IFormLinkNullableGetter<IRaceGetter> SubgraphTemplateRace => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IRaceGetter>(_package, _recordData, _SubgraphTemplateRaceLocation);
-        #endregion
-        #region SubgraphAdditiveRace
-        private int? _SubgraphAdditiveRaceLocation;
-        public IFormLinkNullableGetter<IRaceGetter> SubgraphAdditiveRace => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IRaceGetter>(_package, _recordData, _SubgraphAdditiveRaceLocation);
-        #endregion
-        public IReadOnlyList<ISubgraphGetter> Subgraphs { get; private set; } = [];
-        #region IdleChatterTimeMin
-        private int? _IdleChatterTimeMinLocation;
-        public Single? IdleChatterTimeMin => _IdleChatterTimeMinLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _IdleChatterTimeMinLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
-        #endregion
-        #region IdleChatterTimeMax
-        private int? _IdleChatterTimeMaxLocation;
-        public Single? IdleChatterTimeMax => _IdleChatterTimeMaxLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _IdleChatterTimeMaxLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
-        #endregion
+        public IFormLinkNullableGetter<IMovementTypeGetter> BaseMovementDefault => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IMovementTypeGetter>(_package, _recordData, Payload.BaseMovementDefaultLocation);
+        public IFormLinkNullableGetter<IMovementTypeGetter> BaseMovementDefaultSwim => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IMovementTypeGetter>(_package, _recordData, Payload.BaseMovementDefaultSwimLocation);
+        public IFormLinkNullableGetter<IMovementTypeGetter> BaseMovementDefaultFly => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IMovementTypeGetter>(_package, _recordData, Payload.BaseMovementDefaultFlyLocation);
+        public IFormLinkNullableGetter<IMovementTypeGetter> BaseMovementDefaultSneak => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IMovementTypeGetter>(_package, _recordData, Payload.BaseMovementDefaultSneakLocation);
+        public IGenderedItemGetter<IHeadDataGetter?>? HeadData => Payload.HeadDataOverlay;
+        public IFormLinkNullableGetter<IRaceGetter> MorphRace => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IRaceGetter>(_package, _recordData, Payload.MorphRaceLocation);
+        public IFormLinkNullableGetter<IRaceGetter> ArmorRace => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IRaceGetter>(_package, _recordData, Payload.ArmorRaceLocation);
+        public IFormLinkNullableGetter<IRaceGetter> SubgraphTemplateRace => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IRaceGetter>(_package, _recordData, Payload.SubgraphTemplateRaceLocation);
+        public IFormLinkNullableGetter<IRaceGetter> SubgraphAdditiveRace => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IRaceGetter>(_package, _recordData, Payload.SubgraphAdditiveRaceLocation);
+        public IReadOnlyList<ISubgraphGetter> Subgraphs => Payload.Subgraphs ?? [];
+        public Single? IdleChatterTimeMin => Payload.IdleChatterTimeMinLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.IdleChatterTimeMinLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public Single? IdleChatterTimeMax => Payload.IdleChatterTimeMaxLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.IdleChatterTimeMaxLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
         #region MorphValues
         partial void MorphValuesCustomParse(
             OverlayStream stream,
@@ -9779,28 +9680,79 @@ namespace Mutagen.Bethesda.Fallout4
             RecordType type,
             PreviousParse lastParsed);
         #endregion
-        #region MorphValuesLastIndex
-        private int? _MorphValuesLastIndexLocation;
-        public Int32? MorphValuesLastIndex => _MorphValuesLastIndexLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _MorphValuesLastIndexLocation.Value, _package.MetaData.Constants)) : default(Int32?);
-        #endregion
-        #region HairColorLookupTexture
-        private int? _HairColorLookupTextureLocation;
-        public String? HairColorLookupTexture => _HairColorLookupTextureLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _HairColorLookupTextureLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
-        #region HairColorExtendedLookupTexture
-        private int? _HairColorExtendedLookupTextureLocation;
-        public String? HairColorExtendedLookupTexture => _HairColorExtendedLookupTextureLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _HairColorExtendedLookupTextureLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
-        #region DialogueQuest
-        private int? _DialogueQuestLocation;
-        public IFormLinkNullableGetter<IQuestGetter> DialogueQuest => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IQuestGetter>(_package, _recordData, _DialogueQuestLocation);
-        #endregion
+        public Int32? MorphValuesLastIndex => Payload.MorphValuesLastIndexLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.MorphValuesLastIndexLocation.Value, _package.MetaData.Constants)) : default(Int32?);
+        public String? HairColorLookupTexture => Payload.HairColorLookupTextureLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.HairColorLookupTextureLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? HairColorExtendedLookupTexture => Payload.HairColorExtendedLookupTextureLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.HairColorExtendedLookupTextureLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public IFormLinkNullableGetter<IQuestGetter> DialogueQuest => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IQuestGetter>(_package, _recordData, Payload.DialogueQuestLocation);
         #region BoneDataParse
         public partial ParseResult BoneDataParseCustomParse(
             OverlayStream stream,
             int offset,
             PreviousParse lastParsed);
         #endregion
+
+        internal partial class RaceRecordDataPayload
+        {
+            public int? AnimationSoundLocation;
+            public int? NameLocation;
+            public int? DescriptionLocation;
+            public IReadOnlyList<IFormLinkGetter<ISpellRecordGetter>>? ActorEffect;
+            public int? SkinLocation;
+            public RangeInt32? BipedBodyTemplateLocation;
+            public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? Keywords;
+            public IReadOnlyList<IObjectPropertyGetter>? Properties;
+            public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? AttachParentSlots;
+            public RangeInt32? DATALocation;
+            public IGenderedItemGetter<ISimpleModelGetter?>? SkeletalModelOverlay;
+            public IReadOnlyList<String> MovementTypeNames = [];
+            public int? VoicesLocation;
+            public int? DefaultHairColorsLocation;
+            public int? NumberOfTintsInListLocation;
+            public int? FacegenMainClampLocation;
+            public int? FacegenFaceClampLocation;
+            public int? AttackRaceLocation;
+            public IReadOnlyList<IAttackGetter> Attacks = [];
+            public IGenderedItemGetter<IBodyDataGetter?>? BodyDataOverlay;
+            public int? BodyPartDataLocation;
+            public IGenderedItemGetter<IModelGetter?>? BehaviorGraphOverlay;
+            public int? ImpactMaterialTypeLocation;
+            public int? ImpactDataSetLocation;
+            public int? DispemberBloodArtLocation;
+            public int? MeatCapTextureSetLocation;
+            public int? CollarTextureSetLocation;
+            public int? SoundOpenCorpseLocation;
+            public int? SoundCloseCorpseLocation;
+            public IReadOnlyList<IMovementDataOverrideGetter> MovementDataOverrides = [];
+            public int? EquipmentFlagsLocation;
+            public IReadOnlyList<IEquipmentSlotGetter> EquipmentSlots = [];
+            public int? UnarmedWeaponLocation;
+            public int? BaseMovementDefaultLocation;
+            public int? BaseMovementDefaultSwimLocation;
+            public int? BaseMovementDefaultFlyLocation;
+            public int? BaseMovementDefaultSneakLocation;
+            public IGenderedItemGetter<IHeadDataGetter?>? HeadDataOverlay;
+            public int? MorphRaceLocation;
+            public int? ArmorRaceLocation;
+            public int? SubgraphTemplateRaceLocation;
+            public int? SubgraphAdditiveRaceLocation;
+            public IReadOnlyList<ISubgraphGetter> Subgraphs = [];
+            public int? IdleChatterTimeMinLocation;
+            public int? IdleChatterTimeMaxLocation;
+            public int? MorphValuesLastIndexLocation;
+            public int? HairColorLookupTextureLocation;
+            public int? HairColorExtendedLookupTextureLocation;
+            public int? DialogueQuestLocation;
+        }
+
+        private LazyPayload<RaceRecordDataPayload> _payload = null!;
+
+        internal RaceRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<RaceRecordDataPayload>(init, new RaceRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -9808,10 +9760,10 @@ namespace Mutagen.Bethesda.Fallout4
 
         partial void CustomCtor();
         protected RaceBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -9822,28 +9774,51 @@ namespace Mutagen.Bethesda.Fallout4
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new RaceBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -9872,23 +9847,23 @@ namespace Mutagen.Bethesda.Fallout4
             {
                 case RecordTypeInts.STCP:
                 {
-                    _AnimationSoundLocation = (stream.Position - offset);
+                    _payload.Fields.AnimationSoundLocation = (stream.Position - offset);
                     return (int)Race_FieldIndex.AnimationSound;
                 }
                 case RecordTypeInts.FULL:
                 {
-                    _NameLocation = (stream.Position - offset);
+                    _payload.Fields.NameLocation = (stream.Position - offset);
                     return (int)Race_FieldIndex.Name;
                 }
                 case RecordTypeInts.DESC:
                 {
-                    _DescriptionLocation = (stream.Position - offset);
+                    _payload.Fields.DescriptionLocation = (stream.Position - offset);
                     return (int)Race_FieldIndex.Description;
                 }
                 case RecordTypeInts.SPLO:
                 case RecordTypeInts.SPCT:
                 {
-                    this.ActorEffect = BinaryOverlayList.FactoryByCountPerItem<IFormLinkGetter<ISpellRecordGetter>>(
+                    _payload.Fields.ActorEffect = BinaryOverlayList.FactoryByCountPerItem<IFormLinkGetter<ISpellRecordGetter>>(
                         stream: stream,
                         package: _package,
                         itemLength: 0x4,
@@ -9900,18 +9875,18 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.WNAM:
                 {
-                    _SkinLocation = (stream.Position - offset);
+                    _payload.Fields.SkinLocation = (stream.Position - offset);
                     return (int)Race_FieldIndex.Skin;
                 }
                 case RecordTypeInts.BOD2:
                 {
-                    _BipedBodyTemplateLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.BipedBodyTemplateLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)Race_FieldIndex.BipedBodyTemplate;
                 }
                 case RecordTypeInts.KSIZ:
                 case RecordTypeInts.KWDA:
                 {
-                    this.Keywords = BinaryOverlayList.FactoryByCount<IFormLinkGetter<IKeywordGetter>>(
+                    _payload.Fields.Keywords = BinaryOverlayList.FactoryByCount<IFormLinkGetter<IKeywordGetter>>(
                         stream: stream,
                         package: _package,
                         itemLength: 0x4,
@@ -9923,7 +9898,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.PRPS:
                 {
-                    this.Properties = BinaryOverlayList.FactoryByStartIndexWithTrigger<IObjectPropertyGetter>(
+                    _payload.Fields.Properties = BinaryOverlayList.FactoryByStartIndexWithTrigger<IObjectPropertyGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -9933,7 +9908,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.APPR:
                 {
-                    this.AttachParentSlots = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<IKeywordGetter>>(
+                    _payload.Fields.AttachParentSlots = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<IKeywordGetter>>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -9943,13 +9918,13 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.DATA:
                 {
-                    _DATALocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.DATALocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     return (int)Race_FieldIndex.OrientationLimitsRoll;
                 }
                 case RecordTypeInts.MNAM:
                 case RecordTypeInts.FNAM:
                 {
-                    _SkeletalModelOverlay = GenderedItemBinaryOverlay.FactorySkipMarkersPreRead<ISimpleModelGetter>(
+                    _payload.Fields.SkeletalModelOverlay = GenderedItemBinaryOverlay.FactorySkipMarkersPreRead<ISimpleModelGetter>(
                         package: _package,
                         male: RecordTypes.MNAM,
                         female: RecordTypes.FNAM,
@@ -9960,7 +9935,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.MTNM:
                 {
-                    this.MovementTypeNames = BinaryOverlayList.FactoryByArray<String>(
+                    _payload.Fields.MovementTypeNames = BinaryOverlayList.FactoryByArray<String>(
                         mem: stream.RemainingMemory,
                         package: _package,
                         getter: (s, p) => BinaryStringUtility.ToZString(p.MetaData.Constants.Subrecord(s).Content, encoding: p.MetaData.Encodings.NonTranslated),
@@ -9974,32 +9949,32 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.VTCK:
                 {
-                    _VoicesLocation = (stream.Position - offset);
+                    _payload.Fields.VoicesLocation = (stream.Position - offset);
                     return (int)Race_FieldIndex.Voices;
                 }
                 case RecordTypeInts.HCLF:
                 {
-                    _DefaultHairColorsLocation = (stream.Position - offset);
+                    _payload.Fields.DefaultHairColorsLocation = (stream.Position - offset);
                     return (int)Race_FieldIndex.DefaultHairColors;
                 }
                 case RecordTypeInts.TINL:
                 {
-                    _NumberOfTintsInListLocation = (stream.Position - offset);
+                    _payload.Fields.NumberOfTintsInListLocation = (stream.Position - offset);
                     return (int)Race_FieldIndex.NumberOfTintsInList;
                 }
                 case RecordTypeInts.PNAM:
                 {
-                    _FacegenMainClampLocation = (stream.Position - offset);
+                    _payload.Fields.FacegenMainClampLocation = (stream.Position - offset);
                     return (int)Race_FieldIndex.FacegenMainClamp;
                 }
                 case RecordTypeInts.UNAM:
                 {
-                    _FacegenFaceClampLocation = (stream.Position - offset);
+                    _payload.Fields.FacegenFaceClampLocation = (stream.Position - offset);
                     return (int)Race_FieldIndex.FacegenFaceClamp;
                 }
                 case RecordTypeInts.ATKR:
                 {
-                    _AttackRaceLocation = (stream.Position - offset);
+                    _payload.Fields.AttackRaceLocation = (stream.Position - offset);
                     return (int)Race_FieldIndex.AttackRace;
                 }
                 case RecordTypeInts.ATKD:
@@ -10008,7 +9983,7 @@ namespace Mutagen.Bethesda.Fallout4
                 case RecordTypeInts.ATKS:
                 case RecordTypeInts.ATKT:
                 {
-                    this.Attacks = this.ParseRepeatedTypelessSubrecord<IAttackGetter>(
+                    _payload.Fields.Attacks = this.ParseRepeatedTypelessSubrecord<IAttackGetter>(
                         stream: stream,
                         translationParams: translationParams,
                         trigger: Attack_Registration.TriggerSpecs,
@@ -10018,7 +9993,7 @@ namespace Mutagen.Bethesda.Fallout4
                 case RecordTypeInts.NAM1:
                 {
                     stream.Position += _package.MetaData.Constants.SubConstants.HeaderLength; // Skip marker
-                    _BodyDataOverlay = GenderedItemBinaryOverlay.FactorySkipMarkersPreRead<IBodyDataGetter>(
+                    _payload.Fields.BodyDataOverlay = GenderedItemBinaryOverlay.FactorySkipMarkersPreRead<IBodyDataGetter>(
                         package: _package,
                         male: RecordTypes.MNAM,
                         female: RecordTypes.FNAM,
@@ -10029,13 +10004,13 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.GNAM:
                 {
-                    _BodyPartDataLocation = (stream.Position - offset);
+                    _payload.Fields.BodyPartDataLocation = (stream.Position - offset);
                     return (int)Race_FieldIndex.BodyPartData;
                 }
                 case RecordTypeInts.NAM3:
                 {
                     stream.Position += _package.MetaData.Constants.SubConstants.HeaderLength; // Skip marker
-                    _BehaviorGraphOverlay = GenderedItemBinaryOverlay.FactorySkipMarkersPreRead<IModelGetter>(
+                    _payload.Fields.BehaviorGraphOverlay = GenderedItemBinaryOverlay.FactorySkipMarkersPreRead<IModelGetter>(
                         package: _package,
                         male: RecordTypes.MNAM,
                         female: RecordTypes.FNAM,
@@ -10046,37 +10021,37 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.NAM4:
                 {
-                    _ImpactMaterialTypeLocation = (stream.Position - offset);
+                    _payload.Fields.ImpactMaterialTypeLocation = (stream.Position - offset);
                     return (int)Race_FieldIndex.ImpactMaterialType;
                 }
                 case RecordTypeInts.NAM5:
                 {
-                    _ImpactDataSetLocation = (stream.Position - offset);
+                    _payload.Fields.ImpactDataSetLocation = (stream.Position - offset);
                     return (int)Race_FieldIndex.ImpactDataSet;
                 }
                 case RecordTypeInts.NAM7:
                 {
-                    _DispemberBloodArtLocation = (stream.Position - offset);
+                    _payload.Fields.DispemberBloodArtLocation = (stream.Position - offset);
                     return (int)Race_FieldIndex.DispemberBloodArt;
                 }
                 case RecordTypeInts.CNAM:
                 {
-                    _MeatCapTextureSetLocation = (stream.Position - offset);
+                    _payload.Fields.MeatCapTextureSetLocation = (stream.Position - offset);
                     return (int)Race_FieldIndex.MeatCapTextureSet;
                 }
                 case RecordTypeInts.NAM2:
                 {
-                    _CollarTextureSetLocation = (stream.Position - offset);
+                    _payload.Fields.CollarTextureSetLocation = (stream.Position - offset);
                     return (int)Race_FieldIndex.CollarTextureSet;
                 }
                 case RecordTypeInts.ONAM:
                 {
-                    _SoundOpenCorpseLocation = (stream.Position - offset);
+                    _payload.Fields.SoundOpenCorpseLocation = (stream.Position - offset);
                     return (int)Race_FieldIndex.SoundOpenCorpse;
                 }
                 case RecordTypeInts.LNAM:
                 {
-                    _SoundCloseCorpseLocation = (stream.Position - offset);
+                    _payload.Fields.SoundCloseCorpseLocation = (stream.Position - offset);
                     return (int)Race_FieldIndex.SoundCloseCorpse;
                 }
                 case RecordTypeInts.NAME:
@@ -10090,7 +10065,7 @@ namespace Mutagen.Bethesda.Fallout4
                 case RecordTypeInts.MTYP:
                 case RecordTypeInts.SPED:
                 {
-                    this.MovementDataOverrides = this.ParseRepeatedTypelessSubrecord<IMovementDataOverrideGetter>(
+                    _payload.Fields.MovementDataOverrides = this.ParseRepeatedTypelessSubrecord<IMovementDataOverrideGetter>(
                         stream: stream,
                         translationParams: translationParams,
                         trigger: MovementDataOverride_Registration.TriggerSpecs,
@@ -10099,13 +10074,13 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.VNAM:
                 {
-                    _EquipmentFlagsLocation = (stream.Position - offset);
+                    _payload.Fields.EquipmentFlagsLocation = (stream.Position - offset);
                     return (int)Race_FieldIndex.EquipmentFlags;
                 }
                 case RecordTypeInts.QNAM:
                 case RecordTypeInts.ZNAM:
                 {
-                    this.EquipmentSlots = this.ParseRepeatedTypelessSubrecord<IEquipmentSlotGetter>(
+                    _payload.Fields.EquipmentSlots = this.ParseRepeatedTypelessSubrecord<IEquipmentSlotGetter>(
                         stream: stream,
                         translationParams: translationParams,
                         trigger: EquipmentSlot_Registration.TriggerSpecs,
@@ -10114,7 +10089,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.UNWP:
                 {
-                    _UnarmedWeaponLocation = (stream.Position - offset);
+                    _payload.Fields.UnarmedWeaponLocation = (stream.Position - offset);
                     return (int)Race_FieldIndex.UnarmedWeapon;
                 }
                 case RecordTypeInts.PHTN:
@@ -10133,27 +10108,27 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.WKMV:
                 {
-                    _BaseMovementDefaultLocation = (stream.Position - offset);
+                    _payload.Fields.BaseMovementDefaultLocation = (stream.Position - offset);
                     return (int)Race_FieldIndex.BaseMovementDefault;
                 }
                 case RecordTypeInts.SWMV:
                 {
-                    _BaseMovementDefaultSwimLocation = (stream.Position - offset);
+                    _payload.Fields.BaseMovementDefaultSwimLocation = (stream.Position - offset);
                     return (int)Race_FieldIndex.BaseMovementDefaultSwim;
                 }
                 case RecordTypeInts.FLMV:
                 {
-                    _BaseMovementDefaultFlyLocation = (stream.Position - offset);
+                    _payload.Fields.BaseMovementDefaultFlyLocation = (stream.Position - offset);
                     return (int)Race_FieldIndex.BaseMovementDefaultFly;
                 }
                 case RecordTypeInts.SNMV:
                 {
-                    _BaseMovementDefaultSneakLocation = (stream.Position - offset);
+                    _payload.Fields.BaseMovementDefaultSneakLocation = (stream.Position - offset);
                     return (int)Race_FieldIndex.BaseMovementDefaultSneak;
                 }
                 case RecordTypeInts.NAM0:
                 {
-                    _HeadDataOverlay = GenderedItemBinaryOverlay.FactorySkipMarkersPreRead<IHeadDataGetter>(
+                    _payload.Fields.HeadDataOverlay = GenderedItemBinaryOverlay.FactorySkipMarkersPreRead<IHeadDataGetter>(
                         package: _package,
                         male: RecordTypes.MNAM,
                         female: RecordTypes.FNAM,
@@ -10165,22 +10140,22 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.NAM8:
                 {
-                    _MorphRaceLocation = (stream.Position - offset);
+                    _payload.Fields.MorphRaceLocation = (stream.Position - offset);
                     return (int)Race_FieldIndex.MorphRace;
                 }
                 case RecordTypeInts.RNAM:
                 {
-                    _ArmorRaceLocation = (stream.Position - offset);
+                    _payload.Fields.ArmorRaceLocation = (stream.Position - offset);
                     return (int)Race_FieldIndex.ArmorRace;
                 }
                 case RecordTypeInts.SRAC:
                 {
-                    _SubgraphTemplateRaceLocation = (stream.Position - offset);
+                    _payload.Fields.SubgraphTemplateRaceLocation = (stream.Position - offset);
                     return (int)Race_FieldIndex.SubgraphTemplateRace;
                 }
                 case RecordTypeInts.SADD:
                 {
-                    _SubgraphAdditiveRaceLocation = (stream.Position - offset);
+                    _payload.Fields.SubgraphAdditiveRaceLocation = (stream.Position - offset);
                     return (int)Race_FieldIndex.SubgraphAdditiveRace;
                 }
                 case RecordTypeInts.SGNM:
@@ -10189,7 +10164,7 @@ namespace Mutagen.Bethesda.Fallout4
                 case RecordTypeInts.SAPT:
                 case RecordTypeInts.SRAF:
                 {
-                    this.Subgraphs = this.ParseRepeatedTypelessSubrecord<ISubgraphGetter>(
+                    _payload.Fields.Subgraphs = this.ParseRepeatedTypelessSubrecord<ISubgraphGetter>(
                         stream: stream,
                         translationParams: translationParams,
                         trigger: Subgraph_Registration.TriggerSpecs,
@@ -10198,12 +10173,12 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.PTOP:
                 {
-                    _IdleChatterTimeMinLocation = (stream.Position - offset);
+                    _payload.Fields.IdleChatterTimeMinLocation = (stream.Position - offset);
                     return (int)Race_FieldIndex.IdleChatterTimeMin;
                 }
                 case RecordTypeInts.NTOP:
                 {
-                    _IdleChatterTimeMaxLocation = (stream.Position - offset);
+                    _payload.Fields.IdleChatterTimeMaxLocation = (stream.Position - offset);
                     return (int)Race_FieldIndex.IdleChatterTimeMax;
                 }
                 case RecordTypeInts.MSID:
@@ -10220,22 +10195,22 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.MLSI:
                 {
-                    _MorphValuesLastIndexLocation = (stream.Position - offset);
+                    _payload.Fields.MorphValuesLastIndexLocation = (stream.Position - offset);
                     return (int)Race_FieldIndex.MorphValuesLastIndex;
                 }
                 case RecordTypeInts.HNAM:
                 {
-                    _HairColorLookupTextureLocation = (stream.Position - offset);
+                    _payload.Fields.HairColorLookupTextureLocation = (stream.Position - offset);
                     return (int)Race_FieldIndex.HairColorLookupTexture;
                 }
                 case RecordTypeInts.HLTX:
                 {
-                    _HairColorExtendedLookupTextureLocation = (stream.Position - offset);
+                    _payload.Fields.HairColorExtendedLookupTextureLocation = (stream.Position - offset);
                     return (int)Race_FieldIndex.HairColorExtendedLookupTexture;
                 }
                 case RecordTypeInts.QSTI:
                 {
-                    _DialogueQuestLocation = (stream.Position - offset);
+                    _payload.Fields.DialogueQuestLocation = (stream.Position - offset);
                     return (int)Race_FieldIndex.DialogueQuest;
                 }
                 case RecordTypeInts.BSMP:

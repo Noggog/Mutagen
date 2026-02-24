@@ -1,0 +1,5 @@
+RecordTypes.FNAM,
+RecordTypes.FULL,
+RecordTypes.VNAM,
+RecordTypes.UNAM,
+RecordTypes.VISI,

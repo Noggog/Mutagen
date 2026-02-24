@@ -1,0 +1,7 @@
+RecordTypes.EDID,
+RecordTypes.OBND,
+RecordTypes.FULL,
+RecordTypes.CUSD,
+RecordTypes.DATA,
+RecordTypes.MNAM,
+RecordTypes.GNAM,

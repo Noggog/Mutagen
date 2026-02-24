@@ -35,6 +35,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -2488,45 +2489,49 @@ namespace Mutagen.Bethesda.Oblivion
 
 
         #region Name
-        private int? _NameLocation;
-        public String? Name => _NameLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NameLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? Name => Payload.NameLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NameLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
         #region Aspects
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         string INamedRequiredGetter.Name => this.Name ?? string.Empty;
         #endregion
         #endregion
-        #region Script
-        private int? _ScriptLocation;
-        public IFormLinkNullableGetter<IScriptGetter> Script => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IScriptGetter>(_package, _recordData, _ScriptLocation);
-        #endregion
-        #region Enchantment
-        private int? _EnchantmentLocation;
-        public IFormLinkNullableGetter<IEnchantmentGetter> Enchantment => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IEnchantmentGetter>(_package, _recordData, _EnchantmentLocation);
-        #endregion
-        #region EnchantmentPoints
-        private int? _EnchantmentPointsLocation;
-        public UInt16? EnchantmentPoints => _EnchantmentPointsLocation.HasValue ? BinaryPrimitives.ReadUInt16LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _EnchantmentPointsLocation.Value, _package.MetaData.Constants)) : default(UInt16?);
-        #endregion
-        #region ClothingFlags
-        private RangeInt32? _ClothingFlagsLocation;
-        public IClothingFlagsGetter? ClothingFlags => _ClothingFlagsLocation.HasValue ? ClothingFlagsBinaryOverlay.ClothingFlagsFactory(_recordData.Slice(_ClothingFlagsLocation!.Value.Min), _package) : default;
-        #endregion
-        public IModelGetter? MaleBipedModel { get; private set; }
-        public IModelGetter? MaleWorldModel { get; private set; }
-        #region MaleIcon
-        private int? _MaleIconLocation;
-        public String? MaleIcon => _MaleIconLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _MaleIconLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
-        public IModelGetter? FemaleBipedModel { get; private set; }
-        public IModelGetter? FemaleWorldModel { get; private set; }
-        #region FemaleIcon
-        private int? _FemaleIconLocation;
-        public String? FemaleIcon => _FemaleIconLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _FemaleIconLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
-        #region Data
-        private RangeInt32? _DataLocation;
-        public IArmorDataGetter? Data => _DataLocation.HasValue ? ArmorDataBinaryOverlay.ArmorDataFactory(_recordData.Slice(_DataLocation!.Value.Min), _package) : default;
-        #endregion
+        public IFormLinkNullableGetter<IScriptGetter> Script => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IScriptGetter>(_package, _recordData, Payload.ScriptLocation);
+        public IFormLinkNullableGetter<IEnchantmentGetter> Enchantment => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IEnchantmentGetter>(_package, _recordData, Payload.EnchantmentLocation);
+        public UInt16? EnchantmentPoints => Payload.EnchantmentPointsLocation.HasValue ? BinaryPrimitives.ReadUInt16LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.EnchantmentPointsLocation.Value, _package.MetaData.Constants)) : default(UInt16?);
+        public IClothingFlagsGetter? ClothingFlags => Payload.ClothingFlagsLocation.HasValue ? ClothingFlagsBinaryOverlay.ClothingFlagsFactory(_recordData.Slice(Payload.ClothingFlagsLocation!.Value.Min), _package) : default;
+        public IModelGetter? MaleBipedModel => Payload.MaleBipedModel;
+        public IModelGetter? MaleWorldModel => Payload.MaleWorldModel;
+        public String? MaleIcon => Payload.MaleIconLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.MaleIconLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public IModelGetter? FemaleBipedModel => Payload.FemaleBipedModel;
+        public IModelGetter? FemaleWorldModel => Payload.FemaleWorldModel;
+        public String? FemaleIcon => Payload.FemaleIconLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.FemaleIconLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public IArmorDataGetter? Data => Payload.DataLocation.HasValue ? ArmorDataBinaryOverlay.ArmorDataFactory(_recordData.Slice(Payload.DataLocation!.Value.Min), _package) : default;
+
+        internal partial class ArmorRecordDataPayload
+        {
+            public int? NameLocation;
+            public int? ScriptLocation;
+            public int? EnchantmentLocation;
+            public int? EnchantmentPointsLocation;
+            public RangeInt32? ClothingFlagsLocation;
+            public IModelGetter? MaleBipedModel;
+            public IModelGetter? MaleWorldModel;
+            public int? MaleIconLocation;
+            public IModelGetter? FemaleBipedModel;
+            public IModelGetter? FemaleWorldModel;
+            public int? FemaleIconLocation;
+            public RangeInt32? DataLocation;
+        }
+
+        private LazyPayload<ArmorRecordDataPayload> _payload = null!;
+
+        internal ArmorRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<ArmorRecordDataPayload>(init, new ArmorRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -2534,10 +2539,10 @@ namespace Mutagen.Bethesda.Oblivion
 
         partial void CustomCtor();
         protected ArmorBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -2548,28 +2553,51 @@ namespace Mutagen.Bethesda.Oblivion
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new ArmorBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -2598,32 +2626,32 @@ namespace Mutagen.Bethesda.Oblivion
             {
                 case RecordTypeInts.FULL:
                 {
-                    _NameLocation = (stream.Position - offset);
+                    _payload.Fields.NameLocation = (stream.Position - offset);
                     return (int)Armor_FieldIndex.Name;
                 }
                 case RecordTypeInts.SCRI:
                 {
-                    _ScriptLocation = (stream.Position - offset);
+                    _payload.Fields.ScriptLocation = (stream.Position - offset);
                     return (int)Armor_FieldIndex.Script;
                 }
                 case RecordTypeInts.ENAM:
                 {
-                    _EnchantmentLocation = (stream.Position - offset);
+                    _payload.Fields.EnchantmentLocation = (stream.Position - offset);
                     return (int)Armor_FieldIndex.Enchantment;
                 }
                 case RecordTypeInts.ANAM:
                 {
-                    _EnchantmentPointsLocation = (stream.Position - offset);
+                    _payload.Fields.EnchantmentPointsLocation = (stream.Position - offset);
                     return (int)Armor_FieldIndex.EnchantmentPoints;
                 }
                 case RecordTypeInts.BMDT:
                 {
-                    _ClothingFlagsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.ClothingFlagsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)Armor_FieldIndex.ClothingFlags;
                 }
                 case RecordTypeInts.MODL:
                 {
-                    this.MaleBipedModel = ModelBinaryOverlay.ModelFactory(
+                    _payload.Fields.MaleBipedModel = ModelBinaryOverlay.ModelFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());
@@ -2631,7 +2659,7 @@ namespace Mutagen.Bethesda.Oblivion
                 }
                 case RecordTypeInts.MOD2:
                 {
-                    this.MaleWorldModel = ModelBinaryOverlay.ModelFactory(
+                    _payload.Fields.MaleWorldModel = ModelBinaryOverlay.ModelFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.With(Armor_Registration.MaleWorldModelConverter).DoNotShortCircuit());
@@ -2639,12 +2667,12 @@ namespace Mutagen.Bethesda.Oblivion
                 }
                 case RecordTypeInts.ICON:
                 {
-                    _MaleIconLocation = (stream.Position - offset);
+                    _payload.Fields.MaleIconLocation = (stream.Position - offset);
                     return (int)Armor_FieldIndex.MaleIcon;
                 }
                 case RecordTypeInts.MOD3:
                 {
-                    this.FemaleBipedModel = ModelBinaryOverlay.ModelFactory(
+                    _payload.Fields.FemaleBipedModel = ModelBinaryOverlay.ModelFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.With(Armor_Registration.FemaleBipedModelConverter).DoNotShortCircuit());
@@ -2652,7 +2680,7 @@ namespace Mutagen.Bethesda.Oblivion
                 }
                 case RecordTypeInts.MOD4:
                 {
-                    this.FemaleWorldModel = ModelBinaryOverlay.ModelFactory(
+                    _payload.Fields.FemaleWorldModel = ModelBinaryOverlay.ModelFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.With(Armor_Registration.FemaleWorldModelConverter).DoNotShortCircuit());
@@ -2660,12 +2688,12 @@ namespace Mutagen.Bethesda.Oblivion
                 }
                 case RecordTypeInts.ICO2:
                 {
-                    _FemaleIconLocation = (stream.Position - offset);
+                    _payload.Fields.FemaleIconLocation = (stream.Position - offset);
                     return (int)Armor_FieldIndex.FemaleIcon;
                 }
                 case RecordTypeInts.DATA:
                 {
-                    _DataLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.DataLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)Armor_FieldIndex.Data;
                 }
                 default:

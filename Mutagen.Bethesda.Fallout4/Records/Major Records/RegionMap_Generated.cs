@@ -1327,7 +1327,14 @@ namespace Mutagen.Bethesda.Fallout4
 
         #region Name
         private int? _NameLocation;
-        public ITranslatedStringGetter? Name => _NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+        public ITranslatedStringGetter? Name
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_data, _NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+            }
+        }
         #region Aspects
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         string INamedRequiredGetter.Name => this.Name?.String ?? string.Empty;
@@ -1339,11 +1346,25 @@ namespace Mutagen.Bethesda.Fallout4
         #endregion
         #region LodDisplayDistanceMultiplier
         private int? _LodDisplayDistanceMultiplierLocation;
-        public override Single? LodDisplayDistanceMultiplier => _LodDisplayDistanceMultiplierLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _LodDisplayDistanceMultiplierLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public override Single? LodDisplayDistanceMultiplier
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _LodDisplayDistanceMultiplierLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_data, _LodDisplayDistanceMultiplierLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+            }
+        }
         #endregion
         #region OcclusionAccuracyDist
         private int? _OcclusionAccuracyDistLocation;
-        public override Single? OcclusionAccuracyDist => _OcclusionAccuracyDistLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _OcclusionAccuracyDistLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public override Single? OcclusionAccuracyDist
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _OcclusionAccuracyDistLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_data, _OcclusionAccuracyDistLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+            }
+        }
         #endregion
         partial void CustomFactoryEnd(
             OverlayStream stream,

@@ -53,33 +53,36 @@ internal partial class GameplayOptionBinaryCreateTranslation
 
 internal partial class GameplayOptionBinaryOverlay
 {
-    private RangeInt32? _DataLocation;
-    
+    internal partial class GameplayOptionRecordDataPayload
+    {
+        public RangeInt32? DataLocation;
+    }
+
     partial void DataCustomParse(
         OverlayStream stream,
         int finalPos,
         int offset)
     {
-        _DataLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+        _payload.Fields.DataLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
         stream.ReadSubrecord(RecordTypes.TNAM);
         stream.TryReadSubrecord(RecordTypes.VNAM, out _);
         stream.TryReadSubrecord(RecordTypes.WNAM, out _);
         stream.TryReadSubrecord(RecordTypes.GPOD, out _);
     }
-    
+
     public partial IAGameplayOptionDataGetter? GetDataCustom()
     {
-        if (!_DataLocation.HasValue) return null;
-        
-        GameplayOptionBinaryCreateTranslation.Type type = (GameplayOptionBinaryCreateTranslation.Type)HeaderTranslation.ExtractSubrecordMemory(_recordData, _DataLocation.Value.Min, _package.MetaData.Constants)[0];
+        if (!Payload.DataLocation.HasValue) return null;
+
+        GameplayOptionBinaryCreateTranslation.Type type = (GameplayOptionBinaryCreateTranslation.Type)HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.DataLocation.Value.Min, _package.MetaData.Constants)[0];
         switch (type)
         {
             case GameplayOptionBinaryCreateTranslation.Type.Bool:
                 return BoolGameplayOptionDataBinaryOverlay.BoolGameplayOptionDataFactory(
-                    _recordData.Slice(_DataLocation.Value.Max), _package);
+                    _recordData.Slice(Payload.DataLocation.Value.Max), _package);
             case GameplayOptionBinaryCreateTranslation.Type.Float:
                 return FloatGameplayOptionDataBinaryOverlay.FloatGameplayOptionDataFactory(
-                    _recordData.Slice(_DataLocation.Value.Max), _package);
+                    _recordData.Slice(Payload.DataLocation.Value.Max), _package);
             default:
                 throw new NotImplementedException();
         }

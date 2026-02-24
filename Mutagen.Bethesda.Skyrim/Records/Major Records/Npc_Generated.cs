@@ -39,6 +39,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -6293,88 +6294,46 @@ namespace Mutagen.Bethesda.Skyrim
         public Npc.MajorFlag MajorFlags => (Npc.MajorFlag)this.MajorRecordFlagsRaw;
 
         #region VirtualMachineAdapter
-        private int? _VirtualMachineAdapterLengthOverride;
-        private RangeInt32? _VirtualMachineAdapterLocation;
-        public IVirtualMachineAdapterGetter? VirtualMachineAdapter => _VirtualMachineAdapterLocation.HasValue ? VirtualMachineAdapterBinaryOverlay.VirtualMachineAdapterFactory(_recordData.Slice(_VirtualMachineAdapterLocation!.Value.Min), _package, TypedParseParams.FromLengthOverride(_VirtualMachineAdapterLengthOverride)) : default;
+        public IVirtualMachineAdapterGetter? VirtualMachineAdapter => Payload.VirtualMachineAdapterLocation.HasValue ? VirtualMachineAdapterBinaryOverlay.VirtualMachineAdapterFactory(_recordData.Slice(Payload.VirtualMachineAdapterLocation!.Value.Min), _package, TypedParseParams.FromLengthOverride(Payload.VirtualMachineAdapterLengthOverride)) : default;
         IAVirtualMachineAdapterGetter? IHaveVirtualMachineAdapterGetter.VirtualMachineAdapter => this.VirtualMachineAdapter;
         #endregion
         #region ObjectBounds
-        private RangeInt32? _ObjectBoundsLocation;
-        private IObjectBoundsGetter? _ObjectBounds => _ObjectBoundsLocation.HasValue ? ObjectBoundsBinaryOverlay.ObjectBoundsFactory(_recordData.Slice(_ObjectBoundsLocation!.Value.Min), _package) : default;
+        private IObjectBoundsGetter? _ObjectBounds => Payload.ObjectBoundsLocation.HasValue ? ObjectBoundsBinaryOverlay.ObjectBoundsFactory(_recordData.Slice(Payload.ObjectBoundsLocation!.Value.Min), _package) : default;
         public IObjectBoundsGetter ObjectBounds => _ObjectBounds ?? new ObjectBounds();
         #endregion
         #region Configuration
-        private RangeInt32? _ConfigurationLocation;
-        private INpcConfigurationGetter? _Configuration => _ConfigurationLocation.HasValue ? NpcConfigurationBinaryOverlay.NpcConfigurationFactory(_recordData.Slice(_ConfigurationLocation!.Value.Min), _package) : default;
+        private INpcConfigurationGetter? _Configuration => Payload.ConfigurationLocation.HasValue ? NpcConfigurationBinaryOverlay.NpcConfigurationFactory(_recordData.Slice(Payload.ConfigurationLocation!.Value.Min), _package) : default;
         public INpcConfigurationGetter Configuration => _Configuration ?? new NpcConfiguration();
         #endregion
-        public IReadOnlyList<IRankPlacementGetter> Factions { get; private set; } = [];
-        #region DeathItem
-        private int? _DeathItemLocation;
-        public IFormLinkNullableGetter<ILeveledItemGetter> DeathItem => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ILeveledItemGetter>(_package, _recordData, _DeathItemLocation);
-        #endregion
-        #region Voice
-        private int? _VoiceLocation;
-        public IFormLinkNullableGetter<IVoiceTypeGetter> Voice => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IVoiceTypeGetter>(_package, _recordData, _VoiceLocation);
-        #endregion
-        #region Template
-        private int? _TemplateLocation;
-        public IFormLinkNullableGetter<INpcSpawnGetter> Template => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<INpcSpawnGetter>(_package, _recordData, _TemplateLocation);
-        #endregion
-        #region Race
-        private int? _RaceLocation;
-        public IFormLinkGetter<IRaceGetter> Race => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IRaceGetter>(_package, _recordData, _RaceLocation);
-        #endregion
-        public IReadOnlyList<IFormLinkGetter<ISpellRecordGetter>>? ActorEffect { get; private set; }
-        public IDestructibleGetter? Destructible { get; private set; }
-        #region WornArmor
-        private int? _WornArmorLocation;
-        public IFormLinkNullableGetter<IArmorGetter> WornArmor => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IArmorGetter>(_package, _recordData, _WornArmorLocation);
-        #endregion
-        #region FarAwayModel
-        private int? _FarAwayModelLocation;
-        public IFormLinkNullableGetter<IArmorGetter> FarAwayModel => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IArmorGetter>(_package, _recordData, _FarAwayModelLocation);
-        #endregion
-        #region AttackRace
-        private int? _AttackRaceLocation;
-        public IFormLinkNullableGetter<IRaceGetter> AttackRace => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IRaceGetter>(_package, _recordData, _AttackRaceLocation);
-        #endregion
-        public IReadOnlyList<IAttackGetter> Attacks { get; private set; } = [];
-        #region SpectatorOverridePackageList
-        private int? _SpectatorOverridePackageListLocation;
-        public IFormLinkNullableGetter<IFormListGetter> SpectatorOverridePackageList => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IFormListGetter>(_package, _recordData, _SpectatorOverridePackageListLocation);
-        #endregion
-        #region ObserveDeadBodyOverridePackageList
-        private int? _ObserveDeadBodyOverridePackageListLocation;
-        public IFormLinkNullableGetter<IFormListGetter> ObserveDeadBodyOverridePackageList => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IFormListGetter>(_package, _recordData, _ObserveDeadBodyOverridePackageListLocation);
-        #endregion
-        #region GuardWarnOverridePackageList
-        private int? _GuardWarnOverridePackageListLocation;
-        public IFormLinkNullableGetter<IFormListGetter> GuardWarnOverridePackageList => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IFormListGetter>(_package, _recordData, _GuardWarnOverridePackageListLocation);
-        #endregion
-        #region CombatOverridePackageList
-        private int? _CombatOverridePackageListLocation;
-        public IFormLinkNullableGetter<IFormListGetter> CombatOverridePackageList => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IFormListGetter>(_package, _recordData, _CombatOverridePackageListLocation);
-        #endregion
-        public IReadOnlyList<IPerkPlacementGetter>? Perks { get; private set; }
-        public IReadOnlyList<IContainerEntryGetter>? Items { get; private set; }
+        public IReadOnlyList<IRankPlacementGetter> Factions => Payload.Factions ?? [];
+        public IFormLinkNullableGetter<ILeveledItemGetter> DeathItem => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ILeveledItemGetter>(_package, _recordData, Payload.DeathItemLocation);
+        public IFormLinkNullableGetter<IVoiceTypeGetter> Voice => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IVoiceTypeGetter>(_package, _recordData, Payload.VoiceLocation);
+        public IFormLinkNullableGetter<INpcSpawnGetter> Template => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<INpcSpawnGetter>(_package, _recordData, Payload.TemplateLocation);
+        public IFormLinkGetter<IRaceGetter> Race => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IRaceGetter>(_package, _recordData, Payload.RaceLocation);
+        public IReadOnlyList<IFormLinkGetter<ISpellRecordGetter>>? ActorEffect => Payload.ActorEffect;
+        public IDestructibleGetter? Destructible => Payload.Destructible;
+        public IFormLinkNullableGetter<IArmorGetter> WornArmor => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IArmorGetter>(_package, _recordData, Payload.WornArmorLocation);
+        public IFormLinkNullableGetter<IArmorGetter> FarAwayModel => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IArmorGetter>(_package, _recordData, Payload.FarAwayModelLocation);
+        public IFormLinkNullableGetter<IRaceGetter> AttackRace => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IRaceGetter>(_package, _recordData, Payload.AttackRaceLocation);
+        public IReadOnlyList<IAttackGetter> Attacks => Payload.Attacks ?? [];
+        public IFormLinkNullableGetter<IFormListGetter> SpectatorOverridePackageList => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IFormListGetter>(_package, _recordData, Payload.SpectatorOverridePackageListLocation);
+        public IFormLinkNullableGetter<IFormListGetter> ObserveDeadBodyOverridePackageList => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IFormListGetter>(_package, _recordData, Payload.ObserveDeadBodyOverridePackageListLocation);
+        public IFormLinkNullableGetter<IFormListGetter> GuardWarnOverridePackageList => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IFormListGetter>(_package, _recordData, Payload.GuardWarnOverridePackageListLocation);
+        public IFormLinkNullableGetter<IFormListGetter> CombatOverridePackageList => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IFormListGetter>(_package, _recordData, Payload.CombatOverridePackageListLocation);
+        public IReadOnlyList<IPerkPlacementGetter>? Perks => Payload.Perks;
+        public IReadOnlyList<IContainerEntryGetter>? Items => Payload.Items;
         #region AIData
-        private RangeInt32? _AIDataLocation;
-        private IAIDataGetter? _AIData => _AIDataLocation.HasValue ? AIDataBinaryOverlay.AIDataFactory(_recordData.Slice(_AIDataLocation!.Value.Min), _package) : default;
+        private IAIDataGetter? _AIData => Payload.AIDataLocation.HasValue ? AIDataBinaryOverlay.AIDataFactory(_recordData.Slice(Payload.AIDataLocation!.Value.Min), _package) : default;
         public IAIDataGetter AIData => _AIData ?? new AIData();
         #endregion
-        public IReadOnlyList<IFormLinkGetter<IPackageGetter>> Packages { get; private set; } = [];
+        public IReadOnlyList<IFormLinkGetter<IPackageGetter>> Packages => Payload.Packages ?? [];
         #region Keywords
-        public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? Keywords { get; private set; }
+        public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? Keywords => Payload.Keywords;
         IReadOnlyList<IFormLinkGetter<IKeywordCommonGetter>>? IKeywordedGetter.Keywords => this.Keywords;
         #endregion
-        #region Class
-        private int? _ClassLocation;
-        public IFormLinkGetter<IClassGetter> Class => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IClassGetter>(_package, _recordData, _ClassLocation);
-        #endregion
+        public IFormLinkGetter<IClassGetter> Class => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IClassGetter>(_package, _recordData, Payload.ClassLocation);
         #region Name
-        private int? _NameLocation;
-        public ITranslatedStringGetter? Name => _NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+        public ITranslatedStringGetter? Name => Payload.NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
         #region Aspects
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         string INamedRequiredGetter.Name => this.Name?.String ?? string.Empty;
@@ -6384,83 +6343,92 @@ namespace Mutagen.Bethesda.Skyrim
         ITranslatedStringGetter ITranslatedNamedRequiredGetter.Name => this.Name ?? TranslatedString.Empty;
         #endregion
         #endregion
-        #region ShortName
-        private int? _ShortNameLocation;
-        public ITranslatedStringGetter? ShortName => _ShortNameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _ShortNameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
-        #endregion
+        public ITranslatedStringGetter? ShortName => Payload.ShortNameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.ShortNameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
         #region DataMarker
         public partial ParseResult DataMarkerCustomParse(
             OverlayStream stream,
             int offset,
             PreviousParse lastParsed);
         #endregion
-        #region PlayerSkills
-        private RangeInt32? _PlayerSkillsLocation;
-        public IPlayerSkillsGetter? PlayerSkills => _PlayerSkillsLocation.HasValue ? PlayerSkillsBinaryOverlay.PlayerSkillsFactory(_recordData.Slice(_PlayerSkillsLocation!.Value.Min), _package) : default;
-        #endregion
-        public IReadOnlyList<IFormLinkGetter<IHeadPartGetter>> HeadParts { get; private set; } = [];
-        #region HairColor
-        private int? _HairColorLocation;
-        public IFormLinkNullableGetter<IColorRecordGetter> HairColor => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IColorRecordGetter>(_package, _recordData, _HairColorLocation);
-        #endregion
-        #region CombatStyle
-        private int? _CombatStyleLocation;
-        public IFormLinkNullableGetter<ICombatStyleGetter> CombatStyle => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ICombatStyleGetter>(_package, _recordData, _CombatStyleLocation);
-        #endregion
-        #region GiftFilter
-        private int? _GiftFilterLocation;
-        public IFormLinkNullableGetter<IFormListGetter> GiftFilter => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IFormListGetter>(_package, _recordData, _GiftFilterLocation);
-        #endregion
-        #region NAM5
-        private int? _NAM5Location;
-        public UInt16 NAM5 => _NAM5Location.HasValue ? BinaryPrimitives.ReadUInt16LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NAM5Location.Value, _package.MetaData.Constants)) : default(UInt16);
-        #endregion
-        #region Height
-        private int? _HeightLocation;
-        public Single Height => _HeightLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _HeightLocation.Value, _package.MetaData.Constants).Float() : default(Single);
-        #endregion
-        #region Weight
-        private int? _WeightLocation;
-        public Single Weight => _WeightLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _WeightLocation.Value, _package.MetaData.Constants).Float() : default(Single);
-        #endregion
-        #region SoundLevel
-        private int? _SoundLevelLocation;
-        public SoundLevel SoundLevel => EnumBinaryTranslation<SoundLevel, MutagenFrame, MutagenWriter>.Instance.ParseRecord(_SoundLevelLocation, _recordData, _package, 4);
-        #endregion
-        public IANpcSoundDefinitionGetter? Sound { get; private set; }
-        #region DefaultOutfit
-        private int? _DefaultOutfitLocation;
-        public IFormLinkNullableGetter<IOutfitGetter> DefaultOutfit => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IOutfitGetter>(_package, _recordData, _DefaultOutfitLocation);
-        #endregion
-        #region SleepingOutfit
-        private int? _SleepingOutfitLocation;
-        public IFormLinkNullableGetter<IOutfitGetter> SleepingOutfit => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IOutfitGetter>(_package, _recordData, _SleepingOutfitLocation);
-        #endregion
-        #region DefaultPackageList
-        private int? _DefaultPackageListLocation;
-        public IFormLinkNullableGetter<IFormListGetter> DefaultPackageList => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IFormListGetter>(_package, _recordData, _DefaultPackageListLocation);
-        #endregion
-        #region CrimeFaction
-        private int? _CrimeFactionLocation;
-        public IFormLinkNullableGetter<IFactionGetter> CrimeFaction => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IFactionGetter>(_package, _recordData, _CrimeFactionLocation);
-        #endregion
-        #region HeadTexture
-        private int? _HeadTextureLocation;
-        public IFormLinkNullableGetter<ITextureSetGetter> HeadTexture => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ITextureSetGetter>(_package, _recordData, _HeadTextureLocation);
-        #endregion
-        #region TextureLighting
-        private int? _TextureLightingLocation;
-        public Color? TextureLighting => _TextureLightingLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _TextureLightingLocation.Value, _package.MetaData.Constants).ReadColor(ColorBinaryType.NoAlphaFloat) : default(Color?);
-        #endregion
-        #region FaceMorph
-        private RangeInt32? _FaceMorphLocation;
-        public INpcFaceMorphGetter? FaceMorph => _FaceMorphLocation.HasValue ? NpcFaceMorphBinaryOverlay.NpcFaceMorphFactory(_recordData.Slice(_FaceMorphLocation!.Value.Min), _package) : default;
-        #endregion
-        #region FaceParts
-        private RangeInt32? _FacePartsLocation;
-        public INpcFacePartsGetter? FaceParts => _FacePartsLocation.HasValue ? NpcFacePartsBinaryOverlay.NpcFacePartsFactory(_recordData.Slice(_FacePartsLocation!.Value.Min), _package) : default;
-        #endregion
-        public IReadOnlyList<ITintLayerGetter> TintLayers { get; private set; } = [];
+        public IPlayerSkillsGetter? PlayerSkills => Payload.PlayerSkillsLocation.HasValue ? PlayerSkillsBinaryOverlay.PlayerSkillsFactory(_recordData.Slice(Payload.PlayerSkillsLocation!.Value.Min), _package) : default;
+        public IReadOnlyList<IFormLinkGetter<IHeadPartGetter>> HeadParts => Payload.HeadParts ?? [];
+        public IFormLinkNullableGetter<IColorRecordGetter> HairColor => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IColorRecordGetter>(_package, _recordData, Payload.HairColorLocation);
+        public IFormLinkNullableGetter<ICombatStyleGetter> CombatStyle => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ICombatStyleGetter>(_package, _recordData, Payload.CombatStyleLocation);
+        public IFormLinkNullableGetter<IFormListGetter> GiftFilter => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IFormListGetter>(_package, _recordData, Payload.GiftFilterLocation);
+        public UInt16 NAM5 => Payload.NAM5Location.HasValue ? BinaryPrimitives.ReadUInt16LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NAM5Location.Value, _package.MetaData.Constants)) : default(UInt16);
+        public Single Height => Payload.HeightLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.HeightLocation.Value, _package.MetaData.Constants).Float() : default(Single);
+        public Single Weight => Payload.WeightLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.WeightLocation.Value, _package.MetaData.Constants).Float() : default(Single);
+        public SoundLevel SoundLevel => EnumBinaryTranslation<SoundLevel, MutagenFrame, MutagenWriter>.Instance.ParseRecord(Payload.SoundLevelLocation, _recordData, _package, 4);
+        public IANpcSoundDefinitionGetter? Sound => Payload.Sound;
+        public IFormLinkNullableGetter<IOutfitGetter> DefaultOutfit => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IOutfitGetter>(_package, _recordData, Payload.DefaultOutfitLocation);
+        public IFormLinkNullableGetter<IOutfitGetter> SleepingOutfit => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IOutfitGetter>(_package, _recordData, Payload.SleepingOutfitLocation);
+        public IFormLinkNullableGetter<IFormListGetter> DefaultPackageList => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IFormListGetter>(_package, _recordData, Payload.DefaultPackageListLocation);
+        public IFormLinkNullableGetter<IFactionGetter> CrimeFaction => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IFactionGetter>(_package, _recordData, Payload.CrimeFactionLocation);
+        public IFormLinkNullableGetter<ITextureSetGetter> HeadTexture => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ITextureSetGetter>(_package, _recordData, Payload.HeadTextureLocation);
+        public Color? TextureLighting => Payload.TextureLightingLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.TextureLightingLocation.Value, _package.MetaData.Constants).ReadColor(ColorBinaryType.NoAlphaFloat) : default(Color?);
+        public INpcFaceMorphGetter? FaceMorph => Payload.FaceMorphLocation.HasValue ? NpcFaceMorphBinaryOverlay.NpcFaceMorphFactory(_recordData.Slice(Payload.FaceMorphLocation!.Value.Min), _package) : default;
+        public INpcFacePartsGetter? FaceParts => Payload.FacePartsLocation.HasValue ? NpcFacePartsBinaryOverlay.NpcFacePartsFactory(_recordData.Slice(Payload.FacePartsLocation!.Value.Min), _package) : default;
+        public IReadOnlyList<ITintLayerGetter> TintLayers => Payload.TintLayers ?? [];
+
+        internal partial class NpcRecordDataPayload
+        {
+            public int? VirtualMachineAdapterLengthOverride;
+            public RangeInt32? VirtualMachineAdapterLocation;
+            public RangeInt32? ObjectBoundsLocation;
+            public RangeInt32? ConfigurationLocation;
+            public IReadOnlyList<IRankPlacementGetter> Factions = [];
+            public int? DeathItemLocation;
+            public int? VoiceLocation;
+            public int? TemplateLocation;
+            public int? RaceLocation;
+            public IReadOnlyList<IFormLinkGetter<ISpellRecordGetter>>? ActorEffect;
+            public IDestructibleGetter? Destructible;
+            public int? WornArmorLocation;
+            public int? FarAwayModelLocation;
+            public int? AttackRaceLocation;
+            public IReadOnlyList<IAttackGetter> Attacks = [];
+            public int? SpectatorOverridePackageListLocation;
+            public int? ObserveDeadBodyOverridePackageListLocation;
+            public int? GuardWarnOverridePackageListLocation;
+            public int? CombatOverridePackageListLocation;
+            public IReadOnlyList<IPerkPlacementGetter>? Perks;
+            public IReadOnlyList<IContainerEntryGetter>? Items;
+            public RangeInt32? AIDataLocation;
+            public IReadOnlyList<IFormLinkGetter<IPackageGetter>> Packages = [];
+            public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? Keywords;
+            public int? ClassLocation;
+            public int? NameLocation;
+            public int? ShortNameLocation;
+            public RangeInt32? PlayerSkillsLocation;
+            public IReadOnlyList<IFormLinkGetter<IHeadPartGetter>> HeadParts = [];
+            public int? HairColorLocation;
+            public int? CombatStyleLocation;
+            public int? GiftFilterLocation;
+            public int? NAM5Location;
+            public int? HeightLocation;
+            public int? WeightLocation;
+            public int? SoundLevelLocation;
+            public IANpcSoundDefinitionGetter? Sound;
+            public int? DefaultOutfitLocation;
+            public int? SleepingOutfitLocation;
+            public int? DefaultPackageListLocation;
+            public int? CrimeFactionLocation;
+            public int? HeadTextureLocation;
+            public int? TextureLightingLocation;
+            public RangeInt32? FaceMorphLocation;
+            public RangeInt32? FacePartsLocation;
+            public IReadOnlyList<ITintLayerGetter> TintLayers = [];
+        }
+
+        private LazyPayload<NpcRecordDataPayload> _payload = null!;
+
+        internal NpcRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<NpcRecordDataPayload>(init, new NpcRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -6468,10 +6436,10 @@ namespace Mutagen.Bethesda.Skyrim
 
         partial void CustomCtor();
         protected NpcBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -6482,28 +6450,51 @@ namespace Mutagen.Bethesda.Skyrim
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new NpcBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -6532,8 +6523,8 @@ namespace Mutagen.Bethesda.Skyrim
             {
                 case RecordTypeInts.VMAD:
                 {
-                    _VirtualMachineAdapterLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
-                    _VirtualMachineAdapterLengthOverride = lastParsed.LengthOverride;
+                    _payload.Fields.VirtualMachineAdapterLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.VirtualMachineAdapterLengthOverride = lastParsed.LengthOverride;
                     if (lastParsed.LengthOverride.HasValue)
                     {
                         stream.Position += lastParsed.LengthOverride.Value;
@@ -6542,17 +6533,17 @@ namespace Mutagen.Bethesda.Skyrim
                 }
                 case RecordTypeInts.OBND:
                 {
-                    _ObjectBoundsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.ObjectBoundsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)Npc_FieldIndex.ObjectBounds;
                 }
                 case RecordTypeInts.ACBS:
                 {
-                    _ConfigurationLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.ConfigurationLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)Npc_FieldIndex.Configuration;
                 }
                 case RecordTypeInts.SNAM:
                 {
-                    this.Factions = BinaryOverlayList.FactoryByArray<IRankPlacementGetter>(
+                    _payload.Fields.Factions = BinaryOverlayList.FactoryByArray<IRankPlacementGetter>(
                         mem: stream.RemainingMemory,
                         package: _package,
                         translationParams: translationParams,
@@ -6567,28 +6558,28 @@ namespace Mutagen.Bethesda.Skyrim
                 }
                 case RecordTypeInts.INAM:
                 {
-                    _DeathItemLocation = (stream.Position - offset);
+                    _payload.Fields.DeathItemLocation = (stream.Position - offset);
                     return (int)Npc_FieldIndex.DeathItem;
                 }
                 case RecordTypeInts.VTCK:
                 {
-                    _VoiceLocation = (stream.Position - offset);
+                    _payload.Fields.VoiceLocation = (stream.Position - offset);
                     return (int)Npc_FieldIndex.Voice;
                 }
                 case RecordTypeInts.TPLT:
                 {
-                    _TemplateLocation = (stream.Position - offset);
+                    _payload.Fields.TemplateLocation = (stream.Position - offset);
                     return (int)Npc_FieldIndex.Template;
                 }
                 case RecordTypeInts.RNAM:
                 {
-                    _RaceLocation = (stream.Position - offset);
+                    _payload.Fields.RaceLocation = (stream.Position - offset);
                     return (int)Npc_FieldIndex.Race;
                 }
                 case RecordTypeInts.SPLO:
                 case RecordTypeInts.SPCT:
                 {
-                    this.ActorEffect = BinaryOverlayList.FactoryByCountPerItem<IFormLinkGetter<ISpellRecordGetter>>(
+                    _payload.Fields.ActorEffect = BinaryOverlayList.FactoryByCountPerItem<IFormLinkGetter<ISpellRecordGetter>>(
                         stream: stream,
                         package: _package,
                         itemLength: 0x4,
@@ -6602,7 +6593,7 @@ namespace Mutagen.Bethesda.Skyrim
                 case RecordTypeInts.DSTD:
                 case RecordTypeInts.DMDL:
                 {
-                    this.Destructible = DestructibleBinaryOverlay.DestructibleFactory(
+                    _payload.Fields.Destructible = DestructibleBinaryOverlay.DestructibleFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());
@@ -6610,23 +6601,23 @@ namespace Mutagen.Bethesda.Skyrim
                 }
                 case RecordTypeInts.WNAM:
                 {
-                    _WornArmorLocation = (stream.Position - offset);
+                    _payload.Fields.WornArmorLocation = (stream.Position - offset);
                     return (int)Npc_FieldIndex.WornArmor;
                 }
                 case RecordTypeInts.ANAM:
                 {
-                    _FarAwayModelLocation = (stream.Position - offset);
+                    _payload.Fields.FarAwayModelLocation = (stream.Position - offset);
                     return (int)Npc_FieldIndex.FarAwayModel;
                 }
                 case RecordTypeInts.ATKR:
                 {
-                    _AttackRaceLocation = (stream.Position - offset);
+                    _payload.Fields.AttackRaceLocation = (stream.Position - offset);
                     return (int)Npc_FieldIndex.AttackRace;
                 }
                 case RecordTypeInts.ATKD:
                 case RecordTypeInts.ATKE:
                 {
-                    this.Attacks = this.ParseRepeatedTypelessSubrecord<IAttackGetter>(
+                    _payload.Fields.Attacks = this.ParseRepeatedTypelessSubrecord<IAttackGetter>(
                         stream: stream,
                         translationParams: translationParams,
                         trigger: Attack_Registration.TriggerSpecs,
@@ -6635,28 +6626,28 @@ namespace Mutagen.Bethesda.Skyrim
                 }
                 case RecordTypeInts.SPOR:
                 {
-                    _SpectatorOverridePackageListLocation = (stream.Position - offset);
+                    _payload.Fields.SpectatorOverridePackageListLocation = (stream.Position - offset);
                     return (int)Npc_FieldIndex.SpectatorOverridePackageList;
                 }
                 case RecordTypeInts.OCOR:
                 {
-                    _ObserveDeadBodyOverridePackageListLocation = (stream.Position - offset);
+                    _payload.Fields.ObserveDeadBodyOverridePackageListLocation = (stream.Position - offset);
                     return (int)Npc_FieldIndex.ObserveDeadBodyOverridePackageList;
                 }
                 case RecordTypeInts.GWOR:
                 {
-                    _GuardWarnOverridePackageListLocation = (stream.Position - offset);
+                    _payload.Fields.GuardWarnOverridePackageListLocation = (stream.Position - offset);
                     return (int)Npc_FieldIndex.GuardWarnOverridePackageList;
                 }
                 case RecordTypeInts.ECOR:
                 {
-                    _CombatOverridePackageListLocation = (stream.Position - offset);
+                    _payload.Fields.CombatOverridePackageListLocation = (stream.Position - offset);
                     return (int)Npc_FieldIndex.CombatOverridePackageList;
                 }
                 case RecordTypeInts.PRKR:
                 case RecordTypeInts.PRKZ:
                 {
-                    this.Perks = BinaryOverlayList.FactoryByCountPerItem<IPerkPlacementGetter>(
+                    _payload.Fields.Perks = BinaryOverlayList.FactoryByCountPerItem<IPerkPlacementGetter>(
                         stream: stream,
                         package: _package,
                         itemLength: 0x8,
@@ -6670,7 +6661,7 @@ namespace Mutagen.Bethesda.Skyrim
                 case RecordTypeInts.CNTO:
                 case RecordTypeInts.COCT:
                 {
-                    this.Items = BinaryOverlayList.FactoryByCountPerItem<IContainerEntryGetter>(
+                    _payload.Fields.Items = BinaryOverlayList.FactoryByCountPerItem<IContainerEntryGetter>(
                         stream: stream,
                         package: _package,
                         countLength: 4,
@@ -6683,12 +6674,12 @@ namespace Mutagen.Bethesda.Skyrim
                 }
                 case RecordTypeInts.AIDT:
                 {
-                    _AIDataLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.AIDataLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)Npc_FieldIndex.AIData;
                 }
                 case RecordTypeInts.PKID:
                 {
-                    this.Packages = BinaryOverlayList.FactoryByArray<IFormLinkGetter<IPackageGetter>>(
+                    _payload.Fields.Packages = BinaryOverlayList.FactoryByArray<IFormLinkGetter<IPackageGetter>>(
                         mem: stream.RemainingMemory,
                         package: _package,
                         getter: (s, p) => FormLinkBinaryTranslation.Instance.OverlayFactory<IPackageGetter>(p, s),
@@ -6703,7 +6694,7 @@ namespace Mutagen.Bethesda.Skyrim
                 case RecordTypeInts.KSIZ:
                 case RecordTypeInts.KWDA:
                 {
-                    this.Keywords = BinaryOverlayList.FactoryByCount<IFormLinkGetter<IKeywordGetter>>(
+                    _payload.Fields.Keywords = BinaryOverlayList.FactoryByCount<IFormLinkGetter<IKeywordGetter>>(
                         stream: stream,
                         package: _package,
                         itemLength: 0x4,
@@ -6715,17 +6706,17 @@ namespace Mutagen.Bethesda.Skyrim
                 }
                 case RecordTypeInts.CNAM:
                 {
-                    _ClassLocation = (stream.Position - offset);
+                    _payload.Fields.ClassLocation = (stream.Position - offset);
                     return (int)Npc_FieldIndex.Class;
                 }
                 case RecordTypeInts.FULL:
                 {
-                    _NameLocation = (stream.Position - offset);
+                    _payload.Fields.NameLocation = (stream.Position - offset);
                     return (int)Npc_FieldIndex.Name;
                 }
                 case RecordTypeInts.SHRT:
                 {
-                    _ShortNameLocation = (stream.Position - offset);
+                    _payload.Fields.ShortNameLocation = (stream.Position - offset);
                     return (int)Npc_FieldIndex.ShortName;
                 }
                 case RecordTypeInts.DATA:
@@ -6737,12 +6728,12 @@ namespace Mutagen.Bethesda.Skyrim
                 }
                 case RecordTypeInts.DNAM:
                 {
-                    _PlayerSkillsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.PlayerSkillsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)Npc_FieldIndex.PlayerSkills;
                 }
                 case RecordTypeInts.PNAM:
                 {
-                    this.HeadParts = BinaryOverlayList.FactoryByArray<IFormLinkGetter<IHeadPartGetter>>(
+                    _payload.Fields.HeadParts = BinaryOverlayList.FactoryByArray<IFormLinkGetter<IHeadPartGetter>>(
                         mem: stream.RemainingMemory,
                         package: _package,
                         getter: (s, p) => FormLinkBinaryTranslation.Instance.OverlayFactory<IHeadPartGetter>(p, s),
@@ -6756,42 +6747,42 @@ namespace Mutagen.Bethesda.Skyrim
                 }
                 case RecordTypeInts.HCLF:
                 {
-                    _HairColorLocation = (stream.Position - offset);
+                    _payload.Fields.HairColorLocation = (stream.Position - offset);
                     return (int)Npc_FieldIndex.HairColor;
                 }
                 case RecordTypeInts.ZNAM:
                 {
-                    _CombatStyleLocation = (stream.Position - offset);
+                    _payload.Fields.CombatStyleLocation = (stream.Position - offset);
                     return (int)Npc_FieldIndex.CombatStyle;
                 }
                 case RecordTypeInts.GNAM:
                 {
-                    _GiftFilterLocation = (stream.Position - offset);
+                    _payload.Fields.GiftFilterLocation = (stream.Position - offset);
                     return (int)Npc_FieldIndex.GiftFilter;
                 }
                 case RecordTypeInts.NAM5:
                 {
-                    _NAM5Location = (stream.Position - offset);
+                    _payload.Fields.NAM5Location = (stream.Position - offset);
                     return (int)Npc_FieldIndex.NAM5;
                 }
                 case RecordTypeInts.NAM6:
                 {
-                    _HeightLocation = (stream.Position - offset);
+                    _payload.Fields.HeightLocation = (stream.Position - offset);
                     return (int)Npc_FieldIndex.Height;
                 }
                 case RecordTypeInts.NAM7:
                 {
-                    _WeightLocation = (stream.Position - offset);
+                    _payload.Fields.WeightLocation = (stream.Position - offset);
                     return (int)Npc_FieldIndex.Weight;
                 }
                 case RecordTypeInts.NAM8:
                 {
-                    _SoundLevelLocation = (stream.Position - offset);
+                    _payload.Fields.SoundLevelLocation = (stream.Position - offset);
                     return (int)Npc_FieldIndex.SoundLevel;
                 }
                 case RecordTypeInts.CSCR:
                 {
-                    this.Sound = NpcInheritSoundBinaryOverlay.NpcInheritSoundFactory(
+                    _payload.Fields.Sound = NpcInheritSoundBinaryOverlay.NpcInheritSoundFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());
@@ -6801,7 +6792,7 @@ namespace Mutagen.Bethesda.Skyrim
                 case RecordTypeInts.CSDI:
                 case RecordTypeInts.CSDC:
                 {
-                    this.Sound = NpcSoundTypesBinaryOverlay.NpcSoundTypesFactory(
+                    _payload.Fields.Sound = NpcSoundTypesBinaryOverlay.NpcSoundTypesFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());
@@ -6809,42 +6800,42 @@ namespace Mutagen.Bethesda.Skyrim
                 }
                 case RecordTypeInts.DOFT:
                 {
-                    _DefaultOutfitLocation = (stream.Position - offset);
+                    _payload.Fields.DefaultOutfitLocation = (stream.Position - offset);
                     return (int)Npc_FieldIndex.DefaultOutfit;
                 }
                 case RecordTypeInts.SOFT:
                 {
-                    _SleepingOutfitLocation = (stream.Position - offset);
+                    _payload.Fields.SleepingOutfitLocation = (stream.Position - offset);
                     return (int)Npc_FieldIndex.SleepingOutfit;
                 }
                 case RecordTypeInts.DPLT:
                 {
-                    _DefaultPackageListLocation = (stream.Position - offset);
+                    _payload.Fields.DefaultPackageListLocation = (stream.Position - offset);
                     return (int)Npc_FieldIndex.DefaultPackageList;
                 }
                 case RecordTypeInts.CRIF:
                 {
-                    _CrimeFactionLocation = (stream.Position - offset);
+                    _payload.Fields.CrimeFactionLocation = (stream.Position - offset);
                     return (int)Npc_FieldIndex.CrimeFaction;
                 }
                 case RecordTypeInts.FTST:
                 {
-                    _HeadTextureLocation = (stream.Position - offset);
+                    _payload.Fields.HeadTextureLocation = (stream.Position - offset);
                     return (int)Npc_FieldIndex.HeadTexture;
                 }
                 case RecordTypeInts.QNAM:
                 {
-                    _TextureLightingLocation = (stream.Position - offset);
+                    _payload.Fields.TextureLightingLocation = (stream.Position - offset);
                     return (int)Npc_FieldIndex.TextureLighting;
                 }
                 case RecordTypeInts.NAM9:
                 {
-                    _FaceMorphLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.FaceMorphLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)Npc_FieldIndex.FaceMorph;
                 }
                 case RecordTypeInts.NAMA:
                 {
-                    _FacePartsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.FacePartsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)Npc_FieldIndex.FaceParts;
                 }
                 case RecordTypeInts.TINI:
@@ -6852,7 +6843,7 @@ namespace Mutagen.Bethesda.Skyrim
                 case RecordTypeInts.TINV:
                 case RecordTypeInts.TIAS:
                 {
-                    this.TintLayers = this.ParseRepeatedTypelessSubrecord<ITintLayerGetter>(
+                    _payload.Fields.TintLayers = this.ParseRepeatedTypelessSubrecord<ITintLayerGetter>(
                         stream: stream,
                         translationParams: translationParams,
                         trigger: TintLayer_Registration.TriggerSpecs,

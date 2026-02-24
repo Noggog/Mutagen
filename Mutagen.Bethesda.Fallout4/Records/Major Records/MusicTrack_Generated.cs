@@ -34,6 +34,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -2379,33 +2380,38 @@ namespace Mutagen.Bethesda.Fallout4
         protected override Type LinkType => typeof(IMusicTrackGetter);
 
 
-        #region Type
-        private int? _TypeLocation;
-        public MusicTrack.TypeEnum Type => EnumBinaryTranslation<MusicTrack.TypeEnum, MutagenFrame, MutagenWriter>.Instance.ParseRecord(_TypeLocation, _recordData, _package, 4);
-        #endregion
-        #region Duration
-        private int? _DurationLocation;
-        public Single? Duration => _DurationLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _DurationLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
-        #endregion
-        #region FadeOut
-        private int? _FadeOutLocation;
-        public Single? FadeOut => _FadeOutLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _FadeOutLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
-        #endregion
-        #region TrackFilename
-        private int? _TrackFilenameLocation;
-        public String? TrackFilename => _TrackFilenameLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _TrackFilenameLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
-        #region FinaleFilename
-        private int? _FinaleFilenameLocation;
-        public String? FinaleFilename => _FinaleFilenameLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _FinaleFilenameLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
-        #region LoopData
-        private RangeInt32? _LoopDataLocation;
-        public IMusicTrackLoopDataGetter? LoopData => _LoopDataLocation.HasValue ? MusicTrackLoopDataBinaryOverlay.MusicTrackLoopDataFactory(_recordData.Slice(_LoopDataLocation!.Value.Min), _package) : default;
-        #endregion
-        public IReadOnlyList<Single>? CuePoints { get; private set; }
-        public IReadOnlyList<IConditionGetter>? Conditions { get; private set; }
-        public IReadOnlyList<IFormLinkGetter<IMusicTrackGetter>>? Tracks { get; private set; }
+        public MusicTrack.TypeEnum Type => EnumBinaryTranslation<MusicTrack.TypeEnum, MutagenFrame, MutagenWriter>.Instance.ParseRecord(Payload.TypeLocation, _recordData, _package, 4);
+        public Single? Duration => Payload.DurationLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.DurationLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public Single? FadeOut => Payload.FadeOutLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.FadeOutLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public String? TrackFilename => Payload.TrackFilenameLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.TrackFilenameLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? FinaleFilename => Payload.FinaleFilenameLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.FinaleFilenameLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public IMusicTrackLoopDataGetter? LoopData => Payload.LoopDataLocation.HasValue ? MusicTrackLoopDataBinaryOverlay.MusicTrackLoopDataFactory(_recordData.Slice(Payload.LoopDataLocation!.Value.Min), _package) : default;
+        public IReadOnlyList<Single>? CuePoints => Payload.CuePoints;
+        public IReadOnlyList<IConditionGetter>? Conditions => Payload.Conditions;
+        public IReadOnlyList<IFormLinkGetter<IMusicTrackGetter>>? Tracks => Payload.Tracks;
+
+        internal partial class MusicTrackRecordDataPayload
+        {
+            public int? TypeLocation;
+            public int? DurationLocation;
+            public int? FadeOutLocation;
+            public int? TrackFilenameLocation;
+            public int? FinaleFilenameLocation;
+            public RangeInt32? LoopDataLocation;
+            public IReadOnlyList<Single>? CuePoints;
+            public IReadOnlyList<IConditionGetter>? Conditions;
+            public IReadOnlyList<IFormLinkGetter<IMusicTrackGetter>>? Tracks;
+        }
+
+        private LazyPayload<MusicTrackRecordDataPayload> _payload = null!;
+
+        internal MusicTrackRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<MusicTrackRecordDataPayload>(init, new MusicTrackRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -2413,10 +2419,10 @@ namespace Mutagen.Bethesda.Fallout4
 
         partial void CustomCtor();
         protected MusicTrackBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -2427,28 +2433,51 @@ namespace Mutagen.Bethesda.Fallout4
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new MusicTrackBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -2477,37 +2506,37 @@ namespace Mutagen.Bethesda.Fallout4
             {
                 case RecordTypeInts.CNAM:
                 {
-                    _TypeLocation = (stream.Position - offset);
+                    _payload.Fields.TypeLocation = (stream.Position - offset);
                     return (int)MusicTrack_FieldIndex.Type;
                 }
                 case RecordTypeInts.FLTV:
                 {
-                    _DurationLocation = (stream.Position - offset);
+                    _payload.Fields.DurationLocation = (stream.Position - offset);
                     return (int)MusicTrack_FieldIndex.Duration;
                 }
                 case RecordTypeInts.DNAM:
                 {
-                    _FadeOutLocation = (stream.Position - offset);
+                    _payload.Fields.FadeOutLocation = (stream.Position - offset);
                     return (int)MusicTrack_FieldIndex.FadeOut;
                 }
                 case RecordTypeInts.ANAM:
                 {
-                    _TrackFilenameLocation = (stream.Position - offset);
+                    _payload.Fields.TrackFilenameLocation = (stream.Position - offset);
                     return (int)MusicTrack_FieldIndex.TrackFilename;
                 }
                 case RecordTypeInts.BNAM:
                 {
-                    _FinaleFilenameLocation = (stream.Position - offset);
+                    _payload.Fields.FinaleFilenameLocation = (stream.Position - offset);
                     return (int)MusicTrack_FieldIndex.FinaleFilename;
                 }
                 case RecordTypeInts.LNAM:
                 {
-                    _LoopDataLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.LoopDataLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)MusicTrack_FieldIndex.LoopData;
                 }
                 case RecordTypeInts.FNAM:
                 {
-                    this.CuePoints = BinaryOverlayList.FactoryByStartIndexWithTrigger<Single>(
+                    _payload.Fields.CuePoints = BinaryOverlayList.FactoryByStartIndexWithTrigger<Single>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -2518,7 +2547,7 @@ namespace Mutagen.Bethesda.Fallout4
                 case RecordTypeInts.CTDA:
                 case RecordTypeInts.CITC:
                 {
-                    this.Conditions = BinaryOverlayList.FactoryByCountPerItem<IConditionGetter>(
+                    _payload.Fields.Conditions = BinaryOverlayList.FactoryByCountPerItem<IConditionGetter>(
                         stream: stream,
                         package: _package,
                         countLength: 4,
@@ -2531,7 +2560,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.SNAM:
                 {
-                    this.Tracks = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<IMusicTrackGetter>>(
+                    _payload.Fields.Tracks = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<IMusicTrackGetter>>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,

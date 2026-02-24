@@ -33,6 +33,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -1788,47 +1789,61 @@ namespace Mutagen.Bethesda.Starfield
         protected override Type LinkType => typeof(IMeleeAimAssistModelGetter);
 
 
-        private RangeInt32? _SNAMLocation;
         #region OuterConeAngleDegrees
-        private int _OuterConeAngleDegreesLocation => _SNAMLocation!.Value.Min;
-        private bool _OuterConeAngleDegrees_IsSet => _SNAMLocation.HasValue;
+        private int _OuterConeAngleDegreesLocation => Payload.SNAMLocation!.Value.Min;
+        private bool _OuterConeAngleDegrees_IsSet => Payload.SNAMLocation.HasValue;
         public Single OuterConeAngleDegrees => _OuterConeAngleDegrees_IsSet ? _recordData.Slice(_OuterConeAngleDegreesLocation, 4).Float() : default(Single);
         #endregion
         #region InnerConeAngleDegrees
-        private int _InnerConeAngleDegreesLocation => _SNAMLocation!.Value.Min + 0x4;
-        private bool _InnerConeAngleDegrees_IsSet => _SNAMLocation.HasValue;
+        private int _InnerConeAngleDegreesLocation => Payload.SNAMLocation!.Value.Min + 0x4;
+        private bool _InnerConeAngleDegrees_IsSet => Payload.SNAMLocation.HasValue;
         public Single InnerConeAngleDegrees => _InnerConeAngleDegrees_IsSet ? _recordData.Slice(_InnerConeAngleDegreesLocation, 4).Float() : default(Single);
         #endregion
         #region SteeringDegreesPerSec
-        private int _SteeringDegreesPerSecLocation => _SNAMLocation!.Value.Min + 0x8;
-        private bool _SteeringDegreesPerSec_IsSet => _SNAMLocation.HasValue;
+        private int _SteeringDegreesPerSecLocation => Payload.SNAMLocation!.Value.Min + 0x8;
+        private bool _SteeringDegreesPerSec_IsSet => Payload.SNAMLocation.HasValue;
         public Single SteeringDegreesPerSec => _SteeringDegreesPerSec_IsSet ? _recordData.Slice(_SteeringDegreesPerSecLocation, 4).Float() : default(Single);
         #endregion
         #region SnapSteeringMultiplierOuterRing
-        private int _SnapSteeringMultiplierOuterRingLocation => _SNAMLocation!.Value.Min + 0xC;
-        private bool _SnapSteeringMultiplierOuterRing_IsSet => _SNAMLocation.HasValue;
+        private int _SnapSteeringMultiplierOuterRingLocation => Payload.SNAMLocation!.Value.Min + 0xC;
+        private bool _SnapSteeringMultiplierOuterRing_IsSet => Payload.SNAMLocation.HasValue;
         public Single SnapSteeringMultiplierOuterRing => _SnapSteeringMultiplierOuterRing_IsSet ? _recordData.Slice(_SnapSteeringMultiplierOuterRingLocation, 4).Float() : default(Single);
         #endregion
         #region SnapSteeringMultiplierInnerRing
-        private int _SnapSteeringMultiplierInnerRingLocation => _SNAMLocation!.Value.Min + 0x10;
-        private bool _SnapSteeringMultiplierInnerRing_IsSet => _SNAMLocation.HasValue;
+        private int _SnapSteeringMultiplierInnerRingLocation => Payload.SNAMLocation!.Value.Min + 0x10;
+        private bool _SnapSteeringMultiplierInnerRing_IsSet => Payload.SNAMLocation.HasValue;
         public Single SnapSteeringMultiplierInnerRing => _SnapSteeringMultiplierInnerRing_IsSet ? _recordData.Slice(_SnapSteeringMultiplierInnerRingLocation, 4).Float() : default(Single);
         #endregion
         #region MaxAimAssistDistance
-        private int _MaxAimAssistDistanceLocation => _SNAMLocation!.Value.Min + 0x14;
-        private bool _MaxAimAssistDistance_IsSet => _SNAMLocation.HasValue;
+        private int _MaxAimAssistDistanceLocation => Payload.SNAMLocation!.Value.Min + 0x14;
+        private bool _MaxAimAssistDistance_IsSet => Payload.SNAMLocation.HasValue;
         public Single MaxAimAssistDistance => _MaxAimAssistDistance_IsSet ? _recordData.Slice(_MaxAimAssistDistanceLocation, 4).Float() : default(Single);
         #endregion
         #region MeleeAimAssistEnabled
-        private int _MeleeAimAssistEnabledLocation => _SNAMLocation!.Value.Min + 0x18;
-        private bool _MeleeAimAssistEnabled_IsSet => _SNAMLocation.HasValue;
+        private int _MeleeAimAssistEnabledLocation => Payload.SNAMLocation!.Value.Min + 0x18;
+        private bool _MeleeAimAssistEnabled_IsSet => Payload.SNAMLocation.HasValue;
         public Boolean MeleeAimAssistEnabled => _MeleeAimAssistEnabled_IsSet ? _recordData.Slice(_MeleeAimAssistEnabledLocation, 1)[0] >= 1 : default(Boolean);
         #endregion
         #region Unknown
-        private int _UnknownLocation => _SNAMLocation!.Value.Min + 0x19;
-        private bool _Unknown_IsSet => _SNAMLocation.HasValue;
+        private int _UnknownLocation => Payload.SNAMLocation!.Value.Min + 0x19;
+        private bool _Unknown_IsSet => Payload.SNAMLocation.HasValue;
         public Single Unknown => _Unknown_IsSet ? _recordData.Slice(_UnknownLocation, 4).Float() : default(Single);
         #endregion
+
+        internal partial class MeleeAimAssistModelRecordDataPayload
+        {
+            public RangeInt32? SNAMLocation;
+        }
+
+        private LazyPayload<MeleeAimAssistModelRecordDataPayload> _payload = null!;
+
+        internal MeleeAimAssistModelRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<MeleeAimAssistModelRecordDataPayload>(init, new MeleeAimAssistModelRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -1836,10 +1851,10 @@ namespace Mutagen.Bethesda.Starfield
 
         partial void CustomCtor();
         protected MeleeAimAssistModelBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -1850,28 +1865,51 @@ namespace Mutagen.Bethesda.Starfield
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new MeleeAimAssistModelBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -1900,7 +1938,7 @@ namespace Mutagen.Bethesda.Starfield
             {
                 case RecordTypeInts.SNAM:
                 {
-                    _SNAMLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.SNAMLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     return (int)MeleeAimAssistModel_FieldIndex.Unknown;
                 }
                 default:

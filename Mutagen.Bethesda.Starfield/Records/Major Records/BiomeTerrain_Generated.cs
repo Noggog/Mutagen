@@ -1706,27 +1706,69 @@ namespace Mutagen.Bethesda.Starfield
         public IBiomeTerrainDataGetter? Alternate { get; private set; }
         #region BaseNoiseDataTexture
         private int? _BaseNoiseDataTextureLocation;
-        public String? BaseNoiseDataTexture => _BaseNoiseDataTextureLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _BaseNoiseDataTextureLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? BaseNoiseDataTexture
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _BaseNoiseDataTextureLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_data, _BaseNoiseDataTextureLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+            }
+        }
         #endregion
         #region FlowNoiseDataTexture
         private int? _FlowNoiseDataTextureLocation;
-        public String? FlowNoiseDataTexture => _FlowNoiseDataTextureLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _FlowNoiseDataTextureLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? FlowNoiseDataTexture
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _FlowNoiseDataTextureLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_data, _FlowNoiseDataTextureLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+            }
+        }
         #endregion
         #region FlatOuterNoiseDataTexture
         private int? _FlatOuterNoiseDataTextureLocation;
-        public String? FlatOuterNoiseDataTexture => _FlatOuterNoiseDataTextureLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _FlatOuterNoiseDataTextureLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? FlatOuterNoiseDataTexture
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _FlatOuterNoiseDataTextureLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_data, _FlatOuterNoiseDataTextureLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+            }
+        }
         #endregion
         #region FlatInnerNoiseDataTexture
         private int? _FlatInnerNoiseDataTextureLocation;
-        public String? FlatInnerNoiseDataTexture => _FlatInnerNoiseDataTextureLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _FlatInnerNoiseDataTextureLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? FlatInnerNoiseDataTexture
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _FlatInnerNoiseDataTextureLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_data, _FlatInnerNoiseDataTextureLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+            }
+        }
         #endregion
         #region TalusNoiseDataTexture
         private int? _TalusNoiseDataTextureLocation;
-        public String? TalusNoiseDataTexture => _TalusNoiseDataTextureLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _TalusNoiseDataTextureLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? TalusNoiseDataTexture
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _TalusNoiseDataTextureLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_data, _TalusNoiseDataTextureLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+            }
+        }
         #endregion
         #region SolidNoiseDataTexture
         private int? _SolidNoiseDataTextureLocation;
-        public String? SolidNoiseDataTexture => _SolidNoiseDataTextureLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _SolidNoiseDataTextureLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? SolidNoiseDataTexture
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _SolidNoiseDataTextureLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_data, _SolidNoiseDataTextureLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+            }
+        }
         #endregion
         partial void CustomFactoryEnd(
             OverlayStream stream,

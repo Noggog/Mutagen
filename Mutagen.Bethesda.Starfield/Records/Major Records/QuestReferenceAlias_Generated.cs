@@ -4751,11 +4751,25 @@ namespace Mutagen.Bethesda.Starfield
 
         #region ID
         private int? _IDLocation;
-        public UInt32 ID => _IDLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _IDLocation.Value, _package.MetaData.Constants)) : default(UInt32);
+        public UInt32 ID
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _IDLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _IDLocation.Value, _package.MetaData.Constants)) : default(UInt32);
+            }
+        }
         #endregion
         #region Name
         private int? _NameLocation;
-        public String Name => _NameLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NameLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : string.Empty;
+        public String Name
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _NameLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_data, _NameLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : string.Empty;
+            }
+        }
         #endregion
         #region Flags
         private int? _FlagsLocation;
@@ -4763,7 +4777,14 @@ namespace Mutagen.Bethesda.Starfield
         #endregion
         #region ALFG
         private int? _ALFGLocation;
-        public UInt32? ALFG => _ALFGLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _ALFGLocation.Value, _package.MetaData.Constants)) : default(UInt32?);
+        public UInt32? ALFG
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _ALFGLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _ALFGLocation.Value, _package.MetaData.Constants)) : default(UInt32?);
+            }
+        }
         #endregion
         #region LegendaryRank
         private int? _LegendaryRankLocation;
@@ -4771,11 +4792,25 @@ namespace Mutagen.Bethesda.Starfield
         #endregion
         #region AliasIDToForceIntoWhenFilled
         private int? _AliasIDToForceIntoWhenFilledLocation;
-        public Int32? AliasIDToForceIntoWhenFilled => _AliasIDToForceIntoWhenFilledLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _AliasIDToForceIntoWhenFilledLocation.Value, _package.MetaData.Constants)) : default(Int32?);
+        public Int32? AliasIDToForceIntoWhenFilled
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _AliasIDToForceIntoWhenFilledLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _AliasIDToForceIntoWhenFilledLocation.Value, _package.MetaData.Constants)) : default(Int32?);
+            }
+        }
         #endregion
         #region ClosestToAlias
         private int? _ClosestToAliasLocation;
-        public Int32? ClosestToAlias => _ClosestToAliasLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _ClosestToAliasLocation.Value, _package.MetaData.Constants)) : default(Int32?);
+        public Int32? ClosestToAlias
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _ClosestToAliasLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _ClosestToAliasLocation.Value, _package.MetaData.Constants)) : default(Int32?);
+            }
+        }
         #endregion
         #region ForcedReference
         private int? _ForcedReferenceLocation;
@@ -4796,7 +4831,14 @@ namespace Mutagen.Bethesda.Starfield
         public IFindMatchingRefNearAliasGetter? FindMatchingRefNearAlias { get; private set; }
         #region ReferenceCollectionAliasID
         private int? _ReferenceCollectionAliasIDLocation;
-        public Int32? ReferenceCollectionAliasID => _ReferenceCollectionAliasIDLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _ReferenceCollectionAliasIDLocation.Value, _package.MetaData.Constants)) : default(Int32?);
+        public Int32? ReferenceCollectionAliasID
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _ReferenceCollectionAliasIDLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _ReferenceCollectionAliasIDLocation.Value, _package.MetaData.Constants)) : default(Int32?);
+            }
+        }
         #endregion
         public ICreateObjectTemplateGetter? CreateObjectTemplate { get; private set; }
         public IReadOnlyList<IConditionGetter> Conditions { get; private set; } = [];
@@ -4839,7 +4881,14 @@ namespace Mutagen.Bethesda.Starfield
         public IReadOnlyList<IFormLinkGetter<IPackageGetter>> PackageData { get; private set; } = [];
         #region ScriptComment
         private int? _ScriptCommentLocation;
-        public String? ScriptComment => _ScriptCommentLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _ScriptCommentLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? ScriptComment
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _ScriptCommentLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_data, _ScriptCommentLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+            }
+        }
         #endregion
         #region VoiceTypes
         private int? _VoiceTypesLocation;

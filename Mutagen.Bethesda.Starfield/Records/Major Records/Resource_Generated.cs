@@ -37,6 +37,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -2573,8 +2574,7 @@ namespace Mutagen.Bethesda.Starfield
 
 
         #region Name
-        private int? _NameLocation;
-        public ITranslatedStringGetter? Name => _NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+        public ITranslatedStringGetter? Name => Payload.NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
         #region Aspects
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         string INamedRequiredGetter.Name => this.Name?.String ?? string.Empty;
@@ -2585,43 +2585,45 @@ namespace Mutagen.Bethesda.Starfield
         #endregion
         #endregion
         #region Keywords
-        public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? Keywords { get; private set; }
+        public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? Keywords => Payload.Keywords;
         IReadOnlyList<IFormLinkGetter<IKeywordCommonGetter>>? IKeywordedGetter.Keywords => this.Keywords;
         #endregion
-        public ISoundReferenceGetter? CraftingSound { get; private set; }
-        #region List
-        private int? _ListLocation;
-        public IFormLinkNullableGetter<ILeveledItemGetter> List => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ILeveledItemGetter>(_package, _recordData, _ListLocation);
-        #endregion
-        #region Rarity
-        private int? _RarityLocation;
-        public Resource.RarityEnum? Rarity => EnumBinaryTranslation<Resource.RarityEnum, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(_RarityLocation, _recordData, _package, 4);
-        #endregion
-        public IReadOnlyList<IFormLinkGetter<IResourceGetter>> NextRarities { get; private set; } = [];
-        #region SurfaceColor
-        private int? _SurfaceColorLocation;
-        public Color? SurfaceColor => _SurfaceColorLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _SurfaceColorLocation.Value, _package.MetaData.Constants).ReadColor(ColorBinaryType.Alpha) : default(Color?);
-        #endregion
-        #region ShortName
-        private int? _ShortNameLocation;
-        public ITranslatedStringGetter? ShortName => _ShortNameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _ShortNameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
-        #endregion
-        #region ResourceType
-        private int? _ResourceTypeLocation;
-        public String? ResourceType => _ResourceTypeLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _ResourceTypeLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
-        #region ActorValue
-        private int? _ActorValueLocation;
-        public IFormLinkNullableGetter<IActorValueInformationGetter> ActorValue => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IActorValueInformationGetter>(_package, _recordData, _ActorValueLocation);
-        #endregion
-        #region Produce
-        private int? _ProduceLocation;
-        public IFormLinkNullableGetter<IResourceTargetGetter> Produce => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IResourceTargetGetter>(_package, _recordData, _ProduceLocation);
-        #endregion
-        #region Interval
-        private int? _IntervalLocation;
-        public IFormLinkNullableGetter<IGlobalGetter> Interval => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IGlobalGetter>(_package, _recordData, _IntervalLocation);
-        #endregion
+        public ISoundReferenceGetter? CraftingSound => Payload.CraftingSound;
+        public IFormLinkNullableGetter<ILeveledItemGetter> List => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ILeveledItemGetter>(_package, _recordData, Payload.ListLocation);
+        public Resource.RarityEnum? Rarity => EnumBinaryTranslation<Resource.RarityEnum, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(Payload.RarityLocation, _recordData, _package, 4);
+        public IReadOnlyList<IFormLinkGetter<IResourceGetter>> NextRarities => Payload.NextRarities ?? [];
+        public Color? SurfaceColor => Payload.SurfaceColorLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.SurfaceColorLocation.Value, _package.MetaData.Constants).ReadColor(ColorBinaryType.Alpha) : default(Color?);
+        public ITranslatedStringGetter? ShortName => Payload.ShortNameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.ShortNameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+        public String? ResourceType => Payload.ResourceTypeLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.ResourceTypeLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public IFormLinkNullableGetter<IActorValueInformationGetter> ActorValue => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IActorValueInformationGetter>(_package, _recordData, Payload.ActorValueLocation);
+        public IFormLinkNullableGetter<IResourceTargetGetter> Produce => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IResourceTargetGetter>(_package, _recordData, Payload.ProduceLocation);
+        public IFormLinkNullableGetter<IGlobalGetter> Interval => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IGlobalGetter>(_package, _recordData, Payload.IntervalLocation);
+
+        internal partial class ResourceRecordDataPayload
+        {
+            public int? NameLocation;
+            public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? Keywords;
+            public ISoundReferenceGetter? CraftingSound;
+            public int? ListLocation;
+            public int? RarityLocation;
+            public IReadOnlyList<IFormLinkGetter<IResourceGetter>> NextRarities = [];
+            public int? SurfaceColorLocation;
+            public int? ShortNameLocation;
+            public int? ResourceTypeLocation;
+            public int? ActorValueLocation;
+            public int? ProduceLocation;
+            public int? IntervalLocation;
+        }
+
+        private LazyPayload<ResourceRecordDataPayload> _payload = null!;
+
+        internal ResourceRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<ResourceRecordDataPayload>(init, new ResourceRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -2629,10 +2631,10 @@ namespace Mutagen.Bethesda.Starfield
 
         partial void CustomCtor();
         protected ResourceBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -2643,28 +2645,51 @@ namespace Mutagen.Bethesda.Starfield
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new ResourceBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -2693,13 +2718,13 @@ namespace Mutagen.Bethesda.Starfield
             {
                 case RecordTypeInts.FULL:
                 {
-                    _NameLocation = (stream.Position - offset);
+                    _payload.Fields.NameLocation = (stream.Position - offset);
                     return (int)Resource_FieldIndex.Name;
                 }
                 case RecordTypeInts.KSIZ:
                 case RecordTypeInts.KWDA:
                 {
-                    this.Keywords = BinaryOverlayList.FactoryByCount<IFormLinkGetter<IKeywordGetter>>(
+                    _payload.Fields.Keywords = BinaryOverlayList.FactoryByCount<IFormLinkGetter<IKeywordGetter>>(
                         stream: stream,
                         package: _package,
                         itemLength: 0x4,
@@ -2712,7 +2737,7 @@ namespace Mutagen.Bethesda.Starfield
                 case RecordTypeInts.CUSH:
                 {
                     stream.Position += _package.MetaData.Constants.SubConstants.HeaderLength;
-                    this.CraftingSound = SoundReferenceBinaryOverlay.SoundReferenceFactory(
+                    _payload.Fields.CraftingSound = SoundReferenceBinaryOverlay.SoundReferenceFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());
@@ -2720,17 +2745,17 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.FNAM:
                 {
-                    _ListLocation = (stream.Position - offset);
+                    _payload.Fields.ListLocation = (stream.Position - offset);
                     return (int)Resource_FieldIndex.List;
                 }
                 case RecordTypeInts.SNAM:
                 {
-                    _RarityLocation = (stream.Position - offset);
+                    _payload.Fields.RarityLocation = (stream.Position - offset);
                     return (int)Resource_FieldIndex.Rarity;
                 }
                 case RecordTypeInts.CNAM:
                 {
-                    this.NextRarities = BinaryOverlayList.FactoryByArray<IFormLinkGetter<IResourceGetter>>(
+                    _payload.Fields.NextRarities = BinaryOverlayList.FactoryByArray<IFormLinkGetter<IResourceGetter>>(
                         mem: stream.RemainingMemory,
                         package: _package,
                         getter: (s, p) => FormLinkBinaryTranslation.Instance.OverlayFactory<IResourceGetter>(p, s),
@@ -2744,32 +2769,32 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.TINC:
                 {
-                    _SurfaceColorLocation = (stream.Position - offset);
+                    _payload.Fields.SurfaceColorLocation = (stream.Position - offset);
                     return (int)Resource_FieldIndex.SurfaceColor;
                 }
                 case RecordTypeInts.NNAM:
                 {
-                    _ShortNameLocation = (stream.Position - offset);
+                    _payload.Fields.ShortNameLocation = (stream.Position - offset);
                     return (int)Resource_FieldIndex.ShortName;
                 }
                 case RecordTypeInts.GNAM:
                 {
-                    _ResourceTypeLocation = (stream.Position - offset);
+                    _payload.Fields.ResourceTypeLocation = (stream.Position - offset);
                     return (int)Resource_FieldIndex.ResourceType;
                 }
                 case RecordTypeInts.NAM1:
                 {
-                    _ActorValueLocation = (stream.Position - offset);
+                    _payload.Fields.ActorValueLocation = (stream.Position - offset);
                     return (int)Resource_FieldIndex.ActorValue;
                 }
                 case RecordTypeInts.NAM2:
                 {
-                    _ProduceLocation = (stream.Position - offset);
+                    _payload.Fields.ProduceLocation = (stream.Position - offset);
                     return (int)Resource_FieldIndex.Produce;
                 }
                 case RecordTypeInts.NAM3:
                 {
-                    _IntervalLocation = (stream.Position - offset);
+                    _payload.Fields.IntervalLocation = (stream.Position - offset);
                     return (int)Resource_FieldIndex.Interval;
                 }
                 default:

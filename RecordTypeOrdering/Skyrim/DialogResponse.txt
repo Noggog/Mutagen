@@ -1,0 +1,5 @@
+RecordTypes.NAM1,
+RecordTypes.NAM2,
+RecordTypes.NAM3,
+RecordTypes.SNAM,
+RecordTypes.LNAM,

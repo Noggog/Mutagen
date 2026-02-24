@@ -1,0 +1,7 @@
+RecordTypes.NAM0,
+RecordTypes.SNOT,
+RecordTypes.ALID,
+RecordTypes.INAM,
+RecordTypes.FNAM,
+RecordTypes.SNAM,
+RecordTypes.ENAM,

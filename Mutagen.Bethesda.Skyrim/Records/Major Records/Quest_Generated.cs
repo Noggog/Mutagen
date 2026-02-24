@@ -38,6 +38,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -3420,14 +3421,11 @@ namespace Mutagen.Bethesda.Skyrim
 
 
         #region VirtualMachineAdapter
-        private int? _VirtualMachineAdapterLengthOverride;
-        private RangeInt32? _VirtualMachineAdapterLocation;
-        public IQuestAdapterGetter? VirtualMachineAdapter => _VirtualMachineAdapterLocation.HasValue ? QuestAdapterBinaryOverlay.QuestAdapterFactory(_recordData.Slice(_VirtualMachineAdapterLocation!.Value.Min), _package, TypedParseParams.FromLengthOverride(_VirtualMachineAdapterLengthOverride)) : default;
+        public IQuestAdapterGetter? VirtualMachineAdapter => Payload.VirtualMachineAdapterLocation.HasValue ? QuestAdapterBinaryOverlay.QuestAdapterFactory(_recordData.Slice(Payload.VirtualMachineAdapterLocation!.Value.Min), _package, TypedParseParams.FromLengthOverride(Payload.VirtualMachineAdapterLengthOverride)) : default;
         IAVirtualMachineAdapterGetter? IHaveVirtualMachineAdapterGetter.VirtualMachineAdapter => this.VirtualMachineAdapter;
         #endregion
         #region Name
-        private int? _NameLocation;
-        public ITranslatedStringGetter? Name => _NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+        public ITranslatedStringGetter? Name => Payload.NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
         #region Aspects
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         string INamedRequiredGetter.Name => this.Name?.String ?? string.Empty;
@@ -3437,41 +3435,34 @@ namespace Mutagen.Bethesda.Skyrim
         ITranslatedStringGetter ITranslatedNamedRequiredGetter.Name => this.Name ?? TranslatedString.Empty;
         #endregion
         #endregion
-        private RangeInt32? _DNAMLocation;
         #region Flags
-        private int _FlagsLocation => _DNAMLocation!.Value.Min;
-        private bool _Flags_IsSet => _DNAMLocation.HasValue;
+        private int _FlagsLocation => Payload.DNAMLocation!.Value.Min;
+        private bool _Flags_IsSet => Payload.DNAMLocation.HasValue;
         public Quest.Flag Flags => _Flags_IsSet ? (Quest.Flag)BinaryPrimitives.ReadUInt16LittleEndian(_recordData.Span.Slice(_FlagsLocation, 0x2)) : default;
         #endregion
         #region Priority
-        private int _PriorityLocation => _DNAMLocation!.Value.Min + 0x2;
-        private bool _Priority_IsSet => _DNAMLocation.HasValue;
+        private int _PriorityLocation => Payload.DNAMLocation!.Value.Min + 0x2;
+        private bool _Priority_IsSet => Payload.DNAMLocation.HasValue;
         public Byte Priority => _Priority_IsSet ? _recordData.Span[_PriorityLocation] : default;
         #endregion
         #region QuestFormVersion
-        private int _QuestFormVersionLocation => _DNAMLocation!.Value.Min + 0x3;
-        private bool _QuestFormVersion_IsSet => _DNAMLocation.HasValue;
+        private int _QuestFormVersionLocation => Payload.DNAMLocation!.Value.Min + 0x3;
+        private bool _QuestFormVersion_IsSet => Payload.DNAMLocation.HasValue;
         public Byte QuestFormVersion => _QuestFormVersion_IsSet ? _recordData.Span[_QuestFormVersionLocation] : default;
         #endregion
         #region Unknown
-        private int _UnknownLocation => _DNAMLocation!.Value.Min + 0x4;
-        private bool _Unknown_IsSet => _DNAMLocation.HasValue;
+        private int _UnknownLocation => Payload.DNAMLocation!.Value.Min + 0x4;
+        private bool _Unknown_IsSet => Payload.DNAMLocation.HasValue;
         public Int32 Unknown => _Unknown_IsSet ? BinaryPrimitives.ReadInt32LittleEndian(_recordData.Slice(_UnknownLocation, 4)) : default(Int32);
         #endregion
         #region Type
-        private int _TypeLocation => _DNAMLocation!.Value.Min + 0x8;
-        private bool _Type_IsSet => _DNAMLocation.HasValue;
+        private int _TypeLocation => Payload.DNAMLocation!.Value.Min + 0x8;
+        private bool _Type_IsSet => Payload.DNAMLocation.HasValue;
         public Quest.TypeEnum Type => _Type_IsSet ? (Quest.TypeEnum)BinaryPrimitives.ReadInt32LittleEndian(_recordData.Span.Slice(_TypeLocation, 0x4)) : default;
         #endregion
-        #region Event
-        private int? _EventLocation;
-        public RecordType? Event => _EventLocation.HasValue ? new RecordType(BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _EventLocation.Value, _package.MetaData.Constants))) : default(RecordType?);
-        #endregion
-        public IReadOnlyList<IFormLinkGetter<IGlobalGetter>> TextDisplayGlobals { get; private set; } = [];
-        #region Filter
-        private int? _FilterLocation;
-        public String? Filter => _FilterLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _FilterLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
+        public RecordType? Event => Payload.EventLocation.HasValue ? new RecordType(BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.EventLocation.Value, _package.MetaData.Constants))) : default(RecordType?);
+        public IReadOnlyList<IFormLinkGetter<IGlobalGetter>> TextDisplayGlobals => Payload.TextDisplayGlobals ?? [];
+        public String? Filter => Payload.FilterLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.FilterLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
         #region DialogConditions
         partial void DialogConditionsCustomParse(
             OverlayStream stream,
@@ -3486,17 +3477,37 @@ namespace Mutagen.Bethesda.Skyrim
             int offset,
             PreviousParse lastParsed);
         #endregion
-        public IReadOnlyList<IQuestStageGetter> Stages { get; private set; } = [];
-        public IReadOnlyList<IQuestObjectiveGetter> Objectives { get; private set; } = [];
-        #region NextAliasID
-        private int? _NextAliasIDLocation;
-        public UInt32? NextAliasID => _NextAliasIDLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NextAliasIDLocation.Value, _package.MetaData.Constants)) : default(UInt32?);
-        #endregion
-        public IReadOnlyList<IQuestAliasGetter> Aliases { get; private set; } = [];
-        #region Description
-        private int? _DescriptionLocation;
-        public ITranslatedStringGetter? Description => _DescriptionLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _DescriptionLocation.Value, _package.MetaData.Constants), StringsSource.DL, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
-        #endregion
+        public IReadOnlyList<IQuestStageGetter> Stages => Payload.Stages ?? [];
+        public IReadOnlyList<IQuestObjectiveGetter> Objectives => Payload.Objectives ?? [];
+        public UInt32? NextAliasID => Payload.NextAliasIDLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NextAliasIDLocation.Value, _package.MetaData.Constants)) : default(UInt32?);
+        public IReadOnlyList<IQuestAliasGetter> Aliases => Payload.Aliases ?? [];
+        public ITranslatedStringGetter? Description => Payload.DescriptionLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.DescriptionLocation.Value, _package.MetaData.Constants), StringsSource.DL, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+
+        internal partial class QuestRecordDataPayload
+        {
+            public int? VirtualMachineAdapterLengthOverride;
+            public RangeInt32? VirtualMachineAdapterLocation;
+            public int? NameLocation;
+            public RangeInt32? DNAMLocation;
+            public int? EventLocation;
+            public IReadOnlyList<IFormLinkGetter<IGlobalGetter>> TextDisplayGlobals = [];
+            public int? FilterLocation;
+            public IReadOnlyList<IQuestStageGetter> Stages = [];
+            public IReadOnlyList<IQuestObjectiveGetter> Objectives = [];
+            public int? NextAliasIDLocation;
+            public IReadOnlyList<IQuestAliasGetter> Aliases = [];
+            public int? DescriptionLocation;
+        }
+
+        private LazyPayload<QuestRecordDataPayload> _payload = null!;
+
+        internal QuestRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<QuestRecordDataPayload>(init, new QuestRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -3504,10 +3515,10 @@ namespace Mutagen.Bethesda.Skyrim
 
         partial void CustomCtor();
         protected QuestBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -3518,28 +3529,51 @@ namespace Mutagen.Bethesda.Skyrim
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new QuestBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -3568,8 +3602,8 @@ namespace Mutagen.Bethesda.Skyrim
             {
                 case RecordTypeInts.VMAD:
                 {
-                    _VirtualMachineAdapterLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
-                    _VirtualMachineAdapterLengthOverride = lastParsed.LengthOverride;
+                    _payload.Fields.VirtualMachineAdapterLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.VirtualMachineAdapterLengthOverride = lastParsed.LengthOverride;
                     if (lastParsed.LengthOverride.HasValue)
                     {
                         stream.Position += lastParsed.LengthOverride.Value;
@@ -3578,22 +3612,22 @@ namespace Mutagen.Bethesda.Skyrim
                 }
                 case RecordTypeInts.FULL:
                 {
-                    _NameLocation = (stream.Position - offset);
+                    _payload.Fields.NameLocation = (stream.Position - offset);
                     return (int)Quest_FieldIndex.Name;
                 }
                 case RecordTypeInts.DNAM:
                 {
-                    _DNAMLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.DNAMLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     return (int)Quest_FieldIndex.Type;
                 }
                 case RecordTypeInts.ENAM:
                 {
-                    _EventLocation = (stream.Position - offset);
+                    _payload.Fields.EventLocation = (stream.Position - offset);
                     return (int)Quest_FieldIndex.Event;
                 }
                 case RecordTypeInts.QTGL:
                 {
-                    this.TextDisplayGlobals = BinaryOverlayList.FactoryByArray<IFormLinkGetter<IGlobalGetter>>(
+                    _payload.Fields.TextDisplayGlobals = BinaryOverlayList.FactoryByArray<IFormLinkGetter<IGlobalGetter>>(
                         mem: stream.RemainingMemory,
                         package: _package,
                         getter: (s, p) => FormLinkBinaryTranslation.Instance.OverlayFactory<IGlobalGetter>(p, s),
@@ -3607,7 +3641,7 @@ namespace Mutagen.Bethesda.Skyrim
                 }
                 case RecordTypeInts.FLTR:
                 {
-                    _FilterLocation = (stream.Position - offset);
+                    _payload.Fields.FilterLocation = (stream.Position - offset);
                     return (int)Quest_FieldIndex.Filter;
                 }
                 case RecordTypeInts.CTDA:
@@ -3629,7 +3663,7 @@ namespace Mutagen.Bethesda.Skyrim
                 }
                 case RecordTypeInts.INDX:
                 {
-                    this.Stages = this.ParseRepeatedTypelessSubrecord<IQuestStageGetter>(
+                    _payload.Fields.Stages = this.ParseRepeatedTypelessSubrecord<IQuestStageGetter>(
                         stream: stream,
                         translationParams: translationParams,
                         trigger: QuestStage_Registration.TriggerSpecs,
@@ -3638,7 +3672,7 @@ namespace Mutagen.Bethesda.Skyrim
                 }
                 case RecordTypeInts.QOBJ:
                 {
-                    this.Objectives = this.ParseRepeatedTypelessSubrecord<IQuestObjectiveGetter>(
+                    _payload.Fields.Objectives = this.ParseRepeatedTypelessSubrecord<IQuestObjectiveGetter>(
                         stream: stream,
                         translationParams: translationParams,
                         trigger: QuestObjective_Registration.TriggerSpecs,
@@ -3647,13 +3681,13 @@ namespace Mutagen.Bethesda.Skyrim
                 }
                 case RecordTypeInts.ANAM:
                 {
-                    _NextAliasIDLocation = (stream.Position - offset);
+                    _payload.Fields.NextAliasIDLocation = (stream.Position - offset);
                     return (int)Quest_FieldIndex.NextAliasID;
                 }
                 case RecordTypeInts.ALST:
                 case RecordTypeInts.ALLS:
                 {
-                    this.Aliases = this.ParseRepeatedTypelessSubrecord<IQuestAliasGetter>(
+                    _payload.Fields.Aliases = this.ParseRepeatedTypelessSubrecord<IQuestAliasGetter>(
                         stream: stream,
                         translationParams: translationParams,
                         trigger: QuestAlias_Registration.TriggerSpecs,
@@ -3662,7 +3696,7 @@ namespace Mutagen.Bethesda.Skyrim
                 }
                 case RecordTypeInts.NNAM:
                 {
-                    _DescriptionLocation = (stream.Position - offset);
+                    _payload.Fields.DescriptionLocation = (stream.Position - offset);
                     return (int)Quest_FieldIndex.Description;
                 }
                 case RecordTypeInts.XXXX:

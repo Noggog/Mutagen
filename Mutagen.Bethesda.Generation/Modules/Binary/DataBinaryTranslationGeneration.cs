@@ -62,20 +62,36 @@ public class DataBinaryTranslationGeneration : BinaryTranslationGeneration
         StructuredStringBuilder sb,
         ObjectGeneration objGen,
         TypeGeneration typeGen,
-        Accessor structDataAccessor,  
-        Accessor recordDataAccessor, 
+        Accessor structDataAccessor,
+        Accessor recordDataAccessor,
         int? passedLength,
         string passedLengthAccesor,
         DataType _)
     {
         DataType dataType = typeGen as DataType;
+        var payloadSb = (this.Module as PluginTranslationModule)?.CurrentPayloadFieldsSb;
 
-        sb.AppendLine($"private {nameof(RangeInt32)}? _{dataType.GetFieldData().RecordType}Location;");
+        if (payloadSb != null)
+        {
+            payloadSb.AppendLine($"public {nameof(RangeInt32)}? {dataType.GetFieldData().RecordType}Location;");
+        }
+        else
+        {
+            sb.AppendLine($"private {nameof(RangeInt32)}? _{dataType.GetFieldData().RecordType}Location;");
+        }
 
         var enumTypes = dataType.GetEnumTypes();
         if (enumTypes.Count > 0)
         {
-            sb.AppendLine($"public {objGen.ObjectName}.{dataType.EnumName} {dataType.StateName} {{ get; private set; }}");
+            if (payloadSb != null)
+            {
+                payloadSb.AppendLine($"public {objGen.ObjectName}.{dataType.EnumName} {dataType.StateName};");
+                sb.AppendLine($"public {objGen.ObjectName}.{dataType.EnumName} {dataType.StateName} => Payload.{dataType.StateName};");
+            }
+            else
+            {
+                sb.AppendLine($"public {objGen.ObjectName}.{dataType.EnumName} {dataType.StateName} {{ get; private set; }}");
+            }
         }
 
         switch (typeGen.GetFieldData().BinaryOverlayFallback)
@@ -113,15 +129,18 @@ public class DataBinaryTranslationGeneration : BinaryTranslationGeneration
                     throw new ArgumentException();
                 }
 
+                var locPrefix = payloadSb != null
+                    ? $"Payload.{dataType.GetFieldData().RecordType}Location"
+                    : $"_{dataType.GetFieldData().RecordType}Location";
                 var passIn = length.PassedAccessor;
                 if (passIn == null)
                 {
-                    passIn = $"_{dataType.GetFieldData().RecordType}Location!.Value.{nameof(RangeInt32.Min)}";
-                } 
-                else if (passIn == null 
+                    passIn = $"{locPrefix}!.Value.{nameof(RangeInt32.Min)}";
+                }
+                else if (passIn == null
                          || length.PassedType == BinaryTranslationModule.PassedType.Direct)
                 {
-                    passIn = $"_{dataType.GetFieldData().RecordType}Location!.Value.{nameof(RangeInt32.Min)} + {passIn}";
+                    passIn = $"{locPrefix}!.Value.{nameof(RangeInt32.Min)} + {passIn}";
                 }
 
                 await subTypeGen.GenerateWrapperFields(
@@ -180,10 +199,13 @@ public class DataBinaryTranslationGeneration : BinaryTranslationGeneration
             default:
                 break;
         }
-        sb.AppendLine($"_{dataType.GetFieldData().RecordType}Location = new({locationAccessor} + _package.{nameof(BinaryOverlayFactoryPackage.MetaData)}.{nameof(ParsingMeta.Constants)}.SubConstants.TypeAndLengthLength, finalPos - offset - 1);");
+        var isMajor = await objGen.IsMajorRecord();
+        var locPrefix = isMajor ? "_payload.Fields." : "_";
+        var statePrefix = isMajor ? "_payload.Fields." : "this.";
+        sb.AppendLine($"{locPrefix}{dataType.GetFieldData().RecordType}Location = new({locationAccessor} + _package.{nameof(BinaryOverlayFactoryPackage.MetaData)}.{nameof(ParsingMeta.Constants)}.SubConstants.TypeAndLengthLength, finalPos - offset - 1);");
         if (dataType.Nullable)
         {
-            sb.AppendLine($"this.{dataType.StateName} = {objGen.ObjectName}.{dataType.EnumName}.Has;");
+            sb.AppendLine($"{statePrefix}{dataType.StateName} = {objGen.ObjectName}.{dataType.EnumName}.Has;");
         }
         bool generatedStart = false;
         var lengths = await this.Module.IteratePassedLengths(
@@ -209,7 +231,7 @@ public class DataBinaryTranslationGeneration : BinaryTranslationGeneration
                 sb.AppendLine($"if (subLen <= {length.PassedAccessor})");
                 using (sb.CurlyBrace())
                 {
-                    sb.AppendLine($"this.{dataType.StateName} |= {objGen.ObjectName}.{dataType.EnumName}.Break{item.BreakIndex};");
+                    sb.AppendLine($"{statePrefix}{dataType.StateName} |= {objGen.ObjectName}.{dataType.EnumName}.Break{item.BreakIndex};");
                 }
             }
             if (item.RangeIndex != -1)
@@ -227,7 +249,7 @@ public class DataBinaryTranslationGeneration : BinaryTranslationGeneration
             sb.AppendLine($"if (subLen > {range.DataSetSizeMin})");
             using (sb.CurlyBrace())
             {
-                sb.AppendLine($"this.{dataType.StateName} |= {objGen.ObjectName}.{dataType.EnumName}.Range{i};");
+                sb.AppendLine($"{statePrefix}{dataType.StateName} |= {objGen.ObjectName}.{dataType.EnumName}.Range{i};");
             }
         }
     }
@@ -236,7 +258,7 @@ public class DataBinaryTranslationGeneration : BinaryTranslationGeneration
 
     public override async Task<int?> ExpectedLength(ObjectGeneration objGen, TypeGeneration typeGen) => null;
 
-    public static void GenerateWrapperExtraMembers(StructuredStringBuilder sb, DataType dataType, ObjectGeneration objGen, TypeGeneration typeGen, string posAccessor)
+    public static void GenerateWrapperExtraMembers(StructuredStringBuilder sb, DataType dataType, ObjectGeneration objGen, TypeGeneration typeGen, string posAccessor, bool isMajorRecord = false)
     {
         var fieldData = typeGen.GetFieldData();
         var dataMeta = dataType.IterateFieldsWithMeta().First(item => item.Field == typeGen);
@@ -255,10 +277,13 @@ public class DataBinaryTranslationGeneration : BinaryTranslationGeneration
             extraChecks.Add(VersioningModule.GetVersionIfCheck(fieldData, "_package.FormVersion!.FormVersion!.Value"));
         }
         sb.AppendLine($"private int _{typeGen.Name}Location => {posAccessor};");
+        var recTypeLocRef = isMajorRecord
+            ? $"Payload.{dataType.GetFieldData().RecordType}Location"
+            : $"_{dataType.GetFieldData().RecordType}Location";
         switch (typeGen.GetFieldData().BinaryOverlayFallback)
         {
             case BinaryGenerationType.Normal:
-                sb.AppendLine($"private bool _{typeGen.Name}_IsSet => _{dataType.GetFieldData().RecordType}Location.HasValue{(extraChecks.Count > 0 ? $" && {string.Join(" && ", extraChecks)}" : null)};");
+                sb.AppendLine($"private bool _{typeGen.Name}_IsSet => {recTypeLocRef}.HasValue{(extraChecks.Count > 0 ? $" && {string.Join(" && ", extraChecks)}" : null)};");
                 break;
             case BinaryGenerationType.Custom:
                 break;
@@ -268,15 +293,19 @@ public class DataBinaryTranslationGeneration : BinaryTranslationGeneration
     }
 
     public override async Task GenerateWrapperUnknownLengthParse(
-        StructuredStringBuilder sb, 
+        StructuredStringBuilder sb,
         ObjectGeneration objGen,
         TypeGeneration typeGen,
-        Accessor dataAccessor, 
+        Accessor dataAccessor,
         int? passedLength,
         string passedLengthAccessor,
         DataType? data = null)
     {
         var dataType = typeGen as DataType;
+        var isMajor = await objGen.IsMajorRecord();
+        var recTypeLocRef = isMajor
+            ? $"ret._payload.Fields.{dataType.GetFieldData().RecordType}Location"
+            : $"ret._{dataType.GetFieldData().RecordType}Location";
         var lengths = await this.Module.IteratePassedLengths(
                 objGen,
                 dataType.SubFields,
@@ -317,7 +346,7 @@ public class DataBinaryTranslationGeneration : BinaryTranslationGeneration
                     if (length.PassedType == BinaryTranslationModule.PassedType.Direct)
                     {
                         passedLenForField =
-                            $"ret._{dataType.GetFieldData().RecordType}Location!.Value.{nameof(RangeInt32.Min)}{(passedLenForField.IsNullOrWhitespace() ? null : $" + {passedLenForField}")}";
+                            $"{recTypeLocRef}!.Value.{nameof(RangeInt32.Min)}{(passedLenForField.IsNullOrWhitespace() ? null : $" + {passedLenForField}")}";
                     }
                     
                     await subTypeGen.GenerateWrapperUnknownLengthParse(

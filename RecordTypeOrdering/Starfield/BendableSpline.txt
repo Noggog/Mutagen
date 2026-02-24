@@ -1,0 +1,6 @@
+RecordTypes.EDID,
+RecordTypes.OBND,
+RecordTypes.ODTY,
+RecordTypes.BFCB,
+RecordTypes.BFCE,
+RecordTypes.MNAM,

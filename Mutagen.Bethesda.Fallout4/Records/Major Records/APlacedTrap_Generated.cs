@@ -35,6 +35,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -4067,9 +4068,7 @@ namespace Mutagen.Bethesda.Fallout4
         public APlacedTrap.MajorFlag MajorFlags => (APlacedTrap.MajorFlag)this.MajorRecordFlagsRaw;
 
         #region VirtualMachineAdapter
-        private int? _VirtualMachineAdapterLengthOverride;
-        private RangeInt32? _VirtualMachineAdapterLocation;
-        public IVirtualMachineAdapterGetter? VirtualMachineAdapter => _VirtualMachineAdapterLocation.HasValue ? VirtualMachineAdapterBinaryOverlay.VirtualMachineAdapterFactory(_recordData.Slice(_VirtualMachineAdapterLocation!.Value.Min), _package, TypedParseParams.FromLengthOverride(_VirtualMachineAdapterLengthOverride)) : default;
+        public IVirtualMachineAdapterGetter? VirtualMachineAdapter => Payload.VirtualMachineAdapterLocation.HasValue ? VirtualMachineAdapterBinaryOverlay.VirtualMachineAdapterFactory(_recordData.Slice(Payload.VirtualMachineAdapterLocation!.Value.Min), _package, TypedParseParams.FromLengthOverride(Payload.VirtualMachineAdapterLengthOverride)) : default;
         IAVirtualMachineAdapterGetter? IHaveVirtualMachineAdapterGetter.VirtualMachineAdapter => this.VirtualMachineAdapter;
         #endregion
         #region TrapForm
@@ -4078,99 +4077,83 @@ namespace Mutagen.Bethesda.Fallout4
             int offset,
             PreviousParse lastParsed);
         #endregion
-        #region EncounterZone
-        private int? _EncounterZoneLocation;
-        public IFormLinkNullableGetter<IEncounterZoneGetter> EncounterZone => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IEncounterZoneGetter>(_package, _recordData, _EncounterZoneLocation);
-        #endregion
-        #region HeadTrackingWeight
-        private int? _HeadTrackingWeightLocation;
-        public Single? HeadTrackingWeight => _HeadTrackingWeightLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _HeadTrackingWeightLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
-        #endregion
-        #region FavorCost
-        private int? _FavorCostLocation;
-        public Single? FavorCost => _FavorCostLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _FavorCostLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
-        #endregion
-        public IReadOnlyList<IWaterReflectionGetter> Reflections { get; private set; } = [];
-        public IReadOnlyList<ILinkedReferencesGetter> LinkedReferences { get; private set; } = [];
-        public IActivateParentsGetter? ActivateParents { get; private set; }
-        #region UnknownReference
-        private int? _UnknownReferenceLocation;
-        public IFormLinkNullableGetter<IPlacedObjectGetter> UnknownReference => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IPlacedObjectGetter>(_package, _recordData, _UnknownReferenceLocation);
-        #endregion
-        #region XATP
-        private int? _XATPLocation;
-        public ReadOnlyMemorySlice<Byte>? XATP => _XATPLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _XATPLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
-        #endregion
-        #region AmmoCount
-        private int? _AmmoCountLocation;
-        public UInt32? AmmoCount => _AmmoCountLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _AmmoCountLocation.Value, _package.MetaData.Constants)) : default(UInt32?);
-        #endregion
-        #region IsLinkedRefTransient
-        private int? _IsLinkedRefTransientLocation;
-        public Boolean IsLinkedRefTransient => _IsLinkedRefTransientLocation.HasValue ? true : default(Boolean);
-        #endregion
-        #region Layer
-        private int? _LayerLocation;
-        public IFormLinkNullableGetter<ILayerGetter> Layer => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ILayerGetter>(_package, _recordData, _LayerLocation);
-        #endregion
-        #region MaterialSwap
-        private int? _MaterialSwapLocation;
-        public IFormLinkNullableGetter<IMaterialSwapGetter> MaterialSwap => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IMaterialSwapGetter>(_package, _recordData, _MaterialSwapLocation);
-        #endregion
-        #region ReferenceGroup
-        private int? _ReferenceGroupLocation;
-        public IFormLinkNullableGetter<IReferenceGroupGetter> ReferenceGroup => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IReferenceGroupGetter>(_package, _recordData, _ReferenceGroupLocation);
-        #endregion
-        #region XCVR
-        private int? _XCVRLocation;
-        public ReadOnlyMemorySlice<Byte>? XCVR => _XCVRLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _XCVRLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
-        #endregion
-        #region EnableParent
-        private RangeInt32? _EnableParentLocation;
-        public IEnableParentGetter? EnableParent => _EnableParentLocation.HasValue ? EnableParentBinaryOverlay.EnableParentFactory(_recordData.Slice(_EnableParentLocation!.Value.Min), _package) : default;
-        #endregion
-        public IOwnershipGetter? Ownership { get; private set; }
-        #region FactionRank
-        private int? _FactionRankLocation;
-        public Int32? FactionRank => _FactionRankLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _FactionRankLocation.Value, _package.MetaData.Constants)) : default(Int32?);
-        #endregion
-        #region Emittance
-        private int? _EmittanceLocation;
-        public IFormLinkNullableGetter<IEmittanceGetter> Emittance => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IEmittanceGetter>(_package, _recordData, _EmittanceLocation);
-        #endregion
-        #region MultiBoundReference
-        private int? _MultiBoundReferenceLocation;
-        public IFormLinkNullableGetter<IPlacedObjectGetter> MultiBoundReference => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IPlacedObjectGetter>(_package, _recordData, _MultiBoundReferenceLocation);
-        #endregion
-        #region IsIgnoredBySandbox
-        private int? _IsIgnoredBySandboxLocation;
-        public Boolean IsIgnoredBySandbox => _IsIgnoredBySandboxLocation.HasValue ? true : default(Boolean);
-        #endregion
-        public IReadOnlyList<IFormLinkGetter<ILocationReferenceTypeGetter>>? LocationRefTypes { get; private set; }
-        #region LocationReference
-        private int? _LocationReferenceLocation;
-        public IFormLinkNullableGetter<ILocationGetter> LocationReference => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ILocationGetter>(_package, _recordData, _LocationReferenceLocation);
-        #endregion
-        #region Scale
-        private int? _ScaleLocation;
-        public Single? Scale => _ScaleLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _ScaleLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
-        #endregion
-        public IReadOnlyList<Single>? DistantLodData { get; private set; }
-        private RangeInt32? _DATALocation;
+        public IFormLinkNullableGetter<IEncounterZoneGetter> EncounterZone => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IEncounterZoneGetter>(_package, _recordData, Payload.EncounterZoneLocation);
+        public Single? HeadTrackingWeight => Payload.HeadTrackingWeightLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.HeadTrackingWeightLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public Single? FavorCost => Payload.FavorCostLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.FavorCostLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public IReadOnlyList<IWaterReflectionGetter> Reflections => Payload.Reflections ?? [];
+        public IReadOnlyList<ILinkedReferencesGetter> LinkedReferences => Payload.LinkedReferences ?? [];
+        public IActivateParentsGetter? ActivateParents => Payload.ActivateParents;
+        public IFormLinkNullableGetter<IPlacedObjectGetter> UnknownReference => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IPlacedObjectGetter>(_package, _recordData, Payload.UnknownReferenceLocation);
+        public ReadOnlyMemorySlice<Byte>? XATP => Payload.XATPLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.XATPLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
+        public UInt32? AmmoCount => Payload.AmmoCountLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.AmmoCountLocation.Value, _package.MetaData.Constants)) : default(UInt32?);
+        public Boolean IsLinkedRefTransient => Payload.IsLinkedRefTransientLocation.HasValue ? true : default(Boolean);
+        public IFormLinkNullableGetter<ILayerGetter> Layer => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ILayerGetter>(_package, _recordData, Payload.LayerLocation);
+        public IFormLinkNullableGetter<IMaterialSwapGetter> MaterialSwap => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IMaterialSwapGetter>(_package, _recordData, Payload.MaterialSwapLocation);
+        public IFormLinkNullableGetter<IReferenceGroupGetter> ReferenceGroup => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IReferenceGroupGetter>(_package, _recordData, Payload.ReferenceGroupLocation);
+        public ReadOnlyMemorySlice<Byte>? XCVR => Payload.XCVRLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.XCVRLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
+        public IEnableParentGetter? EnableParent => Payload.EnableParentLocation.HasValue ? EnableParentBinaryOverlay.EnableParentFactory(_recordData.Slice(Payload.EnableParentLocation!.Value.Min), _package) : default;
+        public IOwnershipGetter? Ownership => Payload.Ownership;
+        public Int32? FactionRank => Payload.FactionRankLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.FactionRankLocation.Value, _package.MetaData.Constants)) : default(Int32?);
+        public IFormLinkNullableGetter<IEmittanceGetter> Emittance => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IEmittanceGetter>(_package, _recordData, Payload.EmittanceLocation);
+        public IFormLinkNullableGetter<IPlacedObjectGetter> MultiBoundReference => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IPlacedObjectGetter>(_package, _recordData, Payload.MultiBoundReferenceLocation);
+        public Boolean IsIgnoredBySandbox => Payload.IsIgnoredBySandboxLocation.HasValue ? true : default(Boolean);
+        public IReadOnlyList<IFormLinkGetter<ILocationReferenceTypeGetter>>? LocationRefTypes => Payload.LocationRefTypes;
+        public IFormLinkNullableGetter<ILocationGetter> LocationReference => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ILocationGetter>(_package, _recordData, Payload.LocationReferenceLocation);
+        public Single? Scale => Payload.ScaleLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.ScaleLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public IReadOnlyList<Single>? DistantLodData => Payload.DistantLodData;
         #region Position
-        private int _PositionLocation => _DATALocation!.Value.Min;
-        private bool _Position_IsSet => _DATALocation.HasValue;
+        private int _PositionLocation => Payload.DATALocation!.Value.Min;
+        private bool _Position_IsSet => Payload.DATALocation.HasValue;
         public P3Float Position => _Position_IsSet ? P3FloatBinaryTranslation<MutagenFrame, MutagenWriter>.Instance.Read(_recordData.Slice(_PositionLocation, 12)) : default(P3Float);
         #endregion
         #region Rotation
-        private int _RotationLocation => _DATALocation!.Value.Min + 0xC;
-        private bool _Rotation_IsSet => _DATALocation.HasValue;
+        private int _RotationLocation => Payload.DATALocation!.Value.Min + 0xC;
+        private bool _Rotation_IsSet => Payload.DATALocation.HasValue;
         public P3Float Rotation => _Rotation_IsSet ? P3FloatBinaryTranslation<MutagenFrame, MutagenWriter>.Instance.Read(_recordData.Slice(_RotationLocation, 12)) : default(P3Float);
         #endregion
-        #region Comments
-        private int? _CommentsLocation;
-        public String? Comments => _CommentsLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _CommentsLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
+        public String? Comments => Payload.CommentsLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.CommentsLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+
+        internal partial class APlacedTrapRecordDataPayload
+        {
+            public int? VirtualMachineAdapterLengthOverride;
+            public RangeInt32? VirtualMachineAdapterLocation;
+            public int? EncounterZoneLocation;
+            public int? HeadTrackingWeightLocation;
+            public int? FavorCostLocation;
+            public IReadOnlyList<IWaterReflectionGetter> Reflections = [];
+            public IReadOnlyList<ILinkedReferencesGetter> LinkedReferences = [];
+            public IActivateParentsGetter? ActivateParents;
+            public int? UnknownReferenceLocation;
+            public int? XATPLocation;
+            public int? AmmoCountLocation;
+            public int? IsLinkedRefTransientLocation;
+            public int? LayerLocation;
+            public int? MaterialSwapLocation;
+            public int? ReferenceGroupLocation;
+            public int? XCVRLocation;
+            public RangeInt32? EnableParentLocation;
+            public IOwnershipGetter? Ownership;
+            public int? FactionRankLocation;
+            public int? EmittanceLocation;
+            public int? MultiBoundReferenceLocation;
+            public int? IsIgnoredBySandboxLocation;
+            public IReadOnlyList<IFormLinkGetter<ILocationReferenceTypeGetter>>? LocationRefTypes;
+            public int? LocationReferenceLocation;
+            public int? ScaleLocation;
+            public IReadOnlyList<Single>? DistantLodData;
+            public RangeInt32? DATALocation;
+            public int? CommentsLocation;
+        }
+
+        private LazyPayload<APlacedTrapRecordDataPayload> _payload = null!;
+
+        internal APlacedTrapRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<APlacedTrapRecordDataPayload>(init, new APlacedTrapRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -4178,10 +4161,10 @@ namespace Mutagen.Bethesda.Fallout4
 
         partial void CustomCtor();
         protected APlacedTrapBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -4202,8 +4185,8 @@ namespace Mutagen.Bethesda.Fallout4
             {
                 case RecordTypeInts.VMAD:
                 {
-                    _VirtualMachineAdapterLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
-                    _VirtualMachineAdapterLengthOverride = lastParsed.LengthOverride;
+                    _payload.Fields.VirtualMachineAdapterLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.VirtualMachineAdapterLengthOverride = lastParsed.LengthOverride;
                     if (lastParsed.LengthOverride.HasValue)
                     {
                         stream.Position += lastParsed.LengthOverride.Value;
@@ -4219,22 +4202,22 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.XEZN:
                 {
-                    _EncounterZoneLocation = (stream.Position - offset);
+                    _payload.Fields.EncounterZoneLocation = (stream.Position - offset);
                     return (int)APlacedTrap_FieldIndex.EncounterZone;
                 }
                 case RecordTypeInts.XHTW:
                 {
-                    _HeadTrackingWeightLocation = (stream.Position - offset);
+                    _payload.Fields.HeadTrackingWeightLocation = (stream.Position - offset);
                     return (int)APlacedTrap_FieldIndex.HeadTrackingWeight;
                 }
                 case RecordTypeInts.XFVC:
                 {
-                    _FavorCostLocation = (stream.Position - offset);
+                    _payload.Fields.FavorCostLocation = (stream.Position - offset);
                     return (int)APlacedTrap_FieldIndex.FavorCost;
                 }
                 case RecordTypeInts.XPWR:
                 {
-                    this.Reflections = BinaryOverlayList.FactoryByArray<IWaterReflectionGetter>(
+                    _payload.Fields.Reflections = BinaryOverlayList.FactoryByArray<IWaterReflectionGetter>(
                         mem: stream.RemainingMemory,
                         package: _package,
                         translationParams: translationParams,
@@ -4249,7 +4232,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.XLKR:
                 {
-                    this.LinkedReferences = BinaryOverlayList.FactoryByArray<ILinkedReferencesGetter>(
+                    _payload.Fields.LinkedReferences = BinaryOverlayList.FactoryByArray<ILinkedReferencesGetter>(
                         mem: stream.RemainingMemory,
                         package: _package,
                         translationParams: translationParams,
@@ -4264,7 +4247,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.XAPD:
                 {
-                    this.ActivateParents = ActivateParentsBinaryOverlay.ActivateParentsFactory(
+                    _payload.Fields.ActivateParents = ActivateParentsBinaryOverlay.ActivateParentsFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());
@@ -4272,52 +4255,52 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.XASP:
                 {
-                    _UnknownReferenceLocation = (stream.Position - offset);
+                    _payload.Fields.UnknownReferenceLocation = (stream.Position - offset);
                     return (int)APlacedTrap_FieldIndex.UnknownReference;
                 }
                 case RecordTypeInts.XATP:
                 {
-                    _XATPLocation = (stream.Position - offset);
+                    _payload.Fields.XATPLocation = (stream.Position - offset);
                     return (int)APlacedTrap_FieldIndex.XATP;
                 }
                 case RecordTypeInts.XAMC:
                 {
-                    _AmmoCountLocation = (stream.Position - offset);
+                    _payload.Fields.AmmoCountLocation = (stream.Position - offset);
                     return (int)APlacedTrap_FieldIndex.AmmoCount;
                 }
                 case RecordTypeInts.XLKT:
                 {
-                    _IsLinkedRefTransientLocation = (stream.Position - offset);
+                    _payload.Fields.IsLinkedRefTransientLocation = (stream.Position - offset);
                     return (int)APlacedTrap_FieldIndex.IsLinkedRefTransient;
                 }
                 case RecordTypeInts.XLYR:
                 {
-                    _LayerLocation = (stream.Position - offset);
+                    _payload.Fields.LayerLocation = (stream.Position - offset);
                     return (int)APlacedTrap_FieldIndex.Layer;
                 }
                 case RecordTypeInts.XMSP:
                 {
-                    _MaterialSwapLocation = (stream.Position - offset);
+                    _payload.Fields.MaterialSwapLocation = (stream.Position - offset);
                     return (int)APlacedTrap_FieldIndex.MaterialSwap;
                 }
                 case RecordTypeInts.XRFG:
                 {
-                    _ReferenceGroupLocation = (stream.Position - offset);
+                    _payload.Fields.ReferenceGroupLocation = (stream.Position - offset);
                     return (int)APlacedTrap_FieldIndex.ReferenceGroup;
                 }
                 case RecordTypeInts.XCVR:
                 {
-                    _XCVRLocation = (stream.Position - offset);
+                    _payload.Fields.XCVRLocation = (stream.Position - offset);
                     return (int)APlacedTrap_FieldIndex.XCVR;
                 }
                 case RecordTypeInts.XESP:
                 {
-                    _EnableParentLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.EnableParentLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)APlacedTrap_FieldIndex.EnableParent;
                 }
                 case RecordTypeInts.XOWN:
                 {
-                    this.Ownership = OwnershipBinaryOverlay.OwnershipFactory(
+                    _payload.Fields.Ownership = OwnershipBinaryOverlay.OwnershipFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());
@@ -4325,27 +4308,27 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.XRNK:
                 {
-                    _FactionRankLocation = (stream.Position - offset);
+                    _payload.Fields.FactionRankLocation = (stream.Position - offset);
                     return (int)APlacedTrap_FieldIndex.FactionRank;
                 }
                 case RecordTypeInts.XEMI:
                 {
-                    _EmittanceLocation = (stream.Position - offset);
+                    _payload.Fields.EmittanceLocation = (stream.Position - offset);
                     return (int)APlacedTrap_FieldIndex.Emittance;
                 }
                 case RecordTypeInts.XMBR:
                 {
-                    _MultiBoundReferenceLocation = (stream.Position - offset);
+                    _payload.Fields.MultiBoundReferenceLocation = (stream.Position - offset);
                     return (int)APlacedTrap_FieldIndex.MultiBoundReference;
                 }
                 case RecordTypeInts.XIS2:
                 {
-                    _IsIgnoredBySandboxLocation = (stream.Position - offset);
+                    _payload.Fields.IsIgnoredBySandboxLocation = (stream.Position - offset);
                     return (int)APlacedTrap_FieldIndex.IsIgnoredBySandbox;
                 }
                 case RecordTypeInts.XLRT:
                 {
-                    this.LocationRefTypes = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<ILocationReferenceTypeGetter>>(
+                    _payload.Fields.LocationRefTypes = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<ILocationReferenceTypeGetter>>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -4355,17 +4338,17 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.XLRL:
                 {
-                    _LocationReferenceLocation = (stream.Position - offset);
+                    _payload.Fields.LocationReferenceLocation = (stream.Position - offset);
                     return (int)APlacedTrap_FieldIndex.LocationReference;
                 }
                 case RecordTypeInts.XSCL:
                 {
-                    _ScaleLocation = (stream.Position - offset);
+                    _payload.Fields.ScaleLocation = (stream.Position - offset);
                     return (int)APlacedTrap_FieldIndex.Scale;
                 }
                 case RecordTypeInts.XLOD:
                 {
-                    this.DistantLodData = BinaryOverlayList.FactoryByStartIndexWithTrigger<Single>(
+                    _payload.Fields.DistantLodData = BinaryOverlayList.FactoryByStartIndexWithTrigger<Single>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -4375,12 +4358,12 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.DATA:
                 {
-                    _DATALocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.DATALocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     return (int)APlacedTrap_FieldIndex.Rotation;
                 }
                 case RecordTypeInts.MNAM:
                 {
-                    _CommentsLocation = (stream.Position - offset);
+                    _payload.Fields.CommentsLocation = (stream.Position - offset);
                     return (int)APlacedTrap_FieldIndex.Comments;
                 }
                 case RecordTypeInts.XXXX:

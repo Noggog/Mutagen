@@ -36,6 +36,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -1996,8 +1997,7 @@ namespace Mutagen.Bethesda.Skyrim
 
 
         #region Name
-        private int? _NameLocation;
-        public ITranslatedStringGetter? Name => _NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+        public ITranslatedStringGetter? Name => Payload.NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
         #region Aspects
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         string INamedRequiredGetter.Name => this.Name?.String ?? string.Empty;
@@ -2007,23 +2007,31 @@ namespace Mutagen.Bethesda.Skyrim
         ITranslatedStringGetter ITranslatedNamedRequiredGetter.Name => this.Name ?? TranslatedString.Empty;
         #endregion
         #endregion
-        #region Description
-        private int? _DescriptionLocation;
-        public ITranslatedStringGetter? Description => _DescriptionLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _DescriptionLocation.Value, _package.MetaData.Constants), StringsSource.DL, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
-        #endregion
-        #region Abbreviation
-        private int? _AbbreviationLocation;
-        public String? Abbreviation => _AbbreviationLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _AbbreviationLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
-        #region CNAM
-        private int? _CNAMLocation;
-        public ReadOnlyMemorySlice<Byte>? CNAM => _CNAMLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _CNAMLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
-        #endregion
-        #region Skill
-        private RangeInt32? _SkillLocation;
-        public IActorValueSkillGetter? Skill => _SkillLocation.HasValue ? ActorValueSkillBinaryOverlay.ActorValueSkillFactory(_recordData.Slice(_SkillLocation!.Value.Min), _package) : default;
-        #endregion
-        public IReadOnlyList<IActorValuePerkNodeGetter> PerkTree { get; private set; } = [];
+        public ITranslatedStringGetter? Description => Payload.DescriptionLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.DescriptionLocation.Value, _package.MetaData.Constants), StringsSource.DL, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+        public String? Abbreviation => Payload.AbbreviationLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.AbbreviationLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public ReadOnlyMemorySlice<Byte>? CNAM => Payload.CNAMLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.CNAMLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
+        public IActorValueSkillGetter? Skill => Payload.SkillLocation.HasValue ? ActorValueSkillBinaryOverlay.ActorValueSkillFactory(_recordData.Slice(Payload.SkillLocation!.Value.Min), _package) : default;
+        public IReadOnlyList<IActorValuePerkNodeGetter> PerkTree => Payload.PerkTree ?? [];
+
+        internal partial class ActorValueInformationRecordDataPayload
+        {
+            public int? NameLocation;
+            public int? DescriptionLocation;
+            public int? AbbreviationLocation;
+            public int? CNAMLocation;
+            public RangeInt32? SkillLocation;
+            public IReadOnlyList<IActorValuePerkNodeGetter> PerkTree = [];
+        }
+
+        private LazyPayload<ActorValueInformationRecordDataPayload> _payload = null!;
+
+        internal ActorValueInformationRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<ActorValueInformationRecordDataPayload>(init, new ActorValueInformationRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -2031,10 +2039,10 @@ namespace Mutagen.Bethesda.Skyrim
 
         partial void CustomCtor();
         protected ActorValueInformationBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -2045,28 +2053,51 @@ namespace Mutagen.Bethesda.Skyrim
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new ActorValueInformationBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -2095,32 +2126,32 @@ namespace Mutagen.Bethesda.Skyrim
             {
                 case RecordTypeInts.FULL:
                 {
-                    _NameLocation = (stream.Position - offset);
+                    _payload.Fields.NameLocation = (stream.Position - offset);
                     return (int)ActorValueInformation_FieldIndex.Name;
                 }
                 case RecordTypeInts.DESC:
                 {
-                    _DescriptionLocation = (stream.Position - offset);
+                    _payload.Fields.DescriptionLocation = (stream.Position - offset);
                     return (int)ActorValueInformation_FieldIndex.Description;
                 }
                 case RecordTypeInts.ANAM:
                 {
-                    _AbbreviationLocation = (stream.Position - offset);
+                    _payload.Fields.AbbreviationLocation = (stream.Position - offset);
                     return (int)ActorValueInformation_FieldIndex.Abbreviation;
                 }
                 case RecordTypeInts.CNAM:
                 {
-                    _CNAMLocation = (stream.Position - offset);
+                    _payload.Fields.CNAMLocation = (stream.Position - offset);
                     return (int)ActorValueInformation_FieldIndex.CNAM;
                 }
                 case RecordTypeInts.AVSK:
                 {
-                    _SkillLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.SkillLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)ActorValueInformation_FieldIndex.Skill;
                 }
                 case RecordTypeInts.PNAM:
                 {
-                    this.PerkTree = this.ParseRepeatedTypelessSubrecord<IActorValuePerkNodeGetter>(
+                    _payload.Fields.PerkTree = this.ParseRepeatedTypelessSubrecord<IActorValuePerkNodeGetter>(
                         stream: stream,
                         translationParams: translationParams,
                         trigger: ActorValuePerkNode_Registration.TriggerSpecs,

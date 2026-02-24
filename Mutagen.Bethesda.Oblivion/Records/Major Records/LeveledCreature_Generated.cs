@@ -34,6 +34,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -1796,23 +1797,30 @@ namespace Mutagen.Bethesda.Oblivion
         protected override Type LinkType => typeof(ILeveledCreatureGetter);
 
 
-        #region ChanceNone
-        private int? _ChanceNoneLocation;
-        public Percent? ChanceNone => _ChanceNoneLocation.HasValue ? PercentBinaryTranslation.GetPercent(HeaderTranslation.ExtractSubrecordMemory(_recordData, _ChanceNoneLocation.Value, _package.MetaData.Constants), FloatIntegerType.ByteHundred) : default(Percent?);
-        #endregion
-        #region Flags
-        private int? _FlagsLocation;
-        public LeveledFlag? Flags => EnumBinaryTranslation<LeveledFlag, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(_FlagsLocation, _recordData, _package, 1);
-        #endregion
-        public IReadOnlyList<ILeveledCreatureEntryGetter> Entries { get; private set; } = [];
-        #region Script
-        private int? _ScriptLocation;
-        public IFormLinkNullableGetter<IScriptGetter> Script => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IScriptGetter>(_package, _recordData, _ScriptLocation);
-        #endregion
-        #region Template
-        private int? _TemplateLocation;
-        public IFormLinkNullableGetter<INpcRecordGetter> Template => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<INpcRecordGetter>(_package, _recordData, _TemplateLocation);
-        #endregion
+        public Percent? ChanceNone => Payload.ChanceNoneLocation.HasValue ? PercentBinaryTranslation.GetPercent(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.ChanceNoneLocation.Value, _package.MetaData.Constants), FloatIntegerType.ByteHundred) : default(Percent?);
+        public LeveledFlag? Flags => EnumBinaryTranslation<LeveledFlag, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(Payload.FlagsLocation, _recordData, _package, 1);
+        public IReadOnlyList<ILeveledCreatureEntryGetter> Entries => Payload.Entries ?? [];
+        public IFormLinkNullableGetter<IScriptGetter> Script => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IScriptGetter>(_package, _recordData, Payload.ScriptLocation);
+        public IFormLinkNullableGetter<INpcRecordGetter> Template => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<INpcRecordGetter>(_package, _recordData, Payload.TemplateLocation);
+
+        internal partial class LeveledCreatureRecordDataPayload
+        {
+            public int? ChanceNoneLocation;
+            public int? FlagsLocation;
+            public IReadOnlyList<ILeveledCreatureEntryGetter> Entries = [];
+            public int? ScriptLocation;
+            public int? TemplateLocation;
+        }
+
+        private LazyPayload<LeveledCreatureRecordDataPayload> _payload = null!;
+
+        internal LeveledCreatureRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<LeveledCreatureRecordDataPayload>(init, new LeveledCreatureRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -1820,10 +1828,10 @@ namespace Mutagen.Bethesda.Oblivion
 
         partial void CustomCtor();
         protected LeveledCreatureBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -1834,28 +1842,51 @@ namespace Mutagen.Bethesda.Oblivion
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new LeveledCreatureBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -1884,17 +1915,17 @@ namespace Mutagen.Bethesda.Oblivion
             {
                 case RecordTypeInts.LVLD:
                 {
-                    _ChanceNoneLocation = (stream.Position - offset);
+                    _payload.Fields.ChanceNoneLocation = (stream.Position - offset);
                     return (int)LeveledCreature_FieldIndex.ChanceNone;
                 }
                 case RecordTypeInts.LVLF:
                 {
-                    _FlagsLocation = (stream.Position - offset);
+                    _payload.Fields.FlagsLocation = (stream.Position - offset);
                     return (int)LeveledCreature_FieldIndex.Flags;
                 }
                 case RecordTypeInts.LVLO:
                 {
-                    this.Entries = BinaryOverlayList.FactoryByArray<ILeveledCreatureEntryGetter>(
+                    _payload.Fields.Entries = BinaryOverlayList.FactoryByArray<ILeveledCreatureEntryGetter>(
                         mem: stream.RemainingMemory,
                         package: _package,
                         translationParams: translationParams,
@@ -1909,12 +1940,12 @@ namespace Mutagen.Bethesda.Oblivion
                 }
                 case RecordTypeInts.SCRI:
                 {
-                    _ScriptLocation = (stream.Position - offset);
+                    _payload.Fields.ScriptLocation = (stream.Position - offset);
                     return (int)LeveledCreature_FieldIndex.Script;
                 }
                 case RecordTypeInts.TNAM:
                 {
-                    _TemplateLocation = (stream.Position - offset);
+                    _payload.Fields.TemplateLocation = (stream.Position - offset);
                     return (int)LeveledCreature_FieldIndex.Template;
                 }
                 default:

@@ -36,6 +36,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -1793,34 +1794,38 @@ namespace Mutagen.Bethesda.Skyrim
         protected override Type LinkType => typeof(IMaterialTypeGetter);
 
 
-        #region Parent
-        private int? _ParentLocation;
-        public IFormLinkNullableGetter<IMaterialTypeGetter> Parent => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IMaterialTypeGetter>(_package, _recordData, _ParentLocation);
-        #endregion
+        public IFormLinkNullableGetter<IMaterialTypeGetter> Parent => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IMaterialTypeGetter>(_package, _recordData, Payload.ParentLocation);
         #region Name
-        private int? _NameLocation;
-        public String? Name => _NameLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NameLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? Name => Payload.NameLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NameLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
         #region Aspects
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         string INamedRequiredGetter.Name => this.Name ?? string.Empty;
         #endregion
         #endregion
-        #region HavokDisplayColor
-        private int? _HavokDisplayColorLocation;
-        public Color? HavokDisplayColor => _HavokDisplayColorLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _HavokDisplayColorLocation.Value, _package.MetaData.Constants).ReadColor(ColorBinaryType.NoAlphaFloat) : default(Color?);
-        #endregion
-        #region Buoyancy
-        private int? _BuoyancyLocation;
-        public Single? Buoyancy => _BuoyancyLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _BuoyancyLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
-        #endregion
-        #region Flags
-        private int? _FlagsLocation;
-        public MaterialType.Flag? Flags => EnumBinaryTranslation<MaterialType.Flag, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(_FlagsLocation, _recordData, _package, 4);
-        #endregion
-        #region HavokImpactDataSet
-        private int? _HavokImpactDataSetLocation;
-        public IFormLinkNullableGetter<IImpactDataSetGetter> HavokImpactDataSet => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IImpactDataSetGetter>(_package, _recordData, _HavokImpactDataSetLocation);
-        #endregion
+        public Color? HavokDisplayColor => Payload.HavokDisplayColorLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.HavokDisplayColorLocation.Value, _package.MetaData.Constants).ReadColor(ColorBinaryType.NoAlphaFloat) : default(Color?);
+        public Single? Buoyancy => Payload.BuoyancyLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.BuoyancyLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public MaterialType.Flag? Flags => EnumBinaryTranslation<MaterialType.Flag, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(Payload.FlagsLocation, _recordData, _package, 4);
+        public IFormLinkNullableGetter<IImpactDataSetGetter> HavokImpactDataSet => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IImpactDataSetGetter>(_package, _recordData, Payload.HavokImpactDataSetLocation);
+
+        internal partial class MaterialTypeRecordDataPayload
+        {
+            public int? ParentLocation;
+            public int? NameLocation;
+            public int? HavokDisplayColorLocation;
+            public int? BuoyancyLocation;
+            public int? FlagsLocation;
+            public int? HavokImpactDataSetLocation;
+        }
+
+        private LazyPayload<MaterialTypeRecordDataPayload> _payload = null!;
+
+        internal MaterialTypeRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<MaterialTypeRecordDataPayload>(init, new MaterialTypeRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -1828,10 +1833,10 @@ namespace Mutagen.Bethesda.Skyrim
 
         partial void CustomCtor();
         protected MaterialTypeBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -1842,28 +1847,51 @@ namespace Mutagen.Bethesda.Skyrim
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new MaterialTypeBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -1892,32 +1920,32 @@ namespace Mutagen.Bethesda.Skyrim
             {
                 case RecordTypeInts.PNAM:
                 {
-                    _ParentLocation = (stream.Position - offset);
+                    _payload.Fields.ParentLocation = (stream.Position - offset);
                     return (int)MaterialType_FieldIndex.Parent;
                 }
                 case RecordTypeInts.MNAM:
                 {
-                    _NameLocation = (stream.Position - offset);
+                    _payload.Fields.NameLocation = (stream.Position - offset);
                     return (int)MaterialType_FieldIndex.Name;
                 }
                 case RecordTypeInts.CNAM:
                 {
-                    _HavokDisplayColorLocation = (stream.Position - offset);
+                    _payload.Fields.HavokDisplayColorLocation = (stream.Position - offset);
                     return (int)MaterialType_FieldIndex.HavokDisplayColor;
                 }
                 case RecordTypeInts.BNAM:
                 {
-                    _BuoyancyLocation = (stream.Position - offset);
+                    _payload.Fields.BuoyancyLocation = (stream.Position - offset);
                     return (int)MaterialType_FieldIndex.Buoyancy;
                 }
                 case RecordTypeInts.FNAM:
                 {
-                    _FlagsLocation = (stream.Position - offset);
+                    _payload.Fields.FlagsLocation = (stream.Position - offset);
                     return (int)MaterialType_FieldIndex.Flags;
                 }
                 case RecordTypeInts.HNAM:
                 {
-                    _HavokImpactDataSetLocation = (stream.Position - offset);
+                    _payload.Fields.HavokImpactDataSetLocation = (stream.Position - offset);
                     return (int)MaterialType_FieldIndex.HavokImpactDataSet;
                 }
                 default:

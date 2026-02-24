@@ -187,18 +187,25 @@ partial class ArmorAddonBinaryWriteTranslation
 
 partial class ArmorAddonBinaryOverlay
 {
-    public IGenderedItemGetter<Boolean> WeightSliderEnabled => GetWeightSliderEnabledCustom();
-    
-    public IGenderedItemGetter<Boolean> GetWeightSliderEnabledCustom() => new GenderedItem<bool>(
-        ArmorAddonBinaryCreateTranslation.IsEnabled(_recordData.Slice(_DNAMLocation!.Value.Min + 2)[0]),
-        ArmorAddonBinaryCreateTranslation.IsEnabled(_recordData.Slice(_DNAMLocation!.Value.Min + 3)[0]));
+    internal partial class ArmorAddonRecordDataPayload
+    {
+        public int? BodyTemplateLocation;
+    }
 
-    private int? _BodyTemplateLocation;
-    public partial IBodyTemplateGetter? GetBodyTemplateCustom() => _BodyTemplateLocation.HasValue ? BodyTemplateBinaryOverlay.CustomFactory(new OverlayStream(_recordData.Slice(_BodyTemplateLocation!.Value), _package), _package) : default;
-    public bool BodyTemplate_IsSet => _BodyTemplateLocation.HasValue;
+    public IGenderedItemGetter<Boolean> WeightSliderEnabled => GetWeightSliderEnabledCustom();
+
+    public IGenderedItemGetter<Boolean> GetWeightSliderEnabledCustom() => new GenderedItem<bool>(
+        ArmorAddonBinaryCreateTranslation.IsEnabled(_recordData.Slice(Payload.DNAMLocation!.Value.Min + 2)[0]),
+        ArmorAddonBinaryCreateTranslation.IsEnabled(_recordData.Slice(Payload.DNAMLocation!.Value.Min + 3)[0]));
+
+    public partial IBodyTemplateGetter? GetBodyTemplateCustom()
+    {
+        return Payload.BodyTemplateLocation.HasValue ? BodyTemplateBinaryOverlay.CustomFactory(new OverlayStream(_recordData.Slice(Payload.BodyTemplateLocation!.Value), _package), _package) : default;
+    }
+    public bool BodyTemplate_IsSet => Payload.BodyTemplateLocation.HasValue;
 
     partial void BodyTemplateCustomParse(OverlayStream stream, int finalPos, int offset)
     {
-        _BodyTemplateLocation = (stream.Position - offset);
+        _payload.Fields.BodyTemplateLocation = (stream.Position - offset);
     }
 }

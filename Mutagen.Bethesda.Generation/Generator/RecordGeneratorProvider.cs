@@ -69,7 +69,7 @@ public class RecordGeneratorProvider : IGenerationConstructor
             new ProtocolGeneration(
                 gen,
                 new ProtocolKey("Bethesda"),
-                new DirectoryInfo("../../../../Mutagen.Bethesda.Core/Plugins/Records"))
+                new DirectoryInfo("./Mutagen.Bethesda.Core/Plugins/Records"))
             {
                 DefaultNamespace = "Mutagen.Bethesda.Plugins.Records",
                 DoGeneration = _generateCoreSettings.ShouldGenerate

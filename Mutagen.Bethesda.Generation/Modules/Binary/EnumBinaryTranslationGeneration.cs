@@ -172,20 +172,29 @@ public class EnumBinaryTranslationGeneration : BinaryTranslationGeneration
                 throw new NotImplementedException();
         }
 
+        var payloadSb = (this.Module as PluginTranslationModule)?.CurrentPayloadFieldsSb;
+        var locPrefix = payloadSb != null ? "Payload." : "_";
         if (dataType == null && data.HasVersioning && !typeGen.Nullable)
         {
             sb.AppendLine($"private bool _{typeGen.Name}_IsSet => {VersioningModule.GetVersionIfCheck(data, "_package.FormVersion!.FormVersion!.Value")};");
         }
         if (data.HasTrigger)
         {
-            sb.AppendLine($"private int? _{typeGen.Name}Location;");
+            if (payloadSb != null)
+            {
+                payloadSb.AppendLine($"public int? {typeGen.Name}Location;");
+            }
+            else
+            {
+                sb.AppendLine($"private int? _{typeGen.Name}Location;");
+            }
         }
         var posStr = dataType == null ? passedLengthAccessor : $"_{typeGen.Name}Location";
         posStr ??= "0x0";
         string slice;
         if (data.RecordType.HasValue)
         {
-            slice = $"{nameof(HeaderTranslation)}.{nameof(HeaderTranslation.ExtractSubrecordMemory)}({recordDataAccessor}, _{typeGen.Name}Location!.Value, _package.{nameof(BinaryOverlayFactoryPackage.MetaData)}.{nameof(ParsingMeta.Constants)})";
+            slice = $"{nameof(HeaderTranslation)}.{nameof(HeaderTranslation.ExtractSubrecordMemory)}({recordDataAccessor}, {locPrefix}{typeGen.Name}Location!.Value, _package.{nameof(BinaryOverlayFactoryPackage.MetaData)}.{nameof(ParsingMeta.Constants)})";
         }
         else
         {
@@ -195,7 +204,7 @@ public class EnumBinaryTranslationGeneration : BinaryTranslationGeneration
 
         if (dataType != null)
         {
-            DataBinaryTranslationGeneration.GenerateWrapperExtraMembers(sb, dataType, objGen, typeGen, passedLengthAccessor);
+            DataBinaryTranslationGeneration.GenerateWrapperExtraMembers(sb, dataType, objGen, typeGen, passedLengthAccessor, isMajorRecord: payloadSb != null);
         }
 
         bool isSetCheck = dataType != null || data.HasVersioning;
@@ -218,7 +227,14 @@ public class EnumBinaryTranslationGeneration : BinaryTranslationGeneration
         {
             if (typeGen.CanBeNullable(getter: true))
             {
-                sb.AppendLine($"public {eType.TypeName(getter: true)}{(nullable ? "?" : null)} {eType.Name} => {NamespacePrefix}{GetTranslatorInstance(typeGen, getter: true)}.Parse{(data.RecordType.HasValue ? "Record" : null)}{(nullable ? "Nullable" : null)}(_{typeGen.Name}Location, _recordData, _package, {eType.ByteLength});");
+                if (payloadSb != null)
+                {
+                    sb.AppendLine($"public {eType.TypeName(getter: true)}{(nullable ? "?" : null)} {eType.Name} => {NamespacePrefix}{GetTranslatorInstance(typeGen, getter: true)}.Parse{(data.RecordType.HasValue ? "Record" : null)}{(nullable ? "Nullable" : null)}(Payload.{typeGen.Name}Location, {recordDataAccessor}, _package, {eType.ByteLength});");
+                }
+                else
+                {
+                    sb.AppendLine($"public {eType.TypeName(getter: true)}{(nullable ? "?" : null)} {eType.Name} => {NamespacePrefix}{GetTranslatorInstance(typeGen, getter: true)}.Parse{(data.RecordType.HasValue ? "Record" : null)}{(nullable ? "Nullable" : null)}(_{typeGen.Name}Location, _recordData, _package, {eType.ByteLength});");
+                }
             }
             else
             {

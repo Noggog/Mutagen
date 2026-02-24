@@ -36,6 +36,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -4807,23 +4808,16 @@ namespace Mutagen.Bethesda.Fallout4
         public Furniture.MajorFlag MajorFlags => (Furniture.MajorFlag)this.MajorRecordFlagsRaw;
 
         #region VirtualMachineAdapter
-        private int? _VirtualMachineAdapterLengthOverride;
-        private RangeInt32? _VirtualMachineAdapterLocation;
-        public IVirtualMachineAdapterGetter? VirtualMachineAdapter => _VirtualMachineAdapterLocation.HasValue ? VirtualMachineAdapterBinaryOverlay.VirtualMachineAdapterFactory(_recordData.Slice(_VirtualMachineAdapterLocation!.Value.Min), _package, TypedParseParams.FromLengthOverride(_VirtualMachineAdapterLengthOverride)) : default;
+        public IVirtualMachineAdapterGetter? VirtualMachineAdapter => Payload.VirtualMachineAdapterLocation.HasValue ? VirtualMachineAdapterBinaryOverlay.VirtualMachineAdapterFactory(_recordData.Slice(Payload.VirtualMachineAdapterLocation!.Value.Min), _package, TypedParseParams.FromLengthOverride(Payload.VirtualMachineAdapterLengthOverride)) : default;
         IAVirtualMachineAdapterGetter? IHaveVirtualMachineAdapterGetter.VirtualMachineAdapter => this.VirtualMachineAdapter;
         #endregion
         #region ObjectBounds
-        private RangeInt32? _ObjectBoundsLocation;
-        private IObjectBoundsGetter? _ObjectBounds => _ObjectBoundsLocation.HasValue ? ObjectBoundsBinaryOverlay.ObjectBoundsFactory(_recordData.Slice(_ObjectBoundsLocation!.Value.Min), _package) : default;
+        private IObjectBoundsGetter? _ObjectBounds => Payload.ObjectBoundsLocation.HasValue ? ObjectBoundsBinaryOverlay.ObjectBoundsFactory(_recordData.Slice(Payload.ObjectBoundsLocation!.Value.Min), _package) : default;
         public IObjectBoundsGetter ObjectBounds => _ObjectBounds ?? new ObjectBounds();
         #endregion
-        #region PreviewTransform
-        private int? _PreviewTransformLocation;
-        public IFormLinkNullableGetter<ITransformGetter> PreviewTransform => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ITransformGetter>(_package, _recordData, _PreviewTransformLocation);
-        #endregion
+        public IFormLinkNullableGetter<ITransformGetter> PreviewTransform => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ITransformGetter>(_package, _recordData, Payload.PreviewTransformLocation);
         #region Name
-        private int? _NameLocation;
-        public ITranslatedStringGetter? Name => _NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+        public ITranslatedStringGetter? Name => Payload.NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
         #region Aspects
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         string INamedRequiredGetter.Name => this.Name?.String ?? string.Empty;
@@ -4833,33 +4827,18 @@ namespace Mutagen.Bethesda.Fallout4
         ITranslatedStringGetter ITranslatedNamedRequiredGetter.Name => this.Name ?? TranslatedString.Empty;
         #endregion
         #endregion
-        public IModelGetter? Model { get; private set; }
-        public IDestructibleGetter? Destructible { get; private set; }
+        public IModelGetter? Model => Payload.Model;
+        public IDestructibleGetter? Destructible => Payload.Destructible;
         #region Keywords
-        public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? Keywords { get; private set; }
+        public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? Keywords => Payload.Keywords;
         IReadOnlyList<IFormLinkGetter<IKeywordCommonGetter>>? IKeywordedGetter.Keywords => this.Keywords;
         #endregion
-        public IReadOnlyList<IObjectPropertyGetter>? Properties { get; private set; }
-        #region NativeTerminal
-        private int? _NativeTerminalLocation;
-        public IFormLinkNullableGetter<ITerminalGetter> NativeTerminal => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ITerminalGetter>(_package, _recordData, _NativeTerminalLocation);
-        #endregion
-        #region ForcedLocRefType
-        private int? _ForcedLocRefTypeLocation;
-        public IFormLinkNullableGetter<ILocationReferenceTypeGetter> ForcedLocRefType => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ILocationReferenceTypeGetter>(_package, _recordData, _ForcedLocRefTypeLocation);
-        #endregion
-        #region PNAM
-        private int? _PNAMLocation;
-        public ReadOnlyMemorySlice<Byte>? PNAM => _PNAMLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _PNAMLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
-        #endregion
-        #region DrinkingWater
-        private int? _DrinkingWaterLocation;
-        public IFormLinkNullableGetter<IWaterGetter> DrinkingWater => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IWaterGetter>(_package, _recordData, _DrinkingWaterLocation);
-        #endregion
-        #region ActivateTextOverride
-        private int? _ActivateTextOverrideLocation;
-        public ITranslatedStringGetter? ActivateTextOverride => _ActivateTextOverrideLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _ActivateTextOverrideLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
-        #endregion
+        public IReadOnlyList<IObjectPropertyGetter>? Properties => Payload.Properties;
+        public IFormLinkNullableGetter<ITerminalGetter> NativeTerminal => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ITerminalGetter>(_package, _recordData, Payload.NativeTerminalLocation);
+        public IFormLinkNullableGetter<ILocationReferenceTypeGetter> ForcedLocRefType => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ILocationReferenceTypeGetter>(_package, _recordData, Payload.ForcedLocRefTypeLocation);
+        public ReadOnlyMemorySlice<Byte>? PNAM => Payload.PNAMLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.PNAMLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
+        public IFormLinkNullableGetter<IWaterGetter> DrinkingWater => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IWaterGetter>(_package, _recordData, Payload.DrinkingWaterLocation);
+        public ITranslatedStringGetter? ActivateTextOverride => Payload.ActivateTextOverrideLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.ActivateTextOverrideLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
         #region Flags
         partial void FlagsCustomParse(
             OverlayStream stream,
@@ -4868,24 +4847,23 @@ namespace Mutagen.Bethesda.Fallout4
         public partial Furniture.Flag? GetFlagsCustom();
         public Furniture.Flag? Flags => GetFlagsCustom();
         #endregion
-        public IReadOnlyList<IConditionGetter>? Conditions { get; private set; }
-        public IReadOnlyList<IContainerEntryGetter>? Items { get; private set; }
+        public IReadOnlyList<IConditionGetter>? Conditions => Payload.Conditions;
+        public IReadOnlyList<IContainerEntryGetter>? Items => Payload.Items;
         #region Flags2
         public partial ParseResult Flags2CustomParse(
             OverlayStream stream,
             int offset,
             PreviousParse lastParsed);
         #endregion
-        private RangeInt32? _WBDTLocation;
-        public Furniture.WBDTDataType WBDTDataTypeState { get; private set; }
+        public Furniture.WBDTDataType WBDTDataTypeState => Payload.WBDTDataTypeState;
         #region BenchType
-        private int _BenchTypeLocation => _WBDTLocation!.Value.Min;
-        private bool _BenchType_IsSet => _WBDTLocation.HasValue;
+        private int _BenchTypeLocation => Payload.WBDTLocation!.Value.Min;
+        private bool _BenchType_IsSet => Payload.WBDTLocation.HasValue;
         public Furniture.BenchTypes BenchType => _BenchType_IsSet ? (Furniture.BenchTypes)_recordData.Span.Slice(_BenchTypeLocation, 0x1)[0] : default;
         #endregion
         #region UsesSkill
-        private int _UsesSkillLocation => _WBDTLocation!.Value.Min + 0x1;
-        private bool _UsesSkill_IsSet => _WBDTLocation.HasValue && !WBDTDataTypeState.HasFlag(Furniture.WBDTDataType.Break0);
+        private int _UsesSkillLocation => Payload.WBDTLocation!.Value.Min + 0x1;
+        private bool _UsesSkill_IsSet => Payload.WBDTLocation.HasValue && !WBDTDataTypeState.HasFlag(Furniture.WBDTDataType.Break0);
         public Skill? UsesSkill
         {
             get
@@ -4896,10 +4874,7 @@ namespace Mutagen.Bethesda.Fallout4
             }
         }
         #endregion
-        #region AssociatedForm
-        private int? _AssociatedFormLocation;
-        public IFormLinkNullableGetter<IFurnitureAssociationGetter> AssociatedForm => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IFurnitureAssociationGetter>(_package, _recordData, _AssociatedFormLocation);
-        #endregion
+        public IFormLinkNullableGetter<IFurnitureAssociationGetter> AssociatedForm => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IFurnitureAssociationGetter>(_package, _recordData, Payload.AssociatedFormLocation);
         #region EnabledEntryPoints
         partial void EnabledEntryPointsCustomParse(
             OverlayStream stream,
@@ -4908,11 +4883,8 @@ namespace Mutagen.Bethesda.Fallout4
         public partial Furniture.EntryPointType? GetEnabledEntryPointsCustom();
         public Furniture.EntryPointType? EnabledEntryPoints => GetEnabledEntryPointsCustom();
         #endregion
-        public IReadOnlyList<IFurnitureMarkerEntryPointsGetter> MarkerEntryPoints { get; private set; } = [];
-        #region MarkerModel
-        private int? _MarkerModelLocation;
-        public String? MarkerModel => _MarkerModelLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _MarkerModelLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
+        public IReadOnlyList<IFurnitureMarkerEntryPointsGetter> MarkerEntryPoints => Payload.MarkerEntryPoints ?? [];
+        public String? MarkerModel => Payload.MarkerModelLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.MarkerModelLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
         #region MarkerParameters
         partial void MarkerParametersCustomParse(
             OverlayStream stream,
@@ -4921,13 +4893,48 @@ namespace Mutagen.Bethesda.Fallout4
             RecordType type,
             PreviousParse lastParsed);
         #endregion
-        public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? AttachParentSlots { get; private set; }
-        public IReadOnlyList<IObjectTemplateGetter<Furniture.Property>>? ObjectTemplates { get; private set; }
-        #region NavmeshGeometry
-        private int? _NavmeshGeometryLengthOverride;
-        private RangeInt32? _NavmeshGeometryLocation;
-        public INavmeshGeometryGetter? NavmeshGeometry => _NavmeshGeometryLocation.HasValue ? NavmeshGeometryBinaryOverlay.NavmeshGeometryFactory(_recordData.Slice(_NavmeshGeometryLocation!.Value.Min), _package, TypedParseParams.FromLengthOverride(_NavmeshGeometryLengthOverride)) : default;
-        #endregion
+        public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? AttachParentSlots => Payload.AttachParentSlots;
+        public IReadOnlyList<IObjectTemplateGetter<Furniture.Property>>? ObjectTemplates => Payload.ObjectTemplates;
+        public INavmeshGeometryGetter? NavmeshGeometry => Payload.NavmeshGeometryLocation.HasValue ? NavmeshGeometryBinaryOverlay.NavmeshGeometryFactory(_recordData.Slice(Payload.NavmeshGeometryLocation!.Value.Min), _package, TypedParseParams.FromLengthOverride(Payload.NavmeshGeometryLengthOverride)) : default;
+
+        internal partial class FurnitureRecordDataPayload
+        {
+            public int? VirtualMachineAdapterLengthOverride;
+            public RangeInt32? VirtualMachineAdapterLocation;
+            public RangeInt32? ObjectBoundsLocation;
+            public int? PreviewTransformLocation;
+            public int? NameLocation;
+            public IModelGetter? Model;
+            public IDestructibleGetter? Destructible;
+            public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? Keywords;
+            public IReadOnlyList<IObjectPropertyGetter>? Properties;
+            public int? NativeTerminalLocation;
+            public int? ForcedLocRefTypeLocation;
+            public int? PNAMLocation;
+            public int? DrinkingWaterLocation;
+            public int? ActivateTextOverrideLocation;
+            public IReadOnlyList<IConditionGetter>? Conditions;
+            public IReadOnlyList<IContainerEntryGetter>? Items;
+            public RangeInt32? WBDTLocation;
+            public Furniture.WBDTDataType WBDTDataTypeState;
+            public int? AssociatedFormLocation;
+            public IReadOnlyList<IFurnitureMarkerEntryPointsGetter> MarkerEntryPoints = [];
+            public int? MarkerModelLocation;
+            public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? AttachParentSlots;
+            public IReadOnlyList<IObjectTemplateGetter<Furniture.Property>>? ObjectTemplates;
+            public int? NavmeshGeometryLengthOverride;
+            public RangeInt32? NavmeshGeometryLocation;
+        }
+
+        private LazyPayload<FurnitureRecordDataPayload> _payload = null!;
+
+        internal FurnitureRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<FurnitureRecordDataPayload>(init, new FurnitureRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -4935,10 +4942,10 @@ namespace Mutagen.Bethesda.Fallout4
 
         partial void CustomCtor();
         protected FurnitureBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -4949,28 +4956,51 @@ namespace Mutagen.Bethesda.Fallout4
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new FurnitureBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -4999,8 +5029,8 @@ namespace Mutagen.Bethesda.Fallout4
             {
                 case RecordTypeInts.VMAD:
                 {
-                    _VirtualMachineAdapterLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
-                    _VirtualMachineAdapterLengthOverride = lastParsed.LengthOverride;
+                    _payload.Fields.VirtualMachineAdapterLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.VirtualMachineAdapterLengthOverride = lastParsed.LengthOverride;
                     if (lastParsed.LengthOverride.HasValue)
                     {
                         stream.Position += lastParsed.LengthOverride.Value;
@@ -5009,17 +5039,17 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.OBND:
                 {
-                    _ObjectBoundsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.ObjectBoundsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)Furniture_FieldIndex.ObjectBounds;
                 }
                 case RecordTypeInts.PTRN:
                 {
-                    _PreviewTransformLocation = (stream.Position - offset);
+                    _payload.Fields.PreviewTransformLocation = (stream.Position - offset);
                     return (int)Furniture_FieldIndex.PreviewTransform;
                 }
                 case RecordTypeInts.FULL:
                 {
-                    _NameLocation = (stream.Position - offset);
+                    _payload.Fields.NameLocation = (stream.Position - offset);
                     return (int)Furniture_FieldIndex.Name;
                 }
                 case RecordTypeInts.MODL:
@@ -5027,7 +5057,7 @@ namespace Mutagen.Bethesda.Fallout4
                 case RecordTypeInts.MODT:
                 case RecordTypeInts.MODS:
                 {
-                    this.Model = ModelBinaryOverlay.ModelFactory(
+                    _payload.Fields.Model = ModelBinaryOverlay.ModelFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());
@@ -5037,7 +5067,7 @@ namespace Mutagen.Bethesda.Fallout4
                 case RecordTypeInts.DAMC:
                 case RecordTypeInts.DSTD:
                 {
-                    this.Destructible = DestructibleBinaryOverlay.DestructibleFactory(
+                    _payload.Fields.Destructible = DestructibleBinaryOverlay.DestructibleFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());
@@ -5046,7 +5076,7 @@ namespace Mutagen.Bethesda.Fallout4
                 case RecordTypeInts.KSIZ:
                 case RecordTypeInts.KWDA:
                 {
-                    this.Keywords = BinaryOverlayList.FactoryByCount<IFormLinkGetter<IKeywordGetter>>(
+                    _payload.Fields.Keywords = BinaryOverlayList.FactoryByCount<IFormLinkGetter<IKeywordGetter>>(
                         stream: stream,
                         package: _package,
                         itemLength: 0x4,
@@ -5058,7 +5088,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.PRPS:
                 {
-                    this.Properties = BinaryOverlayList.FactoryByStartIndexWithTrigger<IObjectPropertyGetter>(
+                    _payload.Fields.Properties = BinaryOverlayList.FactoryByStartIndexWithTrigger<IObjectPropertyGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -5068,27 +5098,27 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.NTRM:
                 {
-                    _NativeTerminalLocation = (stream.Position - offset);
+                    _payload.Fields.NativeTerminalLocation = (stream.Position - offset);
                     return (int)Furniture_FieldIndex.NativeTerminal;
                 }
                 case RecordTypeInts.FTYP:
                 {
-                    _ForcedLocRefTypeLocation = (stream.Position - offset);
+                    _payload.Fields.ForcedLocRefTypeLocation = (stream.Position - offset);
                     return (int)Furniture_FieldIndex.ForcedLocRefType;
                 }
                 case RecordTypeInts.PNAM:
                 {
-                    _PNAMLocation = (stream.Position - offset);
+                    _payload.Fields.PNAMLocation = (stream.Position - offset);
                     return (int)Furniture_FieldIndex.PNAM;
                 }
                 case RecordTypeInts.WNAM:
                 {
-                    _DrinkingWaterLocation = (stream.Position - offset);
+                    _payload.Fields.DrinkingWaterLocation = (stream.Position - offset);
                     return (int)Furniture_FieldIndex.DrinkingWater;
                 }
                 case RecordTypeInts.ATTX:
                 {
-                    _ActivateTextOverrideLocation = (stream.Position - offset);
+                    _payload.Fields.ActivateTextOverrideLocation = (stream.Position - offset);
                     return (int)Furniture_FieldIndex.ActivateTextOverride;
                 }
                 case RecordTypeInts.FNAM:
@@ -5102,7 +5132,7 @@ namespace Mutagen.Bethesda.Fallout4
                 case RecordTypeInts.CTDA:
                 case RecordTypeInts.CITC:
                 {
-                    this.Conditions = BinaryOverlayList.FactoryByCountPerItem<IConditionGetter>(
+                    _payload.Fields.Conditions = BinaryOverlayList.FactoryByCountPerItem<IConditionGetter>(
                         stream: stream,
                         package: _package,
                         countLength: 4,
@@ -5116,7 +5146,7 @@ namespace Mutagen.Bethesda.Fallout4
                 case RecordTypeInts.CNTO:
                 case RecordTypeInts.COCT:
                 {
-                    this.Items = BinaryOverlayList.FactoryByCountPerItem<IContainerEntryGetter>(
+                    _payload.Fields.Items = BinaryOverlayList.FactoryByCountPerItem<IContainerEntryGetter>(
                         stream: stream,
                         package: _package,
                         countLength: 4,
@@ -5136,17 +5166,17 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.WBDT:
                 {
-                    _WBDTLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.WBDTLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     var subLen = _package.MetaData.Constants.SubrecordHeader(_recordData.Slice((stream.Position - offset))).ContentLength;
                     if (subLen <= 0x1)
                     {
-                        this.WBDTDataTypeState |= Furniture.WBDTDataType.Break0;
+                        _payload.Fields.WBDTDataTypeState |= Furniture.WBDTDataType.Break0;
                     }
                     return (int)Furniture_FieldIndex.UsesSkill;
                 }
                 case RecordTypeInts.NAM1:
                 {
-                    _AssociatedFormLocation = (stream.Position - offset);
+                    _payload.Fields.AssociatedFormLocation = (stream.Position - offset);
                     return (int)Furniture_FieldIndex.AssociatedForm;
                 }
                 case RecordTypeInts.ENAM:
@@ -5159,7 +5189,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.FNPR:
                 {
-                    this.MarkerEntryPoints = BinaryOverlayList.FactoryByArray<IFurnitureMarkerEntryPointsGetter>(
+                    _payload.Fields.MarkerEntryPoints = BinaryOverlayList.FactoryByArray<IFurnitureMarkerEntryPointsGetter>(
                         mem: stream.RemainingMemory,
                         package: _package,
                         translationParams: translationParams,
@@ -5174,7 +5204,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.XMRK:
                 {
-                    _MarkerModelLocation = (stream.Position - offset);
+                    _payload.Fields.MarkerModelLocation = (stream.Position - offset);
                     return (int)Furniture_FieldIndex.MarkerModel;
                 }
                 case RecordTypeInts.SNAM:
@@ -5189,7 +5219,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.APPR:
                 {
-                    this.AttachParentSlots = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<IKeywordGetter>>(
+                    _payload.Fields.AttachParentSlots = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<IKeywordGetter>>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -5199,7 +5229,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.OBTE:
                 {
-                    this.ObjectTemplates = BinaryOverlayList.FactoryByCountPerItem<IObjectTemplateGetter<Furniture.Property>>(
+                    _payload.Fields.ObjectTemplates = BinaryOverlayList.FactoryByCountPerItem<IObjectTemplateGetter<Furniture.Property>>(
                         stream: stream,
                         package: _package,
                         countLength: 4,
@@ -5213,8 +5243,8 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.NVNM:
                 {
-                    _NavmeshGeometryLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
-                    _NavmeshGeometryLengthOverride = lastParsed.LengthOverride;
+                    _payload.Fields.NavmeshGeometryLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.NavmeshGeometryLengthOverride = lastParsed.LengthOverride;
                     if (lastParsed.LengthOverride.HasValue)
                     {
                         stream.Position += lastParsed.LengthOverride.Value;

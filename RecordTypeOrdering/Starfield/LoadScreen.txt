@@ -1,0 +1,4 @@
+RecordTypes.EDID,
+RecordTypes.DESC,
+RecordTypes.CTDA,
+RecordTypes.ICON,

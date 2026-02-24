@@ -34,6 +34,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -1924,20 +1925,30 @@ namespace Mutagen.Bethesda.Fallout4
         protected override Type LinkType => typeof(ISceneCollectionGetter);
 
 
-        #region Quest
-        private int? _QuestLocation;
-        public IFormLinkNullableGetter<IQuestGetter> Quest => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IQuestGetter>(_package, _recordData, _QuestLocation);
-        #endregion
-        public IReadOnlyList<ISceneCollectionItemGetter> Scenes { get; private set; } = [];
-        #region VNAM
-        private int? _VNAMLocation;
-        public Int32? VNAM => _VNAMLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _VNAMLocation.Value, _package.MetaData.Constants)) : default(Int32?);
-        #endregion
-        public IReadOnlyList<Int64> XNAMs { get; private set; } = [];
-        #region VNAM2
-        private int? _VNAM2Location;
-        public Int32? VNAM2 => _VNAM2Location.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _VNAM2Location.Value, _package.MetaData.Constants)) : default(Int32?);
-        #endregion
+        public IFormLinkNullableGetter<IQuestGetter> Quest => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IQuestGetter>(_package, _recordData, Payload.QuestLocation);
+        public IReadOnlyList<ISceneCollectionItemGetter> Scenes => Payload.Scenes ?? [];
+        public Int32? VNAM => Payload.VNAMLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.VNAMLocation.Value, _package.MetaData.Constants)) : default(Int32?);
+        public IReadOnlyList<Int64> XNAMs => Payload.XNAMs ?? [];
+        public Int32? VNAM2 => Payload.VNAM2Location.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.VNAM2Location.Value, _package.MetaData.Constants)) : default(Int32?);
+
+        internal partial class SceneCollectionRecordDataPayload
+        {
+            public int? QuestLocation;
+            public IReadOnlyList<ISceneCollectionItemGetter> Scenes = [];
+            public int? VNAMLocation;
+            public IReadOnlyList<Int64> XNAMs = [];
+            public int? VNAM2Location;
+        }
+
+        private LazyPayload<SceneCollectionRecordDataPayload> _payload = null!;
+
+        internal SceneCollectionRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<SceneCollectionRecordDataPayload>(init, new SceneCollectionRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -1945,10 +1956,10 @@ namespace Mutagen.Bethesda.Fallout4
 
         partial void CustomCtor();
         protected SceneCollectionBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -1959,28 +1970,51 @@ namespace Mutagen.Bethesda.Fallout4
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new SceneCollectionBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -2009,12 +2043,12 @@ namespace Mutagen.Bethesda.Fallout4
             {
                 case RecordTypeInts.QNAM:
                 {
-                    _QuestLocation = (stream.Position - offset);
+                    _payload.Fields.QuestLocation = (stream.Position - offset);
                     return (int)SceneCollection_FieldIndex.Quest;
                 }
                 case RecordTypeInts.SNAM:
                 {
-                    this.Scenes = this.ParseRepeatedTypelessSubrecord<ISceneCollectionItemGetter>(
+                    _payload.Fields.Scenes = this.ParseRepeatedTypelessSubrecord<ISceneCollectionItemGetter>(
                         stream: stream,
                         translationParams: translationParams,
                         trigger: SceneCollectionItem_Registration.TriggerSpecs,
@@ -2026,12 +2060,12 @@ namespace Mutagen.Bethesda.Fallout4
                     if (!lastParsed.ParsedIndex.HasValue
                         || lastParsed.ParsedIndex.Value <= (int)SceneCollection_FieldIndex.Scenes)
                     {
-                        _VNAMLocation = (stream.Position - offset);
+                        _payload.Fields.VNAMLocation = (stream.Position - offset);
                         return new ParseResult((int)SceneCollection_FieldIndex.VNAM, type);
                     }
                     else if (lastParsed.ParsedIndex.Value <= (int)SceneCollection_FieldIndex.XNAMs)
                     {
-                        _VNAM2Location = (stream.Position - offset);
+                        _payload.Fields.VNAM2Location = (stream.Position - offset);
                         return new ParseResult((int)SceneCollection_FieldIndex.VNAM2, type);
                     }
                     else
@@ -2040,12 +2074,12 @@ namespace Mutagen.Bethesda.Fallout4
                         {
                             case 0:
                             {
-                                _VNAMLocation = (stream.Position - offset);
+                                _payload.Fields.VNAMLocation = (stream.Position - offset);
                                 return new ParseResult((int)SceneCollection_FieldIndex.VNAM, type);
                             }
                             case 1:
                             {
-                                _VNAM2Location = (stream.Position - offset);
+                                _payload.Fields.VNAM2Location = (stream.Position - offset);
                                 return new ParseResult((int)SceneCollection_FieldIndex.VNAM2, type);
                             }
                             default:
@@ -2055,7 +2089,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.XNAM:
                 {
-                    this.XNAMs = BinaryOverlayList.FactoryByArray<Int64>(
+                    _payload.Fields.XNAMs = BinaryOverlayList.FactoryByArray<Int64>(
                         mem: stream.RemainingMemory,
                         package: _package,
                         getter: (s, p) => BinaryPrimitives.ReadInt64LittleEndian(s),

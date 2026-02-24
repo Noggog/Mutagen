@@ -35,6 +35,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -1649,18 +1650,28 @@ namespace Mutagen.Bethesda.Fallout4
 
 
         #region ObjectBounds
-        private RangeInt32? _ObjectBoundsLocation;
-        private IObjectBoundsGetter? _ObjectBounds => _ObjectBoundsLocation.HasValue ? ObjectBoundsBinaryOverlay.ObjectBoundsFactory(_recordData.Slice(_ObjectBoundsLocation!.Value.Min), _package) : default;
+        private IObjectBoundsGetter? _ObjectBounds => Payload.ObjectBoundsLocation.HasValue ? ObjectBoundsBinaryOverlay.ObjectBoundsFactory(_recordData.Slice(Payload.ObjectBoundsLocation!.Value.Min), _package) : default;
         public IObjectBoundsGetter ObjectBounds => _ObjectBounds ?? new ObjectBounds();
         #endregion
-        #region SoundDescriptor
-        private int? _SoundDescriptorLocation;
-        public IFormLinkNullableGetter<ISoundDescriptorGetter> SoundDescriptor => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ISoundDescriptorGetter>(_package, _recordData, _SoundDescriptorLocation);
-        #endregion
-        #region Repeat
-        private RangeInt32? _RepeatLocation;
-        public ISoundRepeatGetter? Repeat => _RepeatLocation.HasValue ? SoundRepeatBinaryOverlay.SoundRepeatFactory(_recordData.Slice(_RepeatLocation!.Value.Min), _package) : default;
-        #endregion
+        public IFormLinkNullableGetter<ISoundDescriptorGetter> SoundDescriptor => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ISoundDescriptorGetter>(_package, _recordData, Payload.SoundDescriptorLocation);
+        public ISoundRepeatGetter? Repeat => Payload.RepeatLocation.HasValue ? SoundRepeatBinaryOverlay.SoundRepeatFactory(_recordData.Slice(Payload.RepeatLocation!.Value.Min), _package) : default;
+
+        internal partial class SoundMarkerRecordDataPayload
+        {
+            public RangeInt32? ObjectBoundsLocation;
+            public int? SoundDescriptorLocation;
+            public RangeInt32? RepeatLocation;
+        }
+
+        private LazyPayload<SoundMarkerRecordDataPayload> _payload = null!;
+
+        internal SoundMarkerRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<SoundMarkerRecordDataPayload>(init, new SoundMarkerRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -1668,10 +1679,10 @@ namespace Mutagen.Bethesda.Fallout4
 
         partial void CustomCtor();
         protected SoundMarkerBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -1682,28 +1693,51 @@ namespace Mutagen.Bethesda.Fallout4
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new SoundMarkerBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -1732,17 +1766,17 @@ namespace Mutagen.Bethesda.Fallout4
             {
                 case RecordTypeInts.OBND:
                 {
-                    _ObjectBoundsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.ObjectBoundsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)SoundMarker_FieldIndex.ObjectBounds;
                 }
                 case RecordTypeInts.SDSC:
                 {
-                    _SoundDescriptorLocation = (stream.Position - offset);
+                    _payload.Fields.SoundDescriptorLocation = (stream.Position - offset);
                     return (int)SoundMarker_FieldIndex.SoundDescriptor;
                 }
                 case RecordTypeInts.REPT:
                 {
-                    _RepeatLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.RepeatLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)SoundMarker_FieldIndex.Repeat;
                 }
                 default:

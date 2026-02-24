@@ -41,10 +41,15 @@ partial class PlacedObjectBinaryWriteTranslation
 
 partial class PlacedObjectBinaryOverlay
 {
-    private int? _OpenByDefaultLocation;
-    public partial bool GetOpenByDefaultCustom() => _OpenByDefaultLocation.HasValue;
+    internal partial class PlacedObjectRecordDataPayload
+    {
+        public int? OpenByDefaultLocation;
+    }
+
+    public partial bool GetOpenByDefaultCustom() => Payload.OpenByDefaultLocation.HasValue;
+
     partial void OpenByDefaultCustomParse(OverlayStream stream, int finalPos, int offset)
     {
-        _OpenByDefaultLocation = (ushort)(stream.Position - offset);
+        _payload.Fields.OpenByDefaultLocation = (ushort)(stream.Position - offset);
     }
 }

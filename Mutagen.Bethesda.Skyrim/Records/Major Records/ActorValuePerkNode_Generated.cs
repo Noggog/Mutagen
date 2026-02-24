@@ -1766,19 +1766,47 @@ namespace Mutagen.Bethesda.Skyrim
         #endregion
         #region PerkGridX
         private int? _PerkGridXLocation;
-        public UInt32? PerkGridX => _PerkGridXLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _PerkGridXLocation.Value, _package.MetaData.Constants)) : default(UInt32?);
+        public UInt32? PerkGridX
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _PerkGridXLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _PerkGridXLocation.Value, _package.MetaData.Constants)) : default(UInt32?);
+            }
+        }
         #endregion
         #region PerkGridY
         private int? _PerkGridYLocation;
-        public UInt32? PerkGridY => _PerkGridYLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _PerkGridYLocation.Value, _package.MetaData.Constants)) : default(UInt32?);
+        public UInt32? PerkGridY
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _PerkGridYLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _PerkGridYLocation.Value, _package.MetaData.Constants)) : default(UInt32?);
+            }
+        }
         #endregion
         #region HorizontalPosition
         private int? _HorizontalPositionLocation;
-        public Single? HorizontalPosition => _HorizontalPositionLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _HorizontalPositionLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public Single? HorizontalPosition
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _HorizontalPositionLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_data, _HorizontalPositionLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+            }
+        }
         #endregion
         #region VerticalPosition
         private int? _VerticalPositionLocation;
-        public Single? VerticalPosition => _VerticalPositionLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _VerticalPositionLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public Single? VerticalPosition
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _VerticalPositionLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_data, _VerticalPositionLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+            }
+        }
         #endregion
         #region AssociatedSkill
         private int? _AssociatedSkillLocation;
@@ -1787,7 +1815,14 @@ namespace Mutagen.Bethesda.Skyrim
         public IReadOnlyList<UInt32> ConnectionLineToIndices { get; private set; } = [];
         #region Index
         private int? _IndexLocation;
-        public UInt32? Index => _IndexLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _IndexLocation.Value, _package.MetaData.Constants)) : default(UInt32?);
+        public UInt32? Index
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _IndexLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _IndexLocation.Value, _package.MetaData.Constants)) : default(UInt32?);
+            }
+        }
         #endregion
         partial void CustomFactoryEnd(
             OverlayStream stream,

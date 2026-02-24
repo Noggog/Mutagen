@@ -34,6 +34,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -1834,20 +1835,29 @@ namespace Mutagen.Bethesda.Fallout4
 
         public NavigationMesh.MajorFlag MajorFlags => (NavigationMesh.MajorFlag)this.MajorRecordFlagsRaw;
 
-        #region NavmeshGeometry
-        private int? _NavmeshGeometryLengthOverride;
-        private RangeInt32? _NavmeshGeometryLocation;
-        public INavmeshGeometryGetter? NavmeshGeometry => _NavmeshGeometryLocation.HasValue ? NavmeshGeometryBinaryOverlay.NavmeshGeometryFactory(_recordData.Slice(_NavmeshGeometryLocation!.Value.Min), _package, TypedParseParams.FromLengthOverride(_NavmeshGeometryLengthOverride)) : default;
-        #endregion
-        #region ONAM
-        private int? _ONAMLocation;
-        public IFormLinkNullableGetter<IStaticTargetGetter> ONAM => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IStaticTargetGetter>(_package, _recordData, _ONAMLocation);
-        #endregion
-        #region NNAM
-        private int? _NNAMLocation;
-        public ReadOnlyMemorySlice<Byte>? NNAM => _NNAMLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _NNAMLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
-        #endregion
-        public IReadOnlyList<IPreCutMapEntryGetter>? PreCutMapEntries { get; private set; }
+        public INavmeshGeometryGetter? NavmeshGeometry => Payload.NavmeshGeometryLocation.HasValue ? NavmeshGeometryBinaryOverlay.NavmeshGeometryFactory(_recordData.Slice(Payload.NavmeshGeometryLocation!.Value.Min), _package, TypedParseParams.FromLengthOverride(Payload.NavmeshGeometryLengthOverride)) : default;
+        public IFormLinkNullableGetter<IStaticTargetGetter> ONAM => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IStaticTargetGetter>(_package, _recordData, Payload.ONAMLocation);
+        public ReadOnlyMemorySlice<Byte>? NNAM => Payload.NNAMLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NNAMLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
+        public IReadOnlyList<IPreCutMapEntryGetter>? PreCutMapEntries => Payload.PreCutMapEntries;
+
+        internal partial class NavigationMeshRecordDataPayload
+        {
+            public int? NavmeshGeometryLengthOverride;
+            public RangeInt32? NavmeshGeometryLocation;
+            public int? ONAMLocation;
+            public int? NNAMLocation;
+            public IReadOnlyList<IPreCutMapEntryGetter>? PreCutMapEntries;
+        }
+
+        private LazyPayload<NavigationMeshRecordDataPayload> _payload = null!;
+
+        internal NavigationMeshRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<NavigationMeshRecordDataPayload>(init, new NavigationMeshRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -1855,10 +1865,10 @@ namespace Mutagen.Bethesda.Fallout4
 
         partial void CustomCtor();
         protected NavigationMeshBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -1869,28 +1879,51 @@ namespace Mutagen.Bethesda.Fallout4
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new NavigationMeshBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -1919,8 +1952,8 @@ namespace Mutagen.Bethesda.Fallout4
             {
                 case RecordTypeInts.NVNM:
                 {
-                    _NavmeshGeometryLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
-                    _NavmeshGeometryLengthOverride = lastParsed.LengthOverride;
+                    _payload.Fields.NavmeshGeometryLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.NavmeshGeometryLengthOverride = lastParsed.LengthOverride;
                     if (lastParsed.LengthOverride.HasValue)
                     {
                         stream.Position += lastParsed.LengthOverride.Value;
@@ -1929,17 +1962,17 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.ONAM:
                 {
-                    _ONAMLocation = (stream.Position - offset);
+                    _payload.Fields.ONAMLocation = (stream.Position - offset);
                     return (int)NavigationMesh_FieldIndex.ONAM;
                 }
                 case RecordTypeInts.NNAM:
                 {
-                    _NNAMLocation = (stream.Position - offset);
+                    _payload.Fields.NNAMLocation = (stream.Position - offset);
                     return (int)NavigationMesh_FieldIndex.NNAM;
                 }
                 case RecordTypeInts.MNAM:
                 {
-                    this.PreCutMapEntries = BinaryOverlayList.FactoryByLazyParseWithTrigger<IPreCutMapEntryGetter>(
+                    _payload.Fields.PreCutMapEntries = BinaryOverlayList.FactoryByLazyParseWithTrigger<IPreCutMapEntryGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,

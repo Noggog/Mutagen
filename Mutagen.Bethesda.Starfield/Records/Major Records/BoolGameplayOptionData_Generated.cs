@@ -1163,11 +1163,25 @@ namespace Mutagen.Bethesda.Starfield
 
         #region Value1
         private int? _Value1Location;
-        public Boolean? Value1 => _Value1Location.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _Value1Location.Value, _package.MetaData.Constants)[0] >= 1 : default(Boolean?);
+        public Boolean? Value1
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _Value1Location.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_data, _Value1Location.Value, _package.MetaData.Constants)[0] >= 1 : default(Boolean?);
+            }
+        }
         #endregion
         #region Value2
         private int? _Value2Location;
-        public Boolean? Value2 => _Value2Location.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _Value2Location.Value, _package.MetaData.Constants)[0] >= 1 : default(Boolean?);
+        public Boolean? Value2
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _Value2Location.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_data, _Value2Location.Value, _package.MetaData.Constants)[0] >= 1 : default(Boolean?);
+            }
+        }
         #endregion
         partial void CustomFactoryEnd(
             OverlayStream stream,

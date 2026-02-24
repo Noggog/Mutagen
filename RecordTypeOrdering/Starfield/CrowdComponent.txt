@@ -1,0 +1,7 @@
+RecordTypes.CDND,
+RecordTypes.CDNS,
+RecordTypes.PRPS,
+RecordTypes.CTDA,
+RecordTypes.CITC,
+RecordTypes.STRV,
+RecordTypes.FLTV,

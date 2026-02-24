@@ -34,6 +34,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -2327,26 +2328,36 @@ namespace Mutagen.Bethesda.Starfield
         protected override Type LinkType => typeof(IMusicTrackGetter);
 
 
-        #region Type
-        private int? _TypeLocation;
-        public MusicTrack.TypeEnum Type => EnumBinaryTranslation<MusicTrack.TypeEnum, MutagenFrame, MutagenWriter>.Instance.ParseRecord(_TypeLocation, _recordData, _package, 4);
-        #endregion
-        #region Duration
-        private int? _DurationLocation;
-        public Single? Duration => _DurationLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _DurationLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
-        #endregion
-        #region FadeOut
-        private int? _FadeOutLocation;
-        public Single? FadeOut => _FadeOutLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _FadeOutLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
-        #endregion
-        public ISoundReferenceGetter? MTSH { get; private set; }
-        public IReadOnlyList<Single>? CuePoints { get; private set; }
-        #region MSTF
-        private int? _MSTFLocation;
-        public ReadOnlyMemorySlice<Byte>? MSTF => _MSTFLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _MSTFLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
-        #endregion
-        public IReadOnlyList<IConditionGetter>? Conditions { get; private set; }
-        public IReadOnlyList<IFormLinkGetter<IMusicTrackGetter>>? Tracks { get; private set; }
+        public MusicTrack.TypeEnum Type => EnumBinaryTranslation<MusicTrack.TypeEnum, MutagenFrame, MutagenWriter>.Instance.ParseRecord(Payload.TypeLocation, _recordData, _package, 4);
+        public Single? Duration => Payload.DurationLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.DurationLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public Single? FadeOut => Payload.FadeOutLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.FadeOutLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public ISoundReferenceGetter? MTSH => Payload.MTSH;
+        public IReadOnlyList<Single>? CuePoints => Payload.CuePoints;
+        public ReadOnlyMemorySlice<Byte>? MSTF => Payload.MSTFLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.MSTFLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
+        public IReadOnlyList<IConditionGetter>? Conditions => Payload.Conditions;
+        public IReadOnlyList<IFormLinkGetter<IMusicTrackGetter>>? Tracks => Payload.Tracks;
+
+        internal partial class MusicTrackRecordDataPayload
+        {
+            public int? TypeLocation;
+            public int? DurationLocation;
+            public int? FadeOutLocation;
+            public ISoundReferenceGetter? MTSH;
+            public IReadOnlyList<Single>? CuePoints;
+            public int? MSTFLocation;
+            public IReadOnlyList<IConditionGetter>? Conditions;
+            public IReadOnlyList<IFormLinkGetter<IMusicTrackGetter>>? Tracks;
+        }
+
+        private LazyPayload<MusicTrackRecordDataPayload> _payload = null!;
+
+        internal MusicTrackRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<MusicTrackRecordDataPayload>(init, new MusicTrackRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -2354,10 +2365,10 @@ namespace Mutagen.Bethesda.Starfield
 
         partial void CustomCtor();
         protected MusicTrackBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -2368,28 +2379,51 @@ namespace Mutagen.Bethesda.Starfield
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new MusicTrackBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -2418,23 +2452,23 @@ namespace Mutagen.Bethesda.Starfield
             {
                 case RecordTypeInts.CNAM:
                 {
-                    _TypeLocation = (stream.Position - offset);
+                    _payload.Fields.TypeLocation = (stream.Position - offset);
                     return (int)MusicTrack_FieldIndex.Type;
                 }
                 case RecordTypeInts.FLTV:
                 {
-                    _DurationLocation = (stream.Position - offset);
+                    _payload.Fields.DurationLocation = (stream.Position - offset);
                     return (int)MusicTrack_FieldIndex.Duration;
                 }
                 case RecordTypeInts.DNAM:
                 {
-                    _FadeOutLocation = (stream.Position - offset);
+                    _payload.Fields.FadeOutLocation = (stream.Position - offset);
                     return (int)MusicTrack_FieldIndex.FadeOut;
                 }
                 case RecordTypeInts.MTSH:
                 {
                     stream.Position += _package.MetaData.Constants.SubConstants.HeaderLength;
-                    this.MTSH = SoundReferenceBinaryOverlay.SoundReferenceFactory(
+                    _payload.Fields.MTSH = SoundReferenceBinaryOverlay.SoundReferenceFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());
@@ -2442,7 +2476,7 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.FNAM:
                 {
-                    this.CuePoints = BinaryOverlayList.FactoryByStartIndexWithTrigger<Single>(
+                    _payload.Fields.CuePoints = BinaryOverlayList.FactoryByStartIndexWithTrigger<Single>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -2452,13 +2486,13 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.MSTF:
                 {
-                    _MSTFLocation = (stream.Position - offset);
+                    _payload.Fields.MSTFLocation = (stream.Position - offset);
                     return (int)MusicTrack_FieldIndex.MSTF;
                 }
                 case RecordTypeInts.CTDA:
                 case RecordTypeInts.CITC:
                 {
-                    this.Conditions = BinaryOverlayList.FactoryByCountPerItem<IConditionGetter>(
+                    _payload.Fields.Conditions = BinaryOverlayList.FactoryByCountPerItem<IConditionGetter>(
                         stream: stream,
                         package: _package,
                         countLength: 4,
@@ -2471,7 +2505,7 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.SNAM:
                 {
-                    this.Tracks = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<IMusicTrackGetter>>(
+                    _payload.Fields.Tracks = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<IMusicTrackGetter>>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,

@@ -1,0 +1,7 @@
+RecordTypes.GNAM,
+RecordTypes.HNAM,
+RecordTypes.INAM,
+RecordTypes.JNAM,
+RecordTypes.LNAM,
+RecordTypes.XGOM,
+RecordTypes.XWPK,

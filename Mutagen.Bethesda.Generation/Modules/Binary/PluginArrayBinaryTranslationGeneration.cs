@@ -1,5 +1,6 @@
 using Loqui.Generation;
 using Mutagen.Bethesda.Generation.Fields;
+using Mutagen.Bethesda.Generation.Modules.Plugin;
 using Mutagen.Bethesda.Plugins.Binary.Overlay;
 using Mutagen.Bethesda.Plugins.Binary.Streams;
 using Mutagen.Bethesda.Plugins.Binary.Translations;
@@ -30,16 +31,26 @@ public class PluginArrayBinaryTranslationGeneration : PluginListBinaryTranslatio
             return;
         }
         var subGen = this.Module.GetTypeGeneration(arr.SubTypeGeneration.GetType());
+        var payloadSb = (this.Module as PluginTranslationModule)?.CurrentPayloadFieldsSb;
         if (data.OverflowRecordType.HasValue)
         {
-            OverflowGenerationHelper.GenerateWrapperOverflowMember(sb, typeGen);
+            OverflowGenerationHelper.GenerateWrapperOverflowMember(sb, typeGen, payloadSb);
         }
         if (data.HasTrigger)
         {
-            sb.AppendLine($"private int? _{typeGen.Name}Location;");
+            if (payloadSb != null)
+            {
+                payloadSb.AppendLine($"public int? {typeGen.Name}Location;");
+            }
+            else
+            {
+                sb.AppendLine($"private int? _{typeGen.Name}Location;");
+            }
         }
         if (arr.FixedSize.HasValue)
         {
+            var locRef = payloadSb != null ? $"Payload.{typeGen.Name}Location" : $"_{typeGen.Name}Location";
+            var overflowRef = payloadSb != null ? $"Payload.{typeGen.Name}LengthOverride" : $"_{typeGen.Name}LengthOverride";
             var useFixedDefaultVariable = arr.FixedSize.HasValue && data.HasTrigger && !arr.Nullable;
             if (useFixedDefaultVariable)
             {
@@ -52,12 +63,12 @@ public class PluginArrayBinaryTranslationGeneration : PluginListBinaryTranslatio
             else if (arr.SubTypeGeneration is Loqui.Generation.FloatType f
                      && data.HasTrigger)
             {
-                sb.AppendLine($"public {typeGen.TypeName(getter: true)}{typeGen.NullChar} {typeGen.Name} => _{typeGen.Name}Location.HasValue ? {nameof(BinaryOverlayArrayHelper)}.{nameof(BinaryOverlayArrayHelper.FloatSliceFromFixedSize)}(HeaderTranslation.ExtractSubrecordMemory({recordDataAccessor}, _{typeGen.Name}Location.Value, _package.MetaData.Constants), amount: {arr.FixedSize.Value}) : {(useFixedDefaultVariable ? $"_default{typeGen.Name}" : typeGen.GetDefault(getter: true))};");
+                sb.AppendLine($"public {typeGen.TypeName(getter: true)}{typeGen.NullChar} {typeGen.Name} => {locRef}.HasValue ? {nameof(BinaryOverlayArrayHelper)}.{nameof(BinaryOverlayArrayHelper.FloatSliceFromFixedSize)}(HeaderTranslation.ExtractSubrecordMemory({recordDataAccessor}, {locRef}.Value, _package.MetaData.Constants), amount: {arr.FixedSize.Value}) : {(useFixedDefaultVariable ? $"_default{typeGen.Name}" : typeGen.GetDefault(getter: true))};");
             }
             else if (arr.SubTypeGeneration is FormLinkType fl
                      && data.HasTrigger)
             {
-                sb.AppendLine($"public {typeGen.TypeName(getter: true)}{typeGen.NullChar} {typeGen.Name} => _{typeGen.Name}Location.HasValue ? {nameof(BinaryOverlayArrayHelper)}.{nameof(BinaryOverlayArrayHelper.FormLinkSliceFromFixedSize)}<{fl.LoquiType.TypeNameInternal(getter: true, internalInterface: true)}>(HeaderTranslation.ExtractSubrecordMemory({recordDataAccessor}, _{typeGen.Name}Location.Value, _package.MetaData.Constants{(data.OverflowRecordType.HasValue ? $", {nameof(TypedParseParams)}.{nameof(TypedParseParams.FromLengthOverride)}(_{typeGen.Name}LengthOverride)" : null)}), amount: {arr.FixedSize.Value}, masterReferences: _package.MetaData.MasterReferences) : {(useFixedDefaultVariable ? $"_default{typeGen.Name}" : typeGen.GetDefault(getter: true))};");
+                sb.AppendLine($"public {typeGen.TypeName(getter: true)}{typeGen.NullChar} {typeGen.Name} => {locRef}.HasValue ? {nameof(BinaryOverlayArrayHelper)}.{nameof(BinaryOverlayArrayHelper.FormLinkSliceFromFixedSize)}<{fl.LoquiType.TypeNameInternal(getter: true, internalInterface: true)}>(HeaderTranslation.ExtractSubrecordMemory({recordDataAccessor}, {locRef}.Value, _package.MetaData.Constants{(data.OverflowRecordType.HasValue ? $", {nameof(TypedParseParams)}.{nameof(TypedParseParams.FromLengthOverride)}({overflowRef})" : null)}), amount: {arr.FixedSize.Value}, masterReferences: _package.MetaData.MasterReferences) : {(useFixedDefaultVariable ? $"_default{typeGen.Name}" : typeGen.GetDefault(getter: true))};");
             }
             else 
             {
@@ -119,11 +130,13 @@ public class PluginArrayBinaryTranslationGeneration : PluginListBinaryTranslatio
         }
 
         if (!arr.FixedSize.HasValue) throw new NotImplementedException();
+        var isMajor = await objGen.IsMajorRecord();
         if (data.HasTrigger)
         {
-            sb.AppendLine($"_{typeGen.Name}Location = {locationAccessor};");
+            var prefix = isMajor ? "_payload.Fields." : "_";
+            sb.AppendLine($"{prefix}{typeGen.Name}Location = {locationAccessor};");
         }
-        OverflowGenerationHelper.GenerateWrapperOverflowParse(sb, typeGen, data);
+        OverflowGenerationHelper.GenerateWrapperOverflowParse(sb, typeGen, data, isMajorRecord: isMajor);
     }
 
     public override async Task GenerateCopyIn(StructuredStringBuilder sb, ObjectGeneration objGen, TypeGeneration typeGen, Accessor nodeAccessor, Accessor itemAccessor, Accessor errorMaskAccessor, Accessor translationMaskAccessor)

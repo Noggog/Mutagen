@@ -37,6 +37,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -1882,27 +1883,32 @@ namespace Mutagen.Bethesda.Fallout4
         protected override Type LinkType => typeof(ICollisionLayerGetter);
 
 
-        #region Description
-        private int? _DescriptionLocation;
-        public ITranslatedStringGetter Description => _DescriptionLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _DescriptionLocation.Value, _package.MetaData.Constants), StringsSource.DL, parsingBundle: _package.MetaData, eager: false) : TranslatedString.Empty;
-        #endregion
-        #region Index
-        private int? _IndexLocation;
-        public UInt32 Index => _IndexLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _IndexLocation.Value, _package.MetaData.Constants)) : default(UInt32);
-        #endregion
-        #region DebugColor
-        private int? _DebugColorLocation;
-        public Color DebugColor => _DebugColorLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _DebugColorLocation.Value, _package.MetaData.Constants).ReadColor(ColorBinaryType.Alpha) : default(Color);
-        #endregion
-        #region Flags
-        private int? _FlagsLocation;
-        public CollisionLayer.Flag Flags => EnumBinaryTranslation<CollisionLayer.Flag, MutagenFrame, MutagenWriter>.Instance.ParseRecord(_FlagsLocation, _recordData, _package, 4);
-        #endregion
-        #region Name
-        private int? _NameLocation;
-        public String Name => _NameLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NameLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : string.Empty;
-        #endregion
-        public IReadOnlyList<IFormLinkGetter<ICollisionLayerGetter>>? CollidesWith { get; private set; }
+        public ITranslatedStringGetter Description => Payload.DescriptionLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.DescriptionLocation.Value, _package.MetaData.Constants), StringsSource.DL, parsingBundle: _package.MetaData, eager: false) : TranslatedString.Empty;
+        public UInt32 Index => Payload.IndexLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.IndexLocation.Value, _package.MetaData.Constants)) : default(UInt32);
+        public Color DebugColor => Payload.DebugColorLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.DebugColorLocation.Value, _package.MetaData.Constants).ReadColor(ColorBinaryType.Alpha) : default(Color);
+        public CollisionLayer.Flag Flags => EnumBinaryTranslation<CollisionLayer.Flag, MutagenFrame, MutagenWriter>.Instance.ParseRecord(Payload.FlagsLocation, _recordData, _package, 4);
+        public String Name => Payload.NameLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NameLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : string.Empty;
+        public IReadOnlyList<IFormLinkGetter<ICollisionLayerGetter>>? CollidesWith => Payload.CollidesWith;
+
+        internal partial class CollisionLayerRecordDataPayload
+        {
+            public int? DescriptionLocation;
+            public int? IndexLocation;
+            public int? DebugColorLocation;
+            public int? FlagsLocation;
+            public int? NameLocation;
+            public IReadOnlyList<IFormLinkGetter<ICollisionLayerGetter>>? CollidesWith;
+        }
+
+        private LazyPayload<CollisionLayerRecordDataPayload> _payload = null!;
+
+        internal CollisionLayerRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<CollisionLayerRecordDataPayload>(init, new CollisionLayerRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -1910,10 +1916,10 @@ namespace Mutagen.Bethesda.Fallout4
 
         partial void CustomCtor();
         protected CollisionLayerBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -1924,28 +1930,51 @@ namespace Mutagen.Bethesda.Fallout4
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new CollisionLayerBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -1974,33 +2003,33 @@ namespace Mutagen.Bethesda.Fallout4
             {
                 case RecordTypeInts.DESC:
                 {
-                    _DescriptionLocation = (stream.Position - offset);
+                    _payload.Fields.DescriptionLocation = (stream.Position - offset);
                     return (int)CollisionLayer_FieldIndex.Description;
                 }
                 case RecordTypeInts.BNAM:
                 {
-                    _IndexLocation = (stream.Position - offset);
+                    _payload.Fields.IndexLocation = (stream.Position - offset);
                     return (int)CollisionLayer_FieldIndex.Index;
                 }
                 case RecordTypeInts.FNAM:
                 {
-                    _DebugColorLocation = (stream.Position - offset);
+                    _payload.Fields.DebugColorLocation = (stream.Position - offset);
                     return (int)CollisionLayer_FieldIndex.DebugColor;
                 }
                 case RecordTypeInts.GNAM:
                 {
-                    _FlagsLocation = (stream.Position - offset);
+                    _payload.Fields.FlagsLocation = (stream.Position - offset);
                     return (int)CollisionLayer_FieldIndex.Flags;
                 }
                 case RecordTypeInts.MNAM:
                 {
-                    _NameLocation = (stream.Position - offset);
+                    _payload.Fields.NameLocation = (stream.Position - offset);
                     return (int)CollisionLayer_FieldIndex.Name;
                 }
                 case RecordTypeInts.INTV:
                 case RecordTypeInts.CNAM:
                 {
-                    this.CollidesWith = BinaryOverlayList.FactoryByCountNullIfZero<IFormLinkGetter<ICollisionLayerGetter>>(
+                    _payload.Fields.CollidesWith = BinaryOverlayList.FactoryByCountNullIfZero<IFormLinkGetter<ICollisionLayerGetter>>(
                         stream: stream,
                         package: _package,
                         itemLength: 0x4,

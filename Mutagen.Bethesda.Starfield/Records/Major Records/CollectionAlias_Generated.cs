@@ -1321,7 +1321,14 @@ namespace Mutagen.Bethesda.Starfield
 
         #region ID
         private int? _IDLocation;
-        public UInt32? ID => _IDLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _IDLocation.Value, _package.MetaData.Constants)) : default(UInt32?);
+        public UInt32? ID
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _IDLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _IDLocation.Value, _package.MetaData.Constants)) : default(UInt32?);
+            }
+        }
         #endregion
         #region MaxInitialFillCount
         private int? _MaxInitialFillCountLocation;
@@ -1329,7 +1336,14 @@ namespace Mutagen.Bethesda.Starfield
         #endregion
         #region ALAM
         private int? _ALAMLocation;
-        public Int32? ALAM => _ALAMLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _ALAMLocation.Value, _package.MetaData.Constants)) : default(Int32?);
+        public Int32? ALAM
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _ALAMLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _ALAMLocation.Value, _package.MetaData.Constants)) : default(Int32?);
+            }
+        }
         #endregion
         #region ReferenceAlias
         private IQuestReferenceAliasGetter? _ReferenceAlias;

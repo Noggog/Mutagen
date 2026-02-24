@@ -35,6 +35,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -2060,25 +2061,34 @@ namespace Mutagen.Bethesda.Fallout4
 
         public LoadScreen.MajorFlag MajorFlags => (LoadScreen.MajorFlag)this.MajorRecordFlagsRaw;
 
-        #region Description
-        private int? _DescriptionLocation;
-        public ITranslatedStringGetter Description => _DescriptionLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _DescriptionLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : TranslatedString.Empty;
-        #endregion
-        public IReadOnlyList<IConditionGetter> Conditions { get; private set; } = [];
-        #region LoadingScreenNif
-        private int? _LoadingScreenNifLocation;
-        public IFormLinkGetter<IStaticObjectGetter> LoadingScreenNif => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IStaticObjectGetter>(_package, _recordData, _LoadingScreenNifLocation);
-        #endregion
-        #region Transform
-        private int? _TransformLocation;
-        public IFormLinkNullableGetter<ITransformGetter> Transform => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ITransformGetter>(_package, _recordData, _TransformLocation);
-        #endregion
-        public ILoadScreenRotationGetter? Rotation { get; private set; }
-        public ILoadScreenZoomGetter? Zoom { get; private set; }
-        #region CameraPath
-        private int? _CameraPathLocation;
-        public String? CameraPath => _CameraPathLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _CameraPathLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
+        public ITranslatedStringGetter Description => Payload.DescriptionLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.DescriptionLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : TranslatedString.Empty;
+        public IReadOnlyList<IConditionGetter> Conditions => Payload.Conditions ?? [];
+        public IFormLinkGetter<IStaticObjectGetter> LoadingScreenNif => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IStaticObjectGetter>(_package, _recordData, Payload.LoadingScreenNifLocation);
+        public IFormLinkNullableGetter<ITransformGetter> Transform => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ITransformGetter>(_package, _recordData, Payload.TransformLocation);
+        public ILoadScreenRotationGetter? Rotation => Payload.Rotation;
+        public ILoadScreenZoomGetter? Zoom => Payload.Zoom;
+        public String? CameraPath => Payload.CameraPathLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.CameraPathLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+
+        internal partial class LoadScreenRecordDataPayload
+        {
+            public int? DescriptionLocation;
+            public IReadOnlyList<IConditionGetter> Conditions = [];
+            public int? LoadingScreenNifLocation;
+            public int? TransformLocation;
+            public ILoadScreenRotationGetter? Rotation;
+            public ILoadScreenZoomGetter? Zoom;
+            public int? CameraPathLocation;
+        }
+
+        private LazyPayload<LoadScreenRecordDataPayload> _payload = null!;
+
+        internal LoadScreenRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<LoadScreenRecordDataPayload>(init, new LoadScreenRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -2086,10 +2096,10 @@ namespace Mutagen.Bethesda.Fallout4
 
         partial void CustomCtor();
         protected LoadScreenBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -2100,28 +2110,51 @@ namespace Mutagen.Bethesda.Fallout4
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new LoadScreenBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -2150,12 +2183,12 @@ namespace Mutagen.Bethesda.Fallout4
             {
                 case RecordTypeInts.DESC:
                 {
-                    _DescriptionLocation = (stream.Position - offset);
+                    _payload.Fields.DescriptionLocation = (stream.Position - offset);
                     return (int)LoadScreen_FieldIndex.Description;
                 }
                 case RecordTypeInts.CTDA:
                 {
-                    this.Conditions = BinaryOverlayList.FactoryByArray<IConditionGetter>(
+                    _payload.Fields.Conditions = BinaryOverlayList.FactoryByArray<IConditionGetter>(
                         mem: stream.RemainingMemory,
                         package: _package,
                         translationParams: translationParams,
@@ -2170,18 +2203,18 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.NNAM:
                 {
-                    _LoadingScreenNifLocation = (stream.Position - offset);
+                    _payload.Fields.LoadingScreenNifLocation = (stream.Position - offset);
                     return (int)LoadScreen_FieldIndex.LoadingScreenNif;
                 }
                 case RecordTypeInts.TNAM:
                 {
-                    _TransformLocation = (stream.Position - offset);
+                    _payload.Fields.TransformLocation = (stream.Position - offset);
                     return (int)LoadScreen_FieldIndex.Transform;
                 }
                 case RecordTypeInts.ONAM:
                 {
                     stream.Position += _package.MetaData.Constants.SubConstants.HeaderLength;
-                    this.Rotation = LoadScreenRotationBinaryOverlay.LoadScreenRotationFactory(
+                    _payload.Fields.Rotation = LoadScreenRotationBinaryOverlay.LoadScreenRotationFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());
@@ -2190,7 +2223,7 @@ namespace Mutagen.Bethesda.Fallout4
                 case RecordTypeInts.ZNAM:
                 {
                     stream.Position += _package.MetaData.Constants.SubConstants.HeaderLength;
-                    this.Zoom = LoadScreenZoomBinaryOverlay.LoadScreenZoomFactory(
+                    _payload.Fields.Zoom = LoadScreenZoomBinaryOverlay.LoadScreenZoomFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());
@@ -2198,7 +2231,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.MOD2:
                 {
-                    _CameraPathLocation = (stream.Position - offset);
+                    _payload.Fields.CameraPathLocation = (stream.Position - offset);
                     return (int)LoadScreen_FieldIndex.CameraPath;
                 }
                 default:

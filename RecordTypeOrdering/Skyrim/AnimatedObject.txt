@@ -1,0 +1,5 @@
+RecordTypes.EDID,
+RecordTypes.MODL,
+RecordTypes.MODT,
+RecordTypes.MODS,
+RecordTypes.BNAM,

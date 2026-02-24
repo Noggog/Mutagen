@@ -34,6 +34,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -2862,125 +2863,138 @@ namespace Mutagen.Bethesda.Fallout4
             int offset,
             PreviousParse lastParsed);
         #endregion
-        private RangeInt32? _HNAMLocation;
         #region HdrEyeAdaptSpeed
-        private int _HdrEyeAdaptSpeedLocation => _HNAMLocation!.Value.Min;
-        private bool _HdrEyeAdaptSpeed_IsSet => _HNAMLocation.HasValue;
+        private int _HdrEyeAdaptSpeedLocation => Payload.HNAMLocation!.Value.Min;
+        private bool _HdrEyeAdaptSpeed_IsSet => Payload.HNAMLocation.HasValue;
         public Single HdrEyeAdaptSpeed => _HdrEyeAdaptSpeed_IsSet ? _recordData.Slice(_HdrEyeAdaptSpeedLocation, 4).Float() : default(Single);
         #endregion
         #region HdrTonemapE
-        private int _HdrTonemapELocation => _HNAMLocation!.Value.Min + 0x4;
-        private bool _HdrTonemapE_IsSet => _HNAMLocation.HasValue;
+        private int _HdrTonemapELocation => Payload.HNAMLocation!.Value.Min + 0x4;
+        private bool _HdrTonemapE_IsSet => Payload.HNAMLocation.HasValue;
         public Single HdrTonemapE => _HdrTonemapE_IsSet ? _recordData.Slice(_HdrTonemapELocation, 4).Float() : default(Single);
         #endregion
         #region HdrBloomThreshold
-        private int _HdrBloomThresholdLocation => _HNAMLocation!.Value.Min + 0x8;
-        private bool _HdrBloomThreshold_IsSet => _HNAMLocation.HasValue;
+        private int _HdrBloomThresholdLocation => Payload.HNAMLocation!.Value.Min + 0x8;
+        private bool _HdrBloomThreshold_IsSet => Payload.HNAMLocation.HasValue;
         public Single HdrBloomThreshold => _HdrBloomThreshold_IsSet ? _recordData.Slice(_HdrBloomThresholdLocation, 4).Float() : default(Single);
         #endregion
         #region HdrBloomScale
-        private int _HdrBloomScaleLocation => _HNAMLocation!.Value.Min + 0xC;
-        private bool _HdrBloomScale_IsSet => _HNAMLocation.HasValue;
+        private int _HdrBloomScaleLocation => Payload.HNAMLocation!.Value.Min + 0xC;
+        private bool _HdrBloomScale_IsSet => Payload.HNAMLocation.HasValue;
         public Single HdrBloomScale => _HdrBloomScale_IsSet ? _recordData.Slice(_HdrBloomScaleLocation, 4).Float() : default(Single);
         #endregion
         #region HdrAutoExposureMax
-        private int _HdrAutoExposureMaxLocation => _HNAMLocation!.Value.Min + 0x10;
-        private bool _HdrAutoExposureMax_IsSet => _HNAMLocation.HasValue;
+        private int _HdrAutoExposureMaxLocation => Payload.HNAMLocation!.Value.Min + 0x10;
+        private bool _HdrAutoExposureMax_IsSet => Payload.HNAMLocation.HasValue;
         public Single HdrAutoExposureMax => _HdrAutoExposureMax_IsSet ? _recordData.Slice(_HdrAutoExposureMaxLocation, 4).Float() : default(Single);
         #endregion
         #region HdrAutoExposureMin
-        private int _HdrAutoExposureMinLocation => _HNAMLocation!.Value.Min + 0x14;
-        private bool _HdrAutoExposureMin_IsSet => _HNAMLocation.HasValue;
+        private int _HdrAutoExposureMinLocation => Payload.HNAMLocation!.Value.Min + 0x14;
+        private bool _HdrAutoExposureMin_IsSet => Payload.HNAMLocation.HasValue;
         public Single HdrAutoExposureMin => _HdrAutoExposureMin_IsSet ? _recordData.Slice(_HdrAutoExposureMinLocation, 4).Float() : default(Single);
         #endregion
         #region HdrSunlightScale
-        private int _HdrSunlightScaleLocation => _HNAMLocation!.Value.Min + 0x18;
-        private bool _HdrSunlightScale_IsSet => _HNAMLocation.HasValue;
+        private int _HdrSunlightScaleLocation => Payload.HNAMLocation!.Value.Min + 0x18;
+        private bool _HdrSunlightScale_IsSet => Payload.HNAMLocation.HasValue;
         public Single HdrSunlightScale => _HdrSunlightScale_IsSet ? _recordData.Slice(_HdrSunlightScaleLocation, 4).Float() : default(Single);
         #endregion
         #region HdrSkyScale
-        private int _HdrSkyScaleLocation => _HNAMLocation!.Value.Min + 0x1C;
-        private bool _HdrSkyScale_IsSet => _HNAMLocation.HasValue;
+        private int _HdrSkyScaleLocation => Payload.HNAMLocation!.Value.Min + 0x1C;
+        private bool _HdrSkyScale_IsSet => Payload.HNAMLocation.HasValue;
         public Single HdrSkyScale => _HdrSkyScale_IsSet ? _recordData.Slice(_HdrSkyScaleLocation, 4).Float() : default(Single);
         #endregion
         #region HdrMiddleGray
-        private int _HdrMiddleGrayLocation => _HNAMLocation!.Value.Min + 0x20;
-        private bool _HdrMiddleGray_IsSet => _HNAMLocation.HasValue;
+        private int _HdrMiddleGrayLocation => Payload.HNAMLocation!.Value.Min + 0x20;
+        private bool _HdrMiddleGray_IsSet => Payload.HNAMLocation.HasValue;
         public Single HdrMiddleGray => _HdrMiddleGray_IsSet ? _recordData.Slice(_HdrMiddleGrayLocation, 4).Float() : default(Single);
         #endregion
-        private RangeInt32? _CNAMLocation;
         #region CinematicSaturation
-        private int _CinematicSaturationLocation => _CNAMLocation!.Value.Min;
-        private bool _CinematicSaturation_IsSet => _CNAMLocation.HasValue;
+        private int _CinematicSaturationLocation => Payload.CNAMLocation!.Value.Min;
+        private bool _CinematicSaturation_IsSet => Payload.CNAMLocation.HasValue;
         public Single CinematicSaturation => _CinematicSaturation_IsSet ? _recordData.Slice(_CinematicSaturationLocation, 4).Float() : default(Single);
         #endregion
         #region CinematicBrightness
-        private int _CinematicBrightnessLocation => _CNAMLocation!.Value.Min + 0x4;
-        private bool _CinematicBrightness_IsSet => _CNAMLocation.HasValue;
+        private int _CinematicBrightnessLocation => Payload.CNAMLocation!.Value.Min + 0x4;
+        private bool _CinematicBrightness_IsSet => Payload.CNAMLocation.HasValue;
         public Single CinematicBrightness => _CinematicBrightness_IsSet ? _recordData.Slice(_CinematicBrightnessLocation, 4).Float() : default(Single);
         #endregion
         #region CinematicContrast
-        private int _CinematicContrastLocation => _CNAMLocation!.Value.Min + 0x8;
-        private bool _CinematicContrast_IsSet => _CNAMLocation.HasValue;
+        private int _CinematicContrastLocation => Payload.CNAMLocation!.Value.Min + 0x8;
+        private bool _CinematicContrast_IsSet => Payload.CNAMLocation.HasValue;
         public Single CinematicContrast => _CinematicContrast_IsSet ? _recordData.Slice(_CinematicContrastLocation, 4).Float() : default(Single);
         #endregion
-        private RangeInt32? _TNAMLocation;
         #region TintAmount
-        private int _TintAmountLocation => _TNAMLocation!.Value.Min;
-        private bool _TintAmount_IsSet => _TNAMLocation.HasValue;
+        private int _TintAmountLocation => Payload.TNAMLocation!.Value.Min;
+        private bool _TintAmount_IsSet => Payload.TNAMLocation.HasValue;
         public Single TintAmount => _TintAmount_IsSet ? _recordData.Slice(_TintAmountLocation, 4).Float() : default(Single);
         #endregion
         #region TintColor
-        private int _TintColorLocation => _TNAMLocation!.Value.Min + 0x4;
-        private bool _TintColor_IsSet => _TNAMLocation.HasValue;
+        private int _TintColorLocation => Payload.TNAMLocation!.Value.Min + 0x4;
+        private bool _TintColor_IsSet => Payload.TNAMLocation.HasValue;
         public Color TintColor => _TintColor_IsSet ? _recordData.Slice(_TintColorLocation, 12).ReadColor(ColorBinaryType.NoAlphaFloat) : default(Color);
         #endregion
-        private RangeInt32? _DNAMLocation;
-        public ImageSpace.DNAMDataType DNAMDataTypeState { get; private set; }
+        public ImageSpace.DNAMDataType DNAMDataTypeState => Payload.DNAMDataTypeState;
         #region DepthOfFieldStrength
-        private int _DepthOfFieldStrengthLocation => _DNAMLocation!.Value.Min;
-        private bool _DepthOfFieldStrength_IsSet => _DNAMLocation.HasValue;
+        private int _DepthOfFieldStrengthLocation => Payload.DNAMLocation!.Value.Min;
+        private bool _DepthOfFieldStrength_IsSet => Payload.DNAMLocation.HasValue;
         public Single DepthOfFieldStrength => _DepthOfFieldStrength_IsSet ? _recordData.Slice(_DepthOfFieldStrengthLocation, 4).Float() : default(Single);
         #endregion
         #region DepthOfFieldDistance
-        private int _DepthOfFieldDistanceLocation => _DNAMLocation!.Value.Min + 0x4;
-        private bool _DepthOfFieldDistance_IsSet => _DNAMLocation.HasValue;
+        private int _DepthOfFieldDistanceLocation => Payload.DNAMLocation!.Value.Min + 0x4;
+        private bool _DepthOfFieldDistance_IsSet => Payload.DNAMLocation.HasValue;
         public Single DepthOfFieldDistance => _DepthOfFieldDistance_IsSet ? _recordData.Slice(_DepthOfFieldDistanceLocation, 4).Float() : default(Single);
         #endregion
         #region DepthOfFieldRange
-        private int _DepthOfFieldRangeLocation => _DNAMLocation!.Value.Min + 0x8;
-        private bool _DepthOfFieldRange_IsSet => _DNAMLocation.HasValue;
+        private int _DepthOfFieldRangeLocation => Payload.DNAMLocation!.Value.Min + 0x8;
+        private bool _DepthOfFieldRange_IsSet => Payload.DNAMLocation.HasValue;
         public Single DepthOfFieldRange => _DepthOfFieldRange_IsSet ? _recordData.Slice(_DepthOfFieldRangeLocation, 4).Float() : default(Single);
         #endregion
         #region DepthOfFieldUnused
-        private int _DepthOfFieldUnusedLocation => _DNAMLocation!.Value.Min + 0xC;
-        private bool _DepthOfFieldUnused_IsSet => _DNAMLocation.HasValue;
+        private int _DepthOfFieldUnusedLocation => Payload.DNAMLocation!.Value.Min + 0xC;
+        private bool _DepthOfFieldUnused_IsSet => Payload.DNAMLocation.HasValue;
         public Int16 DepthOfFieldUnused => _DepthOfFieldUnused_IsSet ? BinaryPrimitives.ReadInt16LittleEndian(_recordData.Slice(_DepthOfFieldUnusedLocation, 2)) : default(Int16);
         #endregion
         #region DepthOfFieldBlurRadius
-        private int _DepthOfFieldBlurRadiusLocation => _DNAMLocation!.Value.Min + 0xE;
+        private int _DepthOfFieldBlurRadiusLocation => Payload.DNAMLocation!.Value.Min + 0xE;
         public partial Byte GetDepthOfFieldBlurRadiusCustom();
         public Byte DepthOfFieldBlurRadius => GetDepthOfFieldBlurRadiusCustom();
         #endregion
         #region DepthOfFieldSky
-        private int _DepthOfFieldSkyLocation => _DNAMLocation!.Value.Min + 0xF;
+        private int _DepthOfFieldSkyLocation => Payload.DNAMLocation!.Value.Min + 0xF;
         public partial Boolean GetDepthOfFieldSkyCustom();
         public Boolean DepthOfFieldSky => GetDepthOfFieldSkyCustom();
         #endregion
         #region DepthOfFieldVignetteRadius
-        private int _DepthOfFieldVignetteRadiusLocation => _DNAMLocation!.Value.Min + 0x10;
-        private bool _DepthOfFieldVignetteRadius_IsSet => _DNAMLocation.HasValue && !DNAMDataTypeState.HasFlag(ImageSpace.DNAMDataType.Break0);
+        private int _DepthOfFieldVignetteRadiusLocation => Payload.DNAMLocation!.Value.Min + 0x10;
+        private bool _DepthOfFieldVignetteRadius_IsSet => Payload.DNAMLocation.HasValue && !DNAMDataTypeState.HasFlag(ImageSpace.DNAMDataType.Break0);
         public Single DepthOfFieldVignetteRadius => _DepthOfFieldVignetteRadius_IsSet ? _recordData.Slice(_DepthOfFieldVignetteRadiusLocation, 4).Float() : default(Single);
         #endregion
         #region DepthOfFieldVignetteStrength
-        private int _DepthOfFieldVignetteStrengthLocation => _DNAMLocation!.Value.Min + 0x14;
-        private bool _DepthOfFieldVignetteStrength_IsSet => _DNAMLocation.HasValue && !DNAMDataTypeState.HasFlag(ImageSpace.DNAMDataType.Break0);
+        private int _DepthOfFieldVignetteStrengthLocation => Payload.DNAMLocation!.Value.Min + 0x14;
+        private bool _DepthOfFieldVignetteStrength_IsSet => Payload.DNAMLocation.HasValue && !DNAMDataTypeState.HasFlag(ImageSpace.DNAMDataType.Break0);
         public Single DepthOfFieldVignetteStrength => _DepthOfFieldVignetteStrength_IsSet ? _recordData.Slice(_DepthOfFieldVignetteStrengthLocation, 4).Float() : default(Single);
         #endregion
-        #region Lut
-        private int? _LutLocation;
-        public String? Lut => _LutLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _LutLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
+        public String? Lut => Payload.LutLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.LutLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+
+        internal partial class ImageSpaceRecordDataPayload
+        {
+            public RangeInt32? HNAMLocation;
+            public RangeInt32? CNAMLocation;
+            public RangeInt32? TNAMLocation;
+            public RangeInt32? DNAMLocation;
+            public ImageSpace.DNAMDataType DNAMDataTypeState;
+            public int? LutLocation;
+        }
+
+        private LazyPayload<ImageSpaceRecordDataPayload> _payload = null!;
+
+        internal ImageSpaceRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<ImageSpaceRecordDataPayload>(init, new ImageSpaceRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -2988,10 +3002,10 @@ namespace Mutagen.Bethesda.Fallout4
 
         partial void CustomCtor();
         protected ImageSpaceBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -3029,32 +3043,32 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.HNAM:
                 {
-                    _HNAMLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.HNAMLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     return (int)ImageSpace_FieldIndex.HdrMiddleGray;
                 }
                 case RecordTypeInts.CNAM:
                 {
-                    _CNAMLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.CNAMLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     return (int)ImageSpace_FieldIndex.CinematicContrast;
                 }
                 case RecordTypeInts.TNAM:
                 {
-                    _TNAMLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.TNAMLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     return (int)ImageSpace_FieldIndex.TintColor;
                 }
                 case RecordTypeInts.DNAM:
                 {
-                    _DNAMLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.DNAMLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     var subLen = _package.MetaData.Constants.SubrecordHeader(_recordData.Slice((stream.Position - offset))).ContentLength;
                     if (subLen <= 0x10)
                     {
-                        this.DNAMDataTypeState |= ImageSpace.DNAMDataType.Break0;
+                        _payload.Fields.DNAMDataTypeState |= ImageSpace.DNAMDataType.Break0;
                     }
                     return (int)ImageSpace_FieldIndex.DepthOfFieldVignetteStrength;
                 }
                 case RecordTypeInts.TX00:
                 {
-                    _LutLocation = (stream.Position - offset);
+                    _payload.Fields.LutLocation = (stream.Position - offset);
                     return (int)ImageSpace_FieldIndex.Lut;
                 }
                 default:

@@ -37,6 +37,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -3209,66 +3210,81 @@ namespace Mutagen.Bethesda.Starfield
         protected override Type LinkType => typeof(IImpactGetter);
 
 
-        public IReadOnlyList<IAComponentGetter> Components { get; private set; } = [];
-        public IModelGetter? Model { get; private set; }
-        private RangeInt32? _DATALocation;
+        public IReadOnlyList<IAComponentGetter> Components => Payload.Components ?? [];
+        public IModelGetter? Model => Payload.Model;
         #region Duration
-        private int _DurationLocation => _DATALocation!.Value.Min;
-        private bool _Duration_IsSet => _DATALocation.HasValue;
+        private int _DurationLocation => Payload.DATALocation!.Value.Min;
+        private bool _Duration_IsSet => Payload.DATALocation.HasValue;
         public Single Duration => _Duration_IsSet ? _recordData.Slice(_DurationLocation, 4).Float() : default(Single);
         #endregion
         #region Orientation
-        private int _OrientationLocation => _DATALocation!.Value.Min + 0x4;
-        private bool _Orientation_IsSet => _DATALocation.HasValue;
+        private int _OrientationLocation => Payload.DATALocation!.Value.Min + 0x4;
+        private bool _Orientation_IsSet => Payload.DATALocation.HasValue;
         public Impact.OrientationType Orientation => _Orientation_IsSet ? (Impact.OrientationType)BinaryPrimitives.ReadInt32LittleEndian(_recordData.Span.Slice(_OrientationLocation, 0x4)) : default;
         #endregion
         #region AngleThreshold
-        private int _AngleThresholdLocation => _DATALocation!.Value.Min + 0x8;
-        private bool _AngleThreshold_IsSet => _DATALocation.HasValue;
+        private int _AngleThresholdLocation => Payload.DATALocation!.Value.Min + 0x8;
+        private bool _AngleThreshold_IsSet => Payload.DATALocation.HasValue;
         public Single AngleThreshold => _AngleThreshold_IsSet ? _recordData.Slice(_AngleThresholdLocation, 4).Float() : default(Single);
         #endregion
         #region PlacementRadius
-        private int _PlacementRadiusLocation => _DATALocation!.Value.Min + 0xC;
-        private bool _PlacementRadius_IsSet => _DATALocation.HasValue;
+        private int _PlacementRadiusLocation => Payload.DATALocation!.Value.Min + 0xC;
+        private bool _PlacementRadius_IsSet => Payload.DATALocation.HasValue;
         public Single PlacementRadius => _PlacementRadius_IsSet ? _recordData.Slice(_PlacementRadiusLocation, 4).Float() : default(Single);
         #endregion
         #region SoundLevel
-        private int _SoundLevelLocation => _DATALocation!.Value.Min + 0x10;
-        private bool _SoundLevel_IsSet => _DATALocation.HasValue;
+        private int _SoundLevelLocation => Payload.DATALocation!.Value.Min + 0x10;
+        private bool _SoundLevel_IsSet => Payload.DATALocation.HasValue;
         public SoundLevel SoundLevel => _SoundLevel_IsSet ? (SoundLevel)BinaryPrimitives.ReadInt32LittleEndian(_recordData.Span.Slice(_SoundLevelLocation, 0x4)) : default;
         #endregion
         #region NoDecalData
-        private int _NoDecalDataLocation => _DATALocation!.Value.Min + 0x14;
-        private bool _NoDecalData_IsSet => _DATALocation.HasValue;
+        private int _NoDecalDataLocation => Payload.DATALocation!.Value.Min + 0x14;
+        private bool _NoDecalData_IsSet => Payload.DATALocation.HasValue;
         public Boolean NoDecalData => _NoDecalData_IsSet ? _recordData.Slice(_NoDecalDataLocation, 1)[0] >= 1 : default(Boolean);
         #endregion
         #region Result
-        private int _ResultLocation => _DATALocation!.Value.Min + 0x15;
-        private bool _Result_IsSet => _DATALocation.HasValue;
+        private int _ResultLocation => Payload.DATALocation!.Value.Min + 0x15;
+        private bool _Result_IsSet => Payload.DATALocation.HasValue;
         public Impact.ResultType Result => _Result_IsSet ? (Impact.ResultType)_recordData.Span.Slice(_ResultLocation, 0x1)[0] : default;
         #endregion
         #region Unknown
-        private int _UnknownLocation => _DATALocation!.Value.Min + 0x16;
-        private bool _Unknown_IsSet => _DATALocation.HasValue;
+        private int _UnknownLocation => Payload.DATALocation!.Value.Min + 0x16;
+        private bool _Unknown_IsSet => Payload.DATALocation.HasValue;
         public Int16 Unknown => _Unknown_IsSet ? BinaryPrimitives.ReadInt16LittleEndian(_recordData.Slice(_UnknownLocation, 2)) : default(Int16);
         #endregion
-        public IReadOnlyList<IFormLinkGetter<IProjectedDecalGetter>>? ProjectedDecals { get; private set; }
-        public IReadOnlyList<IFormLinkGetter<IProjectedDecalGetter>>? ScatterProjectedDecals { get; private set; }
-        #region Decal
-        private RangeInt32? _DecalLocation;
-        public IDecalGetter? Decal => _DecalLocation.HasValue ? DecalBinaryOverlay.DecalFactory(_recordData.Slice(_DecalLocation!.Value.Min), _package) : default;
-        #endregion
-        public ISoundReferenceGetter? ImpactSoundDefault { get; private set; }
-        public ISoundReferenceGetter? ImpactSoundPlayerFirstShooter { get; private set; }
-        public ISoundReferenceGetter? ImpactSoundPlayerThirdTarget { get; private set; }
-        #region FootstepParticleMaxDist
-        private int? _FootstepParticleMaxDistLocation;
-        public Single? FootstepParticleMaxDist => _FootstepParticleMaxDistLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _FootstepParticleMaxDistLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
-        #endregion
-        #region DecalLifetime
-        private int? _DecalLifetimeLocation;
-        public Single? DecalLifetime => _DecalLifetimeLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _DecalLifetimeLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
-        #endregion
+        public IReadOnlyList<IFormLinkGetter<IProjectedDecalGetter>>? ProjectedDecals => Payload.ProjectedDecals;
+        public IReadOnlyList<IFormLinkGetter<IProjectedDecalGetter>>? ScatterProjectedDecals => Payload.ScatterProjectedDecals;
+        public IDecalGetter? Decal => Payload.DecalLocation.HasValue ? DecalBinaryOverlay.DecalFactory(_recordData.Slice(Payload.DecalLocation!.Value.Min), _package) : default;
+        public ISoundReferenceGetter? ImpactSoundDefault => Payload.ImpactSoundDefault;
+        public ISoundReferenceGetter? ImpactSoundPlayerFirstShooter => Payload.ImpactSoundPlayerFirstShooter;
+        public ISoundReferenceGetter? ImpactSoundPlayerThirdTarget => Payload.ImpactSoundPlayerThirdTarget;
+        public Single? FootstepParticleMaxDist => Payload.FootstepParticleMaxDistLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.FootstepParticleMaxDistLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public Single? DecalLifetime => Payload.DecalLifetimeLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.DecalLifetimeLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+
+        internal partial class ImpactRecordDataPayload
+        {
+            public IReadOnlyList<IAComponentGetter> Components = [];
+            public IModelGetter? Model;
+            public RangeInt32? DATALocation;
+            public IReadOnlyList<IFormLinkGetter<IProjectedDecalGetter>>? ProjectedDecals;
+            public IReadOnlyList<IFormLinkGetter<IProjectedDecalGetter>>? ScatterProjectedDecals;
+            public RangeInt32? DecalLocation;
+            public ISoundReferenceGetter? ImpactSoundDefault;
+            public ISoundReferenceGetter? ImpactSoundPlayerFirstShooter;
+            public ISoundReferenceGetter? ImpactSoundPlayerThirdTarget;
+            public int? FootstepParticleMaxDistLocation;
+            public int? DecalLifetimeLocation;
+        }
+
+        private LazyPayload<ImpactRecordDataPayload> _payload = null!;
+
+        internal ImpactRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<ImpactRecordDataPayload>(init, new ImpactRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -3276,10 +3292,10 @@ namespace Mutagen.Bethesda.Starfield
 
         partial void CustomCtor();
         protected ImpactBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -3290,28 +3306,51 @@ namespace Mutagen.Bethesda.Starfield
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new ImpactBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -3340,7 +3379,7 @@ namespace Mutagen.Bethesda.Starfield
             {
                 case RecordTypeInts.BFCB:
                 {
-                    this.Components = this.ParseRepeatedTypelessSubrecord<IAComponentGetter>(
+                    _payload.Fields.Components = this.ParseRepeatedTypelessSubrecord<IAComponentGetter>(
                         stream: stream,
                         translationParams: translationParams,
                         trigger: AComponent_Registration.TriggerSpecs,
@@ -3355,7 +3394,7 @@ namespace Mutagen.Bethesda.Starfield
                 case RecordTypeInts.MODC:
                 case RecordTypeInts.MODF:
                 {
-                    this.Model = ModelBinaryOverlay.ModelFactory(
+                    _payload.Fields.Model = ModelBinaryOverlay.ModelFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());
@@ -3363,12 +3402,12 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.DATA:
                 {
-                    _DATALocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.DATALocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     return (int)Impact_FieldIndex.Unknown;
                 }
                 case RecordTypeInts.GNAM:
                 {
-                    this.ProjectedDecals = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<IProjectedDecalGetter>>(
+                    _payload.Fields.ProjectedDecals = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<IProjectedDecalGetter>>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -3378,7 +3417,7 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.HNAM:
                 {
-                    this.ScatterProjectedDecals = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<IProjectedDecalGetter>>(
+                    _payload.Fields.ScatterProjectedDecals = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<IProjectedDecalGetter>>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -3388,13 +3427,13 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.DODT:
                 {
-                    _DecalLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.DecalLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)Impact_FieldIndex.Decal;
                 }
                 case RecordTypeInts.IDSH:
                 {
                     stream.Position += _package.MetaData.Constants.SubConstants.HeaderLength;
-                    this.ImpactSoundDefault = SoundReferenceBinaryOverlay.SoundReferenceFactory(
+                    _payload.Fields.ImpactSoundDefault = SoundReferenceBinaryOverlay.SoundReferenceFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());
@@ -3403,7 +3442,7 @@ namespace Mutagen.Bethesda.Starfield
                 case RecordTypeInts.IDP1:
                 {
                     stream.Position += _package.MetaData.Constants.SubConstants.HeaderLength;
-                    this.ImpactSoundPlayerFirstShooter = SoundReferenceBinaryOverlay.SoundReferenceFactory(
+                    _payload.Fields.ImpactSoundPlayerFirstShooter = SoundReferenceBinaryOverlay.SoundReferenceFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());
@@ -3412,7 +3451,7 @@ namespace Mutagen.Bethesda.Starfield
                 case RecordTypeInts.IDP3:
                 {
                     stream.Position += _package.MetaData.Constants.SubConstants.HeaderLength;
-                    this.ImpactSoundPlayerThirdTarget = SoundReferenceBinaryOverlay.SoundReferenceFactory(
+                    _payload.Fields.ImpactSoundPlayerThirdTarget = SoundReferenceBinaryOverlay.SoundReferenceFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());
@@ -3420,12 +3459,12 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.FNAM:
                 {
-                    _FootstepParticleMaxDistLocation = (stream.Position - offset);
+                    _payload.Fields.FootstepParticleMaxDistLocation = (stream.Position - offset);
                     return (int)Impact_FieldIndex.FootstepParticleMaxDist;
                 }
                 case RecordTypeInts.INAM:
                 {
-                    _DecalLifetimeLocation = (stream.Position - offset);
+                    _payload.Fields.DecalLifetimeLocation = (stream.Position - offset);
                     return (int)Impact_FieldIndex.DecalLifetime;
                 }
                 default:

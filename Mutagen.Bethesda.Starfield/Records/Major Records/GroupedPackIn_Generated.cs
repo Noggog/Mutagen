@@ -1464,7 +1464,14 @@ namespace Mutagen.Bethesda.Starfield
         #endregion
         #region INAM
         private int? _INAMLocation;
-        public Boolean? INAM => _INAMLocation.HasValue ? BinaryPrimitives.ReadUInt16LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _INAMLocation.Value, _package.MetaData.Constants)) >= 1 : default(Boolean?);
+        public Boolean? INAM
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _INAMLocation.HasValue ? BinaryPrimitives.ReadUInt16LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _INAMLocation.Value, _package.MetaData.Constants)) >= 1 : default(Boolean?);
+            }
+        }
         #endregion
         #region JNAM
         private int? _JNAMLocation;
@@ -1476,7 +1483,14 @@ namespace Mutagen.Bethesda.Starfield
         #endregion
         #region XGOM
         private int? _XGOMLocation;
-        public Boolean XGOM => _XGOMLocation.HasValue ? true : default(Boolean);
+        public Boolean XGOM
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _XGOMLocation.HasValue ? true : default(Boolean);
+            }
+        }
         #endregion
         partial void CustomFactoryEnd(
             OverlayStream stream,

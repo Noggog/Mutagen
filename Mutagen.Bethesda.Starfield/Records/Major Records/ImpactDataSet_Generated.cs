@@ -34,6 +34,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -1599,11 +1600,24 @@ namespace Mutagen.Bethesda.Starfield
         protected override Type LinkType => typeof(IImpactDataSetGetter);
 
 
-        public IReadOnlyList<IImpactDataGetter> Impacts { get; private set; } = [];
-        #region Parent
-        private int? _ParentLocation;
-        public IFormLinkNullableGetter<IImpactDataSetGetter> Parent => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IImpactDataSetGetter>(_package, _recordData, _ParentLocation);
-        #endregion
+        public IReadOnlyList<IImpactDataGetter> Impacts => Payload.Impacts ?? [];
+        public IFormLinkNullableGetter<IImpactDataSetGetter> Parent => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IImpactDataSetGetter>(_package, _recordData, Payload.ParentLocation);
+
+        internal partial class ImpactDataSetRecordDataPayload
+        {
+            public IReadOnlyList<IImpactDataGetter> Impacts = [];
+            public int? ParentLocation;
+        }
+
+        private LazyPayload<ImpactDataSetRecordDataPayload> _payload = null!;
+
+        internal ImpactDataSetRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<ImpactDataSetRecordDataPayload>(init, new ImpactDataSetRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -1611,10 +1625,10 @@ namespace Mutagen.Bethesda.Starfield
 
         partial void CustomCtor();
         protected ImpactDataSetBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -1625,28 +1639,51 @@ namespace Mutagen.Bethesda.Starfield
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new ImpactDataSetBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -1675,7 +1712,7 @@ namespace Mutagen.Bethesda.Starfield
             {
                 case RecordTypeInts.PNAM:
                 {
-                    this.Impacts = BinaryOverlayList.FactoryByArray<IImpactDataGetter>(
+                    _payload.Fields.Impacts = BinaryOverlayList.FactoryByArray<IImpactDataGetter>(
                         mem: stream.RemainingMemory,
                         package: _package,
                         translationParams: translationParams,
@@ -1690,7 +1727,7 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.ENAM:
                 {
-                    _ParentLocation = (stream.Position - offset);
+                    _payload.Fields.ParentLocation = (stream.Position - offset);
                     return (int)ImpactDataSet_FieldIndex.Parent;
                 }
                 default:

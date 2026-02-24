@@ -33,6 +33,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -2152,54 +2153,44 @@ namespace Mutagen.Bethesda.Skyrim
         protected override Type LinkType => typeof(IVolumetricLightingGetter);
 
 
-        #region Intensity
-        private int? _IntensityLocation;
-        public Single? Intensity => _IntensityLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _IntensityLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
-        #endregion
-        #region CustomColorContribution
-        private int? _CustomColorContributionLocation;
-        public Single? CustomColorContribution => _CustomColorContributionLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _CustomColorContributionLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
-        #endregion
-        #region ColorR
-        private int? _ColorRLocation;
-        public Single? ColorR => _ColorRLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _ColorRLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
-        #endregion
-        #region ColorG
-        private int? _ColorGLocation;
-        public Single? ColorG => _ColorGLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _ColorGLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
-        #endregion
-        #region ColorB
-        private int? _ColorBLocation;
-        public Single? ColorB => _ColorBLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _ColorBLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
-        #endregion
-        #region DensityContribution
-        private int? _DensityContributionLocation;
-        public Single? DensityContribution => _DensityContributionLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _DensityContributionLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
-        #endregion
-        #region DensitySize
-        private int? _DensitySizeLocation;
-        public Single? DensitySize => _DensitySizeLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _DensitySizeLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
-        #endregion
-        #region DensityWindSpeed
-        private int? _DensityWindSpeedLocation;
-        public Single? DensityWindSpeed => _DensityWindSpeedLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _DensityWindSpeedLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
-        #endregion
-        #region DensityFallingSpeed
-        private int? _DensityFallingSpeedLocation;
-        public Single? DensityFallingSpeed => _DensityFallingSpeedLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _DensityFallingSpeedLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
-        #endregion
-        #region PhaseFunctionContribution
-        private int? _PhaseFunctionContributionLocation;
-        public Single? PhaseFunctionContribution => _PhaseFunctionContributionLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _PhaseFunctionContributionLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
-        #endregion
-        #region PhaseFunctionScattering
-        private int? _PhaseFunctionScatteringLocation;
-        public Single? PhaseFunctionScattering => _PhaseFunctionScatteringLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _PhaseFunctionScatteringLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
-        #endregion
-        #region SamplingRepartitionRangeFactor
-        private int? _SamplingRepartitionRangeFactorLocation;
-        public Single? SamplingRepartitionRangeFactor => _SamplingRepartitionRangeFactorLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _SamplingRepartitionRangeFactorLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
-        #endregion
+        public Single? Intensity => Payload.IntensityLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.IntensityLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public Single? CustomColorContribution => Payload.CustomColorContributionLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.CustomColorContributionLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public Single? ColorR => Payload.ColorRLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.ColorRLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public Single? ColorG => Payload.ColorGLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.ColorGLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public Single? ColorB => Payload.ColorBLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.ColorBLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public Single? DensityContribution => Payload.DensityContributionLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.DensityContributionLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public Single? DensitySize => Payload.DensitySizeLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.DensitySizeLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public Single? DensityWindSpeed => Payload.DensityWindSpeedLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.DensityWindSpeedLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public Single? DensityFallingSpeed => Payload.DensityFallingSpeedLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.DensityFallingSpeedLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public Single? PhaseFunctionContribution => Payload.PhaseFunctionContributionLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.PhaseFunctionContributionLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public Single? PhaseFunctionScattering => Payload.PhaseFunctionScatteringLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.PhaseFunctionScatteringLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public Single? SamplingRepartitionRangeFactor => Payload.SamplingRepartitionRangeFactorLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.SamplingRepartitionRangeFactorLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+
+        internal partial class VolumetricLightingRecordDataPayload
+        {
+            public int? IntensityLocation;
+            public int? CustomColorContributionLocation;
+            public int? ColorRLocation;
+            public int? ColorGLocation;
+            public int? ColorBLocation;
+            public int? DensityContributionLocation;
+            public int? DensitySizeLocation;
+            public int? DensityWindSpeedLocation;
+            public int? DensityFallingSpeedLocation;
+            public int? PhaseFunctionContributionLocation;
+            public int? PhaseFunctionScatteringLocation;
+            public int? SamplingRepartitionRangeFactorLocation;
+        }
+
+        private LazyPayload<VolumetricLightingRecordDataPayload> _payload = null!;
+
+        internal VolumetricLightingRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<VolumetricLightingRecordDataPayload>(init, new VolumetricLightingRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -2207,10 +2198,10 @@ namespace Mutagen.Bethesda.Skyrim
 
         partial void CustomCtor();
         protected VolumetricLightingBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -2221,28 +2212,51 @@ namespace Mutagen.Bethesda.Skyrim
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new VolumetricLightingBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -2271,62 +2285,62 @@ namespace Mutagen.Bethesda.Skyrim
             {
                 case RecordTypeInts.CNAM:
                 {
-                    _IntensityLocation = (stream.Position - offset);
+                    _payload.Fields.IntensityLocation = (stream.Position - offset);
                     return (int)VolumetricLighting_FieldIndex.Intensity;
                 }
                 case RecordTypeInts.DNAM:
                 {
-                    _CustomColorContributionLocation = (stream.Position - offset);
+                    _payload.Fields.CustomColorContributionLocation = (stream.Position - offset);
                     return (int)VolumetricLighting_FieldIndex.CustomColorContribution;
                 }
                 case RecordTypeInts.ENAM:
                 {
-                    _ColorRLocation = (stream.Position - offset);
+                    _payload.Fields.ColorRLocation = (stream.Position - offset);
                     return (int)VolumetricLighting_FieldIndex.ColorR;
                 }
                 case RecordTypeInts.FNAM:
                 {
-                    _ColorGLocation = (stream.Position - offset);
+                    _payload.Fields.ColorGLocation = (stream.Position - offset);
                     return (int)VolumetricLighting_FieldIndex.ColorG;
                 }
                 case RecordTypeInts.GNAM:
                 {
-                    _ColorBLocation = (stream.Position - offset);
+                    _payload.Fields.ColorBLocation = (stream.Position - offset);
                     return (int)VolumetricLighting_FieldIndex.ColorB;
                 }
                 case RecordTypeInts.HNAM:
                 {
-                    _DensityContributionLocation = (stream.Position - offset);
+                    _payload.Fields.DensityContributionLocation = (stream.Position - offset);
                     return (int)VolumetricLighting_FieldIndex.DensityContribution;
                 }
                 case RecordTypeInts.INAM:
                 {
-                    _DensitySizeLocation = (stream.Position - offset);
+                    _payload.Fields.DensitySizeLocation = (stream.Position - offset);
                     return (int)VolumetricLighting_FieldIndex.DensitySize;
                 }
                 case RecordTypeInts.JNAM:
                 {
-                    _DensityWindSpeedLocation = (stream.Position - offset);
+                    _payload.Fields.DensityWindSpeedLocation = (stream.Position - offset);
                     return (int)VolumetricLighting_FieldIndex.DensityWindSpeed;
                 }
                 case RecordTypeInts.KNAM:
                 {
-                    _DensityFallingSpeedLocation = (stream.Position - offset);
+                    _payload.Fields.DensityFallingSpeedLocation = (stream.Position - offset);
                     return (int)VolumetricLighting_FieldIndex.DensityFallingSpeed;
                 }
                 case RecordTypeInts.LNAM:
                 {
-                    _PhaseFunctionContributionLocation = (stream.Position - offset);
+                    _payload.Fields.PhaseFunctionContributionLocation = (stream.Position - offset);
                     return (int)VolumetricLighting_FieldIndex.PhaseFunctionContribution;
                 }
                 case RecordTypeInts.MNAM:
                 {
-                    _PhaseFunctionScatteringLocation = (stream.Position - offset);
+                    _payload.Fields.PhaseFunctionScatteringLocation = (stream.Position - offset);
                     return (int)VolumetricLighting_FieldIndex.PhaseFunctionScattering;
                 }
                 case RecordTypeInts.NNAM:
                 {
-                    _SamplingRepartitionRangeFactorLocation = (stream.Position - offset);
+                    _payload.Fields.SamplingRepartitionRangeFactorLocation = (stream.Position - offset);
                     return (int)VolumetricLighting_FieldIndex.SamplingRepartitionRangeFactor;
                 }
                 default:

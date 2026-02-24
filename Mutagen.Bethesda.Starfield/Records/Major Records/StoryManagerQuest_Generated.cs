@@ -1170,7 +1170,14 @@ namespace Mutagen.Bethesda.Starfield
         #endregion
         #region HoursUntilReset
         private int? _HoursUntilResetLocation;
-        public Single? HoursUntilReset => _HoursUntilResetLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _HoursUntilResetLocation.Value, _package.MetaData.Constants).Float() / 24f : default(Single?);
+        public Single? HoursUntilReset
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _HoursUntilResetLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_data, _HoursUntilResetLocation.Value, _package.MetaData.Constants).Float() / 24f : default(Single?);
+            }
+        }
         #endregion
         partial void CustomFactoryEnd(
             OverlayStream stream,

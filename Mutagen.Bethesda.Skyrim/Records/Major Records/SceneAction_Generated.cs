@@ -2448,7 +2448,14 @@ namespace Mutagen.Bethesda.Skyrim
         #endregion
         #region Name
         private int? _NameLocation;
-        public String? Name => _NameLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NameLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? Name
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _NameLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_data, _NameLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+            }
+        }
         #region Aspects
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         string INamedRequiredGetter.Name => this.Name ?? string.Empty;
@@ -2456,7 +2463,14 @@ namespace Mutagen.Bethesda.Skyrim
         #endregion
         #region ActorID
         private int? _ActorIDLocation;
-        public Int32? ActorID => _ActorIDLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _ActorIDLocation.Value, _package.MetaData.Constants)) : default(Int32?);
+        public Int32? ActorID
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _ActorIDLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _ActorIDLocation.Value, _package.MetaData.Constants)) : default(Int32?);
+            }
+        }
         #endregion
         #region LNAM
         private int? _LNAMLocation;
@@ -2464,7 +2478,14 @@ namespace Mutagen.Bethesda.Skyrim
         #endregion
         #region Index
         private int? _IndexLocation;
-        public UInt32? Index => _IndexLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _IndexLocation.Value, _package.MetaData.Constants)) : default(UInt32?);
+        public UInt32? Index
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _IndexLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _IndexLocation.Value, _package.MetaData.Constants)) : default(UInt32?);
+            }
+        }
         #endregion
         #region Flags
         private int? _FlagsLocation;
@@ -2472,15 +2493,36 @@ namespace Mutagen.Bethesda.Skyrim
         #endregion
         #region StartPhase
         private int? _StartPhaseLocation;
-        public UInt32? StartPhase => _StartPhaseLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _StartPhaseLocation.Value, _package.MetaData.Constants)) : default(UInt32?);
+        public UInt32? StartPhase
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _StartPhaseLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _StartPhaseLocation.Value, _package.MetaData.Constants)) : default(UInt32?);
+            }
+        }
         #endregion
         #region EndPhase
         private int? _EndPhaseLocation;
-        public UInt32? EndPhase => _EndPhaseLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _EndPhaseLocation.Value, _package.MetaData.Constants)) : default(UInt32?);
+        public UInt32? EndPhase
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _EndPhaseLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _EndPhaseLocation.Value, _package.MetaData.Constants)) : default(UInt32?);
+            }
+        }
         #endregion
         #region TimerSeconds
         private int? _TimerSecondsLocation;
-        public Single? TimerSeconds => _TimerSecondsLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _TimerSecondsLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public Single? TimerSeconds
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _TimerSecondsLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_data, _TimerSecondsLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+            }
+        }
         #endregion
         public IReadOnlyList<IFormLinkGetter<IPackageGetter>> Packages { get; private set; } = [];
         #region Topic
@@ -2489,15 +2531,36 @@ namespace Mutagen.Bethesda.Skyrim
         #endregion
         #region HeadtrackActorID
         private int? _HeadtrackActorIDLocation;
-        public Int32? HeadtrackActorID => _HeadtrackActorIDLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _HeadtrackActorIDLocation.Value, _package.MetaData.Constants)) : default(Int32?);
+        public Int32? HeadtrackActorID
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _HeadtrackActorIDLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _HeadtrackActorIDLocation.Value, _package.MetaData.Constants)) : default(Int32?);
+            }
+        }
         #endregion
         #region LoopingMax
         private int? _LoopingMaxLocation;
-        public Single? LoopingMax => _LoopingMaxLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _LoopingMaxLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public Single? LoopingMax
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _LoopingMaxLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_data, _LoopingMaxLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+            }
+        }
         #endregion
         #region LoopingMin
         private int? _LoopingMinLocation;
-        public Single? LoopingMin => _LoopingMinLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _LoopingMinLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public Single? LoopingMin
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _LoopingMinLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_data, _LoopingMinLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+            }
+        }
         #endregion
         #region Emotion
         private int? _EmotionLocation;
@@ -2505,7 +2568,14 @@ namespace Mutagen.Bethesda.Skyrim
         #endregion
         #region EmotionValue
         private int? _EmotionValueLocation;
-        public UInt32? EmotionValue => _EmotionValueLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _EmotionValueLocation.Value, _package.MetaData.Constants)) : default(UInt32?);
+        public UInt32? EmotionValue
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _EmotionValueLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _EmotionValueLocation.Value, _package.MetaData.Constants)) : default(UInt32?);
+            }
+        }
         #endregion
         public IScenePhaseUnusedDataGetter? Unused { get; private set; }
         partial void CustomFactoryEnd(

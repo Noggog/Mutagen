@@ -36,6 +36,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -1718,15 +1719,26 @@ namespace Mutagen.Bethesda.Skyrim
         protected override Type LinkType => typeof(ILensFlareGetter);
 
 
-        #region ColorInfluence
-        private int? _ColorInfluenceLocation;
-        public Single? ColorInfluence => _ColorInfluenceLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _ColorInfluenceLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
-        #endregion
-        #region FadeDistanceRadiusScale
-        private int? _FadeDistanceRadiusScaleLocation;
-        public Single? FadeDistanceRadiusScale => _FadeDistanceRadiusScaleLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _FadeDistanceRadiusScaleLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
-        #endregion
-        public IReadOnlyList<ILensFlareSpriteGetter>? Sprites { get; private set; }
+        public Single? ColorInfluence => Payload.ColorInfluenceLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.ColorInfluenceLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public Single? FadeDistanceRadiusScale => Payload.FadeDistanceRadiusScaleLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.FadeDistanceRadiusScaleLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public IReadOnlyList<ILensFlareSpriteGetter>? Sprites => Payload.Sprites;
+
+        internal partial class LensFlareRecordDataPayload
+        {
+            public int? ColorInfluenceLocation;
+            public int? FadeDistanceRadiusScaleLocation;
+            public IReadOnlyList<ILensFlareSpriteGetter>? Sprites;
+        }
+
+        private LazyPayload<LensFlareRecordDataPayload> _payload = null!;
+
+        internal LensFlareRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<LensFlareRecordDataPayload>(init, new LensFlareRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -1734,10 +1746,10 @@ namespace Mutagen.Bethesda.Skyrim
 
         partial void CustomCtor();
         protected LensFlareBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -1748,28 +1760,51 @@ namespace Mutagen.Bethesda.Skyrim
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new LensFlareBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -1798,17 +1833,17 @@ namespace Mutagen.Bethesda.Skyrim
             {
                 case RecordTypeInts.CNAM:
                 {
-                    _ColorInfluenceLocation = (stream.Position - offset);
+                    _payload.Fields.ColorInfluenceLocation = (stream.Position - offset);
                     return (int)LensFlare_FieldIndex.ColorInfluence;
                 }
                 case RecordTypeInts.DNAM:
                 {
-                    _FadeDistanceRadiusScaleLocation = (stream.Position - offset);
+                    _payload.Fields.FadeDistanceRadiusScaleLocation = (stream.Position - offset);
                     return (int)LensFlare_FieldIndex.FadeDistanceRadiusScale;
                 }
                 case RecordTypeInts.LFSP:
                 {
-                    this.Sprites = BinaryOverlayList.FactoryByCountPerItem<ILensFlareSpriteGetter>(
+                    _payload.Fields.Sprites = BinaryOverlayList.FactoryByCountPerItem<ILensFlareSpriteGetter>(
                         stream: stream,
                         package: _package,
                         countLength: 4,

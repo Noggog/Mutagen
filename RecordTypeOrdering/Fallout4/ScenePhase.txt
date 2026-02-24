@@ -1,0 +1,6 @@
+RecordTypes.NAM0,
+RecordTypes.CTDA,
+RecordTypes.NEXT,
+RecordTypes.WNAM,
+RecordTypes.FNAM,
+RecordTypes.SCQS,

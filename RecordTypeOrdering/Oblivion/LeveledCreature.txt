@@ -1,0 +1,6 @@
+RecordTypes.EDID,
+RecordTypes.LVLD,
+RecordTypes.LVLF,
+RecordTypes.LVLO,
+RecordTypes.SCRI,
+RecordTypes.TNAM,

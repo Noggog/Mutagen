@@ -1,5 +1,6 @@
 using Loqui.Generation;
 using Mutagen.Bethesda.Generation.Fields;
+using Mutagen.Bethesda.Generation.Modules.Plugin;
 using Mutagen.Bethesda.Plugins.Binary.Overlay;
 using Mutagen.Bethesda.Plugins.Binary.Streams;
 using Mutagen.Bethesda.Plugins.Binary.Translations;
@@ -186,6 +187,7 @@ public class CustomLogicTranslationGeneration : BinaryTranslationGeneration
         DataType? dataType = null)
     {
         if (!typeGen.GenerateClassMembers) return;
+        var payloadSb2 = (this.Module as PluginTranslationModule)?.CurrentPayloadFieldsSb;
         var fieldData = typeGen.GetFieldData();
         var gen = this.Module.GetTypeGeneration(typeGen.GetType());
         string loc;
@@ -207,7 +209,7 @@ public class CustomLogicTranslationGeneration : BinaryTranslationGeneration
         else if (dataType != null)
         {
             loc = $"_{typeGen.Name}Location";
-            DataBinaryTranslationGeneration.GenerateWrapperExtraMembers(sb, dataType, objGen, typeGen, passedLenAccessor);
+            DataBinaryTranslationGeneration.GenerateWrapperExtraMembers(sb, dataType, objGen, typeGen, passedLenAccessor, isMajorRecord: payloadSb2 != null);
         }
         else
         {
@@ -245,11 +247,12 @@ public class CustomLogicTranslationGeneration : BinaryTranslationGeneration
         string passedLengthAccessor,
         DataType? data = null)
     {
+        var payloadSb = (this.Module as PluginTranslationModule)?.CurrentPayloadFieldsSb;
         var fieldData = typeGen.GetFieldData();
         var returningParseValue = fieldData.HasTrigger;
         if (data != null)
         {
-            DataBinaryTranslationGeneration.GenerateWrapperExtraMembers(sb, data, objGen, typeGen, passedLengthAccessor);
+            DataBinaryTranslationGeneration.GenerateWrapperExtraMembers(sb, data, objGen, typeGen, passedLengthAccessor, isMajorRecord: payloadSb != null);
         }
         using (var args = sb.Call(
                    $"{(returningParseValue ? "public " : null)}partial {(returningParseValue ? nameof(ParseResult) : "void")} {(typeGen.Name == null ? typeGen.GetFieldData().RecordType?.ToString() : typeGen.Name)}CustomParse"))

@@ -1324,12 +1324,26 @@ namespace Mutagen.Bethesda.Fallout4
 
         #region EdgeFallOff
         private int? _EdgeFallOffLocation;
-        public UInt32 EdgeFallOff => _EdgeFallOffLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _EdgeFallOffLocation.Value, _package.MetaData.Constants)) : default(UInt32);
+        public UInt32 EdgeFallOff
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _EdgeFallOffLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _EdgeFallOffLocation.Value, _package.MetaData.Constants)) : default(UInt32);
+            }
+        }
         #endregion
         public IReadOnlyList<P2Float>? RegionPointListData { get; private set; }
         #region Unknown
         private int? _UnknownLocation;
-        public UInt32? Unknown => _UnknownLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _UnknownLocation.Value, _package.MetaData.Constants)) : default(UInt32?);
+        public UInt32? Unknown
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _UnknownLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _UnknownLocation.Value, _package.MetaData.Constants)) : default(UInt32?);
+            }
+        }
         #endregion
         partial void CustomFactoryEnd(
             OverlayStream stream,

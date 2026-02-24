@@ -34,6 +34,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -1953,23 +1954,30 @@ namespace Mutagen.Bethesda.Oblivion
         protected override Type LinkType => typeof(IAIPackageGetter);
 
 
-        #region Data
-        private RangeInt32? _DataLocation;
-        public IAIPackageDataGetter? Data => _DataLocation.HasValue ? AIPackageDataBinaryOverlay.AIPackageDataFactory(_recordData.Slice(_DataLocation!.Value.Min), _package) : default;
-        #endregion
-        #region Location
-        private RangeInt32? _LocationLocation;
-        public IAIPackageLocationGetter? Location => _LocationLocation.HasValue ? AIPackageLocationBinaryOverlay.AIPackageLocationFactory(_recordData.Slice(_LocationLocation!.Value.Min), _package) : default;
-        #endregion
-        #region Schedule
-        private RangeInt32? _ScheduleLocation;
-        public IAIPackageScheduleGetter? Schedule => _ScheduleLocation.HasValue ? AIPackageScheduleBinaryOverlay.AIPackageScheduleFactory(_recordData.Slice(_ScheduleLocation!.Value.Min), _package) : default;
-        #endregion
-        #region Target
-        private RangeInt32? _TargetLocation;
-        public IAIPackageTargetGetter? Target => _TargetLocation.HasValue ? AIPackageTargetBinaryOverlay.AIPackageTargetFactory(_recordData.Slice(_TargetLocation!.Value.Min), _package) : default;
-        #endregion
-        public IReadOnlyList<IConditionGetter> Conditions { get; private set; } = [];
+        public IAIPackageDataGetter? Data => Payload.DataLocation.HasValue ? AIPackageDataBinaryOverlay.AIPackageDataFactory(_recordData.Slice(Payload.DataLocation!.Value.Min), _package) : default;
+        public IAIPackageLocationGetter? Location => Payload.LocationLocation.HasValue ? AIPackageLocationBinaryOverlay.AIPackageLocationFactory(_recordData.Slice(Payload.LocationLocation!.Value.Min), _package) : default;
+        public IAIPackageScheduleGetter? Schedule => Payload.ScheduleLocation.HasValue ? AIPackageScheduleBinaryOverlay.AIPackageScheduleFactory(_recordData.Slice(Payload.ScheduleLocation!.Value.Min), _package) : default;
+        public IAIPackageTargetGetter? Target => Payload.TargetLocation.HasValue ? AIPackageTargetBinaryOverlay.AIPackageTargetFactory(_recordData.Slice(Payload.TargetLocation!.Value.Min), _package) : default;
+        public IReadOnlyList<IConditionGetter> Conditions => Payload.Conditions ?? [];
+
+        internal partial class AIPackageRecordDataPayload
+        {
+            public RangeInt32? DataLocation;
+            public RangeInt32? LocationLocation;
+            public RangeInt32? ScheduleLocation;
+            public RangeInt32? TargetLocation;
+            public IReadOnlyList<IConditionGetter> Conditions = [];
+        }
+
+        private LazyPayload<AIPackageRecordDataPayload> _payload = null!;
+
+        internal AIPackageRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<AIPackageRecordDataPayload>(init, new AIPackageRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -1977,10 +1985,10 @@ namespace Mutagen.Bethesda.Oblivion
 
         partial void CustomCtor();
         protected AIPackageBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -1991,28 +1999,51 @@ namespace Mutagen.Bethesda.Oblivion
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new AIPackageBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -2041,28 +2072,28 @@ namespace Mutagen.Bethesda.Oblivion
             {
                 case RecordTypeInts.PKDT:
                 {
-                    _DataLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.DataLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)AIPackage_FieldIndex.Data;
                 }
                 case RecordTypeInts.PLDT:
                 {
-                    _LocationLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.LocationLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)AIPackage_FieldIndex.Location;
                 }
                 case RecordTypeInts.PSDT:
                 {
-                    _ScheduleLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.ScheduleLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)AIPackage_FieldIndex.Schedule;
                 }
                 case RecordTypeInts.PTDT:
                 {
-                    _TargetLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.TargetLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)AIPackage_FieldIndex.Target;
                 }
                 case RecordTypeInts.CTDA:
                 case RecordTypeInts.CTDT:
                 {
-                    this.Conditions = BinaryOverlayList.FactoryByArray<IConditionGetter>(
+                    _payload.Fields.Conditions = BinaryOverlayList.FactoryByArray<IConditionGetter>(
                         mem: stream.RemainingMemory,
                         package: _package,
                         translationParams: translationParams,

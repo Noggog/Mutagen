@@ -1,0 +1,5 @@
+RecordTypes.SCHR,
+RecordTypes.SCDA,
+RecordTypes.SCTX,
+RecordTypes.QNAM,
+RecordTypes.SCRO,

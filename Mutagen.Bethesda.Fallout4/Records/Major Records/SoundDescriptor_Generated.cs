@@ -34,6 +34,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -2655,10 +2656,7 @@ namespace Mutagen.Bethesda.Fallout4
         protected override Type LinkType => typeof(ISoundDescriptorGetter);
 
 
-        #region Notes
-        private int? _NotesLocation;
-        public String? Notes => _NotesLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NotesLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
+        public String? Notes => Payload.NotesLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NotesLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
         #region Data
         partial void DataCustomParse(
             OverlayStream stream,
@@ -2667,32 +2665,43 @@ namespace Mutagen.Bethesda.Fallout4
         public partial IASoundDescriptorGetter? GetDataCustom();
         public IASoundDescriptorGetter? Data => GetDataCustom();
         #endregion
-        #region Category
-        private int? _CategoryLocation;
-        public IFormLinkNullableGetter<ISoundCategoryGetter> Category => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ISoundCategoryGetter>(_package, _recordData, _CategoryLocation);
-        #endregion
-        #region AlternateSoundFor
-        private int? _AlternateSoundForLocation;
-        public IFormLinkNullableGetter<ISoundDescriptorGetter> AlternateSoundFor => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ISoundDescriptorGetter>(_package, _recordData, _AlternateSoundForLocation);
-        #endregion
-        public IReadOnlyList<String> SoundFiles { get; private set; } = [];
-        #region OutputModel
-        private int? _OutputModelLocation;
-        public IFormLinkNullableGetter<ISoundOutputModelGetter> OutputModel => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ISoundOutputModelGetter>(_package, _recordData, _OutputModelLocation);
-        #endregion
-        public IReadOnlyList<IConditionGetter> Conditions { get; private set; } = [];
-        #region LoopAndRumble
-        private RangeInt32? _LoopAndRumbleLocation;
-        public ISoundLoopAndRumbleGetter? LoopAndRumble => _LoopAndRumbleLocation.HasValue ? SoundLoopAndRumbleBinaryOverlay.SoundLoopAndRumbleFactory(_recordData.Slice(_LoopAndRumbleLocation!.Value.Min), _package) : default;
-        #endregion
+        public IFormLinkNullableGetter<ISoundCategoryGetter> Category => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ISoundCategoryGetter>(_package, _recordData, Payload.CategoryLocation);
+        public IFormLinkNullableGetter<ISoundDescriptorGetter> AlternateSoundFor => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ISoundDescriptorGetter>(_package, _recordData, Payload.AlternateSoundForLocation);
+        public IReadOnlyList<String> SoundFiles => Payload.SoundFiles ?? [];
+        public IFormLinkNullableGetter<ISoundOutputModelGetter> OutputModel => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ISoundOutputModelGetter>(_package, _recordData, Payload.OutputModelLocation);
+        public IReadOnlyList<IConditionGetter> Conditions => Payload.Conditions ?? [];
+        public ISoundLoopAndRumbleGetter? LoopAndRumble => Payload.LoopAndRumbleLocation.HasValue ? SoundLoopAndRumbleBinaryOverlay.SoundLoopAndRumbleFactory(_recordData.Slice(Payload.LoopAndRumbleLocation!.Value.Min), _package) : default;
         #region DataParse
         public partial ParseResult DataParseCustomParse(
             OverlayStream stream,
             int offset,
             PreviousParse lastParsed);
         #endregion
-        public IReadOnlyList<IFormLinkGetter<ISoundDescriptorGetter>> Descriptors { get; private set; } = [];
-        public IReadOnlyList<ISoundRateOfFireGetter>? RatesOfFire { get; private set; }
+        public IReadOnlyList<IFormLinkGetter<ISoundDescriptorGetter>> Descriptors => Payload.Descriptors ?? [];
+        public IReadOnlyList<ISoundRateOfFireGetter>? RatesOfFire => Payload.RatesOfFire;
+
+        internal partial class SoundDescriptorRecordDataPayload
+        {
+            public int? NotesLocation;
+            public int? CategoryLocation;
+            public int? AlternateSoundForLocation;
+            public IReadOnlyList<String> SoundFiles = [];
+            public int? OutputModelLocation;
+            public IReadOnlyList<IConditionGetter> Conditions = [];
+            public RangeInt32? LoopAndRumbleLocation;
+            public IReadOnlyList<IFormLinkGetter<ISoundDescriptorGetter>> Descriptors = [];
+            public IReadOnlyList<ISoundRateOfFireGetter>? RatesOfFire;
+        }
+
+        private LazyPayload<SoundDescriptorRecordDataPayload> _payload = null!;
+
+        internal SoundDescriptorRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<SoundDescriptorRecordDataPayload>(init, new SoundDescriptorRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -2700,10 +2709,10 @@ namespace Mutagen.Bethesda.Fallout4
 
         partial void CustomCtor();
         protected SoundDescriptorBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -2714,28 +2723,51 @@ namespace Mutagen.Bethesda.Fallout4
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new SoundDescriptorBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -2764,7 +2796,7 @@ namespace Mutagen.Bethesda.Fallout4
             {
                 case RecordTypeInts.NNAM:
                 {
-                    _NotesLocation = (stream.Position - offset);
+                    _payload.Fields.NotesLocation = (stream.Position - offset);
                     return (int)SoundDescriptor_FieldIndex.Notes;
                 }
                 case RecordTypeInts.CNAM:
@@ -2777,17 +2809,17 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.GNAM:
                 {
-                    _CategoryLocation = (stream.Position - offset);
+                    _payload.Fields.CategoryLocation = (stream.Position - offset);
                     return (int)SoundDescriptor_FieldIndex.Category;
                 }
                 case RecordTypeInts.SNAM:
                 {
-                    _AlternateSoundForLocation = (stream.Position - offset);
+                    _payload.Fields.AlternateSoundForLocation = (stream.Position - offset);
                     return (int)SoundDescriptor_FieldIndex.AlternateSoundFor;
                 }
                 case RecordTypeInts.ANAM:
                 {
-                    this.SoundFiles = BinaryOverlayList.FactoryByArray<String>(
+                    _payload.Fields.SoundFiles = BinaryOverlayList.FactoryByArray<String>(
                         mem: stream.RemainingMemory,
                         package: _package,
                         getter: (s, p) => BinaryStringUtility.ProcessWholeToZString(p.MetaData.Constants.Subrecord(s).Content, encoding: p.MetaData.Encodings.NonTranslated),
@@ -2801,12 +2833,12 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.ONAM:
                 {
-                    _OutputModelLocation = (stream.Position - offset);
+                    _payload.Fields.OutputModelLocation = (stream.Position - offset);
                     return (int)SoundDescriptor_FieldIndex.OutputModel;
                 }
                 case RecordTypeInts.CTDA:
                 {
-                    this.Conditions = BinaryOverlayList.FactoryByArray<IConditionGetter>(
+                    _payload.Fields.Conditions = BinaryOverlayList.FactoryByArray<IConditionGetter>(
                         mem: stream.RemainingMemory,
                         package: _package,
                         translationParams: translationParams,
@@ -2821,7 +2853,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.LNAM:
                 {
-                    _LoopAndRumbleLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.LoopAndRumbleLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)SoundDescriptor_FieldIndex.LoopAndRumble;
                 }
                 case RecordTypeInts.BNAM:
@@ -2833,7 +2865,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.DNAM:
                 {
-                    this.Descriptors = BinaryOverlayList.FactoryByArray<IFormLinkGetter<ISoundDescriptorGetter>>(
+                    _payload.Fields.Descriptors = BinaryOverlayList.FactoryByArray<IFormLinkGetter<ISoundDescriptorGetter>>(
                         mem: stream.RemainingMemory,
                         package: _package,
                         getter: (s, p) => FormLinkBinaryTranslation.Instance.OverlayFactory<ISoundDescriptorGetter>(p, s),
@@ -2850,7 +2882,7 @@ namespace Mutagen.Bethesda.Fallout4
                 case RecordTypeInts.FNAM:
                 case RecordTypeInts.ITMC:
                 {
-                    this.RatesOfFire = BinaryOverlayList.FactoryByCountPerItem<ISoundRateOfFireGetter>(
+                    _payload.Fields.RatesOfFire = BinaryOverlayList.FactoryByCountPerItem<ISoundRateOfFireGetter>(
                         stream: stream,
                         package: _package,
                         countLength: 4,

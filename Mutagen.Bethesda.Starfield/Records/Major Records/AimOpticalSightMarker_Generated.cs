@@ -36,6 +36,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -2390,79 +2391,94 @@ namespace Mutagen.Bethesda.Starfield
         protected override Type LinkType => typeof(IAimOpticalSightMarkerGetter);
 
 
-        public IReadOnlyList<IAComponentGetter> Components { get; private set; } = [];
-        private RangeInt32? _ANAMLocation;
+        public IReadOnlyList<IAComponentGetter> Components => Payload.Components ?? [];
         #region ActivateSightOnSightedMode
-        private int _ActivateSightOnSightedModeLocation => _ANAMLocation!.Value.Min;
-        private bool _ActivateSightOnSightedMode_IsSet => _ANAMLocation.HasValue;
+        private int _ActivateSightOnSightedModeLocation => Payload.ANAMLocation!.Value.Min;
+        private bool _ActivateSightOnSightedMode_IsSet => Payload.ANAMLocation.HasValue;
         public Boolean ActivateSightOnSightedMode => _ActivateSightOnSightedMode_IsSet ? _recordData.Slice(_ActivateSightOnSightedModeLocation, 1)[0] >= 1 : default(Boolean);
         #endregion
         #region OpticalSightAttachNode
-        private int _OpticalSightAttachNodeLocation => _ANAMLocation!.Value.Min + 0x1;
-        private bool _OpticalSightAttachNode_IsSet => _ANAMLocation.HasValue;
+        private int _OpticalSightAttachNodeLocation => Payload.ANAMLocation!.Value.Min + 0x1;
+        private bool _OpticalSightAttachNode_IsSet => Payload.ANAMLocation.HasValue;
         public String OpticalSightAttachNode => _OpticalSightAttachNode_IsSet ? BinaryStringUtility.ParsePrependedString(_recordData.Slice(_OpticalSightAttachNodeLocation), lengthLength: 4, encoding: _package.MetaData.Encodings.NonTranslated) : string.Empty;
         protected int OpticalSightAttachNodeEndingPos;
         #endregion
         #region DelayBeforeSightActivation
         private int _DelayBeforeSightActivationLocation => OpticalSightAttachNodeEndingPos;
-        private bool _DelayBeforeSightActivation_IsSet => _ANAMLocation.HasValue;
+        private bool _DelayBeforeSightActivation_IsSet => Payload.ANAMLocation.HasValue;
         public Single DelayBeforeSightActivation => _DelayBeforeSightActivation_IsSet ? _recordData.Slice(_DelayBeforeSightActivationLocation, 4).Float() : default(Single);
         #endregion
         #region DelayBeforeSightDeactivation
         private int _DelayBeforeSightDeactivationLocation => OpticalSightAttachNodeEndingPos + 0x4;
-        private bool _DelayBeforeSightDeactivation_IsSet => _ANAMLocation.HasValue;
+        private bool _DelayBeforeSightDeactivation_IsSet => Payload.ANAMLocation.HasValue;
         public Single DelayBeforeSightDeactivation => _DelayBeforeSightDeactivation_IsSet ? _recordData.Slice(_DelayBeforeSightDeactivationLocation, 4).Float() : default(Single);
         #endregion
         #region OpticalSightLight
         private int _OpticalSightLightLocation => OpticalSightAttachNodeEndingPos + 0x8;
-        private bool _OpticalSightLight_IsSet => _ANAMLocation.HasValue;
+        private bool _OpticalSightLight_IsSet => Payload.ANAMLocation.HasValue;
         public IFormLinkGetter<ILightGetter> OpticalSightLight => _OpticalSightLight_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<ILightGetter>(_package, _recordData.Span.Slice(_OpticalSightLightLocation, 0x4), isSet: _OpticalSightLight_IsSet) : FormLink<ILightGetter>.Null;
         #endregion
         #region FocalPointDistance
         private int _FocalPointDistanceLocation => OpticalSightAttachNodeEndingPos + 0xC;
-        private bool _FocalPointDistance_IsSet => _ANAMLocation.HasValue;
+        private bool _FocalPointDistance_IsSet => Payload.ANAMLocation.HasValue;
         public Single FocalPointDistance => _FocalPointDistance_IsSet ? _recordData.Slice(_FocalPointDistanceLocation, 4).Float() : default(Single);
         #endregion
         #region FocalPointDistanceDuringAiming
         private int _FocalPointDistanceDuringAimingLocation => OpticalSightAttachNodeEndingPos + 0x10;
-        private bool _FocalPointDistanceDuringAiming_IsSet => _ANAMLocation.HasValue;
+        private bool _FocalPointDistanceDuringAiming_IsSet => Payload.ANAMLocation.HasValue;
         public Single FocalPointDistanceDuringAiming => _FocalPointDistanceDuringAiming_IsSet ? _recordData.Slice(_FocalPointDistanceDuringAimingLocation, 4).Float() : default(Single);
         #endregion
         #region DelayBetweenShots
         private int _DelayBetweenShotsLocation => OpticalSightAttachNodeEndingPos + 0x14;
-        private bool _DelayBetweenShots_IsSet => _ANAMLocation.HasValue;
+        private bool _DelayBetweenShots_IsSet => Payload.ANAMLocation.HasValue;
         public Single DelayBetweenShots => _DelayBetweenShots_IsSet ? _recordData.Slice(_DelayBetweenShotsLocation, 4).Float() : default(Single);
         #endregion
         #region LaserArtObject
         private int _LaserArtObjectLocation => OpticalSightAttachNodeEndingPos + 0x18;
-        private bool _LaserArtObject_IsSet => _ANAMLocation.HasValue;
+        private bool _LaserArtObject_IsSet => Payload.ANAMLocation.HasValue;
         public IFormLinkGetter<IArtObjectGetter> LaserArtObject => _LaserArtObject_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IArtObjectGetter>(_package, _recordData.Span.Slice(_LaserArtObjectLocation, 0x4), isSet: _LaserArtObject_IsSet) : FormLink<IArtObjectGetter>.Null;
         #endregion
         #region LaserDotArtObject
         private int _LaserDotArtObjectLocation => OpticalSightAttachNodeEndingPos + 0x1C;
-        private bool _LaserDotArtObject_IsSet => _ANAMLocation.HasValue;
+        private bool _LaserDotArtObject_IsSet => Payload.ANAMLocation.HasValue;
         public IFormLinkGetter<IArtObjectGetter> LaserDotArtObject => _LaserDotArtObject_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IArtObjectGetter>(_package, _recordData.Span.Slice(_LaserDotArtObjectLocation, 0x4), isSet: _LaserDotArtObject_IsSet) : FormLink<IArtObjectGetter>.Null;
         #endregion
         #region MaxLaserPointerDistance
         private int _MaxLaserPointerDistanceLocation => OpticalSightAttachNodeEndingPos + 0x20;
-        private bool _MaxLaserPointerDistance_IsSet => _ANAMLocation.HasValue;
+        private bool _MaxLaserPointerDistance_IsSet => Payload.ANAMLocation.HasValue;
         public Single MaxLaserPointerDistance => _MaxLaserPointerDistance_IsSet ? _recordData.Slice(_MaxLaserPointerDistanceLocation, 4).Float() : default(Single);
         #endregion
         #region SightControlsFiringDirection
         private int _SightControlsFiringDirectionLocation => OpticalSightAttachNodeEndingPos + 0x24;
-        private bool _SightControlsFiringDirection_IsSet => _ANAMLocation.HasValue;
+        private bool _SightControlsFiringDirection_IsSet => Payload.ANAMLocation.HasValue;
         public Boolean SightControlsFiringDirection => _SightControlsFiringDirection_IsSet ? _recordData.Slice(_SightControlsFiringDirectionLocation, 1)[0] >= 1 : default(Boolean);
         #endregion
         #region ActivateSightOnNonSightedMode
         private int _ActivateSightOnNonSightedModeLocation => OpticalSightAttachNodeEndingPos + 0x25;
-        private bool _ActivateSightOnNonSightedMode_IsSet => _ANAMLocation.HasValue;
+        private bool _ActivateSightOnNonSightedMode_IsSet => Payload.ANAMLocation.HasValue;
         public Boolean ActivateSightOnNonSightedMode => _ActivateSightOnNonSightedMode_IsSet ? _recordData.Slice(_ActivateSightOnNonSightedModeLocation, 1)[0] >= 1 : default(Boolean);
         #endregion
         #region ActivateSightOnScopedMode
         private int _ActivateSightOnScopedModeLocation => OpticalSightAttachNodeEndingPos + 0x26;
-        private bool _ActivateSightOnScopedMode_IsSet => _ANAMLocation.HasValue;
+        private bool _ActivateSightOnScopedMode_IsSet => Payload.ANAMLocation.HasValue;
         public Boolean ActivateSightOnScopedMode => _ActivateSightOnScopedMode_IsSet ? _recordData.Slice(_ActivateSightOnScopedModeLocation, 1)[0] >= 1 : default(Boolean);
         #endregion
+
+        internal partial class AimOpticalSightMarkerRecordDataPayload
+        {
+            public IReadOnlyList<IAComponentGetter> Components = [];
+            public RangeInt32? ANAMLocation;
+        }
+
+        private LazyPayload<AimOpticalSightMarkerRecordDataPayload> _payload = null!;
+
+        internal AimOpticalSightMarkerRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<AimOpticalSightMarkerRecordDataPayload>(init, new AimOpticalSightMarkerRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -2470,10 +2486,10 @@ namespace Mutagen.Bethesda.Starfield
 
         partial void CustomCtor();
         protected AimOpticalSightMarkerBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -2484,29 +2500,52 @@ namespace Mutagen.Bethesda.Starfield
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new AimOpticalSightMarkerBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
-            ret.OpticalSightAttachNodeEndingPos = ret._ANAMLocation!.Value.Min + 0x1 + BinaryPrimitives.ReadInt32LittleEndian(ret._recordData.Slice(ret._ANAMLocation!.Value.Min + 0x1)) + 4;
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                ret.OpticalSightAttachNodeEndingPos = ret._payload.Fields.ANAMLocation!.Value.Min + 0x1 + BinaryPrimitives.ReadInt32LittleEndian(ret._recordData.Slice(ret._payload.Fields.ANAMLocation!.Value.Min + 0x1)) + 4;
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -2535,7 +2574,7 @@ namespace Mutagen.Bethesda.Starfield
             {
                 case RecordTypeInts.BFCB:
                 {
-                    this.Components = this.ParseRepeatedTypelessSubrecord<IAComponentGetter>(
+                    _payload.Fields.Components = this.ParseRepeatedTypelessSubrecord<IAComponentGetter>(
                         stream: stream,
                         translationParams: translationParams,
                         trigger: AComponent_Registration.TriggerSpecs,
@@ -2544,7 +2583,7 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.ANAM:
                 {
-                    _ANAMLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.ANAMLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     return (int)AimOpticalSightMarker_FieldIndex.ActivateSightOnScopedMode;
                 }
                 default:

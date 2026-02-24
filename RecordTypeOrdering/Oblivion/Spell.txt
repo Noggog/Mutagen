@@ -1,0 +1,6 @@
+RecordTypes.EDID,
+RecordTypes.FULL,
+RecordTypes.SPIT,
+RecordTypes.EFID,
+RecordTypes.EFIT,
+RecordTypes.SCIT,

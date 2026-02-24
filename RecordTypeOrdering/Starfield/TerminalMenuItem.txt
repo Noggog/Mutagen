@@ -1,0 +1,5 @@
+RecordTypes.ITXT,
+RecordTypes.ISTX,
+RecordTypes.ITID,
+RecordTypes.XLOC,
+RecordTypes.CTDA,

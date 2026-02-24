@@ -1943,12 +1943,26 @@ namespace Mutagen.Bethesda.Starfield
         #endregion
         #region SequenceName
         private int? _SequenceNameLocation;
-        public String? SequenceName => _SequenceNameLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _SequenceNameLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? SequenceName
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _SequenceNameLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_data, _SequenceNameLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+            }
+        }
         #endregion
         public IModelGetter? Model { get; private set; }
         #region UnusedMaterialSwap
         private int? _UnusedMaterialSwapLocation;
-        public Int32? UnusedMaterialSwap => _UnusedMaterialSwapLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _UnusedMaterialSwapLocation.Value, _package.MetaData.Constants)) : default(Int32?);
+        public Int32? UnusedMaterialSwap
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _UnusedMaterialSwapLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _UnusedMaterialSwapLocation.Value, _package.MetaData.Constants)) : default(Int32?);
+            }
+        }
         #endregion
         partial void CustomFactoryEnd(
             OverlayStream stream,

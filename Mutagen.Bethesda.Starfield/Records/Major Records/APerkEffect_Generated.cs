@@ -1532,11 +1532,25 @@ namespace Mutagen.Bethesda.Starfield
         private RangeInt32? _PRKELocation;
         #region PerkEntryID
         private int? _PerkEntryIDLocation;
-        public UInt16? PerkEntryID => _PerkEntryIDLocation.HasValue ? BinaryPrimitives.ReadUInt16LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _PerkEntryIDLocation.Value, _package.MetaData.Constants)) : default(UInt16?);
+        public UInt16? PerkEntryID
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _PerkEntryIDLocation.HasValue ? BinaryPrimitives.ReadUInt16LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _PerkEntryIDLocation.Value, _package.MetaData.Constants)) : default(UInt16?);
+            }
+        }
         #endregion
         #region ButtonLabel
         private int? _ButtonLabelLocation;
-        public ITranslatedStringGetter? ButtonLabel => _ButtonLabelLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _ButtonLabelLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+        public ITranslatedStringGetter? ButtonLabel
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _ButtonLabelLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_data, _ButtonLabelLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+            }
+        }
         #endregion
         #region Flags
         private int? _FlagsLocation;

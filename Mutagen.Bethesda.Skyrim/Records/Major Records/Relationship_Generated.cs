@@ -34,6 +34,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -1729,37 +1730,51 @@ namespace Mutagen.Bethesda.Skyrim
 
         public Relationship.MajorFlag MajorFlags => (Relationship.MajorFlag)this.MajorRecordFlagsRaw;
 
-        private RangeInt32? _DATALocation;
         #region Parent
-        private int _ParentLocation => _DATALocation!.Value.Min;
-        private bool _Parent_IsSet => _DATALocation.HasValue;
+        private int _ParentLocation => Payload.DATALocation!.Value.Min;
+        private bool _Parent_IsSet => Payload.DATALocation.HasValue;
         public IFormLinkGetter<INpcGetter> Parent => _Parent_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<INpcGetter>(_package, _recordData.Span.Slice(_ParentLocation, 0x4), isSet: _Parent_IsSet) : FormLink<INpcGetter>.Null;
         #endregion
         #region Child
-        private int _ChildLocation => _DATALocation!.Value.Min + 0x4;
-        private bool _Child_IsSet => _DATALocation.HasValue;
+        private int _ChildLocation => Payload.DATALocation!.Value.Min + 0x4;
+        private bool _Child_IsSet => Payload.DATALocation.HasValue;
         public IFormLinkGetter<INpcGetter> Child => _Child_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<INpcGetter>(_package, _recordData.Span.Slice(_ChildLocation, 0x4), isSet: _Child_IsSet) : FormLink<INpcGetter>.Null;
         #endregion
         #region Rank
-        private int _RankLocation => _DATALocation!.Value.Min + 0x8;
-        private bool _Rank_IsSet => _DATALocation.HasValue;
+        private int _RankLocation => Payload.DATALocation!.Value.Min + 0x8;
+        private bool _Rank_IsSet => Payload.DATALocation.HasValue;
         public Relationship.RankType Rank => _Rank_IsSet ? (Relationship.RankType)BinaryPrimitives.ReadUInt16LittleEndian(_recordData.Span.Slice(_RankLocation, 0x2)) : default;
         #endregion
         #region Unknown
-        private int _UnknownLocation => _DATALocation!.Value.Min + 0xA;
-        private bool _Unknown_IsSet => _DATALocation.HasValue;
+        private int _UnknownLocation => Payload.DATALocation!.Value.Min + 0xA;
+        private bool _Unknown_IsSet => Payload.DATALocation.HasValue;
         public Byte Unknown => _Unknown_IsSet ? _recordData.Span[_UnknownLocation] : default;
         #endregion
         #region Flags
-        private int _FlagsLocation => _DATALocation!.Value.Min + 0xB;
-        private bool _Flags_IsSet => _DATALocation.HasValue;
+        private int _FlagsLocation => Payload.DATALocation!.Value.Min + 0xB;
+        private bool _Flags_IsSet => Payload.DATALocation.HasValue;
         public Relationship.Flag Flags => _Flags_IsSet ? (Relationship.Flag)_recordData.Span.Slice(_FlagsLocation, 0x1)[0] : default;
         #endregion
         #region AssociationType
-        private int _AssociationTypeLocation => _DATALocation!.Value.Min + 0xC;
-        private bool _AssociationType_IsSet => _DATALocation.HasValue;
+        private int _AssociationTypeLocation => Payload.DATALocation!.Value.Min + 0xC;
+        private bool _AssociationType_IsSet => Payload.DATALocation.HasValue;
         public IFormLinkGetter<IAssociationTypeGetter> AssociationType => _AssociationType_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IAssociationTypeGetter>(_package, _recordData.Span.Slice(_AssociationTypeLocation, 0x4), isSet: _AssociationType_IsSet) : FormLink<IAssociationTypeGetter>.Null;
         #endregion
+
+        internal partial class RelationshipRecordDataPayload
+        {
+            public RangeInt32? DATALocation;
+        }
+
+        private LazyPayload<RelationshipRecordDataPayload> _payload = null!;
+
+        internal RelationshipRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<RelationshipRecordDataPayload>(init, new RelationshipRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -1767,10 +1782,10 @@ namespace Mutagen.Bethesda.Skyrim
 
         partial void CustomCtor();
         protected RelationshipBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -1781,28 +1796,51 @@ namespace Mutagen.Bethesda.Skyrim
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new RelationshipBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -1831,7 +1869,7 @@ namespace Mutagen.Bethesda.Skyrim
             {
                 case RecordTypeInts.DATA:
                 {
-                    _DATALocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.DATALocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     return (int)Relationship_FieldIndex.AssociationType;
                 }
                 default:

@@ -1,0 +1,4 @@
+RecordTypes.EDID,
+RecordTypes.DAMA,
+RecordTypes.ITMC,
+RecordTypes.ACTV,

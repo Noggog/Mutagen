@@ -33,6 +33,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -1672,37 +1673,51 @@ namespace Mutagen.Bethesda.Fallout4
         protected override Type LinkType => typeof(IAttractionRuleGetter);
 
 
-        private RangeInt32? _AOR2Location;
         #region Radius
-        private int _RadiusLocation => _AOR2Location!.Value.Min;
-        private bool _Radius_IsSet => _AOR2Location.HasValue;
+        private int _RadiusLocation => Payload.AOR2Location!.Value.Min;
+        private bool _Radius_IsSet => Payload.AOR2Location.HasValue;
         public Single Radius => _Radius_IsSet ? _recordData.Slice(_RadiusLocation, 4).Float() : default(Single);
         #endregion
         #region MinDelay
-        private int _MinDelayLocation => _AOR2Location!.Value.Min + 0x4;
-        private bool _MinDelay_IsSet => _AOR2Location.HasValue;
+        private int _MinDelayLocation => Payload.AOR2Location!.Value.Min + 0x4;
+        private bool _MinDelay_IsSet => Payload.AOR2Location.HasValue;
         public Single MinDelay => _MinDelay_IsSet ? _recordData.Slice(_MinDelayLocation, 4).Float() : default(Single);
         #endregion
         #region MaxDelay
-        private int _MaxDelayLocation => _AOR2Location!.Value.Min + 0x8;
-        private bool _MaxDelay_IsSet => _AOR2Location.HasValue;
+        private int _MaxDelayLocation => Payload.AOR2Location!.Value.Min + 0x8;
+        private bool _MaxDelay_IsSet => Payload.AOR2Location.HasValue;
         public Single MaxDelay => _MaxDelay_IsSet ? _recordData.Slice(_MaxDelayLocation, 4).Float() : default(Single);
         #endregion
         #region RequiresLineOfSight
-        private int _RequiresLineOfSightLocation => _AOR2Location!.Value.Min + 0xC;
-        private bool _RequiresLineOfSight_IsSet => _AOR2Location.HasValue;
+        private int _RequiresLineOfSightLocation => Payload.AOR2Location!.Value.Min + 0xC;
+        private bool _RequiresLineOfSight_IsSet => Payload.AOR2Location.HasValue;
         public Boolean RequiresLineOfSight => _RequiresLineOfSight_IsSet ? _recordData.Slice(_RequiresLineOfSightLocation, 1)[0] >= 1 : default(Boolean);
         #endregion
         #region IsCombatTarget
-        private int _IsCombatTargetLocation => _AOR2Location!.Value.Min + 0xD;
-        private bool _IsCombatTarget_IsSet => _AOR2Location.HasValue;
+        private int _IsCombatTargetLocation => Payload.AOR2Location!.Value.Min + 0xD;
+        private bool _IsCombatTarget_IsSet => Payload.AOR2Location.HasValue;
         public Boolean IsCombatTarget => _IsCombatTarget_IsSet ? _recordData.Slice(_IsCombatTargetLocation, 1)[0] >= 1 : default(Boolean);
         #endregion
         #region Unused
-        private int _UnusedLocation => _AOR2Location!.Value.Min + 0xE;
-        private bool _Unused_IsSet => _AOR2Location.HasValue;
+        private int _UnusedLocation => Payload.AOR2Location!.Value.Min + 0xE;
+        private bool _Unused_IsSet => Payload.AOR2Location.HasValue;
         public UInt16 Unused => _Unused_IsSet ? BinaryPrimitives.ReadUInt16LittleEndian(_recordData.Slice(_UnusedLocation, 2)) : default(UInt16);
         #endregion
+
+        internal partial class AttractionRuleRecordDataPayload
+        {
+            public RangeInt32? AOR2Location;
+        }
+
+        private LazyPayload<AttractionRuleRecordDataPayload> _payload = null!;
+
+        internal AttractionRuleRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<AttractionRuleRecordDataPayload>(init, new AttractionRuleRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -1710,10 +1725,10 @@ namespace Mutagen.Bethesda.Fallout4
 
         partial void CustomCtor();
         protected AttractionRuleBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -1724,28 +1739,51 @@ namespace Mutagen.Bethesda.Fallout4
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new AttractionRuleBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -1774,7 +1812,7 @@ namespace Mutagen.Bethesda.Fallout4
             {
                 case RecordTypeInts.AOR2:
                 {
-                    _AOR2Location = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.AOR2Location = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     return (int)AttractionRule_FieldIndex.Unused;
                 }
                 default:

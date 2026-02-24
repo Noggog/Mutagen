@@ -1142,11 +1142,25 @@ namespace Mutagen.Bethesda.Plugins.Records
 
         #region Master
         private int? _MasterLocation;
-        public ModKey Master => _MasterLocation.HasValue ? ModKey.FromNameAndExtension(BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _MasterLocation.Value, _package.MetaData.Constants), _package.MetaData.Encodings.NonTranslated)) : ModKey.Null;
+        public ModKey Master
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _MasterLocation.HasValue ? ModKey.FromNameAndExtension(BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_data, _MasterLocation.Value, _package.MetaData.Constants), _package.MetaData.Encodings.NonTranslated)) : ModKey.Null;
+            }
+        }
         #endregion
         #region FileSize
         private int? _FileSizeLocation;
-        public UInt64? FileSize => _FileSizeLocation.HasValue ? BinaryPrimitives.ReadUInt64LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _FileSizeLocation.Value, _package.MetaData.Constants)) : default(UInt64?);
+        public UInt64? FileSize
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _FileSizeLocation.HasValue ? BinaryPrimitives.ReadUInt64LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _FileSizeLocation.Value, _package.MetaData.Constants)) : default(UInt64?);
+            }
+        }
         #endregion
         partial void CustomFactoryEnd(
             OverlayStream stream,

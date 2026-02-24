@@ -34,6 +34,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -1850,52 +1851,66 @@ namespace Mutagen.Bethesda.Fallout4
         protected override Type LinkType => typeof(IGodRaysGetter);
 
 
-        private RangeInt32? _DATALocation;
         #region BackColor
-        private int _BackColorLocation => _DATALocation!.Value.Min;
-        private bool _BackColor_IsSet => _DATALocation.HasValue;
+        private int _BackColorLocation => Payload.DATALocation!.Value.Min;
+        private bool _BackColor_IsSet => Payload.DATALocation.HasValue;
         public Color BackColor => _BackColor_IsSet ? _recordData.Slice(_BackColorLocation, 12).ReadColor(ColorBinaryType.NoAlphaFloat) : default(Color);
         #endregion
         #region ForwardColor
-        private int _ForwardColorLocation => _DATALocation!.Value.Min + 0xC;
-        private bool _ForwardColor_IsSet => _DATALocation.HasValue;
+        private int _ForwardColorLocation => Payload.DATALocation!.Value.Min + 0xC;
+        private bool _ForwardColor_IsSet => Payload.DATALocation.HasValue;
         public Color ForwardColor => _ForwardColor_IsSet ? _recordData.Slice(_ForwardColorLocation, 12).ReadColor(ColorBinaryType.NoAlphaFloat) : default(Color);
         #endregion
         #region Intensity
-        private int _IntensityLocation => _DATALocation!.Value.Min + 0x18;
-        private bool _Intensity_IsSet => _DATALocation.HasValue;
+        private int _IntensityLocation => Payload.DATALocation!.Value.Min + 0x18;
+        private bool _Intensity_IsSet => Payload.DATALocation.HasValue;
         public Single Intensity => _Intensity_IsSet ? _recordData.Slice(_IntensityLocation, 4).Float() : default(Single);
         #endregion
         #region AirColorScale
-        private int _AirColorScaleLocation => _DATALocation!.Value.Min + 0x1C;
-        private bool _AirColorScale_IsSet => _DATALocation.HasValue;
+        private int _AirColorScaleLocation => Payload.DATALocation!.Value.Min + 0x1C;
+        private bool _AirColorScale_IsSet => Payload.DATALocation.HasValue;
         public Single AirColorScale => _AirColorScale_IsSet ? _recordData.Slice(_AirColorScaleLocation, 4).Float() : default(Single);
         #endregion
         #region BackColorScale
-        private int _BackColorScaleLocation => _DATALocation!.Value.Min + 0x20;
-        private bool _BackColorScale_IsSet => _DATALocation.HasValue;
+        private int _BackColorScaleLocation => Payload.DATALocation!.Value.Min + 0x20;
+        private bool _BackColorScale_IsSet => Payload.DATALocation.HasValue;
         public Single BackColorScale => _BackColorScale_IsSet ? _recordData.Slice(_BackColorScaleLocation, 4).Float() : default(Single);
         #endregion
         #region ForwardColorScale
-        private int _ForwardColorScaleLocation => _DATALocation!.Value.Min + 0x24;
-        private bool _ForwardColorScale_IsSet => _DATALocation.HasValue;
+        private int _ForwardColorScaleLocation => Payload.DATALocation!.Value.Min + 0x24;
+        private bool _ForwardColorScale_IsSet => Payload.DATALocation.HasValue;
         public Single ForwardColorScale => _ForwardColorScale_IsSet ? _recordData.Slice(_ForwardColorScaleLocation, 4).Float() : default(Single);
         #endregion
         #region BackPhase
-        private int _BackPhaseLocation => _DATALocation!.Value.Min + 0x28;
-        private bool _BackPhase_IsSet => _DATALocation.HasValue;
+        private int _BackPhaseLocation => Payload.DATALocation!.Value.Min + 0x28;
+        private bool _BackPhase_IsSet => Payload.DATALocation.HasValue;
         public Single BackPhase => _BackPhase_IsSet ? _recordData.Slice(_BackPhaseLocation, 4).Float() : default(Single);
         #endregion
         #region AirColor
-        private int _AirColorLocation => _DATALocation!.Value.Min + 0x2C;
-        private bool _AirColor_IsSet => _DATALocation.HasValue;
+        private int _AirColorLocation => Payload.DATALocation!.Value.Min + 0x2C;
+        private bool _AirColor_IsSet => Payload.DATALocation.HasValue;
         public Color AirColor => _AirColor_IsSet ? _recordData.Slice(_AirColorLocation, 12).ReadColor(ColorBinaryType.NoAlphaFloat) : default(Color);
         #endregion
         #region ForwardPhase
-        private int _ForwardPhaseLocation => _DATALocation!.Value.Min + 0x38;
-        private bool _ForwardPhase_IsSet => _DATALocation.HasValue;
+        private int _ForwardPhaseLocation => Payload.DATALocation!.Value.Min + 0x38;
+        private bool _ForwardPhase_IsSet => Payload.DATALocation.HasValue;
         public Single ForwardPhase => _ForwardPhase_IsSet ? _recordData.Slice(_ForwardPhaseLocation, 4).Float() : default(Single);
         #endregion
+
+        internal partial class GodRaysRecordDataPayload
+        {
+            public RangeInt32? DATALocation;
+        }
+
+        private LazyPayload<GodRaysRecordDataPayload> _payload = null!;
+
+        internal GodRaysRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<GodRaysRecordDataPayload>(init, new GodRaysRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -1903,10 +1918,10 @@ namespace Mutagen.Bethesda.Fallout4
 
         partial void CustomCtor();
         protected GodRaysBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -1917,28 +1932,51 @@ namespace Mutagen.Bethesda.Fallout4
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new GodRaysBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -1967,7 +2005,7 @@ namespace Mutagen.Bethesda.Fallout4
             {
                 case RecordTypeInts.DATA:
                 {
-                    _DATALocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.DATALocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     return (int)GodRays_FieldIndex.ForwardPhase;
                 }
                 default:

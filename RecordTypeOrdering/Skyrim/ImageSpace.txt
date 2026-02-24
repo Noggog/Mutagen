@@ -1,0 +1,6 @@
+RecordTypes.EDID,
+RecordTypes.ENAM,
+RecordTypes.HNAM,
+RecordTypes.CNAM,
+RecordTypes.TNAM,
+RecordTypes.DNAM,

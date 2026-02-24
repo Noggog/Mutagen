@@ -39,6 +39,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -2594,14 +2595,11 @@ namespace Mutagen.Bethesda.Starfield
         public Perk.MajorFlag MajorFlags => (Perk.MajorFlag)this.MajorRecordFlagsRaw;
 
         #region VirtualMachineAdapter
-        private int? _VirtualMachineAdapterLengthOverride;
-        private RangeInt32? _VirtualMachineAdapterLocation;
-        public IPerkAdapterGetter? VirtualMachineAdapter => _VirtualMachineAdapterLocation.HasValue ? PerkAdapterBinaryOverlay.PerkAdapterFactory(_recordData.Slice(_VirtualMachineAdapterLocation!.Value.Min), _package, TypedParseParams.FromLengthOverride(_VirtualMachineAdapterLengthOverride)) : default;
+        public IPerkAdapterGetter? VirtualMachineAdapter => Payload.VirtualMachineAdapterLocation.HasValue ? PerkAdapterBinaryOverlay.PerkAdapterFactory(_recordData.Slice(Payload.VirtualMachineAdapterLocation!.Value.Min), _package, TypedParseParams.FromLengthOverride(Payload.VirtualMachineAdapterLengthOverride)) : default;
         IAVirtualMachineAdapterGetter? IHaveVirtualMachineAdapterGetter.VirtualMachineAdapter => this.VirtualMachineAdapter;
         #endregion
         #region Name
-        private int? _NameLocation;
-        public ITranslatedStringGetter? Name => _NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+        public ITranslatedStringGetter? Name => Payload.NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
         #region Aspects
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         string INamedRequiredGetter.Name => this.Name?.String ?? string.Empty;
@@ -2611,45 +2609,56 @@ namespace Mutagen.Bethesda.Starfield
         ITranslatedStringGetter ITranslatedNamedRequiredGetter.Name => this.Name ?? TranslatedString.Empty;
         #endregion
         #endregion
-        #region Description
-        private int? _DescriptionLocation;
-        public ITranslatedStringGetter Description => _DescriptionLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _DescriptionLocation.Value, _package.MetaData.Constants), StringsSource.DL, parsingBundle: _package.MetaData, eager: false) : TranslatedString.Empty;
-        #endregion
-        private RangeInt32? _DATALocation;
+        public ITranslatedStringGetter Description => Payload.DescriptionLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.DescriptionLocation.Value, _package.MetaData.Constants), StringsSource.DL, parsingBundle: _package.MetaData, eager: false) : TranslatedString.Empty;
         #region Categroy
-        private int _CategroyLocation => _DATALocation!.Value.Min;
-        private bool _Categroy_IsSet => _DATALocation.HasValue;
+        private int _CategroyLocation => Payload.DATALocation!.Value.Min;
+        private bool _Categroy_IsSet => Payload.DATALocation.HasValue;
         public PerkCategory Categroy => _Categroy_IsSet ? (PerkCategory)_recordData.Span.Slice(_CategroyLocation, 0x1)[0] : default;
         #endregion
         #region SkillGroup
-        private int _SkillGroupLocation => _DATALocation!.Value.Min + 0x1;
-        private bool _SkillGroup_IsSet => _DATALocation.HasValue;
+        private int _SkillGroupLocation => Payload.DATALocation!.Value.Min + 0x1;
+        private bool _SkillGroup_IsSet => Payload.DATALocation.HasValue;
         public PerkSkillGroup SkillGroup => _SkillGroup_IsSet ? (PerkSkillGroup)_recordData.Span.Slice(_SkillGroupLocation, 0x1)[0] : default;
         #endregion
         #region CrewAssignment
-        private int _CrewAssignmentLocation => _DATALocation!.Value.Min + 0x2;
-        private bool _CrewAssignment_IsSet => _DATALocation.HasValue;
+        private int _CrewAssignmentLocation => Payload.DATALocation!.Value.Min + 0x2;
+        private bool _CrewAssignment_IsSet => Payload.DATALocation.HasValue;
         public Perk.PerkCrewAssignment CrewAssignment => _CrewAssignment_IsSet ? (Perk.PerkCrewAssignment)_recordData.Span.Slice(_CrewAssignmentLocation, 0x1)[0] : default;
         #endregion
         #region Flags
-        private int _FlagsLocation => _DATALocation!.Value.Min + 0x3;
-        private bool _Flags_IsSet => _DATALocation.HasValue;
+        private int _FlagsLocation => Payload.DATALocation!.Value.Min + 0x3;
+        private bool _Flags_IsSet => Payload.DATALocation.HasValue;
         public Perk.Flag Flags => _Flags_IsSet ? (Perk.Flag)_recordData.Span.Slice(_FlagsLocation, 0x1)[0] : default;
         #endregion
-        #region Restriction
-        private int? _RestrictionLocation;
-        public IFormLinkNullableGetter<IKeywordGetter> Restriction => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IKeywordGetter>(_package, _recordData, _RestrictionLocation);
-        #endregion
-        #region PerkIcon
-        private int? _PerkIconLocation;
-        public AssetLinkGetter<StarfieldTextureAssetType>? PerkIcon => _PerkIconLocation.HasValue ? new AssetLinkGetter<StarfieldTextureAssetType>(BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _PerkIconLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated)) : default(AssetLinkGetter<StarfieldTextureAssetType>?);
-        #endregion
-        #region Training
-        private int? _TrainingLocation;
-        public IFormLinkNullableGetter<IPerkGetter> Training => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IPerkGetter>(_package, _recordData, _TrainingLocation);
-        #endregion
-        public IReadOnlyList<IPerkRankGetter> Ranks { get; private set; } = [];
-        public IReadOnlyList<IFormLinkGetter<IPerkGetter>> BackgroundSkills { get; private set; } = [];
+        public IFormLinkNullableGetter<IKeywordGetter> Restriction => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IKeywordGetter>(_package, _recordData, Payload.RestrictionLocation);
+        public AssetLinkGetter<StarfieldTextureAssetType>? PerkIcon => Payload.PerkIconLocation.HasValue ? new AssetLinkGetter<StarfieldTextureAssetType>(BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.PerkIconLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated)) : default(AssetLinkGetter<StarfieldTextureAssetType>?);
+        public IFormLinkNullableGetter<IPerkGetter> Training => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IPerkGetter>(_package, _recordData, Payload.TrainingLocation);
+        public IReadOnlyList<IPerkRankGetter> Ranks => Payload.Ranks ?? [];
+        public IReadOnlyList<IFormLinkGetter<IPerkGetter>> BackgroundSkills => Payload.BackgroundSkills ?? [];
+
+        internal partial class PerkRecordDataPayload
+        {
+            public int? VirtualMachineAdapterLengthOverride;
+            public RangeInt32? VirtualMachineAdapterLocation;
+            public int? NameLocation;
+            public int? DescriptionLocation;
+            public RangeInt32? DATALocation;
+            public int? RestrictionLocation;
+            public int? PerkIconLocation;
+            public int? TrainingLocation;
+            public IReadOnlyList<IPerkRankGetter> Ranks = [];
+            public IReadOnlyList<IFormLinkGetter<IPerkGetter>> BackgroundSkills = [];
+        }
+
+        private LazyPayload<PerkRecordDataPayload> _payload = null!;
+
+        internal PerkRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<PerkRecordDataPayload>(init, new PerkRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -2657,10 +2666,10 @@ namespace Mutagen.Bethesda.Starfield
 
         partial void CustomCtor();
         protected PerkBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -2671,28 +2680,51 @@ namespace Mutagen.Bethesda.Starfield
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new PerkBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -2721,8 +2753,8 @@ namespace Mutagen.Bethesda.Starfield
             {
                 case RecordTypeInts.VMAD:
                 {
-                    _VirtualMachineAdapterLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
-                    _VirtualMachineAdapterLengthOverride = lastParsed.LengthOverride;
+                    _payload.Fields.VirtualMachineAdapterLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.VirtualMachineAdapterLengthOverride = lastParsed.LengthOverride;
                     if (lastParsed.LengthOverride.HasValue)
                     {
                         stream.Position += lastParsed.LengthOverride.Value;
@@ -2731,38 +2763,38 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.FULL:
                 {
-                    _NameLocation = (stream.Position - offset);
+                    _payload.Fields.NameLocation = (stream.Position - offset);
                     return (int)Perk_FieldIndex.Name;
                 }
                 case RecordTypeInts.DESC:
                 {
-                    _DescriptionLocation = (stream.Position - offset);
+                    _payload.Fields.DescriptionLocation = (stream.Position - offset);
                     return (int)Perk_FieldIndex.Description;
                 }
                 case RecordTypeInts.DATA:
                 {
-                    _DATALocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.DATALocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     return (int)Perk_FieldIndex.Flags;
                 }
                 case RecordTypeInts.TNAM:
                 {
-                    _RestrictionLocation = (stream.Position - offset);
+                    _payload.Fields.RestrictionLocation = (stream.Position - offset);
                     return (int)Perk_FieldIndex.Restriction;
                 }
                 case RecordTypeInts.GNAM:
                 {
-                    _PerkIconLocation = (stream.Position - offset);
+                    _payload.Fields.PerkIconLocation = (stream.Position - offset);
                     return (int)Perk_FieldIndex.PerkIcon;
                 }
                 case RecordTypeInts.UNAM:
                 {
-                    _TrainingLocation = (stream.Position - offset);
+                    _payload.Fields.TrainingLocation = (stream.Position - offset);
                     return (int)Perk_FieldIndex.Training;
                 }
                 case RecordTypeInts.PRRK:
                 case RecordTypeInts.PRRF:
                 {
-                    this.Ranks = this.ParseRepeatedTypelessSubrecord<IPerkRankGetter>(
+                    _payload.Fields.Ranks = this.ParseRepeatedTypelessSubrecord<IPerkRankGetter>(
                         stream: stream,
                         translationParams: translationParams,
                         itemStartMarker: RecordTypes.PRRK,
@@ -2772,7 +2804,7 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.RNAM:
                 {
-                    this.BackgroundSkills = BinaryOverlayList.FactoryByArray<IFormLinkGetter<IPerkGetter>>(
+                    _payload.Fields.BackgroundSkills = BinaryOverlayList.FactoryByArray<IFormLinkGetter<IPerkGetter>>(
                         mem: stream.RemainingMemory,
                         package: _package,
                         getter: (s, p) => FormLinkBinaryTranslation.Instance.OverlayFactory<IPerkGetter>(p, s),

@@ -1154,11 +1154,25 @@ namespace Mutagen.Bethesda.Fallout4
 
         #region InventoryImage
         private int? _InventoryImageLocation;
-        public String? InventoryImage => _InventoryImageLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _InventoryImageLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? InventoryImage
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _InventoryImageLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_data, _InventoryImageLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+            }
+        }
         #endregion
         #region MessageIcon
         private int? _MessageIconLocation;
-        public String? MessageIcon => _MessageIconLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _MessageIconLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? MessageIcon
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _MessageIconLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_data, _MessageIconLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+            }
+        }
         #endregion
         partial void CustomFactoryEnd(
             OverlayStream stream,

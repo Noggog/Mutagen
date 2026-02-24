@@ -1,0 +1,2 @@
+RecordTypes.DAMA,
+RecordTypes.ACTV,

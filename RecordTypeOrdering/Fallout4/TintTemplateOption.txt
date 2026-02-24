@@ -1,0 +1,7 @@
+RecordTypes.TTGP,
+RecordTypes.TTEF,
+RecordTypes.CTDA,
+RecordTypes.TTET,
+RecordTypes.TTEB,
+RecordTypes.TTEC,
+RecordTypes.TTED,

@@ -38,6 +38,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -2771,38 +2772,47 @@ namespace Mutagen.Bethesda.Starfield
 
 
         #region ObjectBounds
-        private RangeInt32? _ObjectBoundsLocation;
-        private IObjectBoundsGetter? _ObjectBounds => _ObjectBoundsLocation.HasValue ? ObjectBoundsBinaryOverlay.ObjectBoundsFactory(_recordData.Slice(_ObjectBoundsLocation!.Value.Min), _package) : default;
+        private IObjectBoundsGetter? _ObjectBounds => Payload.ObjectBoundsLocation.HasValue ? ObjectBoundsBinaryOverlay.ObjectBoundsFactory(_recordData.Slice(Payload.ObjectBoundsLocation!.Value.Min), _package) : default;
         public IObjectBoundsGetter ObjectBounds => _ObjectBounds ?? new ObjectBounds();
         #endregion
-        #region DirtinessScale
-        private int? _DirtinessScaleLocation;
-        public Percent DirtinessScale => _DirtinessScaleLocation.HasValue ? PercentBinaryTranslation.GetPercent(HeaderTranslation.ExtractSubrecordMemory(_recordData, _DirtinessScaleLocation.Value, _package.MetaData.Constants), FloatIntegerType.UInt) : default(Percent);
-        #endregion
-        public IReadOnlyList<IAComponentGetter> Components { get; private set; } = [];
-        public IModelGetter? Model { get; private set; }
+        public Percent DirtinessScale => Payload.DirtinessScaleLocation.HasValue ? PercentBinaryTranslation.GetPercent(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.DirtinessScaleLocation.Value, _package.MetaData.Constants), FloatIntegerType.UInt) : default(Percent);
+        public IReadOnlyList<IAComponentGetter> Components => Payload.Components ?? [];
+        public IModelGetter? Model => Payload.Model;
         #region Keywords
-        public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? Keywords { get; private set; }
+        public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? Keywords => Payload.Keywords;
         IReadOnlyList<IFormLinkGetter<IKeywordCommonGetter>>? IKeywordedGetter.Keywords => this.Keywords;
         #endregion
-        #region CNAM
-        private int? _CNAMLocation;
-        public Color? CNAM => _CNAMLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _CNAMLocation.Value, _package.MetaData.Constants).ReadColor(ColorBinaryType.Alpha) : default(Color?);
-        #endregion
-        #region FNAM
-        private int? _FNAMLocation;
-        public UInt32? FNAM => _FNAMLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _FNAMLocation.Value, _package.MetaData.Constants)) : default(UInt32?);
-        #endregion
-        #region SNST
-        private int? _SNSTLocation;
-        public UInt32? SNST => _SNSTLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _SNSTLocation.Value, _package.MetaData.Constants)) : default(UInt32?);
-        #endregion
-        public IReadOnlyList<IFormLinkGetter<ISnapTemplateNodeGetter>> AdjacentSnapNodes { get; private set; } = [];
-        public IReadOnlyList<Single> SnapAngles { get; private set; } = [];
-        #region ArtObject
-        private int? _ArtObjectLocation;
-        public IFormLinkNullableGetter<IArtObjectGetter> ArtObject => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IArtObjectGetter>(_package, _recordData, _ArtObjectLocation);
-        #endregion
+        public Color? CNAM => Payload.CNAMLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.CNAMLocation.Value, _package.MetaData.Constants).ReadColor(ColorBinaryType.Alpha) : default(Color?);
+        public UInt32? FNAM => Payload.FNAMLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.FNAMLocation.Value, _package.MetaData.Constants)) : default(UInt32?);
+        public UInt32? SNST => Payload.SNSTLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.SNSTLocation.Value, _package.MetaData.Constants)) : default(UInt32?);
+        public IReadOnlyList<IFormLinkGetter<ISnapTemplateNodeGetter>> AdjacentSnapNodes => Payload.AdjacentSnapNodes ?? [];
+        public IReadOnlyList<Single> SnapAngles => Payload.SnapAngles ?? [];
+        public IFormLinkNullableGetter<IArtObjectGetter> ArtObject => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IArtObjectGetter>(_package, _recordData, Payload.ArtObjectLocation);
+
+        internal partial class SnapTemplateNodeRecordDataPayload
+        {
+            public RangeInt32? ObjectBoundsLocation;
+            public int? DirtinessScaleLocation;
+            public IReadOnlyList<IAComponentGetter> Components = [];
+            public IModelGetter? Model;
+            public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? Keywords;
+            public int? CNAMLocation;
+            public int? FNAMLocation;
+            public int? SNSTLocation;
+            public IReadOnlyList<IFormLinkGetter<ISnapTemplateNodeGetter>> AdjacentSnapNodes = [];
+            public IReadOnlyList<Single> SnapAngles = [];
+            public int? ArtObjectLocation;
+        }
+
+        private LazyPayload<SnapTemplateNodeRecordDataPayload> _payload = null!;
+
+        internal SnapTemplateNodeRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<SnapTemplateNodeRecordDataPayload>(init, new SnapTemplateNodeRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -2810,10 +2820,10 @@ namespace Mutagen.Bethesda.Starfield
 
         partial void CustomCtor();
         protected SnapTemplateNodeBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -2824,28 +2834,51 @@ namespace Mutagen.Bethesda.Starfield
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new SnapTemplateNodeBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -2874,17 +2907,17 @@ namespace Mutagen.Bethesda.Starfield
             {
                 case RecordTypeInts.OBND:
                 {
-                    _ObjectBoundsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.ObjectBoundsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)SnapTemplateNode_FieldIndex.ObjectBounds;
                 }
                 case RecordTypeInts.ODTY:
                 {
-                    _DirtinessScaleLocation = (stream.Position - offset);
+                    _payload.Fields.DirtinessScaleLocation = (stream.Position - offset);
                     return (int)SnapTemplateNode_FieldIndex.DirtinessScale;
                 }
                 case RecordTypeInts.BFCB:
                 {
-                    this.Components = this.ParseRepeatedTypelessSubrecord<IAComponentGetter>(
+                    _payload.Fields.Components = this.ParseRepeatedTypelessSubrecord<IAComponentGetter>(
                         stream: stream,
                         translationParams: translationParams,
                         trigger: AComponent_Registration.TriggerSpecs,
@@ -2899,7 +2932,7 @@ namespace Mutagen.Bethesda.Starfield
                 case RecordTypeInts.MODC:
                 case RecordTypeInts.MODF:
                 {
-                    this.Model = ModelBinaryOverlay.ModelFactory(
+                    _payload.Fields.Model = ModelBinaryOverlay.ModelFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());
@@ -2908,7 +2941,7 @@ namespace Mutagen.Bethesda.Starfield
                 case RecordTypeInts.KSIZ:
                 case RecordTypeInts.KWDA:
                 {
-                    this.Keywords = BinaryOverlayList.FactoryByCount<IFormLinkGetter<IKeywordGetter>>(
+                    _payload.Fields.Keywords = BinaryOverlayList.FactoryByCount<IFormLinkGetter<IKeywordGetter>>(
                         stream: stream,
                         package: _package,
                         itemLength: 0x4,
@@ -2920,22 +2953,22 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.CNAM:
                 {
-                    _CNAMLocation = (stream.Position - offset);
+                    _payload.Fields.CNAMLocation = (stream.Position - offset);
                     return (int)SnapTemplateNode_FieldIndex.CNAM;
                 }
                 case RecordTypeInts.FNAM:
                 {
-                    _FNAMLocation = (stream.Position - offset);
+                    _payload.Fields.FNAMLocation = (stream.Position - offset);
                     return (int)SnapTemplateNode_FieldIndex.FNAM;
                 }
                 case RecordTypeInts.SNST:
                 {
-                    _SNSTLocation = (stream.Position - offset);
+                    _payload.Fields.SNSTLocation = (stream.Position - offset);
                     return (int)SnapTemplateNode_FieldIndex.SNST;
                 }
                 case RecordTypeInts.NNAM:
                 {
-                    this.AdjacentSnapNodes = BinaryOverlayList.FactoryByArray<IFormLinkGetter<ISnapTemplateNodeGetter>>(
+                    _payload.Fields.AdjacentSnapNodes = BinaryOverlayList.FactoryByArray<IFormLinkGetter<ISnapTemplateNodeGetter>>(
                         mem: stream.RemainingMemory,
                         package: _package,
                         getter: (s, p) => FormLinkBinaryTranslation.Instance.OverlayFactory<ISnapTemplateNodeGetter>(p, s),
@@ -2949,7 +2982,7 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.FLTV:
                 {
-                    this.SnapAngles = BinaryOverlayList.FactoryByArray<Single>(
+                    _payload.Fields.SnapAngles = BinaryOverlayList.FactoryByArray<Single>(
                         mem: stream.RemainingMemory,
                         package: _package,
                         getter: (s, p) => s.Float(),
@@ -2963,7 +2996,7 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.ANAM:
                 {
-                    _ArtObjectLocation = (stream.Position - offset);
+                    _payload.Fields.ArtObjectLocation = (stream.Position - offset);
                     return (int)SnapTemplateNode_FieldIndex.ArtObject;
                 }
                 default:

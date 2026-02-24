@@ -1253,11 +1253,25 @@ namespace Mutagen.Bethesda.Fallout4
 
         #region OriginalMaterial
         private int? _OriginalMaterialLocation;
-        public String? OriginalMaterial => _OriginalMaterialLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _OriginalMaterialLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? OriginalMaterial
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _OriginalMaterialLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_data, _OriginalMaterialLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+            }
+        }
         #endregion
         #region ReplacementMaterial
         private int? _ReplacementMaterialLocation;
-        public String? ReplacementMaterial => _ReplacementMaterialLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _ReplacementMaterialLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? ReplacementMaterial
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _ReplacementMaterialLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_data, _ReplacementMaterialLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+            }
+        }
         #endregion
         #region FNAMParsing
         public partial ParseResult FNAMParsingCustomParse(
@@ -1267,7 +1281,14 @@ namespace Mutagen.Bethesda.Fallout4
         #endregion
         #region ColorRemappingIndex
         private int? _ColorRemappingIndexLocation;
-        public Single? ColorRemappingIndex => _ColorRemappingIndexLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _ColorRemappingIndexLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public Single? ColorRemappingIndex
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _ColorRemappingIndexLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_data, _ColorRemappingIndexLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+            }
+        }
         #endregion
         partial void CustomFactoryEnd(
             OverlayStream stream,

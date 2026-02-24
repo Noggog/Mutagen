@@ -1,0 +1,6 @@
+RecordTypes.EDID,
+RecordTypes.MPRT,
+RecordTypes.FPRT,
+RecordTypes.MCHT,
+RecordTypes.FCHT,
+RecordTypes.DATA,

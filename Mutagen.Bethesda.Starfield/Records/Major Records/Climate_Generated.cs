@@ -34,6 +34,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -2098,34 +2099,50 @@ namespace Mutagen.Bethesda.Starfield
         protected override Type LinkType => typeof(IClimateGetter);
 
 
-        public IReadOnlyList<IWeatherTypeGetter>? Weathers { get; private set; }
-        public IReadOnlyList<IClimateWeatherSettingsGetter>? WeatherSettings { get; private set; }
-        private RangeInt32? _TNAMLocation;
+        public IReadOnlyList<IWeatherTypeGetter>? Weathers => Payload.Weathers;
+        public IReadOnlyList<IClimateWeatherSettingsGetter>? WeatherSettings => Payload.WeatherSettings;
         #region SunriseBegin
-        private int _SunriseBeginLocation => _TNAMLocation!.Value.Min;
+        private int _SunriseBeginLocation => Payload.TNAMLocation!.Value.Min;
         public partial TimeOnly GetSunriseBeginCustom();
         public TimeOnly SunriseBegin => GetSunriseBeginCustom();
         #endregion
         #region SunriseEnd
-        private int _SunriseEndLocation => _TNAMLocation!.Value.Min + 0x1;
+        private int _SunriseEndLocation => Payload.TNAMLocation!.Value.Min + 0x1;
         public partial TimeOnly GetSunriseEndCustom();
         public TimeOnly SunriseEnd => GetSunriseEndCustom();
         #endregion
         #region SunsetBegin
-        private int _SunsetBeginLocation => _TNAMLocation!.Value.Min + 0x2;
+        private int _SunsetBeginLocation => Payload.TNAMLocation!.Value.Min + 0x2;
         public partial TimeOnly GetSunsetBeginCustom();
         public TimeOnly SunsetBegin => GetSunsetBeginCustom();
         #endregion
         #region SunsetEnd
-        private int _SunsetEndLocation => _TNAMLocation!.Value.Min + 0x3;
+        private int _SunsetEndLocation => Payload.TNAMLocation!.Value.Min + 0x3;
         public partial TimeOnly GetSunsetEndCustom();
         public TimeOnly SunsetEnd => GetSunsetEndCustom();
         #endregion
         #region Volatility
-        private int _VolatilityLocation => _TNAMLocation!.Value.Min + 0x4;
-        private bool _Volatility_IsSet => _TNAMLocation.HasValue;
+        private int _VolatilityLocation => Payload.TNAMLocation!.Value.Min + 0x4;
+        private bool _Volatility_IsSet => Payload.TNAMLocation.HasValue;
         public Byte Volatility => _Volatility_IsSet ? _recordData.Span[_VolatilityLocation] : default;
         #endregion
+
+        internal partial class ClimateRecordDataPayload
+        {
+            public IReadOnlyList<IWeatherTypeGetter>? Weathers;
+            public IReadOnlyList<IClimateWeatherSettingsGetter>? WeatherSettings;
+            public RangeInt32? TNAMLocation;
+        }
+
+        private LazyPayload<ClimateRecordDataPayload> _payload = null!;
+
+        internal ClimateRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<ClimateRecordDataPayload>(init, new ClimateRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -2133,10 +2150,10 @@ namespace Mutagen.Bethesda.Starfield
 
         partial void CustomCtor();
         protected ClimateBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -2147,28 +2164,51 @@ namespace Mutagen.Bethesda.Starfield
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new ClimateBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -2197,7 +2237,7 @@ namespace Mutagen.Bethesda.Starfield
             {
                 case RecordTypeInts.WLST:
                 {
-                    this.Weathers = BinaryOverlayList.FactoryByStartIndexWithTrigger<IWeatherTypeGetter>(
+                    _payload.Fields.Weathers = BinaryOverlayList.FactoryByStartIndexWithTrigger<IWeatherTypeGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -2207,7 +2247,7 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.WSLT:
                 {
-                    this.WeatherSettings = BinaryOverlayList.FactoryByStartIndexWithTrigger<IClimateWeatherSettingsGetter>(
+                    _payload.Fields.WeatherSettings = BinaryOverlayList.FactoryByStartIndexWithTrigger<IClimateWeatherSettingsGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -2217,7 +2257,7 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.TNAM:
                 {
-                    _TNAMLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.TNAMLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     return (int)Climate_FieldIndex.Volatility;
                 }
                 default:

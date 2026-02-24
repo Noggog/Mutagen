@@ -1,0 +1,6 @@
+RecordTypes.EDID,
+RecordTypes.ICON,
+RecordTypes.ICO2,
+RecordTypes.NAM7,
+RecordTypes.NAM8,
+RecordTypes.NAM9,

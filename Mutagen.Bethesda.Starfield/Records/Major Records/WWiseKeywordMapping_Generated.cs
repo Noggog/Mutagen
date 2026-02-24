@@ -35,6 +35,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -1876,19 +1877,31 @@ namespace Mutagen.Bethesda.Starfield
         protected override Type LinkType => typeof(IWWiseKeywordMappingGetter);
 
 
-        #region WMTI
-        private int? _WMTILocation;
-        public UInt16? WMTI => _WMTILocation.HasValue ? BinaryPrimitives.ReadUInt16LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _WMTILocation.Value, _package.MetaData.Constants)) : default(UInt16?);
-        #endregion
+        public UInt16? WMTI => Payload.WMTILocation.HasValue ? BinaryPrimitives.ReadUInt16LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.WMTILocation.Value, _package.MetaData.Constants)) : default(UInt16?);
         #region Keywords
-        public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? Keywords { get; private set; }
+        public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? Keywords => Payload.Keywords;
         IReadOnlyList<IFormLinkGetter<IKeywordCommonGetter>>? IKeywordedGetter.Keywords => this.Keywords;
         #endregion
-        #region WMSS
-        private int? _WMSSLocation;
-        public UInt32? WMSS => _WMSSLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _WMSSLocation.Value, _package.MetaData.Constants)) : default(UInt32?);
-        #endregion
-        public IReadOnlyList<IWWiseKeywordMappingItemGetter> Items { get; private set; } = [];
+        public UInt32? WMSS => Payload.WMSSLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.WMSSLocation.Value, _package.MetaData.Constants)) : default(UInt32?);
+        public IReadOnlyList<IWWiseKeywordMappingItemGetter> Items => Payload.Items ?? [];
+
+        internal partial class WWiseKeywordMappingRecordDataPayload
+        {
+            public int? WMTILocation;
+            public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? Keywords;
+            public int? WMSSLocation;
+            public IReadOnlyList<IWWiseKeywordMappingItemGetter> Items = [];
+        }
+
+        private LazyPayload<WWiseKeywordMappingRecordDataPayload> _payload = null!;
+
+        internal WWiseKeywordMappingRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<WWiseKeywordMappingRecordDataPayload>(init, new WWiseKeywordMappingRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -1896,10 +1909,10 @@ namespace Mutagen.Bethesda.Starfield
 
         partial void CustomCtor();
         protected WWiseKeywordMappingBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -1910,28 +1923,51 @@ namespace Mutagen.Bethesda.Starfield
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new WWiseKeywordMappingBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -1960,12 +1996,12 @@ namespace Mutagen.Bethesda.Starfield
             {
                 case RecordTypeInts.WMTI:
                 {
-                    _WMTILocation = (stream.Position - offset);
+                    _payload.Fields.WMTILocation = (stream.Position - offset);
                     return (int)WWiseKeywordMapping_FieldIndex.WMTI;
                 }
                 case RecordTypeInts.WMKA:
                 {
-                    this.Keywords = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<IKeywordGetter>>(
+                    _payload.Fields.Keywords = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<IKeywordGetter>>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -1975,13 +2011,13 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.WMSS:
                 {
-                    _WMSSLocation = (stream.Position - offset);
+                    _payload.Fields.WMSSLocation = (stream.Position - offset);
                     return (int)WWiseKeywordMapping_FieldIndex.WMSS;
                 }
                 case RecordTypeInts.WMSI:
                 case RecordTypeInts.WMSD:
                 {
-                    this.Items = this.ParseRepeatedTypelessSubrecord<IWWiseKeywordMappingItemGetter>(
+                    _payload.Fields.Items = this.ParseRepeatedTypelessSubrecord<IWWiseKeywordMappingItemGetter>(
                         stream: stream,
                         translationParams: translationParams,
                         trigger: WWiseKeywordMappingItem_Registration.TriggerSpecs,

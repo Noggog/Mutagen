@@ -1596,15 +1596,36 @@ namespace Mutagen.Bethesda.Starfield
 
         #region DNAM
         private int? _DNAMLocation;
-        public Boolean DNAM => _DNAMLocation.HasValue ? true : default(Boolean);
+        public Boolean DNAM
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _DNAMLocation.HasValue ? true : default(Boolean);
+            }
+        }
         #endregion
         #region NVCI
         private int? _NVCILocation;
-        public Boolean NVCI => _NVCILocation.HasValue ? true : default(Boolean);
+        public Boolean NVCI
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _NVCILocation.HasValue ? true : default(Boolean);
+            }
+        }
         #endregion
         #region ALLA
         private int? _ALLALocation;
-        public Int32 ALLA => _ALLALocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _ALLALocation.Value, _package.MetaData.Constants)) : default(Int32);
+        public Int32 ALLA
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _ALLALocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _ALLALocation.Value, _package.MetaData.Constants)) : default(Int32);
+            }
+        }
         #endregion
         #region REPL
         private int? _REPLLocation;
@@ -1612,19 +1633,47 @@ namespace Mutagen.Bethesda.Starfield
         #endregion
         #region HNAM
         private int? _HNAMLocation;
-        public Single HNAM => _HNAMLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _HNAMLocation.Value, _package.MetaData.Constants).Float() : default(Single);
+        public Single HNAM
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _HNAMLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_data, _HNAMLocation.Value, _package.MetaData.Constants).Float() : default(Single);
+            }
+        }
         #endregion
         #region VCLR
         private int? _VCLRLocation;
-        public Single VCLR => _VCLRLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _VCLRLocation.Value, _package.MetaData.Constants).Float() : default(Single);
+        public Single VCLR
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _VCLRLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_data, _VCLRLocation.Value, _package.MetaData.Constants).Float() : default(Single);
+            }
+        }
         #endregion
         #region VNML
         private int? _VNMLLocation;
-        public Single VNML => _VNMLLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _VNMLLocation.Value, _package.MetaData.Constants).Float() : default(Single);
+        public Single VNML
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _VNMLLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_data, _VNMLLocation.Value, _package.MetaData.Constants).Float() : default(Single);
+            }
+        }
         #endregion
         #region FLMV
         private int? _FLMVLocation;
-        public Int32 FLMV => _FLMVLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _FLMVLocation.Value, _package.MetaData.Constants)) : default(Int32);
+        public Int32 FLMV
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _FLMVLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _FLMVLocation.Value, _package.MetaData.Constants)) : default(Int32);
+            }
+        }
         #endregion
         partial void CustomFactoryEnd(
             OverlayStream stream,

@@ -1,0 +1,7 @@
+RecordTypes.TINI,
+RecordTypes.TINT,
+RecordTypes.TINP,
+RecordTypes.TIND,
+RecordTypes.TINC,
+RecordTypes.TINV,
+RecordTypes.TIRS,

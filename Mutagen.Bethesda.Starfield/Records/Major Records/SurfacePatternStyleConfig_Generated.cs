@@ -1150,11 +1150,25 @@ namespace Mutagen.Bethesda.Starfield
 
         #region Style
         private int? _StyleLocation;
-        public String? Style => _StyleLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _StyleLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? Style
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _StyleLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_data, _StyleLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+            }
+        }
         #endregion
         #region Weight
         private int? _WeightLocation;
-        public Single? Weight => _WeightLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _WeightLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public Single? Weight
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _WeightLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_data, _WeightLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+            }
+        }
         #endregion
         partial void CustomFactoryEnd(
             OverlayStream stream,

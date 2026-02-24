@@ -34,6 +34,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -1925,20 +1926,30 @@ namespace Mutagen.Bethesda.Skyrim
         protected override Type LinkType => typeof(IDialogViewGetter);
 
 
-        #region Quest
-        private int? _QuestLocation;
-        public IFormLinkGetter<IQuestGetter> Quest => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IQuestGetter>(_package, _recordData, _QuestLocation);
-        #endregion
-        public IReadOnlyList<IFormLinkGetter<IDialogBranchGetter>> Branches { get; private set; } = [];
-        public IReadOnlyList<ReadOnlyMemorySlice<Byte>> TNAMs { get; private set; } = [];
-        #region ENAM
-        private int? _ENAMLocation;
-        public ReadOnlyMemorySlice<Byte>? ENAM => _ENAMLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _ENAMLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
-        #endregion
-        #region DNAM
-        private int? _DNAMLocation;
-        public ReadOnlyMemorySlice<Byte>? DNAM => _DNAMLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _DNAMLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
-        #endregion
+        public IFormLinkGetter<IQuestGetter> Quest => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IQuestGetter>(_package, _recordData, Payload.QuestLocation);
+        public IReadOnlyList<IFormLinkGetter<IDialogBranchGetter>> Branches => Payload.Branches ?? [];
+        public IReadOnlyList<ReadOnlyMemorySlice<Byte>> TNAMs => Payload.TNAMs ?? [];
+        public ReadOnlyMemorySlice<Byte>? ENAM => Payload.ENAMLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.ENAMLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
+        public ReadOnlyMemorySlice<Byte>? DNAM => Payload.DNAMLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.DNAMLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
+
+        internal partial class DialogViewRecordDataPayload
+        {
+            public int? QuestLocation;
+            public IReadOnlyList<IFormLinkGetter<IDialogBranchGetter>> Branches = [];
+            public IReadOnlyList<ReadOnlyMemorySlice<Byte>> TNAMs = [];
+            public int? ENAMLocation;
+            public int? DNAMLocation;
+        }
+
+        private LazyPayload<DialogViewRecordDataPayload> _payload = null!;
+
+        internal DialogViewRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<DialogViewRecordDataPayload>(init, new DialogViewRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -1946,10 +1957,10 @@ namespace Mutagen.Bethesda.Skyrim
 
         partial void CustomCtor();
         protected DialogViewBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -1960,28 +1971,51 @@ namespace Mutagen.Bethesda.Skyrim
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new DialogViewBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -2010,12 +2044,12 @@ namespace Mutagen.Bethesda.Skyrim
             {
                 case RecordTypeInts.QNAM:
                 {
-                    _QuestLocation = (stream.Position - offset);
+                    _payload.Fields.QuestLocation = (stream.Position - offset);
                     return (int)DialogView_FieldIndex.Quest;
                 }
                 case RecordTypeInts.BNAM:
                 {
-                    this.Branches = BinaryOverlayList.FactoryByArray<IFormLinkGetter<IDialogBranchGetter>>(
+                    _payload.Fields.Branches = BinaryOverlayList.FactoryByArray<IFormLinkGetter<IDialogBranchGetter>>(
                         mem: stream.RemainingMemory,
                         package: _package,
                         getter: (s, p) => FormLinkBinaryTranslation.Instance.OverlayFactory<IDialogBranchGetter>(p, s),
@@ -2029,7 +2063,7 @@ namespace Mutagen.Bethesda.Skyrim
                 }
                 case RecordTypeInts.TNAM:
                 {
-                    this.TNAMs = BinaryOverlayList.FactoryByArray<ReadOnlyMemorySlice<Byte>>(
+                    _payload.Fields.TNAMs = BinaryOverlayList.FactoryByArray<ReadOnlyMemorySlice<Byte>>(
                         mem: stream.RemainingMemory,
                         package: _package,
                         getter: (s, p) => p.MetaData.Constants.Subrecord(s).Content,
@@ -2043,12 +2077,12 @@ namespace Mutagen.Bethesda.Skyrim
                 }
                 case RecordTypeInts.ENAM:
                 {
-                    _ENAMLocation = (stream.Position - offset);
+                    _payload.Fields.ENAMLocation = (stream.Position - offset);
                     return (int)DialogView_FieldIndex.ENAM;
                 }
                 case RecordTypeInts.DNAM:
                 {
-                    _DNAMLocation = (stream.Position - offset);
+                    _payload.Fields.DNAMLocation = (stream.Position - offset);
                     return (int)DialogView_FieldIndex.DNAM;
                 }
                 default:

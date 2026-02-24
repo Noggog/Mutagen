@@ -1,0 +1,8 @@
+RecordTypes.EDID,
+RecordTypes.DESC,
+RecordTypes.CTDA,
+RecordTypes.NNAM,
+RecordTypes.TNAM,
+RecordTypes.ONAM,
+RecordTypes.ZNAM,
+RecordTypes.MOD2,

@@ -37,6 +37,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -3988,58 +3989,54 @@ namespace Mutagen.Bethesda.Oblivion
 
 
         #region Name
-        private int? _NameLocation;
-        public String? Name => _NameLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NameLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? Name => Payload.NameLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NameLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
         #region Aspects
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         string INamedRequiredGetter.Name => this.Name ?? string.Empty;
         #endregion
         #endregion
-        #region Parent
-        private int? _ParentLocation;
-        public IFormLinkNullableGetter<IWorldspaceGetter> Parent => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IWorldspaceGetter>(_package, _recordData, _ParentLocation);
-        #endregion
-        #region Climate
-        private int? _ClimateLocation;
-        public IFormLinkNullableGetter<IClimateGetter> Climate => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IClimateGetter>(_package, _recordData, _ClimateLocation);
-        #endregion
-        #region Water
-        private int? _WaterLocation;
-        public IFormLinkNullableGetter<IWaterGetter> Water => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IWaterGetter>(_package, _recordData, _WaterLocation);
-        #endregion
-        #region Icon
-        private int? _IconLocation;
-        public String? Icon => _IconLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _IconLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
-        #region MapData
-        private RangeInt32? _MapDataLocation;
-        public IMapDataGetter? MapData => _MapDataLocation.HasValue ? MapDataBinaryOverlay.MapDataFactory(_recordData.Slice(_MapDataLocation!.Value.Min), _package) : default;
-        #endregion
-        #region Flags
-        private int? _FlagsLocation;
-        public Worldspace.Flag? Flags => EnumBinaryTranslation<Worldspace.Flag, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(_FlagsLocation, _recordData, _package, 1);
-        #endregion
-        #region ObjectBoundsMin
-        private int? _ObjectBoundsMinLocation;
-        public P2Float? ObjectBoundsMin => _ObjectBoundsMinLocation.HasValue ? P2FloatBinaryTranslation<MutagenFrame, MutagenWriter>.Instance.Read(HeaderTranslation.ExtractSubrecordMemory(_recordData, _ObjectBoundsMinLocation.Value, _package.MetaData.Constants)) : default(P2Float?);
-        #endregion
-        #region ObjectBoundsMax
-        private int? _ObjectBoundsMaxLocation;
-        public P2Float? ObjectBoundsMax => _ObjectBoundsMaxLocation.HasValue ? P2FloatBinaryTranslation<MutagenFrame, MutagenWriter>.Instance.Read(HeaderTranslation.ExtractSubrecordMemory(_recordData, _ObjectBoundsMaxLocation.Value, _package.MetaData.Constants)) : default(P2Float?);
-        #endregion
-        #region Music
-        private int? _MusicLocation;
-        public MusicType? Music => EnumBinaryTranslation<MusicType, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(_MusicLocation, _recordData, _package, 4);
-        #endregion
+        public IFormLinkNullableGetter<IWorldspaceGetter> Parent => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IWorldspaceGetter>(_package, _recordData, Payload.ParentLocation);
+        public IFormLinkNullableGetter<IClimateGetter> Climate => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IClimateGetter>(_package, _recordData, Payload.ClimateLocation);
+        public IFormLinkNullableGetter<IWaterGetter> Water => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IWaterGetter>(_package, _recordData, Payload.WaterLocation);
+        public String? Icon => Payload.IconLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.IconLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public IMapDataGetter? MapData => Payload.MapDataLocation.HasValue ? MapDataBinaryOverlay.MapDataFactory(_recordData.Slice(Payload.MapDataLocation!.Value.Min), _package) : default;
+        public Worldspace.Flag? Flags => EnumBinaryTranslation<Worldspace.Flag, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(Payload.FlagsLocation, _recordData, _package, 1);
+        public P2Float? ObjectBoundsMin => Payload.ObjectBoundsMinLocation.HasValue ? P2FloatBinaryTranslation<MutagenFrame, MutagenWriter>.Instance.Read(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.ObjectBoundsMinLocation.Value, _package.MetaData.Constants)) : default(P2Float?);
+        public P2Float? ObjectBoundsMax => Payload.ObjectBoundsMaxLocation.HasValue ? P2FloatBinaryTranslation<MutagenFrame, MutagenWriter>.Instance.Read(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.ObjectBoundsMaxLocation.Value, _package.MetaData.Constants)) : default(P2Float?);
+        public MusicType? Music => EnumBinaryTranslation<MusicType, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(Payload.MusicLocation, _recordData, _package, 4);
         #region OffsetData
-        private int? _OffsetDataLocation;
-        private int? _OffsetDataLengthOverride;
         public ReadOnlyMemorySlice<Byte>? OffsetData => PluginUtilityTranslation.ReadByteArrayWithOverflow(
             _recordData,
             _package.MetaData.Constants,
-            _OffsetDataLocation,
-            _OffsetDataLengthOverride);
+            Payload.OffsetDataLocation,
+            Payload.OffsetDataLengthOverride);
         #endregion
+
+        internal partial class WorldspaceRecordDataPayload
+        {
+            public int? NameLocation;
+            public int? ParentLocation;
+            public int? ClimateLocation;
+            public int? WaterLocation;
+            public int? IconLocation;
+            public RangeInt32? MapDataLocation;
+            public int? FlagsLocation;
+            public int? ObjectBoundsMinLocation;
+            public int? ObjectBoundsMaxLocation;
+            public int? MusicLocation;
+            public int? OffsetDataLocation;
+            public int? OffsetDataLengthOverride;
+        }
+
+        private LazyPayload<WorldspaceRecordDataPayload> _payload = null!;
+
+        internal WorldspaceRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<WorldspaceRecordDataPayload>(init, new WorldspaceRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -4051,10 +4048,10 @@ namespace Mutagen.Bethesda.Oblivion
 
         partial void CustomCtor();
         protected WorldspaceBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -4066,28 +4063,51 @@ namespace Mutagen.Bethesda.Oblivion
             TypedParseParams translationParams = default)
         {
             var origStream = stream;
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new WorldspaceBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             ret.CustomEnd(
                 stream: origStream,
                 finalPos: stream.Length,
@@ -4120,58 +4140,58 @@ namespace Mutagen.Bethesda.Oblivion
             {
                 case RecordTypeInts.FULL:
                 {
-                    _NameLocation = (stream.Position - offset);
+                    _payload.Fields.NameLocation = (stream.Position - offset);
                     return (int)Worldspace_FieldIndex.Name;
                 }
                 case RecordTypeInts.WNAM:
                 {
-                    _ParentLocation = (stream.Position - offset);
+                    _payload.Fields.ParentLocation = (stream.Position - offset);
                     return (int)Worldspace_FieldIndex.Parent;
                 }
                 case RecordTypeInts.CNAM:
                 {
-                    _ClimateLocation = (stream.Position - offset);
+                    _payload.Fields.ClimateLocation = (stream.Position - offset);
                     return (int)Worldspace_FieldIndex.Climate;
                 }
                 case RecordTypeInts.NAM2:
                 {
-                    _WaterLocation = (stream.Position - offset);
+                    _payload.Fields.WaterLocation = (stream.Position - offset);
                     return (int)Worldspace_FieldIndex.Water;
                 }
                 case RecordTypeInts.ICON:
                 {
-                    _IconLocation = (stream.Position - offset);
+                    _payload.Fields.IconLocation = (stream.Position - offset);
                     return (int)Worldspace_FieldIndex.Icon;
                 }
                 case RecordTypeInts.MNAM:
                 {
-                    _MapDataLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.MapDataLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)Worldspace_FieldIndex.MapData;
                 }
                 case RecordTypeInts.DATA:
                 {
-                    _FlagsLocation = (stream.Position - offset);
+                    _payload.Fields.FlagsLocation = (stream.Position - offset);
                     return (int)Worldspace_FieldIndex.Flags;
                 }
                 case RecordTypeInts.NAM0:
                 {
-                    _ObjectBoundsMinLocation = (stream.Position - offset);
+                    _payload.Fields.ObjectBoundsMinLocation = (stream.Position - offset);
                     return (int)Worldspace_FieldIndex.ObjectBoundsMin;
                 }
                 case RecordTypeInts.NAM9:
                 {
-                    _ObjectBoundsMaxLocation = (stream.Position - offset);
+                    _payload.Fields.ObjectBoundsMaxLocation = (stream.Position - offset);
                     return (int)Worldspace_FieldIndex.ObjectBoundsMax;
                 }
                 case RecordTypeInts.SNAM:
                 {
-                    _MusicLocation = (stream.Position - offset);
+                    _payload.Fields.MusicLocation = (stream.Position - offset);
                     return (int)Worldspace_FieldIndex.Music;
                 }
                 case RecordTypeInts.OFST:
                 {
-                    _OffsetDataLocation = (stream.Position - offset);
-                    _OffsetDataLengthOverride = lastParsed.LengthOverride;
+                    _payload.Fields.OffsetDataLocation = (stream.Position - offset);
+                    _payload.Fields.OffsetDataLengthOverride = lastParsed.LengthOverride;
                     if (lastParsed.LengthOverride.HasValue)
                     {
                         stream.Position += lastParsed.LengthOverride.Value;

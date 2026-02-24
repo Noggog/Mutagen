@@ -1871,11 +1871,25 @@ namespace Mutagen.Bethesda.Starfield
 
         #region Text
         private int? _TextLocation;
-        public ITranslatedStringGetter Text => _TextLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _TextLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : TranslatedString.Empty;
+        public ITranslatedStringGetter Text
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _TextLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_data, _TextLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : TranslatedString.Empty;
+            }
+        }
         #endregion
         #region ShortText
         private int? _ShortTextLocation;
-        public ITranslatedStringGetter? ShortText => _ShortTextLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _ShortTextLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+        public ITranslatedStringGetter? ShortText
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _ShortTextLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_data, _ShortTextLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+            }
+        }
         #endregion
         private RangeInt32? _ISETLocation;
         #region TypeParse
@@ -1902,7 +1916,14 @@ namespace Mutagen.Bethesda.Starfield
         #endregion
         #region ID
         private int? _IDLocation;
-        public UInt16 ID => _IDLocation.HasValue ? BinaryPrimitives.ReadUInt16LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _IDLocation.Value, _package.MetaData.Constants)) : default(UInt16);
+        public UInt16 ID
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _IDLocation.HasValue ? BinaryPrimitives.ReadUInt16LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _IDLocation.Value, _package.MetaData.Constants)) : default(UInt16);
+            }
+        }
         #endregion
         #region Lock
         private RangeInt32? _LockLocation;

@@ -1,0 +1,8 @@
+RecordTypes.EDID,
+RecordTypes.MODL,
+RecordTypes.MODB,
+RecordTypes.MODT,
+RecordTypes.ICON,
+RecordTypes.SNAM,
+RecordTypes.CNAM,
+RecordTypes.BNAM,

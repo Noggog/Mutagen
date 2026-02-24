@@ -35,6 +35,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -2675,84 +2676,99 @@ namespace Mutagen.Bethesda.Fallout4
         protected override Type LinkType => typeof(ICameraShotGetter);
 
 
-        public IModelGetter? Model { get; private set; }
-        public IReadOnlyList<IConditionGetter> Conditions { get; private set; } = [];
-        private RangeInt32? _DATALocation;
-        public CameraShot.DATADataType DATADataTypeState { get; private set; }
+        public IModelGetter? Model => Payload.Model;
+        public IReadOnlyList<IConditionGetter> Conditions => Payload.Conditions ?? [];
+        public CameraShot.DATADataType DATADataTypeState => Payload.DATADataTypeState;
         #region Action
-        private int _ActionLocation => _DATALocation!.Value.Min;
-        private bool _Action_IsSet => _DATALocation.HasValue;
+        private int _ActionLocation => Payload.DATALocation!.Value.Min;
+        private bool _Action_IsSet => Payload.DATALocation.HasValue;
         public CameraShot.ActionType Action => _Action_IsSet ? (CameraShot.ActionType)BinaryPrimitives.ReadInt32LittleEndian(_recordData.Span.Slice(_ActionLocation, 0x4)) : default;
         #endregion
         #region Location
-        private int _LocationLocation => _DATALocation!.Value.Min + 0x4;
-        private bool _Location_IsSet => _DATALocation.HasValue;
+        private int _LocationLocation => Payload.DATALocation!.Value.Min + 0x4;
+        private bool _Location_IsSet => Payload.DATALocation.HasValue;
         public CameraShot.LocationType Location => _Location_IsSet ? (CameraShot.LocationType)BinaryPrimitives.ReadInt32LittleEndian(_recordData.Span.Slice(_LocationLocation, 0x4)) : default;
         #endregion
         #region Target
-        private int _TargetLocation => _DATALocation!.Value.Min + 0x8;
-        private bool _Target_IsSet => _DATALocation.HasValue;
+        private int _TargetLocation => Payload.DATALocation!.Value.Min + 0x8;
+        private bool _Target_IsSet => Payload.DATALocation.HasValue;
         public CameraShot.LocationType Target => _Target_IsSet ? (CameraShot.LocationType)BinaryPrimitives.ReadInt32LittleEndian(_recordData.Span.Slice(_TargetLocation, 0x4)) : default;
         #endregion
         #region Flags
-        private int _FlagsLocation => _DATALocation!.Value.Min + 0xC;
-        private bool _Flags_IsSet => _DATALocation.HasValue;
+        private int _FlagsLocation => Payload.DATALocation!.Value.Min + 0xC;
+        private bool _Flags_IsSet => Payload.DATALocation.HasValue;
         public CameraShot.Flag Flags => _Flags_IsSet ? (CameraShot.Flag)BinaryPrimitives.ReadInt32LittleEndian(_recordData.Span.Slice(_FlagsLocation, 0x4)) : default;
         #endregion
         #region TimeMultiplierPlayer
-        private int _TimeMultiplierPlayerLocation => _DATALocation!.Value.Min + 0x10;
-        private bool _TimeMultiplierPlayer_IsSet => _DATALocation.HasValue;
+        private int _TimeMultiplierPlayerLocation => Payload.DATALocation!.Value.Min + 0x10;
+        private bool _TimeMultiplierPlayer_IsSet => Payload.DATALocation.HasValue;
         public Single TimeMultiplierPlayer => _TimeMultiplierPlayer_IsSet ? _recordData.Slice(_TimeMultiplierPlayerLocation, 4).Float() : default(Single);
         #endregion
         #region TimeMultiplierTarget
-        private int _TimeMultiplierTargetLocation => _DATALocation!.Value.Min + 0x14;
-        private bool _TimeMultiplierTarget_IsSet => _DATALocation.HasValue;
+        private int _TimeMultiplierTargetLocation => Payload.DATALocation!.Value.Min + 0x14;
+        private bool _TimeMultiplierTarget_IsSet => Payload.DATALocation.HasValue;
         public Single TimeMultiplierTarget => _TimeMultiplierTarget_IsSet ? _recordData.Slice(_TimeMultiplierTargetLocation, 4).Float() : default(Single);
         #endregion
         #region TimeMultiplierGlobal
-        private int _TimeMultiplierGlobalLocation => _DATALocation!.Value.Min + 0x18;
-        private bool _TimeMultiplierGlobal_IsSet => _DATALocation.HasValue;
+        private int _TimeMultiplierGlobalLocation => Payload.DATALocation!.Value.Min + 0x18;
+        private bool _TimeMultiplierGlobal_IsSet => Payload.DATALocation.HasValue;
         public Single TimeMultiplierGlobal => _TimeMultiplierGlobal_IsSet ? _recordData.Slice(_TimeMultiplierGlobalLocation, 4).Float() : default(Single);
         #endregion
         #region MaxTime
-        private int _MaxTimeLocation => _DATALocation!.Value.Min + 0x1C;
-        private bool _MaxTime_IsSet => _DATALocation.HasValue;
+        private int _MaxTimeLocation => Payload.DATALocation!.Value.Min + 0x1C;
+        private bool _MaxTime_IsSet => Payload.DATALocation.HasValue;
         public Single MaxTime => _MaxTime_IsSet ? _recordData.Slice(_MaxTimeLocation, 4).Float() : default(Single);
         #endregion
         #region MinTime
-        private int _MinTimeLocation => _DATALocation!.Value.Min + 0x20;
-        private bool _MinTime_IsSet => _DATALocation.HasValue;
+        private int _MinTimeLocation => Payload.DATALocation!.Value.Min + 0x20;
+        private bool _MinTime_IsSet => Payload.DATALocation.HasValue;
         public Single MinTime => _MinTime_IsSet ? _recordData.Slice(_MinTimeLocation, 4).Float() : default(Single);
         #endregion
         #region TargetPercentBetweenActors
-        private int _TargetPercentBetweenActorsLocation => _DATALocation!.Value.Min + 0x24;
-        private bool _TargetPercentBetweenActors_IsSet => _DATALocation.HasValue;
+        private int _TargetPercentBetweenActorsLocation => Payload.DATALocation!.Value.Min + 0x24;
+        private bool _TargetPercentBetweenActors_IsSet => Payload.DATALocation.HasValue;
         public Single TargetPercentBetweenActors => _TargetPercentBetweenActors_IsSet ? _recordData.Slice(_TargetPercentBetweenActorsLocation, 4).Float() : default(Single);
         #endregion
         #region NearTargetDistance
-        private int _NearTargetDistanceLocation => _DATALocation!.Value.Min + 0x28;
-        private bool _NearTargetDistance_IsSet => _DATALocation.HasValue;
+        private int _NearTargetDistanceLocation => Payload.DATALocation!.Value.Min + 0x28;
+        private bool _NearTargetDistance_IsSet => Payload.DATALocation.HasValue;
         public Single NearTargetDistance => _NearTargetDistance_IsSet ? _recordData.Slice(_NearTargetDistanceLocation, 4).Float() : default(Single);
         #endregion
         #region LocationSpring
-        private int _LocationSpringLocation => _DATALocation!.Value.Min + 0x2C;
-        private bool _LocationSpring_IsSet => _DATALocation.HasValue && !DATADataTypeState.HasFlag(CameraShot.DATADataType.Break0);
+        private int _LocationSpringLocation => Payload.DATALocation!.Value.Min + 0x2C;
+        private bool _LocationSpring_IsSet => Payload.DATALocation.HasValue && !DATADataTypeState.HasFlag(CameraShot.DATADataType.Break0);
         public Single LocationSpring => _LocationSpring_IsSet ? _recordData.Slice(_LocationSpringLocation, 4).Float() : default(Single);
         #endregion
         #region TargetSpring
-        private int _TargetSpringLocation => _DATALocation!.Value.Min + 0x30;
-        private bool _TargetSpring_IsSet => _DATALocation.HasValue && !DATADataTypeState.HasFlag(CameraShot.DATADataType.Break0);
+        private int _TargetSpringLocation => Payload.DATALocation!.Value.Min + 0x30;
+        private bool _TargetSpring_IsSet => Payload.DATALocation.HasValue && !DATADataTypeState.HasFlag(CameraShot.DATADataType.Break0);
         public Single TargetSpring => _TargetSpring_IsSet ? _recordData.Slice(_TargetSpringLocation, 4).Float() : default(Single);
         #endregion
         #region RotationOffset
-        private int _RotationOffsetLocation => _DATALocation!.Value.Min + 0x34;
-        private bool _RotationOffset_IsSet => _DATALocation.HasValue && !DATADataTypeState.HasFlag(CameraShot.DATADataType.Break1);
+        private int _RotationOffsetLocation => Payload.DATALocation!.Value.Min + 0x34;
+        private bool _RotationOffset_IsSet => Payload.DATALocation.HasValue && !DATADataTypeState.HasFlag(CameraShot.DATADataType.Break1);
         public P3Float RotationOffset => _RotationOffset_IsSet ? P3FloatBinaryTranslation<MutagenFrame, MutagenWriter>.Instance.Read(_recordData.Slice(_RotationOffsetLocation, 12)) : default(P3Float);
         #endregion
-        #region ImageSpaceModifier
-        private int? _ImageSpaceModifierLocation;
-        public IFormLinkNullableGetter<IImageSpaceAdapterGetter> ImageSpaceModifier => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IImageSpaceAdapterGetter>(_package, _recordData, _ImageSpaceModifierLocation);
-        #endregion
+        public IFormLinkNullableGetter<IImageSpaceAdapterGetter> ImageSpaceModifier => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IImageSpaceAdapterGetter>(_package, _recordData, Payload.ImageSpaceModifierLocation);
+
+        internal partial class CameraShotRecordDataPayload
+        {
+            public IModelGetter? Model;
+            public IReadOnlyList<IConditionGetter> Conditions = [];
+            public RangeInt32? DATALocation;
+            public CameraShot.DATADataType DATADataTypeState;
+            public int? ImageSpaceModifierLocation;
+        }
+
+        private LazyPayload<CameraShotRecordDataPayload> _payload = null!;
+
+        internal CameraShotRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<CameraShotRecordDataPayload>(init, new CameraShotRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -2760,10 +2776,10 @@ namespace Mutagen.Bethesda.Fallout4
 
         partial void CustomCtor();
         protected CameraShotBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -2774,28 +2790,51 @@ namespace Mutagen.Bethesda.Fallout4
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new CameraShotBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -2827,7 +2866,7 @@ namespace Mutagen.Bethesda.Fallout4
                 case RecordTypeInts.MODT:
                 case RecordTypeInts.MODS:
                 {
-                    this.Model = ModelBinaryOverlay.ModelFactory(
+                    _payload.Fields.Model = ModelBinaryOverlay.ModelFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());
@@ -2835,7 +2874,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.CTDA:
                 {
-                    this.Conditions = BinaryOverlayList.FactoryByArray<IConditionGetter>(
+                    _payload.Fields.Conditions = BinaryOverlayList.FactoryByArray<IConditionGetter>(
                         mem: stream.RemainingMemory,
                         package: _package,
                         translationParams: translationParams,
@@ -2850,21 +2889,21 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.DATA:
                 {
-                    _DATALocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.DATALocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     var subLen = _package.MetaData.Constants.SubrecordHeader(_recordData.Slice((stream.Position - offset))).ContentLength;
                     if (subLen <= 0x2C)
                     {
-                        this.DATADataTypeState |= CameraShot.DATADataType.Break0;
+                        _payload.Fields.DATADataTypeState |= CameraShot.DATADataType.Break0;
                     }
                     if (subLen <= 0x34)
                     {
-                        this.DATADataTypeState |= CameraShot.DATADataType.Break1;
+                        _payload.Fields.DATADataTypeState |= CameraShot.DATADataType.Break1;
                     }
                     return (int)CameraShot_FieldIndex.RotationOffset;
                 }
                 case RecordTypeInts.MNAM:
                 {
-                    _ImageSpaceModifierLocation = (stream.Position - offset);
+                    _payload.Fields.ImageSpaceModifierLocation = (stream.Position - offset);
                     return (int)CameraShot_FieldIndex.ImageSpaceModifier;
                 }
                 default:

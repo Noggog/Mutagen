@@ -93,8 +93,8 @@ internal partial class ArmorAddonBinaryOverlay
     #endregion
     
     public partial IGenderedItemGetter<Boolean> GetWeightSliderEnabledCustom() => new GenderedItem<bool>(
-        _recordData.Slice(_DNAMLocation!.Value.Min + 2)[0] >= 2,
-        _recordData.Slice(_DNAMLocation!.Value.Min + 3)[0] >= 2);
+        _recordData.Slice(Payload.DNAMLocation!.Value.Min + 2)[0] >= 2,
+        _recordData.Slice(Payload.DNAMLocation!.Value.Min + 3)[0] >= 2);
 
     private GenderedItem<IReadOnlyList<IBoneGetter>?>? _boneData;
     public IGenderedItemGetter<IReadOnlyList<IBoneGetter>?> BoneData => _boneData ?? new GenderedItem<IReadOnlyList<IBoneGetter>?>(null, null);

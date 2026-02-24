@@ -37,6 +37,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -2232,72 +2233,85 @@ namespace Mutagen.Bethesda.Skyrim
         protected override Type LinkType => typeof(IShaderParticleGeometryGetter);
 
 
-        private RangeInt32? _DATALocation;
-        public ShaderParticleGeometry.DATADataType DATADataTypeState { get; private set; }
+        public ShaderParticleGeometry.DATADataType DATADataTypeState => Payload.DATADataTypeState;
         #region GravityVelocity
-        private int _GravityVelocityLocation => _DATALocation!.Value.Min;
-        private bool _GravityVelocity_IsSet => _DATALocation.HasValue;
+        private int _GravityVelocityLocation => Payload.DATALocation!.Value.Min;
+        private bool _GravityVelocity_IsSet => Payload.DATALocation.HasValue;
         public Single GravityVelocity => _GravityVelocity_IsSet ? _recordData.Slice(_GravityVelocityLocation, 4).Float() : default(Single);
         #endregion
         #region RotationVelocity
-        private int _RotationVelocityLocation => _DATALocation!.Value.Min + 0x4;
-        private bool _RotationVelocity_IsSet => _DATALocation.HasValue;
+        private int _RotationVelocityLocation => Payload.DATALocation!.Value.Min + 0x4;
+        private bool _RotationVelocity_IsSet => Payload.DATALocation.HasValue;
         public Single RotationVelocity => _RotationVelocity_IsSet ? _recordData.Slice(_RotationVelocityLocation, 4).Float() : default(Single);
         #endregion
         #region ParticleSizeX
-        private int _ParticleSizeXLocation => _DATALocation!.Value.Min + 0x8;
-        private bool _ParticleSizeX_IsSet => _DATALocation.HasValue;
+        private int _ParticleSizeXLocation => Payload.DATALocation!.Value.Min + 0x8;
+        private bool _ParticleSizeX_IsSet => Payload.DATALocation.HasValue;
         public Single ParticleSizeX => _ParticleSizeX_IsSet ? _recordData.Slice(_ParticleSizeXLocation, 4).Float() : default(Single);
         #endregion
         #region ParticleSizeY
-        private int _ParticleSizeYLocation => _DATALocation!.Value.Min + 0xC;
-        private bool _ParticleSizeY_IsSet => _DATALocation.HasValue;
+        private int _ParticleSizeYLocation => Payload.DATALocation!.Value.Min + 0xC;
+        private bool _ParticleSizeY_IsSet => Payload.DATALocation.HasValue;
         public Single ParticleSizeY => _ParticleSizeY_IsSet ? _recordData.Slice(_ParticleSizeYLocation, 4).Float() : default(Single);
         #endregion
         #region CenterOffsetMin
-        private int _CenterOffsetMinLocation => _DATALocation!.Value.Min + 0x10;
-        private bool _CenterOffsetMin_IsSet => _DATALocation.HasValue;
+        private int _CenterOffsetMinLocation => Payload.DATALocation!.Value.Min + 0x10;
+        private bool _CenterOffsetMin_IsSet => Payload.DATALocation.HasValue;
         public Single CenterOffsetMin => _CenterOffsetMin_IsSet ? _recordData.Slice(_CenterOffsetMinLocation, 4).Float() : default(Single);
         #endregion
         #region CenterOffsetMax
-        private int _CenterOffsetMaxLocation => _DATALocation!.Value.Min + 0x14;
-        private bool _CenterOffsetMax_IsSet => _DATALocation.HasValue;
+        private int _CenterOffsetMaxLocation => Payload.DATALocation!.Value.Min + 0x14;
+        private bool _CenterOffsetMax_IsSet => Payload.DATALocation.HasValue;
         public Single CenterOffsetMax => _CenterOffsetMax_IsSet ? _recordData.Slice(_CenterOffsetMaxLocation, 4).Float() : default(Single);
         #endregion
         #region InitialRotationRange
-        private int _InitialRotationRangeLocation => _DATALocation!.Value.Min + 0x18;
-        private bool _InitialRotationRange_IsSet => _DATALocation.HasValue;
+        private int _InitialRotationRangeLocation => Payload.DATALocation!.Value.Min + 0x18;
+        private bool _InitialRotationRange_IsSet => Payload.DATALocation.HasValue;
         public Single InitialRotationRange => _InitialRotationRange_IsSet ? _recordData.Slice(_InitialRotationRangeLocation, 4).Float() : default(Single);
         #endregion
         #region NumSubtexturesX
-        private int _NumSubtexturesXLocation => _DATALocation!.Value.Min + 0x1C;
-        private bool _NumSubtexturesX_IsSet => _DATALocation.HasValue;
+        private int _NumSubtexturesXLocation => Payload.DATALocation!.Value.Min + 0x1C;
+        private bool _NumSubtexturesX_IsSet => Payload.DATALocation.HasValue;
         public UInt32 NumSubtexturesX => _NumSubtexturesX_IsSet ? BinaryPrimitives.ReadUInt32LittleEndian(_recordData.Slice(_NumSubtexturesXLocation, 4)) : default(UInt32);
         #endregion
         #region NumSubtexturesY
-        private int _NumSubtexturesYLocation => _DATALocation!.Value.Min + 0x20;
-        private bool _NumSubtexturesY_IsSet => _DATALocation.HasValue;
+        private int _NumSubtexturesYLocation => Payload.DATALocation!.Value.Min + 0x20;
+        private bool _NumSubtexturesY_IsSet => Payload.DATALocation.HasValue;
         public UInt32 NumSubtexturesY => _NumSubtexturesY_IsSet ? BinaryPrimitives.ReadUInt32LittleEndian(_recordData.Slice(_NumSubtexturesYLocation, 4)) : default(UInt32);
         #endregion
         #region Type
-        private int _TypeLocation => _DATALocation!.Value.Min + 0x24;
-        private bool _Type_IsSet => _DATALocation.HasValue;
+        private int _TypeLocation => Payload.DATALocation!.Value.Min + 0x24;
+        private bool _Type_IsSet => Payload.DATALocation.HasValue;
         public ShaderParticleGeometry.TypeEnum Type => _Type_IsSet ? (ShaderParticleGeometry.TypeEnum)BinaryPrimitives.ReadInt32LittleEndian(_recordData.Span.Slice(_TypeLocation, 0x4)) : default;
         #endregion
         #region BoxSize
-        private int _BoxSizeLocation => _DATALocation!.Value.Min + 0x28;
-        private bool _BoxSize_IsSet => _DATALocation.HasValue && !DATADataTypeState.HasFlag(ShaderParticleGeometry.DATADataType.Break0);
+        private int _BoxSizeLocation => Payload.DATALocation!.Value.Min + 0x28;
+        private bool _BoxSize_IsSet => Payload.DATALocation.HasValue && !DATADataTypeState.HasFlag(ShaderParticleGeometry.DATADataType.Break0);
         public UInt32 BoxSize => _BoxSize_IsSet ? BinaryPrimitives.ReadUInt32LittleEndian(_recordData.Slice(_BoxSizeLocation, 4)) : default(UInt32);
         #endregion
         #region ParticleDensity
-        private int _ParticleDensityLocation => _DATALocation!.Value.Min + 0x2C;
-        private bool _ParticleDensity_IsSet => _DATALocation.HasValue && !DATADataTypeState.HasFlag(ShaderParticleGeometry.DATADataType.Break0);
+        private int _ParticleDensityLocation => Payload.DATALocation!.Value.Min + 0x2C;
+        private bool _ParticleDensity_IsSet => Payload.DATALocation.HasValue && !DATADataTypeState.HasFlag(ShaderParticleGeometry.DATADataType.Break0);
         public Single ParticleDensity => _ParticleDensity_IsSet ? _recordData.Slice(_ParticleDensityLocation, 4).Float() : default(Single);
         #endregion
-        #region ParticleTexture
-        private int? _ParticleTextureLocation;
-        public AssetLinkGetter<SkyrimTextureAssetType>? ParticleTexture => _ParticleTextureLocation.HasValue ? new AssetLinkGetter<SkyrimTextureAssetType>(BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _ParticleTextureLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated)) : default(AssetLinkGetter<SkyrimTextureAssetType>?);
-        #endregion
+        public AssetLinkGetter<SkyrimTextureAssetType>? ParticleTexture => Payload.ParticleTextureLocation.HasValue ? new AssetLinkGetter<SkyrimTextureAssetType>(BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.ParticleTextureLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated)) : default(AssetLinkGetter<SkyrimTextureAssetType>?);
+
+        internal partial class ShaderParticleGeometryRecordDataPayload
+        {
+            public RangeInt32? DATALocation;
+            public ShaderParticleGeometry.DATADataType DATADataTypeState;
+            public int? ParticleTextureLocation;
+        }
+
+        private LazyPayload<ShaderParticleGeometryRecordDataPayload> _payload = null!;
+
+        internal ShaderParticleGeometryRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<ShaderParticleGeometryRecordDataPayload>(init, new ShaderParticleGeometryRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -2305,10 +2319,10 @@ namespace Mutagen.Bethesda.Skyrim
 
         partial void CustomCtor();
         protected ShaderParticleGeometryBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -2319,28 +2333,51 @@ namespace Mutagen.Bethesda.Skyrim
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new ShaderParticleGeometryBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -2369,17 +2406,17 @@ namespace Mutagen.Bethesda.Skyrim
             {
                 case RecordTypeInts.DATA:
                 {
-                    _DATALocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.DATALocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     var subLen = _package.MetaData.Constants.SubrecordHeader(_recordData.Slice((stream.Position - offset))).ContentLength;
                     if (subLen <= 0x28)
                     {
-                        this.DATADataTypeState |= ShaderParticleGeometry.DATADataType.Break0;
+                        _payload.Fields.DATADataTypeState |= ShaderParticleGeometry.DATADataType.Break0;
                     }
                     return (int)ShaderParticleGeometry_FieldIndex.ParticleDensity;
                 }
                 case RecordTypeInts.ICON:
                 {
-                    _ParticleTextureLocation = (stream.Position - offset);
+                    _payload.Fields.ParticleTextureLocation = (stream.Position - offset);
                     return (int)ShaderParticleGeometry_FieldIndex.ParticleTexture;
                 }
                 default:

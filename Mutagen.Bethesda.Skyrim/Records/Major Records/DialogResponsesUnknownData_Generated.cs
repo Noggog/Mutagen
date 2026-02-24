@@ -1244,7 +1244,14 @@ namespace Mutagen.Bethesda.Skyrim
         #endregion
         #region NEXT
         private int? _NEXTLocation;
-        public Boolean NEXT => _NEXTLocation.HasValue ? true : default(Boolean);
+        public Boolean NEXT
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _NEXTLocation.HasValue ? true : default(Boolean);
+            }
+        }
         #endregion
         partial void CustomFactoryEnd(
             OverlayStream stream,

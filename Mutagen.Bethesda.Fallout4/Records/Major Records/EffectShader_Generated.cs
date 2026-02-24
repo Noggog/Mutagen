@@ -36,6 +36,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -4534,263 +4535,266 @@ namespace Mutagen.Bethesda.Fallout4
         protected override Type LinkType => typeof(IEffectShaderGetter);
 
 
-        #region FillTexture
-        private int? _FillTextureLocation;
-        public String? FillTexture => _FillTextureLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _FillTextureLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
-        #region ParticleShaderTexture
-        private int? _ParticleShaderTextureLocation;
-        public String? ParticleShaderTexture => _ParticleShaderTextureLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _ParticleShaderTextureLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
-        #region HolesTexture
-        private int? _HolesTextureLocation;
-        public String? HolesTexture => _HolesTextureLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _HolesTextureLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
-        #region MembranePaletteTexture
-        private int? _MembranePaletteTextureLocation;
-        public String? MembranePaletteTexture => _MembranePaletteTextureLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _MembranePaletteTextureLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
-        #region ParticlePaletteTexture
-        private int? _ParticlePaletteTextureLocation;
-        public String? ParticlePaletteTexture => _ParticlePaletteTextureLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _ParticlePaletteTextureLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
-        #region DATA
-        private int? _DATALocation;
-        public ReadOnlyMemorySlice<Byte>? DATA => _DATALocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _DATALocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
-        #endregion
-        private RangeInt32? _DNAMLocation;
+        public String? FillTexture => Payload.FillTextureLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.FillTextureLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? ParticleShaderTexture => Payload.ParticleShaderTextureLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.ParticleShaderTextureLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? HolesTexture => Payload.HolesTextureLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.HolesTextureLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? MembranePaletteTexture => Payload.MembranePaletteTextureLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.MembranePaletteTextureLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? ParticlePaletteTexture => Payload.ParticlePaletteTextureLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.ParticlePaletteTextureLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public ReadOnlyMemorySlice<Byte>? DATA => Payload.DATALocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.DATALocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
         #region Unknown
-        private int _UnknownLocation => _DNAMLocation!.Value.Min;
-        private bool _Unknown_IsSet => _DNAMLocation.HasValue && _package.FormVersion!.FormVersion!.Value < 106;
+        private int _UnknownLocation => Payload.DNAMLocation!.Value.Min;
+        private bool _Unknown_IsSet => Payload.DNAMLocation.HasValue && _package.FormVersion!.FormVersion!.Value < 106;
         public Byte Unknown => _Unknown_IsSet ? _recordData.Span[_UnknownLocation] : default;
         int UnknownVersioningOffset => _package.FormVersion!.FormVersion!.Value >= 106 ? -1 : 0;
         #endregion
         #region MembraneSourceBlendMode
-        private int _MembraneSourceBlendModeLocation => _DNAMLocation!.Value.Min + UnknownVersioningOffset + 0x1;
-        private bool _MembraneSourceBlendMode_IsSet => _DNAMLocation.HasValue;
+        private int _MembraneSourceBlendModeLocation => Payload.DNAMLocation!.Value.Min + UnknownVersioningOffset + 0x1;
+        private bool _MembraneSourceBlendMode_IsSet => Payload.DNAMLocation.HasValue;
         public EffectShader.BlendMode MembraneSourceBlendMode => _MembraneSourceBlendMode_IsSet ? (EffectShader.BlendMode)BinaryPrimitives.ReadInt32LittleEndian(_recordData.Span.Slice(_MembraneSourceBlendModeLocation, 0x4)) : default;
         #endregion
         #region MembraneBlendOperation
-        private int _MembraneBlendOperationLocation => _DNAMLocation!.Value.Min + UnknownVersioningOffset + 0x5;
-        private bool _MembraneBlendOperation_IsSet => _DNAMLocation.HasValue;
+        private int _MembraneBlendOperationLocation => Payload.DNAMLocation!.Value.Min + UnknownVersioningOffset + 0x5;
+        private bool _MembraneBlendOperation_IsSet => Payload.DNAMLocation.HasValue;
         public EffectShader.BlendOperation MembraneBlendOperation => _MembraneBlendOperation_IsSet ? (EffectShader.BlendOperation)BinaryPrimitives.ReadInt32LittleEndian(_recordData.Span.Slice(_MembraneBlendOperationLocation, 0x4)) : default;
         #endregion
         #region MembraneZTest
-        private int _MembraneZTestLocation => _DNAMLocation!.Value.Min + UnknownVersioningOffset + 0x9;
-        private bool _MembraneZTest_IsSet => _DNAMLocation.HasValue;
+        private int _MembraneZTestLocation => Payload.DNAMLocation!.Value.Min + UnknownVersioningOffset + 0x9;
+        private bool _MembraneZTest_IsSet => Payload.DNAMLocation.HasValue;
         public EffectShader.ZTest MembraneZTest => _MembraneZTest_IsSet ? (EffectShader.ZTest)BinaryPrimitives.ReadInt32LittleEndian(_recordData.Span.Slice(_MembraneZTestLocation, 0x4)) : default;
         #endregion
         #region FillColorKey1
-        private int _FillColorKey1Location => _DNAMLocation!.Value.Min + UnknownVersioningOffset + 0xD;
-        private bool _FillColorKey1_IsSet => _DNAMLocation.HasValue;
+        private int _FillColorKey1Location => Payload.DNAMLocation!.Value.Min + UnknownVersioningOffset + 0xD;
+        private bool _FillColorKey1_IsSet => Payload.DNAMLocation.HasValue;
         public Color FillColorKey1 => _FillColorKey1_IsSet ? _recordData.Slice(_FillColorKey1Location, 4).ReadColor(ColorBinaryType.Alpha) : default(Color);
         #endregion
         #region FillAlphaFadeInTime
-        private int _FillAlphaFadeInTimeLocation => _DNAMLocation!.Value.Min + UnknownVersioningOffset + 0x11;
-        private bool _FillAlphaFadeInTime_IsSet => _DNAMLocation.HasValue;
+        private int _FillAlphaFadeInTimeLocation => Payload.DNAMLocation!.Value.Min + UnknownVersioningOffset + 0x11;
+        private bool _FillAlphaFadeInTime_IsSet => Payload.DNAMLocation.HasValue;
         public Single FillAlphaFadeInTime => _FillAlphaFadeInTime_IsSet ? _recordData.Slice(_FillAlphaFadeInTimeLocation, 4).Float() : default(Single);
         #endregion
         #region FillFullAlphaTime
-        private int _FillFullAlphaTimeLocation => _DNAMLocation!.Value.Min + UnknownVersioningOffset + 0x15;
-        private bool _FillFullAlphaTime_IsSet => _DNAMLocation.HasValue;
+        private int _FillFullAlphaTimeLocation => Payload.DNAMLocation!.Value.Min + UnknownVersioningOffset + 0x15;
+        private bool _FillFullAlphaTime_IsSet => Payload.DNAMLocation.HasValue;
         public Single FillFullAlphaTime => _FillFullAlphaTime_IsSet ? _recordData.Slice(_FillFullAlphaTimeLocation, 4).Float() : default(Single);
         #endregion
         #region FillFadeOutTime
-        private int _FillFadeOutTimeLocation => _DNAMLocation!.Value.Min + UnknownVersioningOffset + 0x19;
-        private bool _FillFadeOutTime_IsSet => _DNAMLocation.HasValue;
+        private int _FillFadeOutTimeLocation => Payload.DNAMLocation!.Value.Min + UnknownVersioningOffset + 0x19;
+        private bool _FillFadeOutTime_IsSet => Payload.DNAMLocation.HasValue;
         public Single FillFadeOutTime => _FillFadeOutTime_IsSet ? _recordData.Slice(_FillFadeOutTimeLocation, 4).Float() : default(Single);
         #endregion
         #region FillPersistentAlphaRatio
-        private int _FillPersistentAlphaRatioLocation => _DNAMLocation!.Value.Min + UnknownVersioningOffset + 0x1D;
-        private bool _FillPersistentAlphaRatio_IsSet => _DNAMLocation.HasValue;
+        private int _FillPersistentAlphaRatioLocation => Payload.DNAMLocation!.Value.Min + UnknownVersioningOffset + 0x1D;
+        private bool _FillPersistentAlphaRatio_IsSet => Payload.DNAMLocation.HasValue;
         public Single FillPersistentAlphaRatio => _FillPersistentAlphaRatio_IsSet ? _recordData.Slice(_FillPersistentAlphaRatioLocation, 4).Float() : default(Single);
         #endregion
         #region FillAlphaPulseAmplitude
-        private int _FillAlphaPulseAmplitudeLocation => _DNAMLocation!.Value.Min + UnknownVersioningOffset + 0x21;
-        private bool _FillAlphaPulseAmplitude_IsSet => _DNAMLocation.HasValue;
+        private int _FillAlphaPulseAmplitudeLocation => Payload.DNAMLocation!.Value.Min + UnknownVersioningOffset + 0x21;
+        private bool _FillAlphaPulseAmplitude_IsSet => Payload.DNAMLocation.HasValue;
         public Single FillAlphaPulseAmplitude => _FillAlphaPulseAmplitude_IsSet ? _recordData.Slice(_FillAlphaPulseAmplitudeLocation, 4).Float() : default(Single);
         #endregion
         #region FillAlphaPulseFrequency
-        private int _FillAlphaPulseFrequencyLocation => _DNAMLocation!.Value.Min + UnknownVersioningOffset + 0x25;
-        private bool _FillAlphaPulseFrequency_IsSet => _DNAMLocation.HasValue;
+        private int _FillAlphaPulseFrequencyLocation => Payload.DNAMLocation!.Value.Min + UnknownVersioningOffset + 0x25;
+        private bool _FillAlphaPulseFrequency_IsSet => Payload.DNAMLocation.HasValue;
         public Single FillAlphaPulseFrequency => _FillAlphaPulseFrequency_IsSet ? _recordData.Slice(_FillAlphaPulseFrequencyLocation, 4).Float() : default(Single);
         #endregion
         #region FillTextureAnimationSpeedU
-        private int _FillTextureAnimationSpeedULocation => _DNAMLocation!.Value.Min + UnknownVersioningOffset + 0x29;
-        private bool _FillTextureAnimationSpeedU_IsSet => _DNAMLocation.HasValue;
+        private int _FillTextureAnimationSpeedULocation => Payload.DNAMLocation!.Value.Min + UnknownVersioningOffset + 0x29;
+        private bool _FillTextureAnimationSpeedU_IsSet => Payload.DNAMLocation.HasValue;
         public Single FillTextureAnimationSpeedU => _FillTextureAnimationSpeedU_IsSet ? _recordData.Slice(_FillTextureAnimationSpeedULocation, 4).Float() : default(Single);
         #endregion
         #region FillTextureAnimationSpeedV
-        private int _FillTextureAnimationSpeedVLocation => _DNAMLocation!.Value.Min + UnknownVersioningOffset + 0x2D;
-        private bool _FillTextureAnimationSpeedV_IsSet => _DNAMLocation.HasValue;
+        private int _FillTextureAnimationSpeedVLocation => Payload.DNAMLocation!.Value.Min + UnknownVersioningOffset + 0x2D;
+        private bool _FillTextureAnimationSpeedV_IsSet => Payload.DNAMLocation.HasValue;
         public Single FillTextureAnimationSpeedV => _FillTextureAnimationSpeedV_IsSet ? _recordData.Slice(_FillTextureAnimationSpeedVLocation, 4).Float() : default(Single);
         #endregion
         #region EdgeEffectFallOff
-        private int _EdgeEffectFallOffLocation => _DNAMLocation!.Value.Min + UnknownVersioningOffset + 0x31;
-        private bool _EdgeEffectFallOff_IsSet => _DNAMLocation.HasValue;
+        private int _EdgeEffectFallOffLocation => Payload.DNAMLocation!.Value.Min + UnknownVersioningOffset + 0x31;
+        private bool _EdgeEffectFallOff_IsSet => Payload.DNAMLocation.HasValue;
         public Single EdgeEffectFallOff => _EdgeEffectFallOff_IsSet ? _recordData.Slice(_EdgeEffectFallOffLocation, 4).Float() : default(Single);
         #endregion
         #region EdgeEffectColor
-        private int _EdgeEffectColorLocation => _DNAMLocation!.Value.Min + UnknownVersioningOffset + 0x35;
-        private bool _EdgeEffectColor_IsSet => _DNAMLocation.HasValue;
+        private int _EdgeEffectColorLocation => Payload.DNAMLocation!.Value.Min + UnknownVersioningOffset + 0x35;
+        private bool _EdgeEffectColor_IsSet => Payload.DNAMLocation.HasValue;
         public Color EdgeEffectColor => _EdgeEffectColor_IsSet ? _recordData.Slice(_EdgeEffectColorLocation, 4).ReadColor(ColorBinaryType.Alpha) : default(Color);
         #endregion
         #region EdgeEffectAlphaFadeInTime
-        private int _EdgeEffectAlphaFadeInTimeLocation => _DNAMLocation!.Value.Min + UnknownVersioningOffset + 0x39;
-        private bool _EdgeEffectAlphaFadeInTime_IsSet => _DNAMLocation.HasValue;
+        private int _EdgeEffectAlphaFadeInTimeLocation => Payload.DNAMLocation!.Value.Min + UnknownVersioningOffset + 0x39;
+        private bool _EdgeEffectAlphaFadeInTime_IsSet => Payload.DNAMLocation.HasValue;
         public Single EdgeEffectAlphaFadeInTime => _EdgeEffectAlphaFadeInTime_IsSet ? _recordData.Slice(_EdgeEffectAlphaFadeInTimeLocation, 4).Float() : default(Single);
         #endregion
         #region EdgeEffectFullAlphaTime
-        private int _EdgeEffectFullAlphaTimeLocation => _DNAMLocation!.Value.Min + UnknownVersioningOffset + 0x3D;
-        private bool _EdgeEffectFullAlphaTime_IsSet => _DNAMLocation.HasValue;
+        private int _EdgeEffectFullAlphaTimeLocation => Payload.DNAMLocation!.Value.Min + UnknownVersioningOffset + 0x3D;
+        private bool _EdgeEffectFullAlphaTime_IsSet => Payload.DNAMLocation.HasValue;
         public Single EdgeEffectFullAlphaTime => _EdgeEffectFullAlphaTime_IsSet ? _recordData.Slice(_EdgeEffectFullAlphaTimeLocation, 4).Float() : default(Single);
         #endregion
         #region EdgeEffectAlphaFadeOutTime
-        private int _EdgeEffectAlphaFadeOutTimeLocation => _DNAMLocation!.Value.Min + UnknownVersioningOffset + 0x41;
-        private bool _EdgeEffectAlphaFadeOutTime_IsSet => _DNAMLocation.HasValue;
+        private int _EdgeEffectAlphaFadeOutTimeLocation => Payload.DNAMLocation!.Value.Min + UnknownVersioningOffset + 0x41;
+        private bool _EdgeEffectAlphaFadeOutTime_IsSet => Payload.DNAMLocation.HasValue;
         public Single EdgeEffectAlphaFadeOutTime => _EdgeEffectAlphaFadeOutTime_IsSet ? _recordData.Slice(_EdgeEffectAlphaFadeOutTimeLocation, 4).Float() : default(Single);
         #endregion
         #region EdgeEffectPersistentAlphaRatio
-        private int _EdgeEffectPersistentAlphaRatioLocation => _DNAMLocation!.Value.Min + UnknownVersioningOffset + 0x45;
-        private bool _EdgeEffectPersistentAlphaRatio_IsSet => _DNAMLocation.HasValue;
+        private int _EdgeEffectPersistentAlphaRatioLocation => Payload.DNAMLocation!.Value.Min + UnknownVersioningOffset + 0x45;
+        private bool _EdgeEffectPersistentAlphaRatio_IsSet => Payload.DNAMLocation.HasValue;
         public Single EdgeEffectPersistentAlphaRatio => _EdgeEffectPersistentAlphaRatio_IsSet ? _recordData.Slice(_EdgeEffectPersistentAlphaRatioLocation, 4).Float() : default(Single);
         #endregion
         #region EdgeEffectAlphaPulseAmplitude
-        private int _EdgeEffectAlphaPulseAmplitudeLocation => _DNAMLocation!.Value.Min + UnknownVersioningOffset + 0x49;
-        private bool _EdgeEffectAlphaPulseAmplitude_IsSet => _DNAMLocation.HasValue;
+        private int _EdgeEffectAlphaPulseAmplitudeLocation => Payload.DNAMLocation!.Value.Min + UnknownVersioningOffset + 0x49;
+        private bool _EdgeEffectAlphaPulseAmplitude_IsSet => Payload.DNAMLocation.HasValue;
         public Single EdgeEffectAlphaPulseAmplitude => _EdgeEffectAlphaPulseAmplitude_IsSet ? _recordData.Slice(_EdgeEffectAlphaPulseAmplitudeLocation, 4).Float() : default(Single);
         #endregion
         #region EdgeEffectAlphaPulseFrequency
-        private int _EdgeEffectAlphaPulseFrequencyLocation => _DNAMLocation!.Value.Min + UnknownVersioningOffset + 0x4D;
-        private bool _EdgeEffectAlphaPulseFrequency_IsSet => _DNAMLocation.HasValue;
+        private int _EdgeEffectAlphaPulseFrequencyLocation => Payload.DNAMLocation!.Value.Min + UnknownVersioningOffset + 0x4D;
+        private bool _EdgeEffectAlphaPulseFrequency_IsSet => Payload.DNAMLocation.HasValue;
         public Single EdgeEffectAlphaPulseFrequency => _EdgeEffectAlphaPulseFrequency_IsSet ? _recordData.Slice(_EdgeEffectAlphaPulseFrequencyLocation, 4).Float() : default(Single);
         #endregion
         #region FillFullAlphaRatio
-        private int _FillFullAlphaRatioLocation => _DNAMLocation!.Value.Min + UnknownVersioningOffset + 0x51;
-        private bool _FillFullAlphaRatio_IsSet => _DNAMLocation.HasValue;
+        private int _FillFullAlphaRatioLocation => Payload.DNAMLocation!.Value.Min + UnknownVersioningOffset + 0x51;
+        private bool _FillFullAlphaRatio_IsSet => Payload.DNAMLocation.HasValue;
         public Single FillFullAlphaRatio => _FillFullAlphaRatio_IsSet ? _recordData.Slice(_FillFullAlphaRatioLocation, 4).Float() : default(Single);
         #endregion
         #region EdgeEffectFullAlphaRatio
-        private int _EdgeEffectFullAlphaRatioLocation => _DNAMLocation!.Value.Min + UnknownVersioningOffset + 0x55;
-        private bool _EdgeEffectFullAlphaRatio_IsSet => _DNAMLocation.HasValue;
+        private int _EdgeEffectFullAlphaRatioLocation => Payload.DNAMLocation!.Value.Min + UnknownVersioningOffset + 0x55;
+        private bool _EdgeEffectFullAlphaRatio_IsSet => Payload.DNAMLocation.HasValue;
         public Single EdgeEffectFullAlphaRatio => _EdgeEffectFullAlphaRatio_IsSet ? _recordData.Slice(_EdgeEffectFullAlphaRatioLocation, 4).Float() : default(Single);
         #endregion
         #region MembraneDestBlendMode
-        private int _MembraneDestBlendModeLocation => _DNAMLocation!.Value.Min + UnknownVersioningOffset + 0x59;
-        private bool _MembraneDestBlendMode_IsSet => _DNAMLocation.HasValue;
+        private int _MembraneDestBlendModeLocation => Payload.DNAMLocation!.Value.Min + UnknownVersioningOffset + 0x59;
+        private bool _MembraneDestBlendMode_IsSet => Payload.DNAMLocation.HasValue;
         public EffectShader.BlendMode MembraneDestBlendMode => _MembraneDestBlendMode_IsSet ? (EffectShader.BlendMode)BinaryPrimitives.ReadInt32LittleEndian(_recordData.Span.Slice(_MembraneDestBlendModeLocation, 0x4)) : default;
         #endregion
         #region Unknown2
-        private int _Unknown2Location => _DNAMLocation!.Value.Min + UnknownVersioningOffset + 0x5D;
-        private bool _Unknown2_IsSet => _DNAMLocation.HasValue && _package.FormVersion!.FormVersion!.Value < 106;
+        private int _Unknown2Location => Payload.DNAMLocation!.Value.Min + UnknownVersioningOffset + 0x5D;
+        private bool _Unknown2_IsSet => Payload.DNAMLocation.HasValue && _package.FormVersion!.FormVersion!.Value < 106;
         public ReadOnlyMemorySlice<Byte> Unknown2 => _Unknown2_IsSet ? _recordData.Span.Slice(_Unknown2Location, 152).ToArray() : ReadOnlyMemorySlice<byte>.Empty;
         int Unknown2VersioningOffset => UnknownVersioningOffset + (_package.FormVersion!.FormVersion!.Value >= 106 ? -152 : 0);
         #endregion
         #region HolesAnimationStartTime
-        private int _HolesAnimationStartTimeLocation => _DNAMLocation!.Value.Min + Unknown2VersioningOffset + 0xF5;
-        private bool _HolesAnimationStartTime_IsSet => _DNAMLocation.HasValue;
+        private int _HolesAnimationStartTimeLocation => Payload.DNAMLocation!.Value.Min + Unknown2VersioningOffset + 0xF5;
+        private bool _HolesAnimationStartTime_IsSet => Payload.DNAMLocation.HasValue;
         public Single HolesAnimationStartTime => _HolesAnimationStartTime_IsSet ? _recordData.Slice(_HolesAnimationStartTimeLocation, 4).Float() : default(Single);
         #endregion
         #region HolesAnimationEndTime
-        private int _HolesAnimationEndTimeLocation => _DNAMLocation!.Value.Min + Unknown2VersioningOffset + 0xF9;
-        private bool _HolesAnimationEndTime_IsSet => _DNAMLocation.HasValue;
+        private int _HolesAnimationEndTimeLocation => Payload.DNAMLocation!.Value.Min + Unknown2VersioningOffset + 0xF9;
+        private bool _HolesAnimationEndTime_IsSet => Payload.DNAMLocation.HasValue;
         public Single HolesAnimationEndTime => _HolesAnimationEndTime_IsSet ? _recordData.Slice(_HolesAnimationEndTimeLocation, 4).Float() : default(Single);
         #endregion
         #region HolesAnimationStartValue
-        private int _HolesAnimationStartValueLocation => _DNAMLocation!.Value.Min + Unknown2VersioningOffset + 0xFD;
-        private bool _HolesAnimationStartValue_IsSet => _DNAMLocation.HasValue;
+        private int _HolesAnimationStartValueLocation => Payload.DNAMLocation!.Value.Min + Unknown2VersioningOffset + 0xFD;
+        private bool _HolesAnimationStartValue_IsSet => Payload.DNAMLocation.HasValue;
         public Single HolesAnimationStartValue => _HolesAnimationStartValue_IsSet ? _recordData.Slice(_HolesAnimationStartValueLocation, 4).Float() : default(Single);
         #endregion
         #region HolesAnimationEndValue
-        private int _HolesAnimationEndValueLocation => _DNAMLocation!.Value.Min + Unknown2VersioningOffset + 0x101;
-        private bool _HolesAnimationEndValue_IsSet => _DNAMLocation.HasValue;
+        private int _HolesAnimationEndValueLocation => Payload.DNAMLocation!.Value.Min + Unknown2VersioningOffset + 0x101;
+        private bool _HolesAnimationEndValue_IsSet => Payload.DNAMLocation.HasValue;
         public Single HolesAnimationEndValue => _HolesAnimationEndValue_IsSet ? _recordData.Slice(_HolesAnimationEndValueLocation, 4).Float() : default(Single);
         #endregion
         #region Unknown3
-        private int _Unknown3Location => _DNAMLocation!.Value.Min + Unknown2VersioningOffset + 0x105;
-        private bool _Unknown3_IsSet => _DNAMLocation.HasValue && _package.FormVersion!.FormVersion!.Value < 106;
+        private int _Unknown3Location => Payload.DNAMLocation!.Value.Min + Unknown2VersioningOffset + 0x105;
+        private bool _Unknown3_IsSet => Payload.DNAMLocation.HasValue && _package.FormVersion!.FormVersion!.Value < 106;
         public ReadOnlyMemorySlice<Byte> Unknown3 => _Unknown3_IsSet ? _recordData.Span.Slice(_Unknown3Location, 44).ToArray() : ReadOnlyMemorySlice<byte>.Empty;
         int Unknown3VersioningOffset => Unknown2VersioningOffset + (_package.FormVersion!.FormVersion!.Value >= 106 ? -44 : 0);
         #endregion
         #region AmbientSound
-        private int _AmbientSoundLocation => _DNAMLocation!.Value.Min + Unknown3VersioningOffset + 0x131;
-        private bool _AmbientSound_IsSet => _DNAMLocation.HasValue;
+        private int _AmbientSoundLocation => Payload.DNAMLocation!.Value.Min + Unknown3VersioningOffset + 0x131;
+        private bool _AmbientSound_IsSet => Payload.DNAMLocation.HasValue;
         public IFormLinkGetter<ISoundGetter> AmbientSound => _AmbientSound_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<ISoundGetter>(_package, _recordData.Span.Slice(_AmbientSoundLocation, 0x4), isSet: _AmbientSound_IsSet) : FormLink<ISoundGetter>.Null;
         #endregion
         #region FillColorKey2
-        private int _FillColorKey2Location => _DNAMLocation!.Value.Min + Unknown3VersioningOffset + 0x135;
-        private bool _FillColorKey2_IsSet => _DNAMLocation.HasValue;
+        private int _FillColorKey2Location => Payload.DNAMLocation!.Value.Min + Unknown3VersioningOffset + 0x135;
+        private bool _FillColorKey2_IsSet => Payload.DNAMLocation.HasValue;
         public Color FillColorKey2 => _FillColorKey2_IsSet ? _recordData.Slice(_FillColorKey2Location, 4).ReadColor(ColorBinaryType.Alpha) : default(Color);
         #endregion
         #region FillColorKey3
-        private int _FillColorKey3Location => _DNAMLocation!.Value.Min + Unknown3VersioningOffset + 0x139;
-        private bool _FillColorKey3_IsSet => _DNAMLocation.HasValue;
+        private int _FillColorKey3Location => Payload.DNAMLocation!.Value.Min + Unknown3VersioningOffset + 0x139;
+        private bool _FillColorKey3_IsSet => Payload.DNAMLocation.HasValue;
         public Color FillColorKey3 => _FillColorKey3_IsSet ? _recordData.Slice(_FillColorKey3Location, 4).ReadColor(ColorBinaryType.Alpha) : default(Color);
         #endregion
         #region Unknown4
-        private int _Unknown4Location => _DNAMLocation!.Value.Min + Unknown3VersioningOffset + 0x13D;
-        private bool _Unknown4_IsSet => _DNAMLocation.HasValue && _package.FormVersion!.FormVersion!.Value >= 106;
+        private int _Unknown4Location => Payload.DNAMLocation!.Value.Min + Unknown3VersioningOffset + 0x13D;
+        private bool _Unknown4_IsSet => Payload.DNAMLocation.HasValue && _package.FormVersion!.FormVersion!.Value >= 106;
         public Byte Unknown4 => _Unknown4_IsSet ? _recordData.Span[_Unknown4Location] : default;
         int Unknown4VersioningOffset => Unknown3VersioningOffset + (_package.FormVersion!.FormVersion!.Value < 106 ? -1 : 0);
         #endregion
         #region FillColorKey1Scale
-        private int _FillColorKey1ScaleLocation => _DNAMLocation!.Value.Min + Unknown4VersioningOffset + 0x13E;
-        private bool _FillColorKey1Scale_IsSet => _DNAMLocation.HasValue;
+        private int _FillColorKey1ScaleLocation => Payload.DNAMLocation!.Value.Min + Unknown4VersioningOffset + 0x13E;
+        private bool _FillColorKey1Scale_IsSet => Payload.DNAMLocation.HasValue;
         public Single FillColorKey1Scale => _FillColorKey1Scale_IsSet ? _recordData.Slice(_FillColorKey1ScaleLocation, 4).Float() : default(Single);
         #endregion
         #region FillColorKey2Scale
-        private int _FillColorKey2ScaleLocation => _DNAMLocation!.Value.Min + Unknown4VersioningOffset + 0x142;
-        private bool _FillColorKey2Scale_IsSet => _DNAMLocation.HasValue;
+        private int _FillColorKey2ScaleLocation => Payload.DNAMLocation!.Value.Min + Unknown4VersioningOffset + 0x142;
+        private bool _FillColorKey2Scale_IsSet => Payload.DNAMLocation.HasValue;
         public Single FillColorKey2Scale => _FillColorKey2Scale_IsSet ? _recordData.Slice(_FillColorKey2ScaleLocation, 4).Float() : default(Single);
         #endregion
         #region FillColorKey3Scale
-        private int _FillColorKey3ScaleLocation => _DNAMLocation!.Value.Min + Unknown4VersioningOffset + 0x146;
-        private bool _FillColorKey3Scale_IsSet => _DNAMLocation.HasValue;
+        private int _FillColorKey3ScaleLocation => Payload.DNAMLocation!.Value.Min + Unknown4VersioningOffset + 0x146;
+        private bool _FillColorKey3Scale_IsSet => Payload.DNAMLocation.HasValue;
         public Single FillColorKey3Scale => _FillColorKey3Scale_IsSet ? _recordData.Slice(_FillColorKey3ScaleLocation, 4).Float() : default(Single);
         #endregion
         #region FillColorKey1Time
-        private int _FillColorKey1TimeLocation => _DNAMLocation!.Value.Min + Unknown4VersioningOffset + 0x14A;
-        private bool _FillColorKey1Time_IsSet => _DNAMLocation.HasValue;
+        private int _FillColorKey1TimeLocation => Payload.DNAMLocation!.Value.Min + Unknown4VersioningOffset + 0x14A;
+        private bool _FillColorKey1Time_IsSet => Payload.DNAMLocation.HasValue;
         public Single FillColorKey1Time => _FillColorKey1Time_IsSet ? _recordData.Slice(_FillColorKey1TimeLocation, 4).Float() : default(Single);
         #endregion
         #region FillColorKey2Time
-        private int _FillColorKey2TimeLocation => _DNAMLocation!.Value.Min + Unknown4VersioningOffset + 0x14E;
-        private bool _FillColorKey2Time_IsSet => _DNAMLocation.HasValue;
+        private int _FillColorKey2TimeLocation => Payload.DNAMLocation!.Value.Min + Unknown4VersioningOffset + 0x14E;
+        private bool _FillColorKey2Time_IsSet => Payload.DNAMLocation.HasValue;
         public Single FillColorKey2Time => _FillColorKey2Time_IsSet ? _recordData.Slice(_FillColorKey2TimeLocation, 4).Float() : default(Single);
         #endregion
         #region FillColorKey3Time
-        private int _FillColorKey3TimeLocation => _DNAMLocation!.Value.Min + Unknown4VersioningOffset + 0x152;
-        private bool _FillColorKey3Time_IsSet => _DNAMLocation.HasValue;
+        private int _FillColorKey3TimeLocation => Payload.DNAMLocation!.Value.Min + Unknown4VersioningOffset + 0x152;
+        private bool _FillColorKey3Time_IsSet => Payload.DNAMLocation.HasValue;
         public Single FillColorKey3Time => _FillColorKey3Time_IsSet ? _recordData.Slice(_FillColorKey3TimeLocation, 4).Float() : default(Single);
         #endregion
         #region Unknown5
-        private int _Unknown5Location => _DNAMLocation!.Value.Min + Unknown4VersioningOffset + 0x156;
-        private bool _Unknown5_IsSet => _DNAMLocation.HasValue && _package.FormVersion!.FormVersion!.Value < 106;
+        private int _Unknown5Location => Payload.DNAMLocation!.Value.Min + Unknown4VersioningOffset + 0x156;
+        private bool _Unknown5_IsSet => Payload.DNAMLocation.HasValue && _package.FormVersion!.FormVersion!.Value < 106;
         public ReadOnlyMemorySlice<Byte> Unknown5 => _Unknown5_IsSet ? _recordData.Span.Slice(_Unknown5Location, 40).ToArray() : ReadOnlyMemorySlice<byte>.Empty;
         int Unknown5VersioningOffset => Unknown4VersioningOffset + (_package.FormVersion!.FormVersion!.Value >= 106 ? -40 : 0);
         #endregion
         #region Flags
-        private int _FlagsLocation => _DNAMLocation!.Value.Min + Unknown5VersioningOffset + 0x17E;
-        private bool _Flags_IsSet => _DNAMLocation.HasValue;
+        private int _FlagsLocation => Payload.DNAMLocation!.Value.Min + Unknown5VersioningOffset + 0x17E;
+        private bool _Flags_IsSet => Payload.DNAMLocation.HasValue;
         public EffectShader.Flag Flags => _Flags_IsSet ? (EffectShader.Flag)BinaryPrimitives.ReadInt32LittleEndian(_recordData.Span.Slice(_FlagsLocation, 0x4)) : default;
         #endregion
         #region FillTextureScaleU
-        private int _FillTextureScaleULocation => _DNAMLocation!.Value.Min + Unknown5VersioningOffset + 0x182;
-        private bool _FillTextureScaleU_IsSet => _DNAMLocation.HasValue;
+        private int _FillTextureScaleULocation => Payload.DNAMLocation!.Value.Min + Unknown5VersioningOffset + 0x182;
+        private bool _FillTextureScaleU_IsSet => Payload.DNAMLocation.HasValue;
         public Single FillTextureScaleU => _FillTextureScaleU_IsSet ? _recordData.Slice(_FillTextureScaleULocation, 4).Float() : default(Single);
         #endregion
         #region FillTextureScaleV
-        private int _FillTextureScaleVLocation => _DNAMLocation!.Value.Min + Unknown5VersioningOffset + 0x186;
-        private bool _FillTextureScaleV_IsSet => _DNAMLocation.HasValue;
+        private int _FillTextureScaleVLocation => Payload.DNAMLocation!.Value.Min + Unknown5VersioningOffset + 0x186;
+        private bool _FillTextureScaleV_IsSet => Payload.DNAMLocation.HasValue;
         public Single FillTextureScaleV => _FillTextureScaleV_IsSet ? _recordData.Slice(_FillTextureScaleVLocation, 4).Float() : default(Single);
         #endregion
         #region Unknown6
-        private int _Unknown6Location => _DNAMLocation!.Value.Min + Unknown5VersioningOffset + 0x18A;
-        private bool _Unknown6_IsSet => _DNAMLocation.HasValue && _package.FormVersion!.FormVersion!.Value < 106;
+        private int _Unknown6Location => Payload.DNAMLocation!.Value.Min + Unknown5VersioningOffset + 0x18A;
+        private bool _Unknown6_IsSet => Payload.DNAMLocation.HasValue && _package.FormVersion!.FormVersion!.Value < 106;
         public UInt16 Unknown6 => _Unknown6_IsSet ? BinaryPrimitives.ReadUInt16LittleEndian(_recordData.Slice(_Unknown6Location, 2)) : default(UInt16);
         int Unknown6VersioningOffset => Unknown5VersioningOffset + (_package.FormVersion!.FormVersion!.Value >= 106 ? -2 : 0);
         #endregion
-        public IModelGetter? Model { get; private set; }
+        public IModelGetter? Model => Payload.Model;
+
+        internal partial class EffectShaderRecordDataPayload
+        {
+            public int? FillTextureLocation;
+            public int? ParticleShaderTextureLocation;
+            public int? HolesTextureLocation;
+            public int? MembranePaletteTextureLocation;
+            public int? ParticlePaletteTextureLocation;
+            public int? DATALocation;
+            public RangeInt32? DNAMLocation;
+            public IModelGetter? Model;
+        }
+
+        private LazyPayload<EffectShaderRecordDataPayload> _payload = null!;
+
+        internal EffectShaderRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<EffectShaderRecordDataPayload>(init, new EffectShaderRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -4798,10 +4802,10 @@ namespace Mutagen.Bethesda.Fallout4
 
         partial void CustomCtor();
         protected EffectShaderBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -4812,28 +4816,51 @@ namespace Mutagen.Bethesda.Fallout4
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new EffectShaderBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -4862,37 +4889,37 @@ namespace Mutagen.Bethesda.Fallout4
             {
                 case RecordTypeInts.ICON:
                 {
-                    _FillTextureLocation = (stream.Position - offset);
+                    _payload.Fields.FillTextureLocation = (stream.Position - offset);
                     return (int)EffectShader_FieldIndex.FillTexture;
                 }
                 case RecordTypeInts.ICO2:
                 {
-                    _ParticleShaderTextureLocation = (stream.Position - offset);
+                    _payload.Fields.ParticleShaderTextureLocation = (stream.Position - offset);
                     return (int)EffectShader_FieldIndex.ParticleShaderTexture;
                 }
                 case RecordTypeInts.NAM7:
                 {
-                    _HolesTextureLocation = (stream.Position - offset);
+                    _payload.Fields.HolesTextureLocation = (stream.Position - offset);
                     return (int)EffectShader_FieldIndex.HolesTexture;
                 }
                 case RecordTypeInts.NAM8:
                 {
-                    _MembranePaletteTextureLocation = (stream.Position - offset);
+                    _payload.Fields.MembranePaletteTextureLocation = (stream.Position - offset);
                     return (int)EffectShader_FieldIndex.MembranePaletteTexture;
                 }
                 case RecordTypeInts.NAM9:
                 {
-                    _ParticlePaletteTextureLocation = (stream.Position - offset);
+                    _payload.Fields.ParticlePaletteTextureLocation = (stream.Position - offset);
                     return (int)EffectShader_FieldIndex.ParticlePaletteTexture;
                 }
                 case RecordTypeInts.DATA:
                 {
-                    _DATALocation = (stream.Position - offset);
+                    _payload.Fields.DATALocation = (stream.Position - offset);
                     return (int)EffectShader_FieldIndex.DATA;
                 }
                 case RecordTypeInts.DNAM:
                 {
-                    _DNAMLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.DNAMLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     return (int)EffectShader_FieldIndex.Unknown6;
                 }
                 case RecordTypeInts.MODL:
@@ -4900,7 +4927,7 @@ namespace Mutagen.Bethesda.Fallout4
                 case RecordTypeInts.MODT:
                 case RecordTypeInts.MODS:
                 {
-                    this.Model = ModelBinaryOverlay.ModelFactory(
+                    _payload.Fields.Model = ModelBinaryOverlay.ModelFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());

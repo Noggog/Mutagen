@@ -403,26 +403,29 @@ partial class WeatherBinaryWriteTranslation
 
 partial class WeatherBinaryOverlay
 {
-    private readonly IAssetLink<SkyrimTextureAssetType>?[] _cloudTextures = new IAssetLink<SkyrimTextureAssetType>?[29];
-    public IReadOnlyList<IAssetLinkGetter<SkyrimTextureAssetType>?> CloudTextures => _cloudTextures;
+    internal partial class WeatherRecordDataPayload
+    {
+        public IAssetLink<SkyrimTextureAssetType>?[] CloudTextures = new IAssetLink<SkyrimTextureAssetType>?[29];
+        public CloudLayer[] Clouds = ArrayExt.Create(WeatherBinaryCreateTranslation.NumLayers, (i) => new CloudLayer());
+        public int? DirectionalLoc;
+    }
 
-    private readonly CloudLayer[] _clouds = ArrayExt.Create(WeatherBinaryCreateTranslation.NumLayers, (i) => new CloudLayer());
-    public IReadOnlyList<ICloudLayerGetter> Clouds => _clouds;
+    public IReadOnlyList<IAssetLinkGetter<SkyrimTextureAssetType>?> CloudTextures { get { return Payload.CloudTextures; } }
 
-    int? _directionalLoc;
+    public IReadOnlyList<ICloudLayerGetter> Clouds { get { return Payload.Clouds; } }
 
     partial void CloudsCustomParse(OverlayStream stream, int finalPos, int offset, RecordType type, PreviousParse lastParsed)
     {
         WeatherBinaryCreateTranslation.FillBinaryCloudYSpeeds(
             new MutagenFrame(new MutagenInterfaceReadStream(stream, _package.MetaData)),
-            _clouds);
+            _payload.Fields.Clouds);
     }
 
     public partial ParseResult CloudXSpeedsCustomParse(OverlayStream stream, int offset, PreviousParse lastParsed)
     {
         WeatherBinaryCreateTranslation.FillBinaryCloudXSpeeds(
             new MutagenFrame(new MutagenInterfaceReadStream(stream, _package.MetaData)),
-            _clouds);
+            _payload.Fields.Clouds);
         return null;
     }
 
@@ -430,7 +433,7 @@ partial class WeatherBinaryOverlay
     {
         WeatherBinaryCreateTranslation.FillBinaryCloudAlphas(
             new MutagenFrame(new MutagenInterfaceReadStream(stream, _package.MetaData)),
-            _clouds);
+            _payload.Fields.Clouds);
         return null;
     }
 
@@ -438,7 +441,7 @@ partial class WeatherBinaryOverlay
     {
         WeatherBinaryCreateTranslation.FillBinaryCloudColors(
             new MutagenFrame(new MutagenInterfaceReadStream(stream, _package.MetaData)),
-            _clouds);
+            _payload.Fields.Clouds);
         return null;
     }
 
@@ -446,21 +449,21 @@ partial class WeatherBinaryOverlay
     {
         WeatherBinaryCreateTranslation.FillBinaryDisabledCloudLayers(
             new MutagenFrame(new MutagenInterfaceReadStream(stream, _package.MetaData)),
-            _clouds);
+            _payload.Fields.Clouds);
         return null;
     }
 
     partial void DirectionalAmbientLightingColorsCustomParse(OverlayStream stream, int finalPos, int offset)
     {
-        if (_directionalLoc.HasValue) return;
-        _directionalLoc = (ushort)(stream.Position - offset);
+        if (_payload.Fields.DirectionalLoc.HasValue) return;
+        _payload.Fields.DirectionalLoc = (ushort)(stream.Position - offset);
     }
 
     public partial IWeatherAmbientColorSetGetter? GetDirectionalAmbientLightingColorsCustom()
     {
-        if (!_directionalLoc.HasValue) return null;
+        if (!Payload.DirectionalLoc.HasValue) return null;
         return WeatherBinaryCreateTranslation.GetBinaryDirectionalAmbientLightingColors(
-            new MutagenFrame(new MutagenMemoryReadStream(_recordData.Slice(_directionalLoc.Value), _package.MetaData)));
+            new MutagenFrame(new MutagenMemoryReadStream(_recordData.Slice(Payload.DirectionalLoc.Value), _package.MetaData)));
     }
 
     private ParseResult CustomRecordFallback(
@@ -485,7 +488,7 @@ partial class WeatherBinaryOverlay
         WeatherBinaryCreateTranslation.FillCloudTexture(
             new MutagenFrame(new MutagenInterfaceReadStream(stream, _package.MetaData)),
             type,
-            _cloudTextures);
+            _payload.Fields.CloudTextures);
         return default(int?);
     }
 }

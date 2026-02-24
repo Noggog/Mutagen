@@ -34,6 +34,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -1601,11 +1602,24 @@ namespace Mutagen.Bethesda.Fallout4
         protected override Type LinkType => typeof(IInstanceNamingRulesGetter);
 
 
-        #region Target
-        private int? _TargetLocation;
-        public InstanceNamingRules.RuleTarget? Target => EnumBinaryTranslation<InstanceNamingRules.RuleTarget, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(_TargetLocation, _recordData, _package, 4);
-        #endregion
-        public IReadOnlyList<IInstanceNamingRuleSetGetter> RuleSets { get; private set; } = [];
+        public InstanceNamingRules.RuleTarget? Target => EnumBinaryTranslation<InstanceNamingRules.RuleTarget, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(Payload.TargetLocation, _recordData, _package, 4);
+        public IReadOnlyList<IInstanceNamingRuleSetGetter> RuleSets => Payload.RuleSets ?? [];
+
+        internal partial class InstanceNamingRulesRecordDataPayload
+        {
+            public int? TargetLocation;
+            public IReadOnlyList<IInstanceNamingRuleSetGetter> RuleSets = [];
+        }
+
+        private LazyPayload<InstanceNamingRulesRecordDataPayload> _payload = null!;
+
+        internal InstanceNamingRulesRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<InstanceNamingRulesRecordDataPayload>(init, new InstanceNamingRulesRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -1613,10 +1627,10 @@ namespace Mutagen.Bethesda.Fallout4
 
         partial void CustomCtor();
         protected InstanceNamingRulesBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -1627,28 +1641,51 @@ namespace Mutagen.Bethesda.Fallout4
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new InstanceNamingRulesBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -1677,12 +1714,12 @@ namespace Mutagen.Bethesda.Fallout4
             {
                 case RecordTypeInts.UNAM:
                 {
-                    _TargetLocation = (stream.Position - offset);
+                    _payload.Fields.TargetLocation = (stream.Position - offset);
                     return (int)InstanceNamingRules_FieldIndex.Target;
                 }
                 case RecordTypeInts.VNAM:
                 {
-                    this.RuleSets = this.ParseRepeatedTypelessSubrecord<IInstanceNamingRuleSetGetter>(
+                    _payload.Fields.RuleSets = this.ParseRepeatedTypelessSubrecord<IInstanceNamingRuleSetGetter>(
                         stream: stream,
                         translationParams: translationParams,
                         trigger: InstanceNamingRuleSet_Registration.TriggerSpecs,

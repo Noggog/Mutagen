@@ -1707,11 +1707,25 @@ namespace Mutagen.Bethesda.Fallout4
 
         #region ItemText
         private int? _ItemTextLocation;
-        public ITranslatedStringGetter ItemText => _ItemTextLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _ItemTextLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : TranslatedString.Empty;
+        public ITranslatedStringGetter ItemText
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _ItemTextLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_data, _ItemTextLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : TranslatedString.Empty;
+            }
+        }
         #endregion
         #region ResponseText
         private int? _ResponseTextLocation;
-        public ITranslatedStringGetter? ResponseText => _ResponseTextLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _ResponseTextLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+        public ITranslatedStringGetter? ResponseText
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _ResponseTextLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_data, _ResponseTextLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+            }
+        }
         #endregion
         #region Type
         private int? _TypeLocation;
@@ -1719,15 +1733,36 @@ namespace Mutagen.Bethesda.Fallout4
         #endregion
         #region ItemId
         private int? _ItemIdLocation;
-        public UInt16 ItemId => _ItemIdLocation.HasValue ? BinaryPrimitives.ReadUInt16LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _ItemIdLocation.Value, _package.MetaData.Constants)) : default(UInt16);
+        public UInt16 ItemId
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _ItemIdLocation.HasValue ? BinaryPrimitives.ReadUInt16LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _ItemIdLocation.Value, _package.MetaData.Constants)) : default(UInt16);
+            }
+        }
         #endregion
         #region DisplayText
         private int? _DisplayTextLocation;
-        public ITranslatedStringGetter? DisplayText => _DisplayTextLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _DisplayTextLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+        public ITranslatedStringGetter? DisplayText
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _DisplayTextLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_data, _DisplayTextLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+            }
+        }
         #endregion
         #region ImageFile
         private int? _ImageFileLocation;
-        public String? ImageFile => _ImageFileLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _ImageFileLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? ImageFile
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _ImageFileLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_data, _ImageFileLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+            }
+        }
         #endregion
         #region Submenu
         private int? _SubmenuLocation;

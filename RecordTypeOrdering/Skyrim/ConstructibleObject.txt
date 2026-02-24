@@ -1,0 +1,8 @@
+RecordTypes.EDID,
+RecordTypes.CNTO,
+RecordTypes.COCT,
+RecordTypes.COED,
+RecordTypes.CTDA,
+RecordTypes.CNAM,
+RecordTypes.BNAM,
+RecordTypes.NAM1,

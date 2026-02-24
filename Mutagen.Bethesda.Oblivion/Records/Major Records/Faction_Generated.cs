@@ -35,6 +35,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -1934,23 +1935,35 @@ namespace Mutagen.Bethesda.Oblivion
 
 
         #region Name
-        private int? _NameLocation;
-        public String? Name => _NameLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NameLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? Name => Payload.NameLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NameLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
         #region Aspects
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         string INamedRequiredGetter.Name => this.Name ?? string.Empty;
         #endregion
         #endregion
-        public IReadOnlyList<IRelationGetter> Relations { get; private set; } = [];
-        #region Flags
-        private int? _FlagsLocation;
-        public Faction.FactionFlag? Flags => EnumBinaryTranslation<Faction.FactionFlag, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(_FlagsLocation, _recordData, _package, 1);
-        #endregion
-        #region CrimeGoldMultiplier
-        private int? _CrimeGoldMultiplierLocation;
-        public Single? CrimeGoldMultiplier => _CrimeGoldMultiplierLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _CrimeGoldMultiplierLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
-        #endregion
-        public IReadOnlyList<IRankGetter> Ranks { get; private set; } = [];
+        public IReadOnlyList<IRelationGetter> Relations => Payload.Relations ?? [];
+        public Faction.FactionFlag? Flags => EnumBinaryTranslation<Faction.FactionFlag, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(Payload.FlagsLocation, _recordData, _package, 1);
+        public Single? CrimeGoldMultiplier => Payload.CrimeGoldMultiplierLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.CrimeGoldMultiplierLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public IReadOnlyList<IRankGetter> Ranks => Payload.Ranks ?? [];
+
+        internal partial class FactionRecordDataPayload
+        {
+            public int? NameLocation;
+            public IReadOnlyList<IRelationGetter> Relations = [];
+            public int? FlagsLocation;
+            public int? CrimeGoldMultiplierLocation;
+            public IReadOnlyList<IRankGetter> Ranks = [];
+        }
+
+        private LazyPayload<FactionRecordDataPayload> _payload = null!;
+
+        internal FactionRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<FactionRecordDataPayload>(init, new FactionRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -1958,10 +1971,10 @@ namespace Mutagen.Bethesda.Oblivion
 
         partial void CustomCtor();
         protected FactionBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -1972,28 +1985,51 @@ namespace Mutagen.Bethesda.Oblivion
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new FactionBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -2022,12 +2058,12 @@ namespace Mutagen.Bethesda.Oblivion
             {
                 case RecordTypeInts.FULL:
                 {
-                    _NameLocation = (stream.Position - offset);
+                    _payload.Fields.NameLocation = (stream.Position - offset);
                     return (int)Faction_FieldIndex.Name;
                 }
                 case RecordTypeInts.XNAM:
                 {
-                    this.Relations = BinaryOverlayList.FactoryByArray<IRelationGetter>(
+                    _payload.Fields.Relations = BinaryOverlayList.FactoryByArray<IRelationGetter>(
                         mem: stream.RemainingMemory,
                         package: _package,
                         translationParams: translationParams,
@@ -2042,12 +2078,12 @@ namespace Mutagen.Bethesda.Oblivion
                 }
                 case RecordTypeInts.DATA:
                 {
-                    _FlagsLocation = (stream.Position - offset);
+                    _payload.Fields.FlagsLocation = (stream.Position - offset);
                     return (int)Faction_FieldIndex.Flags;
                 }
                 case RecordTypeInts.CNAM:
                 {
-                    _CrimeGoldMultiplierLocation = (stream.Position - offset);
+                    _payload.Fields.CrimeGoldMultiplierLocation = (stream.Position - offset);
                     return (int)Faction_FieldIndex.CrimeGoldMultiplier;
                 }
                 case RecordTypeInts.RNAM:
@@ -2055,7 +2091,7 @@ namespace Mutagen.Bethesda.Oblivion
                 case RecordTypeInts.FNAM:
                 case RecordTypeInts.INAM:
                 {
-                    this.Ranks = this.ParseRepeatedTypelessSubrecord<IRankGetter>(
+                    _payload.Fields.Ranks = this.ParseRepeatedTypelessSubrecord<IRankGetter>(
                         stream: stream,
                         translationParams: translationParams,
                         trigger: Rank_Registration.TriggerSpecs,

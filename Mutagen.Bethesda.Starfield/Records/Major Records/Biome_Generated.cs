@@ -37,6 +37,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -4696,8 +4697,7 @@ namespace Mutagen.Bethesda.Starfield
 
 
         #region Name
-        private int? _NameLocation;
-        public ITranslatedStringGetter? Name => _NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+        public ITranslatedStringGetter? Name => Payload.NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
         #region Aspects
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         string INamedRequiredGetter.Name => this.Name?.String ?? string.Empty;
@@ -4708,108 +4708,88 @@ namespace Mutagen.Bethesda.Starfield
         #endregion
         #endregion
         #region Keywords
-        public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? Keywords { get; private set; }
+        public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? Keywords => Payload.Keywords;
         IReadOnlyList<IFormLinkGetter<IKeywordCommonGetter>>? IKeywordedGetter.Keywords => this.Keywords;
         #endregion
-        #region FilterString
-        private int? _FilterStringLocation;
-        public String? FilterString => _FilterStringLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _FilterStringLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
-        public IReadOnlyList<IFormLinkGetter<IFloraGetter>>? Flora { get; private set; }
-        public IReadOnlyList<IFormLinkGetter<IResourceGenerationDataGetter>> ResourceGeneration { get; private set; } = [];
-        public IReadOnlyList<IBiomeProceduralObjectGenerationGetter> ProceduralObjectGeneration { get; private set; } = [];
-        public IReadOnlyList<IFormLinkGetter<IObjectSwapGetter>> ObjectSwaps { get; private set; } = [];
-        public IReadOnlyList<IFormLinkGetter<ILayeredMaterialSwapGetter>> MaterialSwaps { get; private set; } = [];
-        #region Climate
-        private int? _ClimateLocation;
-        public IFormLinkNullableGetter<IClimateGetter> Climate => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IClimateGetter>(_package, _recordData, _ClimateLocation);
-        #endregion
+        public String? FilterString => Payload.FilterStringLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.FilterStringLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public IReadOnlyList<IFormLinkGetter<IFloraGetter>>? Flora => Payload.Flora;
+        public IReadOnlyList<IFormLinkGetter<IResourceGenerationDataGetter>> ResourceGeneration => Payload.ResourceGeneration ?? [];
+        public IReadOnlyList<IBiomeProceduralObjectGenerationGetter> ProceduralObjectGeneration => Payload.ProceduralObjectGeneration ?? [];
+        public IReadOnlyList<IFormLinkGetter<IObjectSwapGetter>> ObjectSwaps => Payload.ObjectSwaps ?? [];
+        public IReadOnlyList<IFormLinkGetter<ILayeredMaterialSwapGetter>> MaterialSwaps => Payload.MaterialSwaps ?? [];
+        public IFormLinkNullableGetter<IClimateGetter> Climate => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IClimateGetter>(_package, _recordData, Payload.ClimateLocation);
         #region Water
-        private IBiomeWaterDataGetter? _Water;
+        private IBiomeWaterDataGetter? _Water => Payload.Water;
         public IBiomeWaterDataGetter Water => _Water ?? new BiomeWaterData();
         #endregion
-        #region BlockDensityMult
-        private int? _BlockDensityMultLocation;
-        public Single? BlockDensityMult => _BlockDensityMultLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _BlockDensityMultLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
-        #endregion
-        #region CellDensityMult
-        private int? _CellDensityMultLocation;
-        public Single? CellDensityMult => _CellDensityMultLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _CellDensityMultLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
-        #endregion
-        #region ScanWorldspaceMult
-        private int? _ScanWorldspaceMultLocation;
-        public Single? ScanWorldspaceMult => _ScanWorldspaceMultLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _ScanWorldspaceMultLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
-        #endregion
-        #region Child
-        private int? _ChildLocation;
-        public IFormLinkNullableGetter<IBiomeGetter> Child => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IBiomeGetter>(_package, _recordData, _ChildLocation);
-        #endregion
-        #region AmbienceSet
-        private int? _AmbienceSetLocation;
-        public IFormLinkNullableGetter<IAmbienceSetGetter> AmbienceSet => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IAmbienceSetGetter>(_package, _recordData, _AmbienceSetLocation);
-        #endregion
-        #region MusicType
-        private int? _MusicTypeLocation;
-        public IFormLinkNullableGetter<IMusicTypeGetter> MusicType => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IMusicTypeGetter>(_package, _recordData, _MusicTypeLocation);
-        #endregion
-        #region TimeOfDay
-        private int? _TimeOfDayLocation;
-        public IFormLinkNullableGetter<ITimeOfDayRecordGetter> TimeOfDay => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ITimeOfDayRecordGetter>(_package, _recordData, _TimeOfDayLocation);
-        #endregion
-        #region PatternStyle
-        private int? _PatternStyleLocation;
-        public IFormLinkNullableGetter<ISurfacePatternStyleGetter> PatternStyle => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ISurfacePatternStyleGetter>(_package, _recordData, _PatternStyleLocation);
-        #endregion
-        #region Color
-        private int? _ColorLocation;
-        public Color Color => _ColorLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _ColorLocation.Value, _package.MetaData.Constants).ReadColor(ColorBinaryType.Alpha) : default(Color);
-        #endregion
-        #region SurfaceColor1
-        private int? _SurfaceColor1Location;
-        public Color SurfaceColor1 => _SurfaceColor1Location.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _SurfaceColor1Location.Value, _package.MetaData.Constants).ReadColor(ColorBinaryType.Alpha) : default(Color);
-        #endregion
-        #region SurfaceColor2
-        private int? _SurfaceColor2Location;
-        public Color SurfaceColor2 => _SurfaceColor2Location.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _SurfaceColor2Location.Value, _package.MetaData.Constants).ReadColor(ColorBinaryType.Alpha) : default(Color);
-        #endregion
-        #region RockTint
-        private int? _RockTintLocation;
-        public Color RockTint => _RockTintLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _RockTintLocation.Value, _package.MetaData.Constants).ReadColor(ColorBinaryType.Alpha) : default(Color);
-        #endregion
-        #region Type
-        private int? _TypeLocation;
-        public Biome.TypeEnum Type => EnumBinaryTranslation<Biome.TypeEnum, MutagenFrame, MutagenWriter>.Instance.ParseRecord(_TypeLocation, _recordData, _package, 4);
-        #endregion
-        public IReadOnlyList<IBiomeMarkerTypeGetter> MarkerObjectKeywords { get; private set; } = [];
-        public IReadOnlyList<IBiomeTerrainGetter> Terrain { get; private set; } = [];
-        #region GroundLayerNormal
-        private int? _GroundLayerNormalLocation;
-        public String? GroundLayerNormal => _GroundLayerNormalLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _GroundLayerNormalLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
-        #region BTPS
-        private int? _BTPSLocation;
-        public ReadOnlyMemorySlice<Byte>? BTPS => _BTPSLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _BTPSLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
-        #endregion
-        #region DistantView
-        private int? _DistantViewLocation;
-        public ReadOnlyMemorySlice<Byte> DistantView => _DistantViewLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _DistantViewLocation.Value, _package.MetaData.Constants) : ReadOnlyMemorySlice<byte>.Empty;
-        #endregion
-        #region GlobalLayerMaterial
-        private int? _GlobalLayerMaterialLocation;
-        public String? GlobalLayerMaterial => _GlobalLayerMaterialLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _GlobalLayerMaterialLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
-        #region BlockDensityMultGlobal
-        private int? _BlockDensityMultGlobalLocation;
-        public IFormLinkNullableGetter<IGlobalGetter> BlockDensityMultGlobal => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IGlobalGetter>(_package, _recordData, _BlockDensityMultGlobalLocation);
-        #endregion
-        #region CellDensityMultGlobal
-        private int? _CellDensityMultGlobalLocation;
-        public IFormLinkNullableGetter<IGlobalGetter> CellDensityMultGlobal => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IGlobalGetter>(_package, _recordData, _CellDensityMultGlobalLocation);
-        #endregion
-        #region ScanWorldspaceMultGlobal
-        private int? _ScanWorldspaceMultGlobalLocation;
-        public IFormLinkNullableGetter<IGlobalGetter> ScanWorldspaceMultGlobal => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IGlobalGetter>(_package, _recordData, _ScanWorldspaceMultGlobalLocation);
-        #endregion
+        public Single? BlockDensityMult => Payload.BlockDensityMultLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.BlockDensityMultLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public Single? CellDensityMult => Payload.CellDensityMultLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.CellDensityMultLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public Single? ScanWorldspaceMult => Payload.ScanWorldspaceMultLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.ScanWorldspaceMultLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public IFormLinkNullableGetter<IBiomeGetter> Child => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IBiomeGetter>(_package, _recordData, Payload.ChildLocation);
+        public IFormLinkNullableGetter<IAmbienceSetGetter> AmbienceSet => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IAmbienceSetGetter>(_package, _recordData, Payload.AmbienceSetLocation);
+        public IFormLinkNullableGetter<IMusicTypeGetter> MusicType => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IMusicTypeGetter>(_package, _recordData, Payload.MusicTypeLocation);
+        public IFormLinkNullableGetter<ITimeOfDayRecordGetter> TimeOfDay => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ITimeOfDayRecordGetter>(_package, _recordData, Payload.TimeOfDayLocation);
+        public IFormLinkNullableGetter<ISurfacePatternStyleGetter> PatternStyle => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ISurfacePatternStyleGetter>(_package, _recordData, Payload.PatternStyleLocation);
+        public Color Color => Payload.ColorLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.ColorLocation.Value, _package.MetaData.Constants).ReadColor(ColorBinaryType.Alpha) : default(Color);
+        public Color SurfaceColor1 => Payload.SurfaceColor1Location.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.SurfaceColor1Location.Value, _package.MetaData.Constants).ReadColor(ColorBinaryType.Alpha) : default(Color);
+        public Color SurfaceColor2 => Payload.SurfaceColor2Location.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.SurfaceColor2Location.Value, _package.MetaData.Constants).ReadColor(ColorBinaryType.Alpha) : default(Color);
+        public Color RockTint => Payload.RockTintLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.RockTintLocation.Value, _package.MetaData.Constants).ReadColor(ColorBinaryType.Alpha) : default(Color);
+        public Biome.TypeEnum Type => EnumBinaryTranslation<Biome.TypeEnum, MutagenFrame, MutagenWriter>.Instance.ParseRecord(Payload.TypeLocation, _recordData, _package, 4);
+        public IReadOnlyList<IBiomeMarkerTypeGetter> MarkerObjectKeywords => Payload.MarkerObjectKeywords ?? [];
+        public IReadOnlyList<IBiomeTerrainGetter> Terrain => Payload.Terrain ?? [];
+        public String? GroundLayerNormal => Payload.GroundLayerNormalLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.GroundLayerNormalLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public ReadOnlyMemorySlice<Byte>? BTPS => Payload.BTPSLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.BTPSLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
+        public ReadOnlyMemorySlice<Byte> DistantView => Payload.DistantViewLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.DistantViewLocation.Value, _package.MetaData.Constants) : ReadOnlyMemorySlice<byte>.Empty;
+        public String? GlobalLayerMaterial => Payload.GlobalLayerMaterialLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.GlobalLayerMaterialLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public IFormLinkNullableGetter<IGlobalGetter> BlockDensityMultGlobal => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IGlobalGetter>(_package, _recordData, Payload.BlockDensityMultGlobalLocation);
+        public IFormLinkNullableGetter<IGlobalGetter> CellDensityMultGlobal => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IGlobalGetter>(_package, _recordData, Payload.CellDensityMultGlobalLocation);
+        public IFormLinkNullableGetter<IGlobalGetter> ScanWorldspaceMultGlobal => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IGlobalGetter>(_package, _recordData, Payload.ScanWorldspaceMultGlobalLocation);
+
+        internal partial class BiomeRecordDataPayload
+        {
+            public int? NameLocation;
+            public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? Keywords;
+            public int? FilterStringLocation;
+            public IReadOnlyList<IFormLinkGetter<IFloraGetter>>? Flora;
+            public IReadOnlyList<IFormLinkGetter<IResourceGenerationDataGetter>> ResourceGeneration = [];
+            public IReadOnlyList<IBiomeProceduralObjectGenerationGetter> ProceduralObjectGeneration = [];
+            public IReadOnlyList<IFormLinkGetter<IObjectSwapGetter>> ObjectSwaps = [];
+            public IReadOnlyList<IFormLinkGetter<ILayeredMaterialSwapGetter>> MaterialSwaps = [];
+            public int? ClimateLocation;
+            public IBiomeWaterDataGetter? Water;
+            public int? BlockDensityMultLocation;
+            public int? CellDensityMultLocation;
+            public int? ScanWorldspaceMultLocation;
+            public int? ChildLocation;
+            public int? AmbienceSetLocation;
+            public int? MusicTypeLocation;
+            public int? TimeOfDayLocation;
+            public int? PatternStyleLocation;
+            public int? ColorLocation;
+            public int? SurfaceColor1Location;
+            public int? SurfaceColor2Location;
+            public int? RockTintLocation;
+            public int? TypeLocation;
+            public IReadOnlyList<IBiomeMarkerTypeGetter> MarkerObjectKeywords = [];
+            public IReadOnlyList<IBiomeTerrainGetter> Terrain = [];
+            public int? GroundLayerNormalLocation;
+            public int? BTPSLocation;
+            public int? DistantViewLocation;
+            public int? GlobalLayerMaterialLocation;
+            public int? BlockDensityMultGlobalLocation;
+            public int? CellDensityMultGlobalLocation;
+            public int? ScanWorldspaceMultGlobalLocation;
+        }
+
+        private LazyPayload<BiomeRecordDataPayload> _payload = null!;
+
+        internal BiomeRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<BiomeRecordDataPayload>(init, new BiomeRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -4817,10 +4797,10 @@ namespace Mutagen.Bethesda.Starfield
 
         partial void CustomCtor();
         protected BiomeBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -4831,28 +4811,51 @@ namespace Mutagen.Bethesda.Starfield
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new BiomeBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -4881,7 +4884,7 @@ namespace Mutagen.Bethesda.Starfield
             {
                 case RecordTypeInts.FULL:
                 {
-                    _NameLocation = (stream.Position - offset);
+                    _payload.Fields.NameLocation = (stream.Position - offset);
                     return (int)Biome_FieldIndex.Name;
                 }
                 case RecordTypeInts.KSIZ:
@@ -4890,7 +4893,7 @@ namespace Mutagen.Bethesda.Starfield
                     if (!lastParsed.ParsedIndex.HasValue
                         || lastParsed.ParsedIndex.Value <= (int)Biome_FieldIndex.Name)
                     {
-                        this.Keywords = BinaryOverlayList.FactoryByCount<IFormLinkGetter<IKeywordGetter>>(
+                        _payload.Fields.Keywords = BinaryOverlayList.FactoryByCount<IFormLinkGetter<IKeywordGetter>>(
                             stream: stream,
                             package: _package,
                             itemLength: 0x4,
@@ -4902,7 +4905,7 @@ namespace Mutagen.Bethesda.Starfield
                     }
                     else if (lastParsed.ParsedIndex.Value <= (int)Biome_FieldIndex.Type)
                     {
-                        this.MarkerObjectKeywords = this.ParseRepeatedTypelessSubrecord<IBiomeMarkerTypeGetter>(
+                        _payload.Fields.MarkerObjectKeywords = this.ParseRepeatedTypelessSubrecord<IBiomeMarkerTypeGetter>(
                             stream: stream,
                             translationParams: translationParams,
                             trigger: BiomeMarkerType_Registration.TriggerSpecs,
@@ -4915,7 +4918,7 @@ namespace Mutagen.Bethesda.Starfield
                         {
                             case 0:
                             {
-                                this.Keywords = BinaryOverlayList.FactoryByCount<IFormLinkGetter<IKeywordGetter>>(
+                                _payload.Fields.Keywords = BinaryOverlayList.FactoryByCount<IFormLinkGetter<IKeywordGetter>>(
                                     stream: stream,
                                     package: _package,
                                     itemLength: 0x4,
@@ -4927,7 +4930,7 @@ namespace Mutagen.Bethesda.Starfield
                             }
                             case 1:
                             {
-                                this.MarkerObjectKeywords = this.ParseRepeatedTypelessSubrecord<IBiomeMarkerTypeGetter>(
+                                _payload.Fields.MarkerObjectKeywords = this.ParseRepeatedTypelessSubrecord<IBiomeMarkerTypeGetter>(
                                     stream: stream,
                                     translationParams: translationParams,
                                     trigger: BiomeMarkerType_Registration.TriggerSpecs,
@@ -4941,12 +4944,12 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.SNAM:
                 {
-                    _FilterStringLocation = (stream.Position - offset);
+                    _payload.Fields.FilterStringLocation = (stream.Position - offset);
                     return (int)Biome_FieldIndex.FilterString;
                 }
                 case RecordTypeInts.PNAM:
                 {
-                    this.Flora = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<IFloraGetter>>(
+                    _payload.Fields.Flora = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<IFloraGetter>>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -4956,7 +4959,7 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.RNAM:
                 {
-                    this.ResourceGeneration = BinaryOverlayList.FactoryByArray<IFormLinkGetter<IResourceGenerationDataGetter>>(
+                    _payload.Fields.ResourceGeneration = BinaryOverlayList.FactoryByArray<IFormLinkGetter<IResourceGenerationDataGetter>>(
                         mem: stream.RemainingMemory,
                         package: _package,
                         getter: (s, p) => FormLinkBinaryTranslation.Instance.OverlayFactory<IResourceGenerationDataGetter>(p, s),
@@ -4973,7 +4976,7 @@ namespace Mutagen.Bethesda.Starfield
                 case RecordTypeInts.GNAM:
                 case RecordTypeInts.DNAM:
                 {
-                    this.ProceduralObjectGeneration = this.ParseRepeatedTypelessSubrecord<IBiomeProceduralObjectGenerationGetter>(
+                    _payload.Fields.ProceduralObjectGeneration = this.ParseRepeatedTypelessSubrecord<IBiomeProceduralObjectGenerationGetter>(
                         stream: stream,
                         translationParams: translationParams,
                         trigger: BiomeProceduralObjectGeneration_Registration.TriggerSpecs,
@@ -4982,7 +4985,7 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.ONAM:
                 {
-                    this.ObjectSwaps = BinaryOverlayList.FactoryByArray<IFormLinkGetter<IObjectSwapGetter>>(
+                    _payload.Fields.ObjectSwaps = BinaryOverlayList.FactoryByArray<IFormLinkGetter<IObjectSwapGetter>>(
                         mem: stream.RemainingMemory,
                         package: _package,
                         getter: (s, p) => FormLinkBinaryTranslation.Instance.OverlayFactory<IObjectSwapGetter>(p, s),
@@ -4996,7 +4999,7 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.NAM1:
                 {
-                    this.MaterialSwaps = BinaryOverlayList.FactoryByArray<IFormLinkGetter<ILayeredMaterialSwapGetter>>(
+                    _payload.Fields.MaterialSwaps = BinaryOverlayList.FactoryByArray<IFormLinkGetter<ILayeredMaterialSwapGetter>>(
                         mem: stream.RemainingMemory,
                         package: _package,
                         getter: (s, p) => FormLinkBinaryTranslation.Instance.OverlayFactory<ILayeredMaterialSwapGetter>(p, s),
@@ -5010,14 +5013,14 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.ENAM:
                 {
-                    _ClimateLocation = (stream.Position - offset);
+                    _payload.Fields.ClimateLocation = (stream.Position - offset);
                     return (int)Biome_FieldIndex.Climate;
                 }
                 case RecordTypeInts.MNAM:
                 case RecordTypeInts.INAM:
                 case RecordTypeInts.JNAM:
                 {
-                    this._Water = BiomeWaterDataBinaryOverlay.BiomeWaterDataFactory(
+                    _payload.Fields.Water = BiomeWaterDataBinaryOverlay.BiomeWaterDataFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());
@@ -5025,72 +5028,72 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.WNAM:
                 {
-                    _BlockDensityMultLocation = (stream.Position - offset);
+                    _payload.Fields.BlockDensityMultLocation = (stream.Position - offset);
                     return (int)Biome_FieldIndex.BlockDensityMult;
                 }
                 case RecordTypeInts.YNAM:
                 {
-                    _CellDensityMultLocation = (stream.Position - offset);
+                    _payload.Fields.CellDensityMultLocation = (stream.Position - offset);
                     return (int)Biome_FieldIndex.CellDensityMult;
                 }
                 case RecordTypeInts.UNAM:
                 {
-                    _ScanWorldspaceMultLocation = (stream.Position - offset);
+                    _payload.Fields.ScanWorldspaceMultLocation = (stream.Position - offset);
                     return (int)Biome_FieldIndex.ScanWorldspaceMult;
                 }
                 case RecordTypeInts.ZNAM:
                 {
-                    _ChildLocation = (stream.Position - offset);
+                    _payload.Fields.ChildLocation = (stream.Position - offset);
                     return (int)Biome_FieldIndex.Child;
                 }
                 case RecordTypeInts.BIAS:
                 {
-                    _AmbienceSetLocation = (stream.Position - offset);
+                    _payload.Fields.AmbienceSetLocation = (stream.Position - offset);
                     return (int)Biome_FieldIndex.AmbienceSet;
                 }
                 case RecordTypeInts.BIMT:
                 {
-                    _MusicTypeLocation = (stream.Position - offset);
+                    _payload.Fields.MusicTypeLocation = (stream.Position - offset);
                     return (int)Biome_FieldIndex.MusicType;
                 }
                 case RecordTypeInts.NAM0:
                 {
-                    _TimeOfDayLocation = (stream.Position - offset);
+                    _payload.Fields.TimeOfDayLocation = (stream.Position - offset);
                     return (int)Biome_FieldIndex.TimeOfDay;
                 }
                 case RecordTypeInts.NNAM:
                 {
-                    _PatternStyleLocation = (stream.Position - offset);
+                    _payload.Fields.PatternStyleLocation = (stream.Position - offset);
                     return (int)Biome_FieldIndex.PatternStyle;
                 }
                 case RecordTypeInts.CNAM:
                 {
-                    _ColorLocation = (stream.Position - offset);
+                    _payload.Fields.ColorLocation = (stream.Position - offset);
                     return (int)Biome_FieldIndex.Color;
                 }
                 case RecordTypeInts.BMC1:
                 {
-                    _SurfaceColor1Location = (stream.Position - offset);
+                    _payload.Fields.SurfaceColor1Location = (stream.Position - offset);
                     return (int)Biome_FieldIndex.SurfaceColor1;
                 }
                 case RecordTypeInts.BMC2:
                 {
-                    _SurfaceColor2Location = (stream.Position - offset);
+                    _payload.Fields.SurfaceColor2Location = (stream.Position - offset);
                     return (int)Biome_FieldIndex.SurfaceColor2;
                 }
                 case RecordTypeInts.BMC3:
                 {
-                    _RockTintLocation = (stream.Position - offset);
+                    _payload.Fields.RockTintLocation = (stream.Position - offset);
                     return (int)Biome_FieldIndex.RockTint;
                 }
                 case RecordTypeInts.TNAM:
                 {
-                    _TypeLocation = (stream.Position - offset);
+                    _payload.Fields.TypeLocation = (stream.Position - offset);
                     return (int)Biome_FieldIndex.Type;
                 }
                 case RecordTypeInts.KNAM:
                 {
-                    this.MarkerObjectKeywords = this.ParseRepeatedTypelessSubrecord<IBiomeMarkerTypeGetter>(
+                    _payload.Fields.MarkerObjectKeywords = this.ParseRepeatedTypelessSubrecord<IBiomeMarkerTypeGetter>(
                         stream: stream,
                         translationParams: translationParams,
                         trigger: BiomeMarkerType_Registration.TriggerSpecs,
@@ -5106,7 +5109,7 @@ namespace Mutagen.Bethesda.Starfield
                 case RecordTypeInts.XX00:
                 case RecordTypeInts.YX00:
                 {
-                    this.Terrain = this.ParseRepeatedTypelessSubrecord<IBiomeTerrainGetter>(
+                    _payload.Fields.Terrain = this.ParseRepeatedTypelessSubrecord<IBiomeTerrainGetter>(
                         stream: stream,
                         translationParams: translationParams,
                         trigger: BiomeTerrain_Registration.TriggerSpecs,
@@ -5115,37 +5118,37 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.TX16:
                 {
-                    _GroundLayerNormalLocation = (stream.Position - offset);
+                    _payload.Fields.GroundLayerNormalLocation = (stream.Position - offset);
                     return (int)Biome_FieldIndex.GroundLayerNormal;
                 }
                 case RecordTypeInts.BTPS:
                 {
-                    _BTPSLocation = (stream.Position - offset);
+                    _payload.Fields.BTPSLocation = (stream.Position - offset);
                     return (int)Biome_FieldIndex.BTPS;
                 }
                 case RecordTypeInts.BDFS:
                 {
-                    _DistantViewLocation = (stream.Position - offset);
+                    _payload.Fields.DistantViewLocation = (stream.Position - offset);
                     return (int)Biome_FieldIndex.DistantView;
                 }
                 case RecordTypeInts.EFSD:
                 {
-                    _GlobalLayerMaterialLocation = (stream.Position - offset);
+                    _payload.Fields.GlobalLayerMaterialLocation = (stream.Position - offset);
                     return (int)Biome_FieldIndex.GlobalLayerMaterial;
                 }
                 case RecordTypeInts.NAM2:
                 {
-                    _BlockDensityMultGlobalLocation = (stream.Position - offset);
+                    _payload.Fields.BlockDensityMultGlobalLocation = (stream.Position - offset);
                     return (int)Biome_FieldIndex.BlockDensityMultGlobal;
                 }
                 case RecordTypeInts.NAM3:
                 {
-                    _CellDensityMultGlobalLocation = (stream.Position - offset);
+                    _payload.Fields.CellDensityMultGlobalLocation = (stream.Position - offset);
                     return (int)Biome_FieldIndex.CellDensityMultGlobal;
                 }
                 case RecordTypeInts.NAM4:
                 {
-                    _ScanWorldspaceMultGlobalLocation = (stream.Position - offset);
+                    _payload.Fields.ScanWorldspaceMultGlobalLocation = (stream.Position - offset);
                     return (int)Biome_FieldIndex.ScanWorldspaceMultGlobal;
                 }
                 default:

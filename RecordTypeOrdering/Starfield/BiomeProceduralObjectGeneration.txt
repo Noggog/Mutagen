@@ -1,0 +1,4 @@
+RecordTypes.FNAM,
+RecordTypes.BNAM,
+RecordTypes.GNAM,
+RecordTypes.DNAM,

@@ -1,0 +1,7 @@
+RecordTypes.MODL,
+RecordTypes.MODC,
+RecordTypes.MODT,
+RecordTypes.MODS,
+RecordTypes.MODF,
+RecordTypes.ICON,
+RecordTypes.MICO,

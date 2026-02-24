@@ -1,0 +1,5 @@
+RecordTypes.EDID,
+RecordTypes.INDX,
+RecordTypes.DATA,
+RecordTypes.INTV,
+RecordTypes.NAM1,

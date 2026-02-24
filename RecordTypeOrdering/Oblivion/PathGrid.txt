@@ -1,0 +1,5 @@
+RecordTypes.EDID,
+RecordTypes.DATA,
+RecordTypes.PGAG,
+RecordTypes.PGRI,
+RecordTypes.PGRL,

@@ -37,6 +37,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -2386,77 +2387,92 @@ namespace Mutagen.Bethesda.Skyrim
 
 
         #region ObjectBounds
-        private RangeInt32? _ObjectBoundsLocation;
-        private IObjectBoundsGetter? _ObjectBounds => _ObjectBoundsLocation.HasValue ? ObjectBoundsBinaryOverlay.ObjectBoundsFactory(_recordData.Slice(_ObjectBoundsLocation!.Value.Min), _package) : default;
+        private IObjectBoundsGetter? _ObjectBounds => Payload.ObjectBoundsLocation.HasValue ? ObjectBoundsBinaryOverlay.ObjectBoundsFactory(_recordData.Slice(Payload.ObjectBoundsLocation!.Value.Min), _package) : default;
         public IObjectBoundsGetter ObjectBounds => _ObjectBounds ?? new ObjectBounds();
         #endregion
-        public IModelGetter? Model { get; private set; }
-        private RangeInt32? _DATALocation;
+        public IModelGetter? Model => Payload.Model;
         #region Density
-        private int _DensityLocation => _DATALocation!.Value.Min;
-        private bool _Density_IsSet => _DATALocation.HasValue;
+        private int _DensityLocation => Payload.DATALocation!.Value.Min;
+        private bool _Density_IsSet => Payload.DATALocation.HasValue;
         public Byte Density => _Density_IsSet ? _recordData.Span[_DensityLocation] : default;
         #endregion
         #region MinSlope
-        private int _MinSlopeLocation => _DATALocation!.Value.Min + 0x1;
-        private bool _MinSlope_IsSet => _DATALocation.HasValue;
+        private int _MinSlopeLocation => Payload.DATALocation!.Value.Min + 0x1;
+        private bool _MinSlope_IsSet => Payload.DATALocation.HasValue;
         public Byte MinSlope => _MinSlope_IsSet ? _recordData.Span[_MinSlopeLocation] : default;
         #endregion
         #region MaxSlope
-        private int _MaxSlopeLocation => _DATALocation!.Value.Min + 0x2;
-        private bool _MaxSlope_IsSet => _DATALocation.HasValue;
+        private int _MaxSlopeLocation => Payload.DATALocation!.Value.Min + 0x2;
+        private bool _MaxSlope_IsSet => Payload.DATALocation.HasValue;
         public Byte MaxSlope => _MaxSlope_IsSet ? _recordData.Span[_MaxSlopeLocation] : default;
         #endregion
         #region Unknown
-        private int _UnknownLocation => _DATALocation!.Value.Min + 0x3;
-        private bool _Unknown_IsSet => _DATALocation.HasValue;
+        private int _UnknownLocation => Payload.DATALocation!.Value.Min + 0x3;
+        private bool _Unknown_IsSet => Payload.DATALocation.HasValue;
         public Byte Unknown => _Unknown_IsSet ? _recordData.Span[_UnknownLocation] : default;
         #endregion
         #region UnitsFromWater
-        private int _UnitsFromWaterLocation => _DATALocation!.Value.Min + 0x4;
-        private bool _UnitsFromWater_IsSet => _DATALocation.HasValue;
+        private int _UnitsFromWaterLocation => Payload.DATALocation!.Value.Min + 0x4;
+        private bool _UnitsFromWater_IsSet => Payload.DATALocation.HasValue;
         public UInt16 UnitsFromWater => _UnitsFromWater_IsSet ? BinaryPrimitives.ReadUInt16LittleEndian(_recordData.Slice(_UnitsFromWaterLocation, 2)) : default(UInt16);
         #endregion
         #region Unknown2
-        private int _Unknown2Location => _DATALocation!.Value.Min + 0x6;
-        private bool _Unknown2_IsSet => _DATALocation.HasValue;
+        private int _Unknown2Location => Payload.DATALocation!.Value.Min + 0x6;
+        private bool _Unknown2_IsSet => Payload.DATALocation.HasValue;
         public UInt16 Unknown2 => _Unknown2_IsSet ? BinaryPrimitives.ReadUInt16LittleEndian(_recordData.Slice(_Unknown2Location, 2)) : default(UInt16);
         #endregion
         #region UnitsFromWaterType
-        private int _UnitsFromWaterTypeLocation => _DATALocation!.Value.Min + 0x8;
-        private bool _UnitsFromWaterType_IsSet => _DATALocation.HasValue;
+        private int _UnitsFromWaterTypeLocation => Payload.DATALocation!.Value.Min + 0x8;
+        private bool _UnitsFromWaterType_IsSet => Payload.DATALocation.HasValue;
         public Grass.UnitsFromWaterTypeEnum UnitsFromWaterType => _UnitsFromWaterType_IsSet ? (Grass.UnitsFromWaterTypeEnum)BinaryPrimitives.ReadInt32LittleEndian(_recordData.Span.Slice(_UnitsFromWaterTypeLocation, 0x4)) : default;
         #endregion
         #region PositionRange
-        private int _PositionRangeLocation => _DATALocation!.Value.Min + 0xC;
-        private bool _PositionRange_IsSet => _DATALocation.HasValue;
+        private int _PositionRangeLocation => Payload.DATALocation!.Value.Min + 0xC;
+        private bool _PositionRange_IsSet => Payload.DATALocation.HasValue;
         public Single PositionRange => _PositionRange_IsSet ? _recordData.Slice(_PositionRangeLocation, 4).Float() : default(Single);
         #endregion
         #region HeightRange
-        private int _HeightRangeLocation => _DATALocation!.Value.Min + 0x10;
-        private bool _HeightRange_IsSet => _DATALocation.HasValue;
+        private int _HeightRangeLocation => Payload.DATALocation!.Value.Min + 0x10;
+        private bool _HeightRange_IsSet => Payload.DATALocation.HasValue;
         public Single HeightRange => _HeightRange_IsSet ? _recordData.Slice(_HeightRangeLocation, 4).Float() : default(Single);
         #endregion
         #region ColorRange
-        private int _ColorRangeLocation => _DATALocation!.Value.Min + 0x14;
-        private bool _ColorRange_IsSet => _DATALocation.HasValue;
+        private int _ColorRangeLocation => Payload.DATALocation!.Value.Min + 0x14;
+        private bool _ColorRange_IsSet => Payload.DATALocation.HasValue;
         public Single ColorRange => _ColorRange_IsSet ? _recordData.Slice(_ColorRangeLocation, 4).Float() : default(Single);
         #endregion
         #region WavePeriod
-        private int _WavePeriodLocation => _DATALocation!.Value.Min + 0x18;
-        private bool _WavePeriod_IsSet => _DATALocation.HasValue;
+        private int _WavePeriodLocation => Payload.DATALocation!.Value.Min + 0x18;
+        private bool _WavePeriod_IsSet => Payload.DATALocation.HasValue;
         public Single WavePeriod => _WavePeriod_IsSet ? _recordData.Slice(_WavePeriodLocation, 4).Float() : default(Single);
         #endregion
         #region Flags
-        private int _FlagsLocation => _DATALocation!.Value.Min + 0x1C;
-        private bool _Flags_IsSet => _DATALocation.HasValue;
+        private int _FlagsLocation => Payload.DATALocation!.Value.Min + 0x1C;
+        private bool _Flags_IsSet => Payload.DATALocation.HasValue;
         public Grass.Flag Flags => _Flags_IsSet ? (Grass.Flag)_recordData.Span.Slice(_FlagsLocation, 0x1)[0] : default;
         #endregion
         #region Unknown3
-        private int _Unknown3Location => _DATALocation!.Value.Min + 0x1D;
-        private bool _Unknown3_IsSet => _DATALocation.HasValue;
+        private int _Unknown3Location => Payload.DATALocation!.Value.Min + 0x1D;
+        private bool _Unknown3_IsSet => Payload.DATALocation.HasValue;
         public ReadOnlyMemorySlice<Byte> Unknown3 => _Unknown3_IsSet ? _recordData.Span.Slice(_Unknown3Location, 3).ToArray() : ReadOnlyMemorySlice<byte>.Empty;
         #endregion
+
+        internal partial class GrassRecordDataPayload
+        {
+            public RangeInt32? ObjectBoundsLocation;
+            public IModelGetter? Model;
+            public RangeInt32? DATALocation;
+        }
+
+        private LazyPayload<GrassRecordDataPayload> _payload = null!;
+
+        internal GrassRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<GrassRecordDataPayload>(init, new GrassRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -2464,10 +2480,10 @@ namespace Mutagen.Bethesda.Skyrim
 
         partial void CustomCtor();
         protected GrassBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -2478,28 +2494,51 @@ namespace Mutagen.Bethesda.Skyrim
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new GrassBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -2528,12 +2567,12 @@ namespace Mutagen.Bethesda.Skyrim
             {
                 case RecordTypeInts.OBND:
                 {
-                    _ObjectBoundsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.ObjectBoundsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)Grass_FieldIndex.ObjectBounds;
                 }
                 case RecordTypeInts.MODL:
                 {
-                    this.Model = ModelBinaryOverlay.ModelFactory(
+                    _payload.Fields.Model = ModelBinaryOverlay.ModelFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());
@@ -2541,7 +2580,7 @@ namespace Mutagen.Bethesda.Skyrim
                 }
                 case RecordTypeInts.DATA:
                 {
-                    _DATALocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.DATALocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     return (int)Grass_FieldIndex.Unknown3;
                 }
                 default:

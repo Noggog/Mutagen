@@ -35,6 +35,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -3346,31 +3347,23 @@ namespace Mutagen.Bethesda.Oblivion
 
 
         #region Name
-        private int? _NameLocation;
-        public String? Name => _NameLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NameLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? Name => Payload.NameLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NameLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
         #region Aspects
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         string INamedRequiredGetter.Name => this.Name ?? string.Empty;
         #endregion
         #endregion
-        #region Description
-        private int? _DescriptionLocation;
-        public String? Description => _DescriptionLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _DescriptionLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
-        public IReadOnlyList<IFormLinkGetter<ISpellGetter>> Spells { get; private set; } = [];
-        public IReadOnlyList<IRaceRelationGetter> Relations { get; private set; } = [];
-        #region Data
-        private RangeInt32? _DataLocation;
-        public IRaceDataGetter? Data => _DataLocation.HasValue ? RaceDataBinaryOverlay.RaceDataFactory(_recordData.Slice(_DataLocation!.Value.Min), _package) : default;
-        #endregion
+        public String? Description => Payload.DescriptionLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.DescriptionLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public IReadOnlyList<IFormLinkGetter<ISpellGetter>> Spells => Payload.Spells ?? [];
+        public IReadOnlyList<IRaceRelationGetter> Relations => Payload.Relations ?? [];
+        public IRaceDataGetter? Data => Payload.DataLocation.HasValue ? RaceDataBinaryOverlay.RaceDataFactory(_recordData.Slice(Payload.DataLocation!.Value.Min), _package) : default;
         #region Voices
-        private int? _VoicesLocation;
         public IGenderedItemGetter<IFormLinkGetter<IRaceGetter>>? Voices
         {
             get
             {
-                if (!_VoicesLocation.HasValue) return default;
-                var data = HeaderTranslation.ExtractSubrecordMemory(_recordData, _VoicesLocation.Value, _package.MetaData.Constants);
+                if (!Payload.VoicesLocation.HasValue) return default;
+                var data = HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.VoicesLocation.Value, _package.MetaData.Constants);
                 return new GenderedItem<IFormLinkGetter<IRaceGetter>>(
                     FormLinkBinaryTranslation.Instance.OverlayFactory<IRaceGetter>(_package, data),
                     FormLinkBinaryTranslation.Instance.OverlayFactory<IRaceGetter>(_package, data.Slice(4)));
@@ -3378,57 +3371,71 @@ namespace Mutagen.Bethesda.Oblivion
         }
         #endregion
         #region DefaultHair
-        private int? _DefaultHairLocation;
         public IGenderedItemGetter<IFormLinkGetter<IHairGetter>>? DefaultHair
         {
             get
             {
-                if (!_DefaultHairLocation.HasValue) return default;
-                var data = HeaderTranslation.ExtractSubrecordMemory(_recordData, _DefaultHairLocation.Value, _package.MetaData.Constants);
+                if (!Payload.DefaultHairLocation.HasValue) return default;
+                var data = HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.DefaultHairLocation.Value, _package.MetaData.Constants);
                 return new GenderedItem<IFormLinkGetter<IHairGetter>>(
                     FormLinkBinaryTranslation.Instance.OverlayFactory<IHairGetter>(_package, data),
                     FormLinkBinaryTranslation.Instance.OverlayFactory<IHairGetter>(_package, data.Slice(4)));
             }
         }
         #endregion
-        #region DefaultHairColor
-        private int? _DefaultHairColorLocation;
-        public Byte? DefaultHairColor => _DefaultHairColorLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _DefaultHairColorLocation.Value, _package.MetaData.Constants)[0] : default(Byte?);
-        #endregion
-        #region FaceGenMainClamp
-        private int? _FaceGenMainClampLocation;
-        public Int32? FaceGenMainClamp => _FaceGenMainClampLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _FaceGenMainClampLocation.Value, _package.MetaData.Constants)) : default(Int32?);
-        #endregion
-        #region FaceGenFaceClamp
-        private int? _FaceGenFaceClampLocation;
-        public Int32? FaceGenFaceClamp => _FaceGenFaceClampLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _FaceGenFaceClampLocation.Value, _package.MetaData.Constants)) : default(Int32?);
-        #endregion
+        public Byte? DefaultHairColor => Payload.DefaultHairColorLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.DefaultHairColorLocation.Value, _package.MetaData.Constants)[0] : default(Byte?);
+        public Int32? FaceGenMainClamp => Payload.FaceGenMainClampLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.FaceGenMainClampLocation.Value, _package.MetaData.Constants)) : default(Int32?);
+        public Int32? FaceGenFaceClamp => Payload.FaceGenFaceClampLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.FaceGenFaceClampLocation.Value, _package.MetaData.Constants)) : default(Int32?);
         #region RaceStats
-        private int? _RaceStatsLocation;
         public IGenderedItemGetter<IRaceStatsGetter>? RaceStats
         {
             get
             {
-                if (!_RaceStatsLocation.HasValue) return default;
-                var data = HeaderTranslation.ExtractSubrecordMemory(_recordData, _RaceStatsLocation.Value, _package.MetaData.Constants);
+                if (!Payload.RaceStatsLocation.HasValue) return default;
+                var data = HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.RaceStatsLocation.Value, _package.MetaData.Constants);
                 return new GenderedItem<IRaceStatsGetter>(
                     RaceStatsBinaryOverlay.RaceStatsFactory(data, _package),
                     RaceStatsBinaryOverlay.RaceStatsFactory(data.Slice(8), _package));
             }
         }
         #endregion
-        public IReadOnlyList<IFacePartItemGetter> FaceData { get; private set; } = [];
-        #region BodyData
-        private IGenderedItemGetter<IBodyDataGetter?>? _BodyDataOverlay;
-        public IGenderedItemGetter<IBodyDataGetter?>? BodyData => _BodyDataOverlay;
-        #endregion
-        public IReadOnlyList<IFormLinkGetter<IHairGetter>>? Hairs { get; private set; }
-        public IReadOnlyList<IFormLinkGetter<IEyeGetter>>? Eyes { get; private set; }
-        public IFaceGenDataGetter? FaceGenData { get; private set; }
-        #region SNAM
-        private int? _SNAMLocation;
-        public Int16? SNAM => _SNAMLocation.HasValue ? BinaryPrimitives.ReadInt16LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _SNAMLocation.Value, _package.MetaData.Constants)) : default(Int16?);
-        #endregion
+        public IReadOnlyList<IFacePartItemGetter> FaceData => Payload.FaceData ?? [];
+        public IGenderedItemGetter<IBodyDataGetter?>? BodyData => Payload.BodyDataOverlay;
+        public IReadOnlyList<IFormLinkGetter<IHairGetter>>? Hairs => Payload.Hairs;
+        public IReadOnlyList<IFormLinkGetter<IEyeGetter>>? Eyes => Payload.Eyes;
+        public IFaceGenDataGetter? FaceGenData => Payload.FaceGenData;
+        public Int16? SNAM => Payload.SNAMLocation.HasValue ? BinaryPrimitives.ReadInt16LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.SNAMLocation.Value, _package.MetaData.Constants)) : default(Int16?);
+
+        internal partial class RaceRecordDataPayload
+        {
+            public int? NameLocation;
+            public int? DescriptionLocation;
+            public IReadOnlyList<IFormLinkGetter<ISpellGetter>> Spells = [];
+            public IReadOnlyList<IRaceRelationGetter> Relations = [];
+            public RangeInt32? DataLocation;
+            public int? VoicesLocation;
+            public int? DefaultHairLocation;
+            public int? DefaultHairColorLocation;
+            public int? FaceGenMainClampLocation;
+            public int? FaceGenFaceClampLocation;
+            public int? RaceStatsLocation;
+            public IReadOnlyList<IFacePartItemGetter> FaceData = [];
+            public IGenderedItemGetter<IBodyDataGetter?>? BodyDataOverlay;
+            public IReadOnlyList<IFormLinkGetter<IHairGetter>>? Hairs;
+            public IReadOnlyList<IFormLinkGetter<IEyeGetter>>? Eyes;
+            public IFaceGenDataGetter? FaceGenData;
+            public int? SNAMLocation;
+        }
+
+        private LazyPayload<RaceRecordDataPayload> _payload = null!;
+
+        internal RaceRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<RaceRecordDataPayload>(init, new RaceRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -3436,10 +3443,10 @@ namespace Mutagen.Bethesda.Oblivion
 
         partial void CustomCtor();
         protected RaceBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -3450,28 +3457,51 @@ namespace Mutagen.Bethesda.Oblivion
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new RaceBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -3500,17 +3530,17 @@ namespace Mutagen.Bethesda.Oblivion
             {
                 case RecordTypeInts.FULL:
                 {
-                    _NameLocation = (stream.Position - offset);
+                    _payload.Fields.NameLocation = (stream.Position - offset);
                     return (int)Race_FieldIndex.Name;
                 }
                 case RecordTypeInts.DESC:
                 {
-                    _DescriptionLocation = (stream.Position - offset);
+                    _payload.Fields.DescriptionLocation = (stream.Position - offset);
                     return (int)Race_FieldIndex.Description;
                 }
                 case RecordTypeInts.SPLO:
                 {
-                    this.Spells = BinaryOverlayList.FactoryByArray<IFormLinkGetter<ISpellGetter>>(
+                    _payload.Fields.Spells = BinaryOverlayList.FactoryByArray<IFormLinkGetter<ISpellGetter>>(
                         mem: stream.RemainingMemory,
                         package: _package,
                         getter: (s, p) => FormLinkBinaryTranslation.Instance.OverlayFactory<ISpellGetter>(p, s),
@@ -3524,7 +3554,7 @@ namespace Mutagen.Bethesda.Oblivion
                 }
                 case RecordTypeInts.XNAM:
                 {
-                    this.Relations = BinaryOverlayList.FactoryByArray<IRaceRelationGetter>(
+                    _payload.Fields.Relations = BinaryOverlayList.FactoryByArray<IRaceRelationGetter>(
                         mem: stream.RemainingMemory,
                         package: _package,
                         translationParams: translationParams,
@@ -3539,43 +3569,43 @@ namespace Mutagen.Bethesda.Oblivion
                 }
                 case RecordTypeInts.DATA:
                 {
-                    _DataLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.DataLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)Race_FieldIndex.Data;
                 }
                 case RecordTypeInts.VNAM:
                 {
-                    _VoicesLocation = (stream.Position - offset);
+                    _payload.Fields.VoicesLocation = (stream.Position - offset);
                     return (int)Race_FieldIndex.Voices;
                 }
                 case RecordTypeInts.DNAM:
                 {
-                    _DefaultHairLocation = (stream.Position - offset);
+                    _payload.Fields.DefaultHairLocation = (stream.Position - offset);
                     return (int)Race_FieldIndex.DefaultHair;
                 }
                 case RecordTypeInts.CNAM:
                 {
-                    _DefaultHairColorLocation = (stream.Position - offset);
+                    _payload.Fields.DefaultHairColorLocation = (stream.Position - offset);
                     return (int)Race_FieldIndex.DefaultHairColor;
                 }
                 case RecordTypeInts.PNAM:
                 {
-                    _FaceGenMainClampLocation = (stream.Position - offset);
+                    _payload.Fields.FaceGenMainClampLocation = (stream.Position - offset);
                     return (int)Race_FieldIndex.FaceGenMainClamp;
                 }
                 case RecordTypeInts.UNAM:
                 {
-                    _FaceGenFaceClampLocation = (stream.Position - offset);
+                    _payload.Fields.FaceGenFaceClampLocation = (stream.Position - offset);
                     return (int)Race_FieldIndex.FaceGenFaceClamp;
                 }
                 case RecordTypeInts.ATTR:
                 {
-                    _RaceStatsLocation = (stream.Position - offset);
+                    _payload.Fields.RaceStatsLocation = (stream.Position - offset);
                     return (int)Race_FieldIndex.RaceStats;
                 }
                 case RecordTypeInts.NAM0:
                 {
                     stream.Position += _package.MetaData.Constants.SubConstants.HeaderLength; // Skip marker
-                    this.FaceData = this.ParseRepeatedTypelessSubrecord<IFacePartItemGetter>(
+                    _payload.Fields.FaceData = this.ParseRepeatedTypelessSubrecord<IFacePartItemGetter>(
                         stream: stream,
                         translationParams: translationParams,
                         trigger: FacePartItem_Registration.TriggerSpecs,
@@ -3585,7 +3615,7 @@ namespace Mutagen.Bethesda.Oblivion
                 case RecordTypeInts.NAM1:
                 {
                     stream.Position += _package.MetaData.Constants.SubConstants.HeaderLength; // Skip marker
-                    _BodyDataOverlay = GenderedItemBinaryOverlay.FactorySkipMarkersPreRead<IBodyDataGetter>(
+                    _payload.Fields.BodyDataOverlay = GenderedItemBinaryOverlay.FactorySkipMarkersPreRead<IBodyDataGetter>(
                         package: _package,
                         male: RecordTypes.MNAM,
                         female: RecordTypes.FNAM,
@@ -3596,7 +3626,7 @@ namespace Mutagen.Bethesda.Oblivion
                 }
                 case RecordTypeInts.HNAM:
                 {
-                    this.Hairs = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<IHairGetter>>(
+                    _payload.Fields.Hairs = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<IHairGetter>>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -3606,7 +3636,7 @@ namespace Mutagen.Bethesda.Oblivion
                 }
                 case RecordTypeInts.ENAM:
                 {
-                    this.Eyes = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<IEyeGetter>>(
+                    _payload.Fields.Eyes = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<IEyeGetter>>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -3618,7 +3648,7 @@ namespace Mutagen.Bethesda.Oblivion
                 case RecordTypeInts.FGGA:
                 case RecordTypeInts.FGTS:
                 {
-                    this.FaceGenData = FaceGenDataBinaryOverlay.FaceGenDataFactory(
+                    _payload.Fields.FaceGenData = FaceGenDataBinaryOverlay.FaceGenDataFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());
@@ -3626,7 +3656,7 @@ namespace Mutagen.Bethesda.Oblivion
                 }
                 case RecordTypeInts.SNAM:
                 {
-                    _SNAMLocation = (stream.Position - offset);
+                    _payload.Fields.SNAMLocation = (stream.Position - offset);
                     return (int)Race_FieldIndex.SNAM;
                 }
                 default:

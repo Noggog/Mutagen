@@ -40,6 +40,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -5687,8 +5688,7 @@ namespace Mutagen.Bethesda.Skyrim
 
 
         #region Name
-        private int? _NameLocation;
-        public ITranslatedStringGetter? Name => _NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+        public ITranslatedStringGetter? Name => Payload.NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
         #region Aspects
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         string INamedRequiredGetter.Name => this.Name?.String ?? string.Empty;
@@ -5698,319 +5698,306 @@ namespace Mutagen.Bethesda.Skyrim
         ITranslatedStringGetter ITranslatedNamedRequiredGetter.Name => this.Name ?? TranslatedString.Empty;
         #endregion
         #endregion
-        public IReadOnlyList<String> UnusedNoisemaps { get; private set; } = [];
-        #region Opacity
-        private int? _OpacityLocation;
-        public Byte Opacity => _OpacityLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _OpacityLocation.Value, _package.MetaData.Constants)[0] : default(Byte);
-        #endregion
-        #region Flags
-        private int? _FlagsLocation;
-        public Water.Flag? Flags => EnumBinaryTranslation<Water.Flag, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(_FlagsLocation, _recordData, _package, 1);
-        #endregion
-        #region MNAM
-        private int? _MNAMLocation;
-        public ReadOnlyMemorySlice<Byte>? MNAM => _MNAMLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _MNAMLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
-        #endregion
-        #region Material
-        private int? _MaterialLocation;
-        public IFormLinkNullableGetter<IMaterialTypeGetter> Material => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IMaterialTypeGetter>(_package, _recordData, _MaterialLocation);
-        #endregion
-        #region OpenSound
-        private int? _OpenSoundLocation;
-        public IFormLinkNullableGetter<ISoundDescriptorGetter> OpenSound => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ISoundDescriptorGetter>(_package, _recordData, _OpenSoundLocation);
-        #endregion
-        #region Spell
-        private int? _SpellLocation;
-        public IFormLinkNullableGetter<ISpellGetter> Spell => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ISpellGetter>(_package, _recordData, _SpellLocation);
-        #endregion
-        #region ImageSpace
-        private int? _ImageSpaceLocation;
-        public IFormLinkNullableGetter<IImageSpaceGetter> ImageSpace => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IImageSpaceGetter>(_package, _recordData, _ImageSpaceLocation);
-        #endregion
-        #region DamagePerSecond
-        private int? _DamagePerSecondLocation;
-        public UInt16? DamagePerSecond => _DamagePerSecondLocation.HasValue ? BinaryPrimitives.ReadUInt16LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _DamagePerSecondLocation.Value, _package.MetaData.Constants)) : default(UInt16?);
-        #endregion
-        private RangeInt32? _DNAMLocation;
-        public Water.DNAMDataType DNAMDataTypeState { get; private set; }
+        public IReadOnlyList<String> UnusedNoisemaps => Payload.UnusedNoisemaps ?? [];
+        public Byte Opacity => Payload.OpacityLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.OpacityLocation.Value, _package.MetaData.Constants)[0] : default(Byte);
+        public Water.Flag? Flags => EnumBinaryTranslation<Water.Flag, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(Payload.FlagsLocation, _recordData, _package, 1);
+        public ReadOnlyMemorySlice<Byte>? MNAM => Payload.MNAMLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.MNAMLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
+        public IFormLinkNullableGetter<IMaterialTypeGetter> Material => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IMaterialTypeGetter>(_package, _recordData, Payload.MaterialLocation);
+        public IFormLinkNullableGetter<ISoundDescriptorGetter> OpenSound => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ISoundDescriptorGetter>(_package, _recordData, Payload.OpenSoundLocation);
+        public IFormLinkNullableGetter<ISpellGetter> Spell => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ISpellGetter>(_package, _recordData, Payload.SpellLocation);
+        public IFormLinkNullableGetter<IImageSpaceGetter> ImageSpace => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IImageSpaceGetter>(_package, _recordData, Payload.ImageSpaceLocation);
+        public UInt16? DamagePerSecond => Payload.DamagePerSecondLocation.HasValue ? BinaryPrimitives.ReadUInt16LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.DamagePerSecondLocation.Value, _package.MetaData.Constants)) : default(UInt16?);
+        public Water.DNAMDataType DNAMDataTypeState => Payload.DNAMDataTypeState;
         #region Unknown
-        private int _UnknownLocation => _DNAMLocation!.Value.Min;
-        private bool _Unknown_IsSet => _DNAMLocation.HasValue;
+        private int _UnknownLocation => Payload.DNAMLocation!.Value.Min;
+        private bool _Unknown_IsSet => Payload.DNAMLocation.HasValue;
         public ReadOnlyMemorySlice<Byte> Unknown => _Unknown_IsSet ? _recordData.Span.Slice(_UnknownLocation, 16).ToArray() : ReadOnlyMemorySlice<byte>.Empty;
         #endregion
         #region SpecularSunPower
-        private int _SpecularSunPowerLocation => _DNAMLocation!.Value.Min + 0x10;
-        private bool _SpecularSunPower_IsSet => _DNAMLocation.HasValue;
+        private int _SpecularSunPowerLocation => Payload.DNAMLocation!.Value.Min + 0x10;
+        private bool _SpecularSunPower_IsSet => Payload.DNAMLocation.HasValue;
         public Single SpecularSunPower => _SpecularSunPower_IsSet ? _recordData.Slice(_SpecularSunPowerLocation, 4).Float() : default(Single);
         #endregion
         #region WaterReflectivity
-        private int _WaterReflectivityLocation => _DNAMLocation!.Value.Min + 0x14;
-        private bool _WaterReflectivity_IsSet => _DNAMLocation.HasValue;
+        private int _WaterReflectivityLocation => Payload.DNAMLocation!.Value.Min + 0x14;
+        private bool _WaterReflectivity_IsSet => Payload.DNAMLocation.HasValue;
         public Single WaterReflectivity => _WaterReflectivity_IsSet ? _recordData.Slice(_WaterReflectivityLocation, 4).Float() : default(Single);
         #endregion
         #region WaterFresnel
-        private int _WaterFresnelLocation => _DNAMLocation!.Value.Min + 0x18;
-        private bool _WaterFresnel_IsSet => _DNAMLocation.HasValue;
+        private int _WaterFresnelLocation => Payload.DNAMLocation!.Value.Min + 0x18;
+        private bool _WaterFresnel_IsSet => Payload.DNAMLocation.HasValue;
         public Single WaterFresnel => _WaterFresnel_IsSet ? _recordData.Slice(_WaterFresnelLocation, 4).Float() : default(Single);
         #endregion
         #region Unknown2
-        private int _Unknown2Location => _DNAMLocation!.Value.Min + 0x1C;
-        private bool _Unknown2_IsSet => _DNAMLocation.HasValue;
+        private int _Unknown2Location => Payload.DNAMLocation!.Value.Min + 0x1C;
+        private bool _Unknown2_IsSet => Payload.DNAMLocation.HasValue;
         public Int32 Unknown2 => _Unknown2_IsSet ? BinaryPrimitives.ReadInt32LittleEndian(_recordData.Slice(_Unknown2Location, 4)) : default(Int32);
         #endregion
         #region FogAboveWaterDistanceNearPlane
-        private int _FogAboveWaterDistanceNearPlaneLocation => _DNAMLocation!.Value.Min + 0x20;
-        private bool _FogAboveWaterDistanceNearPlane_IsSet => _DNAMLocation.HasValue;
+        private int _FogAboveWaterDistanceNearPlaneLocation => Payload.DNAMLocation!.Value.Min + 0x20;
+        private bool _FogAboveWaterDistanceNearPlane_IsSet => Payload.DNAMLocation.HasValue;
         public Single FogAboveWaterDistanceNearPlane => _FogAboveWaterDistanceNearPlane_IsSet ? _recordData.Slice(_FogAboveWaterDistanceNearPlaneLocation, 4).Float() : default(Single);
         #endregion
         #region FogAboveWaterDistanceFarPlane
-        private int _FogAboveWaterDistanceFarPlaneLocation => _DNAMLocation!.Value.Min + 0x24;
-        private bool _FogAboveWaterDistanceFarPlane_IsSet => _DNAMLocation.HasValue;
+        private int _FogAboveWaterDistanceFarPlaneLocation => Payload.DNAMLocation!.Value.Min + 0x24;
+        private bool _FogAboveWaterDistanceFarPlane_IsSet => Payload.DNAMLocation.HasValue;
         public Single FogAboveWaterDistanceFarPlane => _FogAboveWaterDistanceFarPlane_IsSet ? _recordData.Slice(_FogAboveWaterDistanceFarPlaneLocation, 4).Float() : default(Single);
         #endregion
         #region ShallowColor
-        private int _ShallowColorLocation => _DNAMLocation!.Value.Min + 0x28;
-        private bool _ShallowColor_IsSet => _DNAMLocation.HasValue;
+        private int _ShallowColorLocation => Payload.DNAMLocation!.Value.Min + 0x28;
+        private bool _ShallowColor_IsSet => Payload.DNAMLocation.HasValue;
         public Color ShallowColor => _ShallowColor_IsSet ? _recordData.Slice(_ShallowColorLocation, 4).ReadColor(ColorBinaryType.Alpha) : default(Color);
         #endregion
         #region DeepColor
-        private int _DeepColorLocation => _DNAMLocation!.Value.Min + 0x2C;
-        private bool _DeepColor_IsSet => _DNAMLocation.HasValue;
+        private int _DeepColorLocation => Payload.DNAMLocation!.Value.Min + 0x2C;
+        private bool _DeepColor_IsSet => Payload.DNAMLocation.HasValue;
         public Color DeepColor => _DeepColor_IsSet ? _recordData.Slice(_DeepColorLocation, 4).ReadColor(ColorBinaryType.Alpha) : default(Color);
         #endregion
         #region ReflectionColor
-        private int _ReflectionColorLocation => _DNAMLocation!.Value.Min + 0x30;
-        private bool _ReflectionColor_IsSet => _DNAMLocation.HasValue;
+        private int _ReflectionColorLocation => Payload.DNAMLocation!.Value.Min + 0x30;
+        private bool _ReflectionColor_IsSet => Payload.DNAMLocation.HasValue;
         public Color ReflectionColor => _ReflectionColor_IsSet ? _recordData.Slice(_ReflectionColorLocation, 4).ReadColor(ColorBinaryType.Alpha) : default(Color);
         #endregion
         #region Unknown3
-        private int _Unknown3Location => _DNAMLocation!.Value.Min + 0x34;
-        private bool _Unknown3_IsSet => _DNAMLocation.HasValue;
+        private int _Unknown3Location => Payload.DNAMLocation!.Value.Min + 0x34;
+        private bool _Unknown3_IsSet => Payload.DNAMLocation.HasValue;
         public ReadOnlyMemorySlice<Byte> Unknown3 => _Unknown3_IsSet ? _recordData.Span.Slice(_Unknown3Location, 20).ToArray() : ReadOnlyMemorySlice<byte>.Empty;
         #endregion
         #region DisplacementStartingSize
-        private int _DisplacementStartingSizeLocation => _DNAMLocation!.Value.Min + 0x48;
-        private bool _DisplacementStartingSize_IsSet => _DNAMLocation.HasValue;
+        private int _DisplacementStartingSizeLocation => Payload.DNAMLocation!.Value.Min + 0x48;
+        private bool _DisplacementStartingSize_IsSet => Payload.DNAMLocation.HasValue;
         public Single DisplacementStartingSize => _DisplacementStartingSize_IsSet ? _recordData.Slice(_DisplacementStartingSizeLocation, 4).Float() : default(Single);
         #endregion
         #region DisplacementFoce
-        private int _DisplacementFoceLocation => _DNAMLocation!.Value.Min + 0x4C;
-        private bool _DisplacementFoce_IsSet => _DNAMLocation.HasValue;
+        private int _DisplacementFoceLocation => Payload.DNAMLocation!.Value.Min + 0x4C;
+        private bool _DisplacementFoce_IsSet => Payload.DNAMLocation.HasValue;
         public Single DisplacementFoce => _DisplacementFoce_IsSet ? _recordData.Slice(_DisplacementFoceLocation, 4).Float() : default(Single);
         #endregion
         #region DisplacementVelocity
-        private int _DisplacementVelocityLocation => _DNAMLocation!.Value.Min + 0x50;
-        private bool _DisplacementVelocity_IsSet => _DNAMLocation.HasValue;
+        private int _DisplacementVelocityLocation => Payload.DNAMLocation!.Value.Min + 0x50;
+        private bool _DisplacementVelocity_IsSet => Payload.DNAMLocation.HasValue;
         public Single DisplacementVelocity => _DisplacementVelocity_IsSet ? _recordData.Slice(_DisplacementVelocityLocation, 4).Float() : default(Single);
         #endregion
         #region DisplacementFalloff
-        private int _DisplacementFalloffLocation => _DNAMLocation!.Value.Min + 0x54;
-        private bool _DisplacementFalloff_IsSet => _DNAMLocation.HasValue;
+        private int _DisplacementFalloffLocation => Payload.DNAMLocation!.Value.Min + 0x54;
+        private bool _DisplacementFalloff_IsSet => Payload.DNAMLocation.HasValue;
         public Single DisplacementFalloff => _DisplacementFalloff_IsSet ? _recordData.Slice(_DisplacementFalloffLocation, 4).Float() : default(Single);
         #endregion
         #region DisplacementDampner
-        private int _DisplacementDampnerLocation => _DNAMLocation!.Value.Min + 0x58;
-        private bool _DisplacementDampner_IsSet => _DNAMLocation.HasValue;
+        private int _DisplacementDampnerLocation => Payload.DNAMLocation!.Value.Min + 0x58;
+        private bool _DisplacementDampner_IsSet => Payload.DNAMLocation.HasValue;
         public Single DisplacementDampner => _DisplacementDampner_IsSet ? _recordData.Slice(_DisplacementDampnerLocation, 4).Float() : default(Single);
         #endregion
         #region Unknown4
-        private int _Unknown4Location => _DNAMLocation!.Value.Min + 0x5C;
-        private bool _Unknown4_IsSet => _DNAMLocation.HasValue;
+        private int _Unknown4Location => Payload.DNAMLocation!.Value.Min + 0x5C;
+        private bool _Unknown4_IsSet => Payload.DNAMLocation.HasValue;
         public Int32 Unknown4 => _Unknown4_IsSet ? BinaryPrimitives.ReadInt32LittleEndian(_recordData.Slice(_Unknown4Location, 4)) : default(Int32);
         #endregion
         #region NoiseFalloff
-        private int _NoiseFalloffLocation => _DNAMLocation!.Value.Min + 0x60;
-        private bool _NoiseFalloff_IsSet => _DNAMLocation.HasValue;
+        private int _NoiseFalloffLocation => Payload.DNAMLocation!.Value.Min + 0x60;
+        private bool _NoiseFalloff_IsSet => Payload.DNAMLocation.HasValue;
         public Single NoiseFalloff => _NoiseFalloff_IsSet ? _recordData.Slice(_NoiseFalloffLocation, 4).Float() : default(Single);
         #endregion
         #region NoiseLayerOneWindDirection
-        private int _NoiseLayerOneWindDirectionLocation => _DNAMLocation!.Value.Min + 0x64;
-        private bool _NoiseLayerOneWindDirection_IsSet => _DNAMLocation.HasValue;
+        private int _NoiseLayerOneWindDirectionLocation => Payload.DNAMLocation!.Value.Min + 0x64;
+        private bool _NoiseLayerOneWindDirection_IsSet => Payload.DNAMLocation.HasValue;
         public Single NoiseLayerOneWindDirection => _NoiseLayerOneWindDirection_IsSet ? _recordData.Slice(_NoiseLayerOneWindDirectionLocation, 4).Float() : default(Single);
         #endregion
         #region NoiseLayerTwoWindDirection
-        private int _NoiseLayerTwoWindDirectionLocation => _DNAMLocation!.Value.Min + 0x68;
-        private bool _NoiseLayerTwoWindDirection_IsSet => _DNAMLocation.HasValue;
+        private int _NoiseLayerTwoWindDirectionLocation => Payload.DNAMLocation!.Value.Min + 0x68;
+        private bool _NoiseLayerTwoWindDirection_IsSet => Payload.DNAMLocation.HasValue;
         public Single NoiseLayerTwoWindDirection => _NoiseLayerTwoWindDirection_IsSet ? _recordData.Slice(_NoiseLayerTwoWindDirectionLocation, 4).Float() : default(Single);
         #endregion
         #region NoiseLayerThreeWindDirection
-        private int _NoiseLayerThreeWindDirectionLocation => _DNAMLocation!.Value.Min + 0x6C;
-        private bool _NoiseLayerThreeWindDirection_IsSet => _DNAMLocation.HasValue;
+        private int _NoiseLayerThreeWindDirectionLocation => Payload.DNAMLocation!.Value.Min + 0x6C;
+        private bool _NoiseLayerThreeWindDirection_IsSet => Payload.DNAMLocation.HasValue;
         public Single NoiseLayerThreeWindDirection => _NoiseLayerThreeWindDirection_IsSet ? _recordData.Slice(_NoiseLayerThreeWindDirectionLocation, 4).Float() : default(Single);
         #endregion
         #region NoiseLayerOneWindSpeed
-        private int _NoiseLayerOneWindSpeedLocation => _DNAMLocation!.Value.Min + 0x70;
-        private bool _NoiseLayerOneWindSpeed_IsSet => _DNAMLocation.HasValue;
+        private int _NoiseLayerOneWindSpeedLocation => Payload.DNAMLocation!.Value.Min + 0x70;
+        private bool _NoiseLayerOneWindSpeed_IsSet => Payload.DNAMLocation.HasValue;
         public Single NoiseLayerOneWindSpeed => _NoiseLayerOneWindSpeed_IsSet ? _recordData.Slice(_NoiseLayerOneWindSpeedLocation, 4).Float() : default(Single);
         #endregion
         #region NoiseLayerTwoWindSpeed
-        private int _NoiseLayerTwoWindSpeedLocation => _DNAMLocation!.Value.Min + 0x74;
-        private bool _NoiseLayerTwoWindSpeed_IsSet => _DNAMLocation.HasValue;
+        private int _NoiseLayerTwoWindSpeedLocation => Payload.DNAMLocation!.Value.Min + 0x74;
+        private bool _NoiseLayerTwoWindSpeed_IsSet => Payload.DNAMLocation.HasValue;
         public Single NoiseLayerTwoWindSpeed => _NoiseLayerTwoWindSpeed_IsSet ? _recordData.Slice(_NoiseLayerTwoWindSpeedLocation, 4).Float() : default(Single);
         #endregion
         #region NoiseLayerThreeWindSpeed
-        private int _NoiseLayerThreeWindSpeedLocation => _DNAMLocation!.Value.Min + 0x78;
-        private bool _NoiseLayerThreeWindSpeed_IsSet => _DNAMLocation.HasValue;
+        private int _NoiseLayerThreeWindSpeedLocation => Payload.DNAMLocation!.Value.Min + 0x78;
+        private bool _NoiseLayerThreeWindSpeed_IsSet => Payload.DNAMLocation.HasValue;
         public Single NoiseLayerThreeWindSpeed => _NoiseLayerThreeWindSpeed_IsSet ? _recordData.Slice(_NoiseLayerThreeWindSpeedLocation, 4).Float() : default(Single);
         #endregion
         #region Unknown5
-        private int _Unknown5Location => _DNAMLocation!.Value.Min + 0x7C;
-        private bool _Unknown5_IsSet => _DNAMLocation.HasValue;
+        private int _Unknown5Location => Payload.DNAMLocation!.Value.Min + 0x7C;
+        private bool _Unknown5_IsSet => Payload.DNAMLocation.HasValue;
         public ReadOnlyMemorySlice<Byte> Unknown5 => _Unknown5_IsSet ? _recordData.Span.Slice(_Unknown5Location, 8).ToArray() : ReadOnlyMemorySlice<byte>.Empty;
         #endregion
         #region FogAboveWaterAmount
-        private int _FogAboveWaterAmountLocation => _DNAMLocation!.Value.Min + 0x84;
-        private bool _FogAboveWaterAmount_IsSet => _DNAMLocation.HasValue;
+        private int _FogAboveWaterAmountLocation => Payload.DNAMLocation!.Value.Min + 0x84;
+        private bool _FogAboveWaterAmount_IsSet => Payload.DNAMLocation.HasValue;
         public Single FogAboveWaterAmount => _FogAboveWaterAmount_IsSet ? _recordData.Slice(_FogAboveWaterAmountLocation, 4).Float() : default(Single);
         #endregion
         #region Unknown6
-        private int _Unknown6Location => _DNAMLocation!.Value.Min + 0x88;
-        private bool _Unknown6_IsSet => _DNAMLocation.HasValue;
+        private int _Unknown6Location => Payload.DNAMLocation!.Value.Min + 0x88;
+        private bool _Unknown6_IsSet => Payload.DNAMLocation.HasValue;
         public Int32 Unknown6 => _Unknown6_IsSet ? BinaryPrimitives.ReadInt32LittleEndian(_recordData.Slice(_Unknown6Location, 4)) : default(Int32);
         #endregion
         #region FogUnderWaterAmount
-        private int _FogUnderWaterAmountLocation => _DNAMLocation!.Value.Min + 0x8C;
-        private bool _FogUnderWaterAmount_IsSet => _DNAMLocation.HasValue;
+        private int _FogUnderWaterAmountLocation => Payload.DNAMLocation!.Value.Min + 0x8C;
+        private bool _FogUnderWaterAmount_IsSet => Payload.DNAMLocation.HasValue;
         public Single FogUnderWaterAmount => _FogUnderWaterAmount_IsSet ? _recordData.Slice(_FogUnderWaterAmountLocation, 4).Float() : default(Single);
         #endregion
         #region FogUnderWaterDistanceNearPlane
-        private int _FogUnderWaterDistanceNearPlaneLocation => _DNAMLocation!.Value.Min + 0x90;
-        private bool _FogUnderWaterDistanceNearPlane_IsSet => _DNAMLocation.HasValue;
+        private int _FogUnderWaterDistanceNearPlaneLocation => Payload.DNAMLocation!.Value.Min + 0x90;
+        private bool _FogUnderWaterDistanceNearPlane_IsSet => Payload.DNAMLocation.HasValue;
         public Single FogUnderWaterDistanceNearPlane => _FogUnderWaterDistanceNearPlane_IsSet ? _recordData.Slice(_FogUnderWaterDistanceNearPlaneLocation, 4).Float() : default(Single);
         #endregion
         #region FogUnderWaterDistanceFarPlane
-        private int _FogUnderWaterDistanceFarPlaneLocation => _DNAMLocation!.Value.Min + 0x94;
-        private bool _FogUnderWaterDistanceFarPlane_IsSet => _DNAMLocation.HasValue;
+        private int _FogUnderWaterDistanceFarPlaneLocation => Payload.DNAMLocation!.Value.Min + 0x94;
+        private bool _FogUnderWaterDistanceFarPlane_IsSet => Payload.DNAMLocation.HasValue;
         public Single FogUnderWaterDistanceFarPlane => _FogUnderWaterDistanceFarPlane_IsSet ? _recordData.Slice(_FogUnderWaterDistanceFarPlaneLocation, 4).Float() : default(Single);
         #endregion
         #region WaterRefractionMagnitude
-        private int _WaterRefractionMagnitudeLocation => _DNAMLocation!.Value.Min + 0x98;
-        private bool _WaterRefractionMagnitude_IsSet => _DNAMLocation.HasValue;
+        private int _WaterRefractionMagnitudeLocation => Payload.DNAMLocation!.Value.Min + 0x98;
+        private bool _WaterRefractionMagnitude_IsSet => Payload.DNAMLocation.HasValue;
         public Single WaterRefractionMagnitude => _WaterRefractionMagnitude_IsSet ? _recordData.Slice(_WaterRefractionMagnitudeLocation, 4).Float() : default(Single);
         #endregion
         #region SpecularPower
-        private int _SpecularPowerLocation => _DNAMLocation!.Value.Min + 0x9C;
-        private bool _SpecularPower_IsSet => _DNAMLocation.HasValue;
+        private int _SpecularPowerLocation => Payload.DNAMLocation!.Value.Min + 0x9C;
+        private bool _SpecularPower_IsSet => Payload.DNAMLocation.HasValue;
         public Single SpecularPower => _SpecularPower_IsSet ? _recordData.Slice(_SpecularPowerLocation, 4).Float() : default(Single);
         #endregion
         #region Unknown7
-        private int _Unknown7Location => _DNAMLocation!.Value.Min + 0xA0;
-        private bool _Unknown7_IsSet => _DNAMLocation.HasValue;
+        private int _Unknown7Location => Payload.DNAMLocation!.Value.Min + 0xA0;
+        private bool _Unknown7_IsSet => Payload.DNAMLocation.HasValue;
         public Int32 Unknown7 => _Unknown7_IsSet ? BinaryPrimitives.ReadInt32LittleEndian(_recordData.Slice(_Unknown7Location, 4)) : default(Int32);
         #endregion
         #region SpecularRadius
-        private int _SpecularRadiusLocation => _DNAMLocation!.Value.Min + 0xA4;
-        private bool _SpecularRadius_IsSet => _DNAMLocation.HasValue;
+        private int _SpecularRadiusLocation => Payload.DNAMLocation!.Value.Min + 0xA4;
+        private bool _SpecularRadius_IsSet => Payload.DNAMLocation.HasValue;
         public Single SpecularRadius => _SpecularRadius_IsSet ? _recordData.Slice(_SpecularRadiusLocation, 4).Float() : default(Single);
         #endregion
         #region SpecularBrightness
-        private int _SpecularBrightnessLocation => _DNAMLocation!.Value.Min + 0xA8;
-        private bool _SpecularBrightness_IsSet => _DNAMLocation.HasValue;
+        private int _SpecularBrightnessLocation => Payload.DNAMLocation!.Value.Min + 0xA8;
+        private bool _SpecularBrightness_IsSet => Payload.DNAMLocation.HasValue;
         public Single SpecularBrightness => _SpecularBrightness_IsSet ? _recordData.Slice(_SpecularBrightnessLocation, 4).Float() : default(Single);
         #endregion
         #region NoiseLayerOneUvScale
-        private int _NoiseLayerOneUvScaleLocation => _DNAMLocation!.Value.Min + 0xAC;
-        private bool _NoiseLayerOneUvScale_IsSet => _DNAMLocation.HasValue;
+        private int _NoiseLayerOneUvScaleLocation => Payload.DNAMLocation!.Value.Min + 0xAC;
+        private bool _NoiseLayerOneUvScale_IsSet => Payload.DNAMLocation.HasValue;
         public Single NoiseLayerOneUvScale => _NoiseLayerOneUvScale_IsSet ? _recordData.Slice(_NoiseLayerOneUvScaleLocation, 4).Float() : default(Single);
         #endregion
         #region NoiseLayerTwoUvScale
-        private int _NoiseLayerTwoUvScaleLocation => _DNAMLocation!.Value.Min + 0xB0;
-        private bool _NoiseLayerTwoUvScale_IsSet => _DNAMLocation.HasValue;
+        private int _NoiseLayerTwoUvScaleLocation => Payload.DNAMLocation!.Value.Min + 0xB0;
+        private bool _NoiseLayerTwoUvScale_IsSet => Payload.DNAMLocation.HasValue;
         public Single NoiseLayerTwoUvScale => _NoiseLayerTwoUvScale_IsSet ? _recordData.Slice(_NoiseLayerTwoUvScaleLocation, 4).Float() : default(Single);
         #endregion
         #region NoiseLayerThreeUvScale
-        private int _NoiseLayerThreeUvScaleLocation => _DNAMLocation!.Value.Min + 0xB4;
-        private bool _NoiseLayerThreeUvScale_IsSet => _DNAMLocation.HasValue;
+        private int _NoiseLayerThreeUvScaleLocation => Payload.DNAMLocation!.Value.Min + 0xB4;
+        private bool _NoiseLayerThreeUvScale_IsSet => Payload.DNAMLocation.HasValue;
         public Single NoiseLayerThreeUvScale => _NoiseLayerThreeUvScale_IsSet ? _recordData.Slice(_NoiseLayerThreeUvScaleLocation, 4).Float() : default(Single);
         #endregion
         #region NoiseLayerOneAmplitudeScale
-        private int _NoiseLayerOneAmplitudeScaleLocation => _DNAMLocation!.Value.Min + 0xB8;
-        private bool _NoiseLayerOneAmplitudeScale_IsSet => _DNAMLocation.HasValue;
+        private int _NoiseLayerOneAmplitudeScaleLocation => Payload.DNAMLocation!.Value.Min + 0xB8;
+        private bool _NoiseLayerOneAmplitudeScale_IsSet => Payload.DNAMLocation.HasValue;
         public Single NoiseLayerOneAmplitudeScale => _NoiseLayerOneAmplitudeScale_IsSet ? _recordData.Slice(_NoiseLayerOneAmplitudeScaleLocation, 4).Float() : default(Single);
         #endregion
         #region NoiseLayerTwoAmplitudeScale
-        private int _NoiseLayerTwoAmplitudeScaleLocation => _DNAMLocation!.Value.Min + 0xBC;
-        private bool _NoiseLayerTwoAmplitudeScale_IsSet => _DNAMLocation.HasValue;
+        private int _NoiseLayerTwoAmplitudeScaleLocation => Payload.DNAMLocation!.Value.Min + 0xBC;
+        private bool _NoiseLayerTwoAmplitudeScale_IsSet => Payload.DNAMLocation.HasValue;
         public Single NoiseLayerTwoAmplitudeScale => _NoiseLayerTwoAmplitudeScale_IsSet ? _recordData.Slice(_NoiseLayerTwoAmplitudeScaleLocation, 4).Float() : default(Single);
         #endregion
         #region NoiseLayerThreeAmplitudeScale
-        private int _NoiseLayerThreeAmplitudeScaleLocation => _DNAMLocation!.Value.Min + 0xC0;
-        private bool _NoiseLayerThreeAmplitudeScale_IsSet => _DNAMLocation.HasValue;
+        private int _NoiseLayerThreeAmplitudeScaleLocation => Payload.DNAMLocation!.Value.Min + 0xC0;
+        private bool _NoiseLayerThreeAmplitudeScale_IsSet => Payload.DNAMLocation.HasValue;
         public Single NoiseLayerThreeAmplitudeScale => _NoiseLayerThreeAmplitudeScale_IsSet ? _recordData.Slice(_NoiseLayerThreeAmplitudeScaleLocation, 4).Float() : default(Single);
         #endregion
         #region WaterReflectionMagnitude
-        private int _WaterReflectionMagnitudeLocation => _DNAMLocation!.Value.Min + 0xC4;
-        private bool _WaterReflectionMagnitude_IsSet => _DNAMLocation.HasValue;
+        private int _WaterReflectionMagnitudeLocation => Payload.DNAMLocation!.Value.Min + 0xC4;
+        private bool _WaterReflectionMagnitude_IsSet => Payload.DNAMLocation.HasValue;
         public Single WaterReflectionMagnitude => _WaterReflectionMagnitude_IsSet ? _recordData.Slice(_WaterReflectionMagnitudeLocation, 4).Float() : default(Single);
         #endregion
         #region SpecularSunSparkleMagnitude
-        private int _SpecularSunSparkleMagnitudeLocation => _DNAMLocation!.Value.Min + 0xC8;
-        private bool _SpecularSunSparkleMagnitude_IsSet => _DNAMLocation.HasValue;
+        private int _SpecularSunSparkleMagnitudeLocation => Payload.DNAMLocation!.Value.Min + 0xC8;
+        private bool _SpecularSunSparkleMagnitude_IsSet => Payload.DNAMLocation.HasValue;
         public Single SpecularSunSparkleMagnitude => _SpecularSunSparkleMagnitude_IsSet ? _recordData.Slice(_SpecularSunSparkleMagnitudeLocation, 4).Float() : default(Single);
         #endregion
         #region SpecularSunSpecularMagnitude
-        private int _SpecularSunSpecularMagnitudeLocation => _DNAMLocation!.Value.Min + 0xCC;
-        private bool _SpecularSunSpecularMagnitude_IsSet => _DNAMLocation.HasValue;
+        private int _SpecularSunSpecularMagnitudeLocation => Payload.DNAMLocation!.Value.Min + 0xCC;
+        private bool _SpecularSunSpecularMagnitude_IsSet => Payload.DNAMLocation.HasValue;
         public Single SpecularSunSpecularMagnitude => _SpecularSunSpecularMagnitude_IsSet ? _recordData.Slice(_SpecularSunSpecularMagnitudeLocation, 4).Float() : default(Single);
         #endregion
         #region DepthReflections
-        private int _DepthReflectionsLocation => _DNAMLocation!.Value.Min + 0xD0;
-        private bool _DepthReflections_IsSet => _DNAMLocation.HasValue;
+        private int _DepthReflectionsLocation => Payload.DNAMLocation!.Value.Min + 0xD0;
+        private bool _DepthReflections_IsSet => Payload.DNAMLocation.HasValue;
         public Single DepthReflections => _DepthReflections_IsSet ? _recordData.Slice(_DepthReflectionsLocation, 4).Float() : default(Single);
         #endregion
         #region DepthRefraction
-        private int _DepthRefractionLocation => _DNAMLocation!.Value.Min + 0xD4;
-        private bool _DepthRefraction_IsSet => _DNAMLocation.HasValue;
+        private int _DepthRefractionLocation => Payload.DNAMLocation!.Value.Min + 0xD4;
+        private bool _DepthRefraction_IsSet => Payload.DNAMLocation.HasValue;
         public Single DepthRefraction => _DepthRefraction_IsSet ? _recordData.Slice(_DepthRefractionLocation, 4).Float() : default(Single);
         #endregion
         #region DepthNormals
-        private int _DepthNormalsLocation => _DNAMLocation!.Value.Min + 0xD8;
-        private bool _DepthNormals_IsSet => _DNAMLocation.HasValue;
+        private int _DepthNormalsLocation => Payload.DNAMLocation!.Value.Min + 0xD8;
+        private bool _DepthNormals_IsSet => Payload.DNAMLocation.HasValue;
         public Single DepthNormals => _DepthNormals_IsSet ? _recordData.Slice(_DepthNormalsLocation, 4).Float() : default(Single);
         #endregion
         #region DepthSpecularLighting
-        private int _DepthSpecularLightingLocation => _DNAMLocation!.Value.Min + 0xDC;
-        private bool _DepthSpecularLighting_IsSet => _DNAMLocation.HasValue;
+        private int _DepthSpecularLightingLocation => Payload.DNAMLocation!.Value.Min + 0xDC;
+        private bool _DepthSpecularLighting_IsSet => Payload.DNAMLocation.HasValue;
         public Single DepthSpecularLighting => _DepthSpecularLighting_IsSet ? _recordData.Slice(_DepthSpecularLightingLocation, 4).Float() : default(Single);
         #endregion
         #region SpecularSunSparklePower
-        private int _SpecularSunSparklePowerLocation => _DNAMLocation!.Value.Min + 0xE0;
-        private bool _SpecularSunSparklePower_IsSet => _DNAMLocation.HasValue;
+        private int _SpecularSunSparklePowerLocation => Payload.DNAMLocation!.Value.Min + 0xE0;
+        private bool _SpecularSunSparklePower_IsSet => Payload.DNAMLocation.HasValue;
         public Single SpecularSunSparklePower => _SpecularSunSparklePower_IsSet ? _recordData.Slice(_SpecularSunSparklePowerLocation, 4).Float() : default(Single);
         #endregion
         #region NoiseFlowmapScale
-        private int _NoiseFlowmapScaleLocation => _DNAMLocation!.Value.Min + 0xE4;
-        private bool _NoiseFlowmapScale_IsSet => _DNAMLocation.HasValue && !DNAMDataTypeState.HasFlag(Water.DNAMDataType.Break0);
+        private int _NoiseFlowmapScaleLocation => Payload.DNAMLocation!.Value.Min + 0xE4;
+        private bool _NoiseFlowmapScale_IsSet => Payload.DNAMLocation.HasValue && !DNAMDataTypeState.HasFlag(Water.DNAMDataType.Break0);
         public Single NoiseFlowmapScale => _NoiseFlowmapScale_IsSet ? _recordData.Slice(_NoiseFlowmapScaleLocation, 4).Float() : default(Single);
         #endregion
-        #region GNAM
-        private int? _GNAMLocation;
-        public ReadOnlyMemorySlice<Byte>? GNAM => _GNAMLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _GNAMLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
-        #endregion
-        #region LinearVelocity
-        private int? _LinearVelocityLocation;
-        public P3Float? LinearVelocity => _LinearVelocityLocation.HasValue ? P3FloatBinaryTranslation<MutagenFrame, MutagenWriter>.Instance.Read(HeaderTranslation.ExtractSubrecordMemory(_recordData, _LinearVelocityLocation.Value, _package.MetaData.Constants)) : default(P3Float?);
-        #endregion
-        #region AngularVelocity
-        private int? _AngularVelocityLocation;
-        public P3Float? AngularVelocity => _AngularVelocityLocation.HasValue ? P3FloatBinaryTranslation<MutagenFrame, MutagenWriter>.Instance.Read(HeaderTranslation.ExtractSubrecordMemory(_recordData, _AngularVelocityLocation.Value, _package.MetaData.Constants)) : default(P3Float?);
-        #endregion
-        #region NoiseLayerOneTexture
-        private int? _NoiseLayerOneTextureLocation;
-        public AssetLinkGetter<SkyrimTextureAssetType>? NoiseLayerOneTexture => _NoiseLayerOneTextureLocation.HasValue ? new AssetLinkGetter<SkyrimTextureAssetType>(BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NoiseLayerOneTextureLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated)) : default(AssetLinkGetter<SkyrimTextureAssetType>?);
-        #endregion
-        #region NoiseLayerTwoTexture
-        private int? _NoiseLayerTwoTextureLocation;
-        public AssetLinkGetter<SkyrimTextureAssetType>? NoiseLayerTwoTexture => _NoiseLayerTwoTextureLocation.HasValue ? new AssetLinkGetter<SkyrimTextureAssetType>(BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NoiseLayerTwoTextureLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated)) : default(AssetLinkGetter<SkyrimTextureAssetType>?);
-        #endregion
-        #region NoiseLayerThreeTexture
-        private int? _NoiseLayerThreeTextureLocation;
-        public AssetLinkGetter<SkyrimTextureAssetType>? NoiseLayerThreeTexture => _NoiseLayerThreeTextureLocation.HasValue ? new AssetLinkGetter<SkyrimTextureAssetType>(BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NoiseLayerThreeTextureLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated)) : default(AssetLinkGetter<SkyrimTextureAssetType>?);
-        #endregion
-        #region FlowNormalsNoiseTexture
-        private int? _FlowNormalsNoiseTextureLocation;
-        public AssetLinkGetter<SkyrimTextureAssetType>? FlowNormalsNoiseTexture => _FlowNormalsNoiseTextureLocation.HasValue ? new AssetLinkGetter<SkyrimTextureAssetType>(BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _FlowNormalsNoiseTextureLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated)) : default(AssetLinkGetter<SkyrimTextureAssetType>?);
-        #endregion
+        public ReadOnlyMemorySlice<Byte>? GNAM => Payload.GNAMLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.GNAMLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
+        public P3Float? LinearVelocity => Payload.LinearVelocityLocation.HasValue ? P3FloatBinaryTranslation<MutagenFrame, MutagenWriter>.Instance.Read(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.LinearVelocityLocation.Value, _package.MetaData.Constants)) : default(P3Float?);
+        public P3Float? AngularVelocity => Payload.AngularVelocityLocation.HasValue ? P3FloatBinaryTranslation<MutagenFrame, MutagenWriter>.Instance.Read(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.AngularVelocityLocation.Value, _package.MetaData.Constants)) : default(P3Float?);
+        public AssetLinkGetter<SkyrimTextureAssetType>? NoiseLayerOneTexture => Payload.NoiseLayerOneTextureLocation.HasValue ? new AssetLinkGetter<SkyrimTextureAssetType>(BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NoiseLayerOneTextureLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated)) : default(AssetLinkGetter<SkyrimTextureAssetType>?);
+        public AssetLinkGetter<SkyrimTextureAssetType>? NoiseLayerTwoTexture => Payload.NoiseLayerTwoTextureLocation.HasValue ? new AssetLinkGetter<SkyrimTextureAssetType>(BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NoiseLayerTwoTextureLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated)) : default(AssetLinkGetter<SkyrimTextureAssetType>?);
+        public AssetLinkGetter<SkyrimTextureAssetType>? NoiseLayerThreeTexture => Payload.NoiseLayerThreeTextureLocation.HasValue ? new AssetLinkGetter<SkyrimTextureAssetType>(BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NoiseLayerThreeTextureLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated)) : default(AssetLinkGetter<SkyrimTextureAssetType>?);
+        public AssetLinkGetter<SkyrimTextureAssetType>? FlowNormalsNoiseTexture => Payload.FlowNormalsNoiseTextureLocation.HasValue ? new AssetLinkGetter<SkyrimTextureAssetType>(BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.FlowNormalsNoiseTextureLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated)) : default(AssetLinkGetter<SkyrimTextureAssetType>?);
+
+        internal partial class WaterRecordDataPayload
+        {
+            public int? NameLocation;
+            public IReadOnlyList<String> UnusedNoisemaps = [];
+            public int? OpacityLocation;
+            public int? FlagsLocation;
+            public int? MNAMLocation;
+            public int? MaterialLocation;
+            public int? OpenSoundLocation;
+            public int? SpellLocation;
+            public int? ImageSpaceLocation;
+            public int? DamagePerSecondLocation;
+            public RangeInt32? DNAMLocation;
+            public Water.DNAMDataType DNAMDataTypeState;
+            public int? GNAMLocation;
+            public int? LinearVelocityLocation;
+            public int? AngularVelocityLocation;
+            public int? NoiseLayerOneTextureLocation;
+            public int? NoiseLayerTwoTextureLocation;
+            public int? NoiseLayerThreeTextureLocation;
+            public int? FlowNormalsNoiseTextureLocation;
+        }
+
+        private LazyPayload<WaterRecordDataPayload> _payload = null!;
+
+        internal WaterRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<WaterRecordDataPayload>(init, new WaterRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -6018,10 +6005,10 @@ namespace Mutagen.Bethesda.Skyrim
 
         partial void CustomCtor();
         protected WaterBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -6032,28 +6019,51 @@ namespace Mutagen.Bethesda.Skyrim
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new WaterBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -6082,12 +6092,12 @@ namespace Mutagen.Bethesda.Skyrim
             {
                 case RecordTypeInts.FULL:
                 {
-                    _NameLocation = (stream.Position - offset);
+                    _payload.Fields.NameLocation = (stream.Position - offset);
                     return (int)Water_FieldIndex.Name;
                 }
                 case RecordTypeInts.NNAM:
                 {
-                    this.UnusedNoisemaps = BinaryOverlayList.FactoryByArray<String>(
+                    _payload.Fields.UnusedNoisemaps = BinaryOverlayList.FactoryByArray<String>(
                         mem: stream.RemainingMemory,
                         package: _package,
                         getter: (s, p) => BinaryStringUtility.ProcessWholeToZString(p.MetaData.Constants.Subrecord(s).Content, encoding: p.MetaData.Encodings.NonTranslated),
@@ -6101,87 +6111,87 @@ namespace Mutagen.Bethesda.Skyrim
                 }
                 case RecordTypeInts.ANAM:
                 {
-                    _OpacityLocation = (stream.Position - offset);
+                    _payload.Fields.OpacityLocation = (stream.Position - offset);
                     return (int)Water_FieldIndex.Opacity;
                 }
                 case RecordTypeInts.FNAM:
                 {
-                    _FlagsLocation = (stream.Position - offset);
+                    _payload.Fields.FlagsLocation = (stream.Position - offset);
                     return (int)Water_FieldIndex.Flags;
                 }
                 case RecordTypeInts.MNAM:
                 {
-                    _MNAMLocation = (stream.Position - offset);
+                    _payload.Fields.MNAMLocation = (stream.Position - offset);
                     return (int)Water_FieldIndex.MNAM;
                 }
                 case RecordTypeInts.TNAM:
                 {
-                    _MaterialLocation = (stream.Position - offset);
+                    _payload.Fields.MaterialLocation = (stream.Position - offset);
                     return (int)Water_FieldIndex.Material;
                 }
                 case RecordTypeInts.SNAM:
                 {
-                    _OpenSoundLocation = (stream.Position - offset);
+                    _payload.Fields.OpenSoundLocation = (stream.Position - offset);
                     return (int)Water_FieldIndex.OpenSound;
                 }
                 case RecordTypeInts.XNAM:
                 {
-                    _SpellLocation = (stream.Position - offset);
+                    _payload.Fields.SpellLocation = (stream.Position - offset);
                     return (int)Water_FieldIndex.Spell;
                 }
                 case RecordTypeInts.INAM:
                 {
-                    _ImageSpaceLocation = (stream.Position - offset);
+                    _payload.Fields.ImageSpaceLocation = (stream.Position - offset);
                     return (int)Water_FieldIndex.ImageSpace;
                 }
                 case RecordTypeInts.DATA:
                 {
-                    _DamagePerSecondLocation = (stream.Position - offset);
+                    _payload.Fields.DamagePerSecondLocation = (stream.Position - offset);
                     return (int)Water_FieldIndex.DamagePerSecond;
                 }
                 case RecordTypeInts.DNAM:
                 {
-                    _DNAMLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.DNAMLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     var subLen = _package.MetaData.Constants.SubrecordHeader(_recordData.Slice((stream.Position - offset))).ContentLength;
                     if (subLen <= 0xE4)
                     {
-                        this.DNAMDataTypeState |= Water.DNAMDataType.Break0;
+                        _payload.Fields.DNAMDataTypeState |= Water.DNAMDataType.Break0;
                     }
                     return (int)Water_FieldIndex.NoiseFlowmapScale;
                 }
                 case RecordTypeInts.GNAM:
                 {
-                    _GNAMLocation = (stream.Position - offset);
+                    _payload.Fields.GNAMLocation = (stream.Position - offset);
                     return (int)Water_FieldIndex.GNAM;
                 }
                 case RecordTypeInts.NAM0:
                 {
-                    _LinearVelocityLocation = (stream.Position - offset);
+                    _payload.Fields.LinearVelocityLocation = (stream.Position - offset);
                     return (int)Water_FieldIndex.LinearVelocity;
                 }
                 case RecordTypeInts.NAM1:
                 {
-                    _AngularVelocityLocation = (stream.Position - offset);
+                    _payload.Fields.AngularVelocityLocation = (stream.Position - offset);
                     return (int)Water_FieldIndex.AngularVelocity;
                 }
                 case RecordTypeInts.NAM2:
                 {
-                    _NoiseLayerOneTextureLocation = (stream.Position - offset);
+                    _payload.Fields.NoiseLayerOneTextureLocation = (stream.Position - offset);
                     return (int)Water_FieldIndex.NoiseLayerOneTexture;
                 }
                 case RecordTypeInts.NAM3:
                 {
-                    _NoiseLayerTwoTextureLocation = (stream.Position - offset);
+                    _payload.Fields.NoiseLayerTwoTextureLocation = (stream.Position - offset);
                     return (int)Water_FieldIndex.NoiseLayerTwoTexture;
                 }
                 case RecordTypeInts.NAM4:
                 {
-                    _NoiseLayerThreeTextureLocation = (stream.Position - offset);
+                    _payload.Fields.NoiseLayerThreeTextureLocation = (stream.Position - offset);
                     return (int)Water_FieldIndex.NoiseLayerThreeTexture;
                 }
                 case RecordTypeInts.NAM5:
                 {
-                    _FlowNormalsNoiseTextureLocation = (stream.Position - offset);
+                    _payload.Fields.FlowNormalsNoiseTextureLocation = (stream.Position - offset);
                     return (int)Water_FieldIndex.FlowNormalsNoiseTexture;
                 }
                 default:

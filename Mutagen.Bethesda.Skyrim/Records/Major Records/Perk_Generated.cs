@@ -38,6 +38,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -2630,14 +2631,11 @@ namespace Mutagen.Bethesda.Skyrim
         public Perk.MajorFlag MajorFlags => (Perk.MajorFlag)this.MajorRecordFlagsRaw;
 
         #region VirtualMachineAdapter
-        private int? _VirtualMachineAdapterLengthOverride;
-        private RangeInt32? _VirtualMachineAdapterLocation;
-        public IPerkAdapterGetter? VirtualMachineAdapter => _VirtualMachineAdapterLocation.HasValue ? PerkAdapterBinaryOverlay.PerkAdapterFactory(_recordData.Slice(_VirtualMachineAdapterLocation!.Value.Min), _package, TypedParseParams.FromLengthOverride(_VirtualMachineAdapterLengthOverride)) : default;
+        public IPerkAdapterGetter? VirtualMachineAdapter => Payload.VirtualMachineAdapterLocation.HasValue ? PerkAdapterBinaryOverlay.PerkAdapterFactory(_recordData.Slice(Payload.VirtualMachineAdapterLocation!.Value.Min), _package, TypedParseParams.FromLengthOverride(Payload.VirtualMachineAdapterLengthOverride)) : default;
         IAVirtualMachineAdapterGetter? IHaveVirtualMachineAdapterGetter.VirtualMachineAdapter => this.VirtualMachineAdapter;
         #endregion
         #region Name
-        private int? _NameLocation;
-        public ITranslatedStringGetter? Name => _NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+        public ITranslatedStringGetter? Name => Payload.NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
         #region Aspects
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         string INamedRequiredGetter.Name => this.Name?.String ?? string.Empty;
@@ -2647,42 +2645,35 @@ namespace Mutagen.Bethesda.Skyrim
         ITranslatedStringGetter ITranslatedNamedRequiredGetter.Name => this.Name ?? TranslatedString.Empty;
         #endregion
         #endregion
-        #region Description
-        private int? _DescriptionLocation;
-        public ITranslatedStringGetter Description => _DescriptionLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _DescriptionLocation.Value, _package.MetaData.Constants), StringsSource.DL, parsingBundle: _package.MetaData, eager: false) : TranslatedString.Empty;
-        #endregion
-        public IIconsGetter? Icons { get; private set; }
-        public IReadOnlyList<IConditionGetter> Conditions { get; private set; } = [];
-        private RangeInt32? _DATALocation;
+        public ITranslatedStringGetter Description => Payload.DescriptionLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.DescriptionLocation.Value, _package.MetaData.Constants), StringsSource.DL, parsingBundle: _package.MetaData, eager: false) : TranslatedString.Empty;
+        public IIconsGetter? Icons => Payload.Icons;
+        public IReadOnlyList<IConditionGetter> Conditions => Payload.Conditions ?? [];
         #region Trait
-        private int _TraitLocation => _DATALocation!.Value.Min;
-        private bool _Trait_IsSet => _DATALocation.HasValue;
+        private int _TraitLocation => Payload.DATALocation!.Value.Min;
+        private bool _Trait_IsSet => Payload.DATALocation.HasValue;
         public Boolean Trait => _Trait_IsSet ? _recordData.Slice(_TraitLocation, 1)[0] >= 1 : default(Boolean);
         #endregion
         #region Level
-        private int _LevelLocation => _DATALocation!.Value.Min + 0x1;
-        private bool _Level_IsSet => _DATALocation.HasValue;
+        private int _LevelLocation => Payload.DATALocation!.Value.Min + 0x1;
+        private bool _Level_IsSet => Payload.DATALocation.HasValue;
         public Byte Level => _Level_IsSet ? _recordData.Span[_LevelLocation] : default;
         #endregion
         #region NumRanks
-        private int _NumRanksLocation => _DATALocation!.Value.Min + 0x2;
-        private bool _NumRanks_IsSet => _DATALocation.HasValue;
+        private int _NumRanksLocation => Payload.DATALocation!.Value.Min + 0x2;
+        private bool _NumRanks_IsSet => Payload.DATALocation.HasValue;
         public Byte NumRanks => _NumRanks_IsSet ? _recordData.Span[_NumRanksLocation] : default;
         #endregion
         #region Playable
-        private int _PlayableLocation => _DATALocation!.Value.Min + 0x3;
-        private bool _Playable_IsSet => _DATALocation.HasValue;
+        private int _PlayableLocation => Payload.DATALocation!.Value.Min + 0x3;
+        private bool _Playable_IsSet => Payload.DATALocation.HasValue;
         public Boolean Playable => _Playable_IsSet ? _recordData.Slice(_PlayableLocation, 1)[0] >= 1 : default(Boolean);
         #endregion
         #region Hidden
-        private int _HiddenLocation => _DATALocation!.Value.Min + 0x4;
-        private bool _Hidden_IsSet => _DATALocation.HasValue;
+        private int _HiddenLocation => Payload.DATALocation!.Value.Min + 0x4;
+        private bool _Hidden_IsSet => Payload.DATALocation.HasValue;
         public Boolean Hidden => _Hidden_IsSet ? _recordData.Slice(_HiddenLocation, 1)[0] >= 1 : default(Boolean);
         #endregion
-        #region NextPerk
-        private int? _NextPerkLocation;
-        public IFormLinkNullableGetter<IPerkGetter> NextPerk => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IPerkGetter>(_package, _recordData, _NextPerkLocation);
-        #endregion
+        public IFormLinkNullableGetter<IPerkGetter> NextPerk => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IPerkGetter>(_package, _recordData, Payload.NextPerkLocation);
         #region Effects
         partial void EffectsCustomParse(
             OverlayStream stream,
@@ -2691,6 +2682,28 @@ namespace Mutagen.Bethesda.Skyrim
             RecordType type,
             PreviousParse lastParsed);
         #endregion
+
+        internal partial class PerkRecordDataPayload
+        {
+            public int? VirtualMachineAdapterLengthOverride;
+            public RangeInt32? VirtualMachineAdapterLocation;
+            public int? NameLocation;
+            public int? DescriptionLocation;
+            public IIconsGetter? Icons;
+            public IReadOnlyList<IConditionGetter> Conditions = [];
+            public RangeInt32? DATALocation;
+            public int? NextPerkLocation;
+        }
+
+        private LazyPayload<PerkRecordDataPayload> _payload = null!;
+
+        internal PerkRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<PerkRecordDataPayload>(init, new PerkRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -2698,10 +2711,10 @@ namespace Mutagen.Bethesda.Skyrim
 
         partial void CustomCtor();
         protected PerkBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -2712,28 +2725,51 @@ namespace Mutagen.Bethesda.Skyrim
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new PerkBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -2762,8 +2798,8 @@ namespace Mutagen.Bethesda.Skyrim
             {
                 case RecordTypeInts.VMAD:
                 {
-                    _VirtualMachineAdapterLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
-                    _VirtualMachineAdapterLengthOverride = lastParsed.LengthOverride;
+                    _payload.Fields.VirtualMachineAdapterLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.VirtualMachineAdapterLengthOverride = lastParsed.LengthOverride;
                     if (lastParsed.LengthOverride.HasValue)
                     {
                         stream.Position += lastParsed.LengthOverride.Value;
@@ -2772,17 +2808,17 @@ namespace Mutagen.Bethesda.Skyrim
                 }
                 case RecordTypeInts.FULL:
                 {
-                    _NameLocation = (stream.Position - offset);
+                    _payload.Fields.NameLocation = (stream.Position - offset);
                     return (int)Perk_FieldIndex.Name;
                 }
                 case RecordTypeInts.DESC:
                 {
-                    _DescriptionLocation = (stream.Position - offset);
+                    _payload.Fields.DescriptionLocation = (stream.Position - offset);
                     return (int)Perk_FieldIndex.Description;
                 }
                 case RecordTypeInts.ICON:
                 {
-                    this.Icons = IconsBinaryOverlay.IconsFactory(
+                    _payload.Fields.Icons = IconsBinaryOverlay.IconsFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());
@@ -2790,7 +2826,7 @@ namespace Mutagen.Bethesda.Skyrim
                 }
                 case RecordTypeInts.CTDA:
                 {
-                    this.Conditions = BinaryOverlayList.FactoryByArray<IConditionGetter>(
+                    _payload.Fields.Conditions = BinaryOverlayList.FactoryByArray<IConditionGetter>(
                         mem: stream.RemainingMemory,
                         package: _package,
                         translationParams: translationParams,
@@ -2805,12 +2841,12 @@ namespace Mutagen.Bethesda.Skyrim
                 }
                 case RecordTypeInts.DATA:
                 {
-                    _DATALocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.DATALocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     return (int)Perk_FieldIndex.Hidden;
                 }
                 case RecordTypeInts.NNAM:
                 {
-                    _NextPerkLocation = (stream.Position - offset);
+                    _payload.Fields.NextPerkLocation = (stream.Position - offset);
                     return (int)Perk_FieldIndex.NextPerk;
                 }
                 case RecordTypeInts.PRKE:

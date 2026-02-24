@@ -1,0 +1,7 @@
+RecordTypes.EDID,
+RecordTypes.VMAD,
+RecordTypes.BFCB,
+RecordTypes.BFCE,
+RecordTypes.NVNM,
+RecordTypes.NNAM,
+RecordTypes.MNAM,

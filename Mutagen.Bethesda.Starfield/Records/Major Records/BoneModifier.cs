@@ -83,17 +83,20 @@ partial class BoneModifierBinaryWriteTranslation
 
 partial class BoneModifierBinaryOverlay
 {
-    private int? _DataLocation;
-    
+    internal partial class BoneModifierRecordDataPayload
+    {
+        public int? DataLocation;
+    }
+
     partial void DataCustomParse(OverlayStream stream, int finalPos, int offset)
     {
-        _DataLocation = (stream.Position - offset);
+        _payload.Fields.DataLocation = (stream.Position - offset);
     }
 
     public partial IABoneModifierDataGetter? GetDataCustom()
     {
-        if (!_DataLocation.HasValue) return null;
-        var bytes = HeaderTranslation.ExtractSubrecordMemory(_recordData, _DataLocation.Value,
+        if (!Payload.DataLocation.HasValue) return null;
+        var bytes = HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.DataLocation.Value,
             _package.MetaData.Constants);
         var dataTypeStr = BinaryStringUtility.ParsePrependedString(bytes, lengthLength: 4,
             encoding: _package.MetaData.Encodings.NonTranslated);

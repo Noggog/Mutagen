@@ -1,0 +1,3 @@
+RecordTypes.FNAM,
+RecordTypes.FULL,
+RecordTypes.TNAM,

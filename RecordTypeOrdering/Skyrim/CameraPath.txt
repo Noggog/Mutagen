@@ -1,0 +1,5 @@
+RecordTypes.EDID,
+RecordTypes.CTDA,
+RecordTypes.ANAM,
+RecordTypes.DATA,
+RecordTypes.SNAM,

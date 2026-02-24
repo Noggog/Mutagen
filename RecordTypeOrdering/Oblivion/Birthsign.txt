@@ -1,0 +1,5 @@
+RecordTypes.EDID,
+RecordTypes.FULL,
+RecordTypes.ICON,
+RecordTypes.DESC,
+RecordTypes.SPLO,

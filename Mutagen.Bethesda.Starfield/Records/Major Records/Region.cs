@@ -71,11 +71,15 @@ partial class RegionBinaryWriteTranslation
 
 partial class RegionBinaryOverlay
 {
-    private ReadOnlyMemorySlice<byte>? _weatherSpan;
-    public IRegionWeatherGetter? Weather => _weatherSpan.HasValue ? RegionWeatherBinaryOverlay.RegionWeatherFactory(new OverlayStream(_weatherSpan.Value, _package), _package) : default;
+    internal partial class RegionRecordDataPayload
+    {
+        public ReadOnlyMemorySlice<byte>? WeatherSpan;
+        public ReadOnlyMemorySlice<byte>? SoundsSpan;
+    }
 
-    private ReadOnlyMemorySlice<byte>? _soundsSpan;
-    public IRegionSoundsGetter? Sounds => _soundsSpan.HasValue ? RegionSoundsBinaryOverlay.RegionSoundsFactory(new OverlayStream(_soundsSpan.Value, _package), _package) : default;
+    public IRegionWeatherGetter? Weather { get { return Payload.WeatherSpan.HasValue ? RegionWeatherBinaryOverlay.RegionWeatherFactory(new OverlayStream(Payload.WeatherSpan.Value, _package), _package) : default; } }
+
+    public IRegionSoundsGetter? Sounds { get { return Payload.SoundsSpan.HasValue ? RegionSoundsBinaryOverlay.RegionSoundsFactory(new OverlayStream(Payload.SoundsSpan.Value, _package), _package) : default; } }
 
     public partial ParseResult RegionAreaLogicCustomParse(
         OverlayStream stream,
@@ -102,10 +106,10 @@ partial class RegionBinaryOverlay
         switch (dataType)
         {
             case RegionData.RegionDataType.Weather:
-                _weatherSpan = _recordData.Slice(loc);
+                _payload.Fields.WeatherSpan = _recordData.Slice(loc);
                 break;
             case RegionData.RegionDataType.Sound:
-                _soundsSpan = _recordData.Slice(loc);
+                _payload.Fields.SoundsSpan = _recordData.Slice(loc);
                 break;
             default:
                 throw new NotImplementedException();

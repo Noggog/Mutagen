@@ -465,34 +465,57 @@ partial class CellBinaryOverlay
         bool insideWorldspace)
     {
         var origStream = stream;
-        stream = Decompression.DecompressStream(stream);
-        stream = ExtractRecordMemory(
+        PluginBinaryOverlay.ExtractRecordMemoryLazy(
             stream,
             package.MetaData.Constants,
-            out var memoryPair,
+            out var lazyRecordData,
+            out var originalSlice,
             out var offset,
-            out var finalPos);
+            out var totalLength);
         var ret = new CellBinaryOverlay(
-            memoryPair: memoryPair,
+            lazyRecordData: lazyRecordData,
             package: package)
         {
             InsideWorldspace = insideWorldspace
         };
-        ret.CustomFactoryEnd(
-            stream: stream,
-            finalPos: finalPos,
-            offset: offset);
-        ret.FillSubrecordTypes(
-            stream: stream,
-            finalPos: finalPos,
-            offset: offset,
-            translationParams: null,
-            fill: ret.FillRecordType);
+        var init = new Lazy<bool>(() =>
+        {
+            OverlayStream subStream;
+            int finalPos;
+            if (lazyRecordData.IsCompressed)
+            {
+                subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                    lazyRecordData,
+                    originalSlice,
+                    package.MetaData.Constants,
+                    package,
+                    out finalPos);
+            }
+            else
+            {
+                subStream = new OverlayStream(originalSlice, package.MetaData);
+                subStream.Position = offset;
+                finalPos = offset + lazyRecordData.RecordData.Length;
+            }
+            ret.CustomFactoryEnd(
+                stream: subStream,
+                finalPos: finalPos,
+                offset: offset);
+            ret.FillSubrecordTypes(
+                majorReference: ret,
+                stream: subStream,
+                finalPos: finalPos,
+                offset: offset,
+                translationParams: null,
+                fill: ret.FillRecordType);
+            return true;
+        }, LazyThreadSafetyMode.ExecutionAndPublication);
+        ret.InitPayload(init);
         try
         {
             ret.CustomEnd(
                 stream: origStream,
-                finalPos: stream.Length,
+                finalPos: origStream.Length,
                 offset: offset);
         }
         catch (Exception ex)

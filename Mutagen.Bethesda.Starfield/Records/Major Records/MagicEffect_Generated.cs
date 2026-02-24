@@ -38,6 +38,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -4538,15 +4539,12 @@ namespace Mutagen.Bethesda.Starfield
 
 
         #region VirtualMachineAdapter
-        private int? _VirtualMachineAdapterLengthOverride;
-        private RangeInt32? _VirtualMachineAdapterLocation;
-        public IVirtualMachineAdapterGetter? VirtualMachineAdapter => _VirtualMachineAdapterLocation.HasValue ? VirtualMachineAdapterBinaryOverlay.VirtualMachineAdapterFactory(_recordData.Slice(_VirtualMachineAdapterLocation!.Value.Min), _package, TypedParseParams.FromLengthOverride(_VirtualMachineAdapterLengthOverride)) : default;
+        public IVirtualMachineAdapterGetter? VirtualMachineAdapter => Payload.VirtualMachineAdapterLocation.HasValue ? VirtualMachineAdapterBinaryOverlay.VirtualMachineAdapterFactory(_recordData.Slice(Payload.VirtualMachineAdapterLocation!.Value.Min), _package, TypedParseParams.FromLengthOverride(Payload.VirtualMachineAdapterLengthOverride)) : default;
         IAVirtualMachineAdapterGetter? IHaveVirtualMachineAdapterGetter.VirtualMachineAdapter => this.VirtualMachineAdapter;
         #endregion
-        public IReadOnlyList<IAComponentGetter> Components { get; private set; } = [];
+        public IReadOnlyList<IAComponentGetter> Components => Payload.Components ?? [];
         #region Name
-        private int? _NameLocation;
-        public ITranslatedStringGetter? Name => _NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+        public ITranslatedStringGetter? Name => Payload.NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
         #region Aspects
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         string INamedRequiredGetter.Name => this.Name?.String ?? string.Empty;
@@ -4557,174 +4555,194 @@ namespace Mutagen.Bethesda.Starfield
         #endregion
         #endregion
         #region Keywords
-        public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? Keywords { get; private set; }
+        public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? Keywords => Payload.Keywords;
         IReadOnlyList<IFormLinkGetter<IKeywordCommonGetter>>? IKeywordedGetter.Keywords => this.Keywords;
         #endregion
-        private RangeInt32? _DATALocation;
-        public MagicEffect.DATADataType DATADataTypeState { get; private set; }
+        public MagicEffect.DATADataType DATADataTypeState => Payload.DATADataTypeState;
         #region AssociatedItem
-        private int _AssociatedItemLocation => _DATALocation!.Value.Min;
-        private bool _AssociatedItem_IsSet => _DATALocation.HasValue;
+        private int _AssociatedItemLocation => Payload.DATALocation!.Value.Min;
+        private bool _AssociatedItem_IsSet => Payload.DATALocation.HasValue;
         partial void AssociatedItemCustomParse(
             OverlayStream stream,
             int offset);
         #endregion
         #region ActorValue1
-        private int _ActorValue1Location => _DATALocation!.Value.Min + 0x4;
-        private bool _ActorValue1_IsSet => _DATALocation.HasValue;
+        private int _ActorValue1Location => Payload.DATALocation!.Value.Min + 0x4;
+        private bool _ActorValue1_IsSet => Payload.DATALocation.HasValue;
         public IFormLinkGetter<IActorValueInformationGetter> ActorValue1 => _ActorValue1_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IActorValueInformationGetter>(_package, _recordData.Span.Slice(_ActorValue1Location, 0x4), isSet: _ActorValue1_IsSet) : FormLink<IActorValueInformationGetter>.Null;
         #endregion
         #region CastingArt
-        private int _CastingArtLocation => _DATALocation!.Value.Min + 0x8;
-        private bool _CastingArt_IsSet => _DATALocation.HasValue;
+        private int _CastingArtLocation => Payload.DATALocation!.Value.Min + 0x8;
+        private bool _CastingArt_IsSet => Payload.DATALocation.HasValue;
         public IFormLinkGetter<IArtObjectGetter> CastingArt => _CastingArt_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IArtObjectGetter>(_package, _recordData.Span.Slice(_CastingArtLocation, 0x4), isSet: _CastingArt_IsSet) : FormLink<IArtObjectGetter>.Null;
         #endregion
         #region MovementType
-        private int _MovementTypeLocation => _DATALocation!.Value.Min + 0xC;
-        private bool _MovementType_IsSet => _DATALocation.HasValue;
+        private int _MovementTypeLocation => Payload.DATALocation!.Value.Min + 0xC;
+        private bool _MovementType_IsSet => Payload.DATALocation.HasValue;
         public IFormLinkGetter<IMovementTypeGetter> MovementType => _MovementType_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IMovementTypeGetter>(_package, _recordData.Span.Slice(_MovementTypeLocation, 0x4), isSet: _MovementType_IsSet) : FormLink<IMovementTypeGetter>.Null;
         #endregion
         #region HitShader
-        private int _HitShaderLocation => _DATALocation!.Value.Min + 0x10;
-        private bool _HitShader_IsSet => _DATALocation.HasValue;
+        private int _HitShaderLocation => Payload.DATALocation!.Value.Min + 0x10;
+        private bool _HitShader_IsSet => Payload.DATALocation.HasValue;
         public IFormLinkGetter<IEffectShaderGetter> HitShader => _HitShader_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IEffectShaderGetter>(_package, _recordData.Span.Slice(_HitShaderLocation, 0x4), isSet: _HitShader_IsSet) : FormLink<IEffectShaderGetter>.Null;
         #endregion
         #region EnchantShader
-        private int _EnchantShaderLocation => _DATALocation!.Value.Min + 0x14;
-        private bool _EnchantShader_IsSet => _DATALocation.HasValue;
+        private int _EnchantShaderLocation => Payload.DATALocation!.Value.Min + 0x14;
+        private bool _EnchantShader_IsSet => Payload.DATALocation.HasValue;
         public IFormLinkGetter<IEffectShaderGetter> EnchantShader => _EnchantShader_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IEffectShaderGetter>(_package, _recordData.Span.Slice(_EnchantShaderLocation, 0x4), isSet: _EnchantShader_IsSet) : FormLink<IEffectShaderGetter>.Null;
         #endregion
         #region EnchantArt
-        private int _EnchantArtLocation => _DATALocation!.Value.Min + 0x18;
-        private bool _EnchantArt_IsSet => _DATALocation.HasValue;
+        private int _EnchantArtLocation => Payload.DATALocation!.Value.Min + 0x18;
+        private bool _EnchantArt_IsSet => Payload.DATALocation.HasValue;
         public IFormLinkGetter<IArtObjectGetter> EnchantArt => _EnchantArt_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IArtObjectGetter>(_package, _recordData.Span.Slice(_EnchantArtLocation, 0x4), isSet: _EnchantArt_IsSet) : FormLink<IArtObjectGetter>.Null;
         #endregion
         #region EquipAbility
-        private int _EquipAbilityLocation => _DATALocation!.Value.Min + 0x1C;
-        private bool _EquipAbility_IsSet => _DATALocation.HasValue;
+        private int _EquipAbilityLocation => Payload.DATALocation!.Value.Min + 0x1C;
+        private bool _EquipAbility_IsSet => Payload.DATALocation.HasValue;
         public IFormLinkGetter<ISpellGetter> EquipAbility => _EquipAbility_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<ISpellGetter>(_package, _recordData.Span.Slice(_EquipAbilityLocation, 0x4), isSet: _EquipAbility_IsSet) : FormLink<ISpellGetter>.Null;
         #endregion
         #region Explosion
-        private int _ExplosionLocation => _DATALocation!.Value.Min + 0x20;
-        private bool _Explosion_IsSet => _DATALocation.HasValue;
+        private int _ExplosionLocation => Payload.DATALocation!.Value.Min + 0x20;
+        private bool _Explosion_IsSet => Payload.DATALocation.HasValue;
         public IFormLinkGetter<IExplosionGetter> Explosion => _Explosion_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IExplosionGetter>(_package, _recordData.Span.Slice(_ExplosionLocation, 0x4), isSet: _Explosion_IsSet) : FormLink<IExplosionGetter>.Null;
         #endregion
         #region HitEffectArt
-        private int _HitEffectArtLocation => _DATALocation!.Value.Min + 0x24;
-        private bool _HitEffectArt_IsSet => _DATALocation.HasValue;
+        private int _HitEffectArtLocation => Payload.DATALocation!.Value.Min + 0x24;
+        private bool _HitEffectArt_IsSet => Payload.DATALocation.HasValue;
         public IFormLinkGetter<IArtObjectGetter> HitEffectArt => _HitEffectArt_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IArtObjectGetter>(_package, _recordData.Span.Slice(_HitEffectArtLocation, 0x4), isSet: _HitEffectArt_IsSet) : FormLink<IArtObjectGetter>.Null;
         #endregion
         #region ImageSpaceModifier
-        private int _ImageSpaceModifierLocation => _DATALocation!.Value.Min + 0x28;
-        private bool _ImageSpaceModifier_IsSet => _DATALocation.HasValue;
+        private int _ImageSpaceModifierLocation => Payload.DATALocation!.Value.Min + 0x28;
+        private bool _ImageSpaceModifier_IsSet => Payload.DATALocation.HasValue;
         public IFormLinkGetter<IImageSpaceAdapterGetter> ImageSpaceModifier => _ImageSpaceModifier_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IImageSpaceAdapterGetter>(_package, _recordData.Span.Slice(_ImageSpaceModifierLocation, 0x4), isSet: _ImageSpaceModifier_IsSet) : FormLink<IImageSpaceAdapterGetter>.Null;
         #endregion
         #region ImpactData
-        private int _ImpactDataLocation => _DATALocation!.Value.Min + 0x2C;
-        private bool _ImpactData_IsSet => _DATALocation.HasValue;
+        private int _ImpactDataLocation => Payload.DATALocation!.Value.Min + 0x2C;
+        private bool _ImpactData_IsSet => Payload.DATALocation.HasValue;
         public IFormLinkGetter<IImpactDataSetGetter> ImpactData => _ImpactData_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IImpactDataSetGetter>(_package, _recordData.Span.Slice(_ImpactDataLocation, 0x4), isSet: _ImpactData_IsSet) : FormLink<IImpactDataSetGetter>.Null;
         #endregion
         #region CastingLight
-        private int _CastingLightLocation => _DATALocation!.Value.Min + 0x30;
-        private bool _CastingLight_IsSet => _DATALocation.HasValue;
+        private int _CastingLightLocation => Payload.DATALocation!.Value.Min + 0x30;
+        private bool _CastingLight_IsSet => Payload.DATALocation.HasValue;
         public IFormLinkGetter<ILightGetter> CastingLight => _CastingLight_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<ILightGetter>(_package, _recordData.Span.Slice(_CastingLightLocation, 0x4), isSet: _CastingLight_IsSet) : FormLink<ILightGetter>.Null;
         #endregion
         #region PerkToApply
-        private int _PerkToApplyLocation => _DATALocation!.Value.Min + 0x34;
-        private bool _PerkToApply_IsSet => _DATALocation.HasValue;
+        private int _PerkToApplyLocation => Payload.DATALocation!.Value.Min + 0x34;
+        private bool _PerkToApply_IsSet => Payload.DATALocation.HasValue;
         public IFormLinkGetter<IPerkGetter> PerkToApply => _PerkToApply_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IPerkGetter>(_package, _recordData.Span.Slice(_PerkToApplyLocation, 0x4), isSet: _PerkToApply_IsSet) : FormLink<IPerkGetter>.Null;
         #endregion
         #region ActorValue2
-        private int _ActorValue2Location => _DATALocation!.Value.Min + 0x38;
-        private bool _ActorValue2_IsSet => _DATALocation.HasValue;
+        private int _ActorValue2Location => Payload.DATALocation!.Value.Min + 0x38;
+        private bool _ActorValue2_IsSet => Payload.DATALocation.HasValue;
         public IFormLinkGetter<IActorValueInformationGetter> ActorValue2 => _ActorValue2_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IActorValueInformationGetter>(_package, _recordData.Span.Slice(_ActorValue2Location, 0x4), isSet: _ActorValue2_IsSet) : FormLink<IActorValueInformationGetter>.Null;
         #endregion
         #region Projectile
-        private int _ProjectileLocation => _DATALocation!.Value.Min + 0x3C;
-        private bool _Projectile_IsSet => _DATALocation.HasValue;
+        private int _ProjectileLocation => Payload.DATALocation!.Value.Min + 0x3C;
+        private bool _Projectile_IsSet => Payload.DATALocation.HasValue;
         public IFormLinkGetter<IProjectileGetter> Projectile => _Projectile_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IProjectileGetter>(_package, _recordData.Span.Slice(_ProjectileLocation, 0x4), isSet: _Projectile_IsSet) : FormLink<IProjectileGetter>.Null;
         #endregion
         #region ResistValue
-        private int _ResistValueLocation => _DATALocation!.Value.Min + 0x40;
-        private bool _ResistValue_IsSet => _DATALocation.HasValue;
+        private int _ResistValueLocation => Payload.DATALocation!.Value.Min + 0x40;
+        private bool _ResistValue_IsSet => Payload.DATALocation.HasValue;
         public IFormLinkGetter<IActorValueInformationGetter> ResistValue => _ResistValue_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IActorValueInformationGetter>(_package, _recordData.Span.Slice(_ResistValueLocation, 0x4), isSet: _ResistValue_IsSet) : FormLink<IActorValueInformationGetter>.Null;
         #endregion
         #region ActorValue3
-        private int _ActorValue3Location => _DATALocation!.Value.Min + 0x44;
-        private bool _ActorValue3_IsSet => _DATALocation.HasValue;
+        private int _ActorValue3Location => Payload.DATALocation!.Value.Min + 0x44;
+        private bool _ActorValue3_IsSet => Payload.DATALocation.HasValue;
         public IFormLinkGetter<IActorValueInformationGetter> ActorValue3 => _ActorValue3_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IActorValueInformationGetter>(_package, _recordData.Span.Slice(_ActorValue3Location, 0x4), isSet: _ActorValue3_IsSet) : FormLink<IActorValueInformationGetter>.Null;
         #endregion
         #region UnknownFloat1
-        private int _UnknownFloat1Location => _DATALocation!.Value.Min + 0x48;
-        private bool _UnknownFloat1_IsSet => _DATALocation.HasValue;
+        private int _UnknownFloat1Location => Payload.DATALocation!.Value.Min + 0x48;
+        private bool _UnknownFloat1_IsSet => Payload.DATALocation.HasValue;
         public Single UnknownFloat1 => _UnknownFloat1_IsSet ? _recordData.Slice(_UnknownFloat1Location, 4).Float() : default(Single);
         #endregion
         #region UnknownFloat2
-        private int _UnknownFloat2Location => _DATALocation!.Value.Min + 0x4C;
-        private bool _UnknownFloat2_IsSet => _DATALocation.HasValue;
+        private int _UnknownFloat2Location => Payload.DATALocation!.Value.Min + 0x4C;
+        private bool _UnknownFloat2_IsSet => Payload.DATALocation.HasValue;
         public Single UnknownFloat2 => _UnknownFloat2_IsSet ? _recordData.Slice(_UnknownFloat2Location, 4).Float() : default(Single);
         #endregion
         #region Archetype
-        private int _ArchetypeLocation => _DATALocation!.Value.Min + 0x50;
+        private int _ArchetypeLocation => Payload.DATALocation!.Value.Min + 0x50;
         public partial IAMagicEffectArchetypeGetter GetArchetypeCustom();
         public IAMagicEffectArchetypeGetter Archetype => GetArchetypeCustom();
         #endregion
         #region UnknownFloat3
-        private int _UnknownFloat3Location => _DATALocation!.Value.Min + 0x54;
-        private bool _UnknownFloat3_IsSet => _DATALocation.HasValue;
+        private int _UnknownFloat3Location => Payload.DATALocation!.Value.Min + 0x54;
+        private bool _UnknownFloat3_IsSet => Payload.DATALocation.HasValue;
         public Single UnknownFloat3 => _UnknownFloat3_IsSet ? _recordData.Slice(_UnknownFloat3Location, 4).Float() : default(Single);
         #endregion
         #region UnknownInt1
-        private int _UnknownInt1Location => _DATALocation!.Value.Min + 0x58;
-        private bool _UnknownInt1_IsSet => _DATALocation.HasValue;
+        private int _UnknownInt1Location => Payload.DATALocation!.Value.Min + 0x58;
+        private bool _UnknownInt1_IsSet => Payload.DATALocation.HasValue;
         public UInt32 UnknownInt1 => _UnknownInt1_IsSet ? BinaryPrimitives.ReadUInt32LittleEndian(_recordData.Slice(_UnknownInt1Location, 4)) : default(UInt32);
         #endregion
         #region UnknownFloat4
-        private int _UnknownFloat4Location => _DATALocation!.Value.Min + 0x5C;
-        private bool _UnknownFloat4_IsSet => _DATALocation.HasValue;
+        private int _UnknownFloat4Location => Payload.DATALocation!.Value.Min + 0x5C;
+        private bool _UnknownFloat4_IsSet => Payload.DATALocation.HasValue;
         public Single UnknownFloat4 => _UnknownFloat4_IsSet ? _recordData.Slice(_UnknownFloat4Location, 4).Float() : default(Single);
         #endregion
         #region UnknownInt2
-        private int _UnknownInt2Location => _DATALocation!.Value.Min + 0x60;
-        private bool _UnknownInt2_IsSet => _DATALocation.HasValue;
+        private int _UnknownInt2Location => Payload.DATALocation!.Value.Min + 0x60;
+        private bool _UnknownInt2_IsSet => Payload.DATALocation.HasValue;
         public UInt32 UnknownInt2 => _UnknownInt2_IsSet ? BinaryPrimitives.ReadUInt32LittleEndian(_recordData.Slice(_UnknownInt2Location, 4)) : default(UInt32);
         #endregion
         #region CastType
-        private int _CastTypeLocation => _DATALocation!.Value.Min + 0x64;
-        private bool _CastType_IsSet => _DATALocation.HasValue;
+        private int _CastTypeLocation => Payload.DATALocation!.Value.Min + 0x64;
+        private bool _CastType_IsSet => Payload.DATALocation.HasValue;
         public CastType CastType => _CastType_IsSet ? (CastType)_recordData.Span.Slice(_CastTypeLocation, 0x1)[0] : default;
         #endregion
         #region TargetType
-        private int _TargetTypeLocation => _DATALocation!.Value.Min + 0x65;
-        private bool _TargetType_IsSet => _DATALocation.HasValue;
+        private int _TargetTypeLocation => Payload.DATALocation!.Value.Min + 0x65;
+        private bool _TargetType_IsSet => Payload.DATALocation.HasValue;
         public TargetType TargetType => _TargetType_IsSet ? (TargetType)_recordData.Span.Slice(_TargetTypeLocation, 0x1)[0] : default;
         #endregion
         #region UnknownInt3
-        private int _UnknownInt3Location => _DATALocation!.Value.Min + 0x66;
-        private bool _UnknownInt3_IsSet => _DATALocation.HasValue;
+        private int _UnknownInt3Location => Payload.DATALocation!.Value.Min + 0x66;
+        private bool _UnknownInt3_IsSet => Payload.DATALocation.HasValue;
         public UInt32 UnknownInt3 => _UnknownInt3_IsSet ? BinaryPrimitives.ReadUInt32LittleEndian(_recordData.Slice(_UnknownInt3Location, 4)) : default(UInt32);
         #endregion
         #region Flags
-        private int _FlagsLocation => _DATALocation!.Value.Min + 0x6A;
-        private bool _Flags_IsSet => _DATALocation.HasValue;
+        private int _FlagsLocation => Payload.DATALocation!.Value.Min + 0x6A;
+        private bool _Flags_IsSet => Payload.DATALocation.HasValue;
         public MagicEffect.Flag Flags => _Flags_IsSet ? (MagicEffect.Flag)BinaryPrimitives.ReadInt64LittleEndian(_recordData.Span.Slice(_FlagsLocation, 0x8)) : default;
         #endregion
         #region Unknown
-        private int _UnknownLocation => _DATALocation!.Value.Min + 0x72;
-        private bool _Unknown_IsSet => _DATALocation.HasValue;
+        private int _UnknownLocation => Payload.DATALocation!.Value.Min + 0x72;
+        private bool _Unknown_IsSet => Payload.DATALocation.HasValue;
         public ReadOnlyMemorySlice<Byte> Unknown => _Unknown_IsSet ? _recordData.Span.Slice(_UnknownLocation, 22).ToArray() : ReadOnlyMemorySlice<byte>.Empty;
         #endregion
         #region Unknown2
-        private int _Unknown2Location => _DATALocation!.Value.Min + 0x88;
-        private bool _Unknown2_IsSet => _DATALocation.HasValue && !DATADataTypeState.HasFlag(MagicEffect.DATADataType.Break0);
+        private int _Unknown2Location => Payload.DATALocation!.Value.Min + 0x88;
+        private bool _Unknown2_IsSet => Payload.DATALocation.HasValue && !DATADataTypeState.HasFlag(MagicEffect.DATADataType.Break0);
         public ReadOnlyMemorySlice<Byte> Unknown2 => _Unknown2_IsSet ? _recordData.Span.Slice(_Unknown2Location, 6).ToArray() : ReadOnlyMemorySlice<byte>.Empty;
         #endregion
-        public IReadOnlyList<IMagicEffectSoundGetter> Sounds { get; private set; } = [];
-        #region Description
-        private int? _DescriptionLocation;
-        public ITranslatedStringGetter? Description => _DescriptionLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _DescriptionLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
-        #endregion
-        public IReadOnlyList<IConditionGetter> Conditions { get; private set; } = [];
+        public IReadOnlyList<IMagicEffectSoundGetter> Sounds => Payload.Sounds ?? [];
+        public ITranslatedStringGetter? Description => Payload.DescriptionLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.DescriptionLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+        public IReadOnlyList<IConditionGetter> Conditions => Payload.Conditions ?? [];
+
+        internal partial class MagicEffectRecordDataPayload
+        {
+            public int? VirtualMachineAdapterLengthOverride;
+            public RangeInt32? VirtualMachineAdapterLocation;
+            public IReadOnlyList<IAComponentGetter> Components = [];
+            public int? NameLocation;
+            public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? Keywords;
+            public RangeInt32? DATALocation;
+            public MagicEffect.DATADataType DATADataTypeState;
+            public IReadOnlyList<IMagicEffectSoundGetter> Sounds = [];
+            public int? DescriptionLocation;
+            public IReadOnlyList<IConditionGetter> Conditions = [];
+        }
+
+        private LazyPayload<MagicEffectRecordDataPayload> _payload = null!;
+
+        internal MagicEffectRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<MagicEffectRecordDataPayload>(init, new MagicEffectRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -4732,10 +4750,10 @@ namespace Mutagen.Bethesda.Starfield
 
         partial void CustomCtor();
         protected MagicEffectBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -4746,28 +4764,51 @@ namespace Mutagen.Bethesda.Starfield
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new MagicEffectBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -4796,8 +4837,8 @@ namespace Mutagen.Bethesda.Starfield
             {
                 case RecordTypeInts.VMAD:
                 {
-                    _VirtualMachineAdapterLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
-                    _VirtualMachineAdapterLengthOverride = lastParsed.LengthOverride;
+                    _payload.Fields.VirtualMachineAdapterLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.VirtualMachineAdapterLengthOverride = lastParsed.LengthOverride;
                     if (lastParsed.LengthOverride.HasValue)
                     {
                         stream.Position += lastParsed.LengthOverride.Value;
@@ -4806,7 +4847,7 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.BFCB:
                 {
-                    this.Components = this.ParseRepeatedTypelessSubrecord<IAComponentGetter>(
+                    _payload.Fields.Components = this.ParseRepeatedTypelessSubrecord<IAComponentGetter>(
                         stream: stream,
                         translationParams: translationParams,
                         trigger: AComponent_Registration.TriggerSpecs,
@@ -4815,13 +4856,13 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.FULL:
                 {
-                    _NameLocation = (stream.Position - offset);
+                    _payload.Fields.NameLocation = (stream.Position - offset);
                     return (int)MagicEffect_FieldIndex.Name;
                 }
                 case RecordTypeInts.KSIZ:
                 case RecordTypeInts.KWDA:
                 {
-                    this.Keywords = BinaryOverlayList.FactoryByCount<IFormLinkGetter<IKeywordGetter>>(
+                    _payload.Fields.Keywords = BinaryOverlayList.FactoryByCount<IFormLinkGetter<IKeywordGetter>>(
                         stream: stream,
                         package: _package,
                         itemLength: 0x4,
@@ -4833,17 +4874,17 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.DATA:
                 {
-                    _DATALocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.DATALocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     var subLen = _package.MetaData.Constants.SubrecordHeader(_recordData.Slice((stream.Position - offset))).ContentLength;
                     if (subLen <= 0x88)
                     {
-                        this.DATADataTypeState |= MagicEffect.DATADataType.Break0;
+                        _payload.Fields.DATADataTypeState |= MagicEffect.DATADataType.Break0;
                     }
                     return (int)MagicEffect_FieldIndex.Unknown2;
                 }
                 case RecordTypeInts.ESSH:
                 {
-                    this.Sounds = BinaryOverlayList.FactoryByArray<IMagicEffectSoundGetter>(
+                    _payload.Fields.Sounds = BinaryOverlayList.FactoryByArray<IMagicEffectSoundGetter>(
                         mem: stream.RemainingMemory,
                         package: _package,
                         translationParams: translationParams,
@@ -4858,12 +4899,12 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.DNAM:
                 {
-                    _DescriptionLocation = (stream.Position - offset);
+                    _payload.Fields.DescriptionLocation = (stream.Position - offset);
                     return (int)MagicEffect_FieldIndex.Description;
                 }
                 case RecordTypeInts.CTDA:
                 {
-                    this.Conditions = BinaryOverlayList.FactoryByArray<IConditionGetter>(
+                    _payload.Fields.Conditions = BinaryOverlayList.FactoryByArray<IConditionGetter>(
                         mem: stream.RemainingMemory,
                         package: _package,
                         translationParams: translationParams,

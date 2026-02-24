@@ -166,37 +166,41 @@ partial class TerminalBinaryWriteTranslation
 
 partial class TerminalBinaryOverlay
 {
-    Terminal.Flag? _flags;
-    public partial Terminal.Flag? GetFlagsCustom() => _flags;
+    internal partial class TerminalRecordDataPayload
+    {
+        public Terminal.Flag? Flags;
+        public ExtendedList<FurnitureMarkerParameters>? Markers;
+        public int? LoopingSoundLocation;
+    }
 
-    private ExtendedList<FurnitureMarkerParameters>? _markers;
-    public IReadOnlyList<IFurnitureMarkerParametersGetter>? MarkerParameters => _markers;
+    public partial Terminal.Flag? GetFlagsCustom() { return Payload.Flags; }
 
-    private int? _LoopingSoundLocation;
-    public IFormLinkNullableGetter<ISoundDescriptorGetter> LoopingSound => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ISoundDescriptorGetter>(_package, _recordData, _LoopingSoundLocation);
+    public IReadOnlyList<IFurnitureMarkerParametersGetter>? MarkerParameters { get { return Payload.Markers; } }
+
+    public IFormLinkNullableGetter<ISoundDescriptorGetter> LoopingSound { get { return FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ISoundDescriptorGetter>(_package, _recordData, Payload.LoopingSoundLocation); } }
 
     private FurnitureMarkerParameters GetNthMarker(int index)
     {
-        if (this._markers == null)
+        if (this._payload.Fields.Markers == null)
         {
-            this._markers = new ExtendedList<FurnitureMarkerParameters>();
+            this._payload.Fields.Markers = new ExtendedList<FurnitureMarkerParameters>();
         }
-        if (!this._markers.TryGet(index, out var marker))
+        if (!this._payload.Fields.Markers.TryGet(index, out var marker))
         {
-            while (this._markers.Count <= index)
+            while (this._payload.Fields.Markers.Count <= index)
             {
-                this._markers.Add(new FurnitureMarkerParameters());
+                this._payload.Fields.Markers.Add(new FurnitureMarkerParameters());
             }
-            marker = this._markers[^1];
+            marker = this._payload.Fields.Markers[^1];
         }
         return marker;
     }
 
     partial void MarkerParametersCustomParse(OverlayStream stream, int finalPos, int offset, RecordType type, PreviousParse lastParsed)
     {
-        if (_flags == null)
+        if (_payload.Fields.Flags == null)
         {
-            _LoopingSoundLocation = (stream.Position - offset);
+            _payload.Fields.LoopingSoundLocation = (stream.Position - offset);
         }
         else
         {
@@ -206,7 +210,7 @@ partial class TerminalBinaryOverlay
 
     partial void FlagsCustomParse(OverlayStream stream, int finalPos, int offset)
     {
-        this._flags = TerminalBinaryCreateTranslation.FillBinaryFlags(
+        this._payload.Fields.Flags = TerminalBinaryCreateTranslation.FillBinaryFlags(
             stream,
             this.GetNthMarker);
     }

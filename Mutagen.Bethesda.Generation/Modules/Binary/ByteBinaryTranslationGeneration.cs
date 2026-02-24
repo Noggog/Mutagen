@@ -1,5 +1,6 @@
 using Loqui.Generation;
 using Mutagen.Bethesda.Generation.Fields;
+using Mutagen.Bethesda.Generation.Modules.Plugin;
 using Mutagen.Bethesda.Plugins.Binary.Overlay;
 using Mutagen.Bethesda.Plugins.Binary.Streams;
 using Mutagen.Bethesda.Plugins.Binary.Translations;
@@ -48,20 +49,46 @@ public class ByteBinaryTranslationGeneration : PrimitiveBinaryTranslationGenerat
             default:
                 throw new NotImplementedException();
         }
+        var payloadSb = (this.Module as PluginTranslationModule)?.CurrentPayloadFieldsSb;
         if (data.HasTrigger)
         {
-            sb.AppendLine($"private int? _{typeGen.Name}Location;");
-            if (typeGen.CanBeNullable(getter: true))
+            if (payloadSb != null)
             {
-                recordDataAccessor = $"{nameof(HeaderTranslation)}.{nameof(HeaderTranslation.ExtractSubrecordMemory)}({recordDataAccessor}, _{typeGen.Name}Location.Value, _package.{nameof(BinaryOverlayFactoryPackage.MetaData)}.{nameof(ParsingMeta.Constants)})";
-                sb.AppendLine($"public {typeGen.TypeName(getter: true)}{(typeGen.Nullable ? "?" : null)} {typeGen.Name} => _{typeGen.Name}Location.HasValue ? {recordDataAccessor}[0] : default(Byte{(typeGen.Nullable ? "?" : null)});");
+                payloadSb.AppendLine($"public int? {typeGen.Name}Location;");
             }
             else
             {
-                sb.AppendLine($"public bool {typeGen.Name}_IsSet => _{typeGen.Name}Location.HasValue;");
-                if (dataType != null) throw new ArgumentException();
-                recordDataAccessor = $"{nameof(HeaderTranslation)}.{nameof(HeaderTranslation.ExtractSubrecordMemory)}({recordDataAccessor}, _{typeGen.Name}Location.Value, _package.{nameof(BinaryOverlayFactoryPackage.MetaData)}.{nameof(ParsingMeta.Constants)})";
-                sb.AppendLine($"public {typeGen.TypeName(getter: true)} {typeGen.Name} => _{typeGen.Name}Location.HasValue ? {recordDataAccessor}[0] : default(Byte{(typeGen.Nullable ? "?" : null)});");
+                sb.AppendLine($"private int? _{typeGen.Name}Location;");
+            }
+            if (typeGen.CanBeNullable(getter: true))
+            {
+                if (payloadSb != null)
+                {
+                    var extractedData = $"{nameof(HeaderTranslation)}.{nameof(HeaderTranslation.ExtractSubrecordMemory)}({recordDataAccessor}, Payload.{typeGen.Name}Location.Value, _package.{nameof(BinaryOverlayFactoryPackage.MetaData)}.{nameof(ParsingMeta.Constants)})";
+                    sb.AppendLine($"public {typeGen.TypeName(getter: true)}{(typeGen.Nullable ? "?" : null)} {typeGen.Name} => Payload.{typeGen.Name}Location.HasValue ? {extractedData}[0] : default(Byte{(typeGen.Nullable ? "?" : null)});");
+                }
+                else
+                {
+                    recordDataAccessor = $"{nameof(HeaderTranslation)}.{nameof(HeaderTranslation.ExtractSubrecordMemory)}({recordDataAccessor}, _{typeGen.Name}Location.Value, _package.{nameof(BinaryOverlayFactoryPackage.MetaData)}.{nameof(ParsingMeta.Constants)})";
+                    sb.AppendLine($"public {typeGen.TypeName(getter: true)}{(typeGen.Nullable ? "?" : null)} {typeGen.Name} => _{typeGen.Name}Location.HasValue ? {recordDataAccessor}[0] : default(Byte{(typeGen.Nullable ? "?" : null)});");
+                }
+            }
+            else
+            {
+                if (payloadSb != null)
+                {
+                    sb.AppendLine($"public bool {typeGen.Name}_IsSet => Payload.{typeGen.Name}Location.HasValue;");
+                    if (dataType != null) throw new ArgumentException();
+                    var extractedData = $"{nameof(HeaderTranslation)}.{nameof(HeaderTranslation.ExtractSubrecordMemory)}({recordDataAccessor}, Payload.{typeGen.Name}Location.Value, _package.{nameof(BinaryOverlayFactoryPackage.MetaData)}.{nameof(ParsingMeta.Constants)})";
+                    sb.AppendLine($"public {typeGen.TypeName(getter: true)} {typeGen.Name} => Payload.{typeGen.Name}Location.HasValue ? {extractedData}[0] : default(Byte{(typeGen.Nullable ? "?" : null)});");
+                }
+                else
+                {
+                    sb.AppendLine($"public bool {typeGen.Name}_IsSet => _{typeGen.Name}Location.HasValue;");
+                    if (dataType != null) throw new ArgumentException();
+                    recordDataAccessor = $"{nameof(HeaderTranslation)}.{nameof(HeaderTranslation.ExtractSubrecordMemory)}({recordDataAccessor}, _{typeGen.Name}Location.Value, _package.{nameof(BinaryOverlayFactoryPackage.MetaData)}.{nameof(ParsingMeta.Constants)})";
+                    sb.AppendLine($"public {typeGen.TypeName(getter: true)} {typeGen.Name} => _{typeGen.Name}Location.HasValue ? {recordDataAccessor}[0] : default(Byte{(typeGen.Nullable ? "?" : null)});");
+                }
             }
         }
         else
@@ -79,7 +106,7 @@ public class ByteBinaryTranslationGeneration : PrimitiveBinaryTranslationGenerat
             }
             else
             {
-                DataBinaryTranslationGeneration.GenerateWrapperExtraMembers(sb, dataType, objGen, typeGen, passedLengthAccessor);
+                DataBinaryTranslationGeneration.GenerateWrapperExtraMembers(sb, dataType, objGen, typeGen, passedLengthAccessor, isMajorRecord: payloadSb != null);
                 sb.AppendLine($"public {typeGen.TypeName(getter: true)} {typeGen.Name} => _{typeGen.Name}_IsSet ? {recordDataAccessor}.Span[_{typeGen.Name}Location] : default;");
             }
         }

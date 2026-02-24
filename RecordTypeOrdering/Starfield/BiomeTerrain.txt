@@ -1,0 +1,8 @@
+RecordTypes.LNAM,
+RecordTypes.ANAM,
+RecordTypes.TX00,
+RecordTypes.UX00,
+RecordTypes.VX00,
+RecordTypes.WX00,
+RecordTypes.XX00,
+RecordTypes.YX00,

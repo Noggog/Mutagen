@@ -258,12 +258,15 @@ partial class NpcBinaryWriteTranslation
 
 partial class NpcBinaryOverlay
 {
-    private int? _templateLinksLocation;
-    private int? _MSDKLocation;
-    private int? _MSDVLocation;
-    
+    internal partial class NpcRecordDataPayload
+    {
+        public int? TemplateLinksLocation;
+        public int? MSDKLocation;
+        public int? MSDVLocation;
+    }
+
     #region Level
-    private int _LevelLocation => _ACBSLocation!.Value.Min + 0x6;
+    private int _LevelLocation => Payload.ACBSLocation!.Value.Min + 0x6;
     public partial IANpcLevelGetter GetLevelCustom();
     public IANpcLevelGetter Level => GetLevelCustom();
     #endregion
@@ -304,10 +307,10 @@ partial class NpcBinaryOverlay
         switch (subRec.RecordTypeInt)
         {
             case RecordTypeInts.MSDK:
-                _MSDKLocation = (stream.Position - offset);
+                _payload.Fields.MSDKLocation = (stream.Position - offset);
                 break;
             case RecordTypeInts.MSDV:
-                _MSDVLocation = (stream.Position - offset);
+                _payload.Fields.MSDVLocation = (stream.Position - offset);
                 break;
             default:
                 throw new NotImplementedException();
@@ -319,10 +322,10 @@ partial class NpcBinaryOverlay
     {
         get
         {
-            if (!_MSDVLocation.HasValue && !_MSDKLocation.HasValue) return [];
-            ReadOnlyMemorySlice<byte> msdk = _MSDKLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _MSDKLocation.Value, _package.MetaData.Constants) : [];
-            ReadOnlyMemorySlice<byte> msdv = _MSDVLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _MSDVLocation.Value, _package.MetaData.Constants) : [];
-            var amount = Math.Max(msdk.Length, msdv.Length) / 4; 
+            if (!Payload.MSDVLocation.HasValue && !Payload.MSDKLocation.HasValue) return [];
+            ReadOnlyMemorySlice<byte> msdk = Payload.MSDKLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.MSDKLocation.Value, _package.MetaData.Constants) : [];
+            ReadOnlyMemorySlice<byte> msdv = Payload.MSDVLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.MSDVLocation.Value, _package.MetaData.Constants) : [];
+            var amount = Math.Max(msdk.Length, msdv.Length) / 4;
             var ret = new List<INpcMorphGetter>(amount);
             for (int i = 0; i < amount; i++)
             {

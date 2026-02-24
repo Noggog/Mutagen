@@ -1327,11 +1327,25 @@ namespace Mutagen.Bethesda.Starfield
         public IReadOnlyList<Int32>? Aliases { get; private set; }
         #region ForceRotate
         private int? _ForceRotateLocation;
-        public Boolean ForceRotate => _ForceRotateLocation.HasValue ? true : default(Boolean);
+        public Boolean ForceRotate
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _ForceRotateLocation.HasValue ? true : default(Boolean);
+            }
+        }
         #endregion
         #region ForceRotateMustComplete
         private int? _ForceRotateMustCompleteLocation;
-        public Boolean ForceRotateMustComplete => _ForceRotateMustCompleteLocation.HasValue ? true : default(Boolean);
+        public Boolean ForceRotateMustComplete
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _ForceRotateMustCompleteLocation.HasValue ? true : default(Boolean);
+            }
+        }
         #endregion
         partial void CustomFactoryEnd(
             OverlayStream stream,

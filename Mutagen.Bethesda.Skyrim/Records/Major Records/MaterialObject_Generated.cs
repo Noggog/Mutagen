@@ -38,6 +38,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -2363,55 +2364,72 @@ namespace Mutagen.Bethesda.Skyrim
         protected override Type LinkType => typeof(IMaterialObjectGetter);
 
 
-        public IModelGetter? Model { get; private set; }
-        public IReadOnlyList<ReadOnlyMemorySlice<Byte>> DNAMs { get; private set; } = [];
-        private RangeInt32? _DATALocation;
-        public MaterialObject.DATADataType DATADataTypeState { get; private set; }
+        public IModelGetter? Model => Payload.Model;
+        public IReadOnlyList<ReadOnlyMemorySlice<Byte>> DNAMs => Payload.DNAMs ?? [];
+        public MaterialObject.DATADataType DATADataTypeState => Payload.DATADataTypeState;
         #region FalloffScale
-        private int _FalloffScaleLocation => _DATALocation!.Value.Min;
-        private bool _FalloffScale_IsSet => _DATALocation.HasValue;
+        private int _FalloffScaleLocation => Payload.DATALocation!.Value.Min;
+        private bool _FalloffScale_IsSet => Payload.DATALocation.HasValue;
         public Single FalloffScale => _FalloffScale_IsSet ? _recordData.Slice(_FalloffScaleLocation, 4).Float() : default(Single);
         #endregion
         #region FalloffBias
-        private int _FalloffBiasLocation => _DATALocation!.Value.Min + 0x4;
-        private bool _FalloffBias_IsSet => _DATALocation.HasValue;
+        private int _FalloffBiasLocation => Payload.DATALocation!.Value.Min + 0x4;
+        private bool _FalloffBias_IsSet => Payload.DATALocation.HasValue;
         public Single FalloffBias => _FalloffBias_IsSet ? _recordData.Slice(_FalloffBiasLocation, 4).Float() : default(Single);
         #endregion
         #region NoiseUvScale
-        private int _NoiseUvScaleLocation => _DATALocation!.Value.Min + 0x8;
-        private bool _NoiseUvScale_IsSet => _DATALocation.HasValue;
+        private int _NoiseUvScaleLocation => Payload.DATALocation!.Value.Min + 0x8;
+        private bool _NoiseUvScale_IsSet => Payload.DATALocation.HasValue;
         public Single NoiseUvScale => _NoiseUvScale_IsSet ? _recordData.Slice(_NoiseUvScaleLocation, 4).Float() : default(Single);
         #endregion
         #region MaterialUvScale
-        private int _MaterialUvScaleLocation => _DATALocation!.Value.Min + 0xC;
-        private bool _MaterialUvScale_IsSet => _DATALocation.HasValue;
+        private int _MaterialUvScaleLocation => Payload.DATALocation!.Value.Min + 0xC;
+        private bool _MaterialUvScale_IsSet => Payload.DATALocation.HasValue;
         public Single MaterialUvScale => _MaterialUvScale_IsSet ? _recordData.Slice(_MaterialUvScaleLocation, 4).Float() : default(Single);
         #endregion
         #region ProjectionVector
-        private int _ProjectionVectorLocation => _DATALocation!.Value.Min + 0x10;
-        private bool _ProjectionVector_IsSet => _DATALocation.HasValue;
+        private int _ProjectionVectorLocation => Payload.DATALocation!.Value.Min + 0x10;
+        private bool _ProjectionVector_IsSet => Payload.DATALocation.HasValue;
         public P3Float ProjectionVector => _ProjectionVector_IsSet ? P3FloatBinaryTranslation<MutagenFrame, MutagenWriter>.Instance.Read(_recordData.Slice(_ProjectionVectorLocation, 12)) : default(P3Float);
         #endregion
         #region NormalDampener
-        private int _NormalDampenerLocation => _DATALocation!.Value.Min + 0x1C;
-        private bool _NormalDampener_IsSet => _DATALocation.HasValue && !DATADataTypeState.HasFlag(MaterialObject.DATADataType.Break0);
+        private int _NormalDampenerLocation => Payload.DATALocation!.Value.Min + 0x1C;
+        private bool _NormalDampener_IsSet => Payload.DATALocation.HasValue && !DATADataTypeState.HasFlag(MaterialObject.DATADataType.Break0);
         public Single NormalDampener => _NormalDampener_IsSet ? _recordData.Slice(_NormalDampenerLocation, 4).Float() : default(Single);
         #endregion
         #region SinglePassColor
-        private int _SinglePassColorLocation => _DATALocation!.Value.Min + 0x20;
-        private bool _SinglePassColor_IsSet => _DATALocation.HasValue && !DATADataTypeState.HasFlag(MaterialObject.DATADataType.Break1);
+        private int _SinglePassColorLocation => Payload.DATALocation!.Value.Min + 0x20;
+        private bool _SinglePassColor_IsSet => Payload.DATALocation.HasValue && !DATADataTypeState.HasFlag(MaterialObject.DATADataType.Break1);
         public Color SinglePassColor => _SinglePassColor_IsSet ? _recordData.Slice(_SinglePassColorLocation, 12).ReadColor(ColorBinaryType.NoAlphaFloat) : default(Color);
         #endregion
         #region Flags
-        private int _FlagsLocation => _DATALocation!.Value.Min + 0x2C;
-        private bool _Flags_IsSet => _DATALocation.HasValue && !DATADataTypeState.HasFlag(MaterialObject.DATADataType.Break1);
+        private int _FlagsLocation => Payload.DATALocation!.Value.Min + 0x2C;
+        private bool _Flags_IsSet => Payload.DATALocation.HasValue && !DATADataTypeState.HasFlag(MaterialObject.DATADataType.Break1);
         public MaterialObject.Flag Flags => _Flags_IsSet ? (MaterialObject.Flag)BinaryPrimitives.ReadInt32LittleEndian(_recordData.Span.Slice(_FlagsLocation, 0x4)) : default;
         #endregion
         #region HasSnow
-        private int _HasSnowLocation => _DATALocation!.Value.Min + 0x30;
-        private bool _HasSnow_IsSet => _DATALocation.HasValue && !DATADataTypeState.HasFlag(MaterialObject.DATADataType.Break2);
+        private int _HasSnowLocation => Payload.DATALocation!.Value.Min + 0x30;
+        private bool _HasSnow_IsSet => Payload.DATALocation.HasValue && !DATADataTypeState.HasFlag(MaterialObject.DATADataType.Break2);
         public Boolean HasSnow => _HasSnow_IsSet ? BinaryPrimitives.ReadUInt32LittleEndian(_recordData.Slice(_HasSnowLocation, 4)) >= 1 : default(Boolean);
         #endregion
+
+        internal partial class MaterialObjectRecordDataPayload
+        {
+            public IModelGetter? Model;
+            public IReadOnlyList<ReadOnlyMemorySlice<Byte>> DNAMs = [];
+            public RangeInt32? DATALocation;
+            public MaterialObject.DATADataType DATADataTypeState;
+        }
+
+        private LazyPayload<MaterialObjectRecordDataPayload> _payload = null!;
+
+        internal MaterialObjectRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<MaterialObjectRecordDataPayload>(init, new MaterialObjectRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -2419,10 +2437,10 @@ namespace Mutagen.Bethesda.Skyrim
 
         partial void CustomCtor();
         protected MaterialObjectBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -2433,28 +2451,51 @@ namespace Mutagen.Bethesda.Skyrim
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new MaterialObjectBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -2483,7 +2524,7 @@ namespace Mutagen.Bethesda.Skyrim
             {
                 case RecordTypeInts.MODL:
                 {
-                    this.Model = ModelBinaryOverlay.ModelFactory(
+                    _payload.Fields.Model = ModelBinaryOverlay.ModelFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());
@@ -2491,7 +2532,7 @@ namespace Mutagen.Bethesda.Skyrim
                 }
                 case RecordTypeInts.DNAM:
                 {
-                    this.DNAMs = BinaryOverlayList.FactoryByArray<ReadOnlyMemorySlice<Byte>>(
+                    _payload.Fields.DNAMs = BinaryOverlayList.FactoryByArray<ReadOnlyMemorySlice<Byte>>(
                         mem: stream.RemainingMemory,
                         package: _package,
                         getter: (s, p) => p.MetaData.Constants.Subrecord(s).Content,
@@ -2505,19 +2546,19 @@ namespace Mutagen.Bethesda.Skyrim
                 }
                 case RecordTypeInts.DATA:
                 {
-                    _DATALocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.DATALocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     var subLen = _package.MetaData.Constants.SubrecordHeader(_recordData.Slice((stream.Position - offset))).ContentLength;
                     if (subLen <= 0x1C)
                     {
-                        this.DATADataTypeState |= MaterialObject.DATADataType.Break0;
+                        _payload.Fields.DATADataTypeState |= MaterialObject.DATADataType.Break0;
                     }
                     if (subLen <= 0x20)
                     {
-                        this.DATADataTypeState |= MaterialObject.DATADataType.Break1;
+                        _payload.Fields.DATADataTypeState |= MaterialObject.DATADataType.Break1;
                     }
                     if (subLen <= 0x30)
                     {
-                        this.DATADataTypeState |= MaterialObject.DATADataType.Break2;
+                        _payload.Fields.DATADataTypeState |= MaterialObject.DATADataType.Break2;
                     }
                     return (int)MaterialObject_FieldIndex.HasSnow;
                 }

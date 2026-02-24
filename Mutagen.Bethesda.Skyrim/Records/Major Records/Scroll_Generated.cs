@@ -38,6 +38,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -3380,13 +3381,11 @@ namespace Mutagen.Bethesda.Skyrim
 
 
         #region ObjectBounds
-        private RangeInt32? _ObjectBoundsLocation;
-        private IObjectBoundsGetter? _ObjectBounds => _ObjectBoundsLocation.HasValue ? ObjectBoundsBinaryOverlay.ObjectBoundsFactory(_recordData.Slice(_ObjectBoundsLocation!.Value.Min), _package) : default;
+        private IObjectBoundsGetter? _ObjectBounds => Payload.ObjectBoundsLocation.HasValue ? ObjectBoundsBinaryOverlay.ObjectBoundsFactory(_recordData.Slice(Payload.ObjectBoundsLocation!.Value.Min), _package) : default;
         public IObjectBoundsGetter ObjectBounds => _ObjectBounds ?? new ObjectBounds();
         #endregion
         #region Name
-        private int? _NameLocation;
-        public ITranslatedStringGetter? Name => _NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+        public ITranslatedStringGetter? Name => Payload.NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
         #region Aspects
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         string INamedRequiredGetter.Name => this.Name?.String ?? string.Empty;
@@ -3397,89 +3396,99 @@ namespace Mutagen.Bethesda.Skyrim
         #endregion
         #endregion
         #region Keywords
-        public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? Keywords { get; private set; }
+        public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? Keywords => Payload.Keywords;
         IReadOnlyList<IFormLinkGetter<IKeywordCommonGetter>>? IKeywordedGetter.Keywords => this.Keywords;
         #endregion
-        #region MenuDisplayObject
-        private int? _MenuDisplayObjectLocation;
-        public IFormLinkNullableGetter<IStaticGetter> MenuDisplayObject => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IStaticGetter>(_package, _recordData, _MenuDisplayObjectLocation);
-        #endregion
-        #region EquipmentType
-        private int? _EquipmentTypeLocation;
-        public IFormLinkNullableGetter<IEquipTypeGetter> EquipmentType => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IEquipTypeGetter>(_package, _recordData, _EquipmentTypeLocation);
-        #endregion
-        #region Description
-        private int? _DescriptionLocation;
-        public ITranslatedStringGetter? Description => _DescriptionLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _DescriptionLocation.Value, _package.MetaData.Constants), StringsSource.DL, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
-        #endregion
-        public IModelGetter? Model { get; private set; }
-        public IDestructibleGetter? Destructible { get; private set; }
-        #region PickUpSound
-        private int? _PickUpSoundLocation;
-        public IFormLinkNullableGetter<ISoundDescriptorGetter> PickUpSound => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ISoundDescriptorGetter>(_package, _recordData, _PickUpSoundLocation);
-        #endregion
-        #region PutDownSound
-        private int? _PutDownSoundLocation;
-        public IFormLinkNullableGetter<ISoundDescriptorGetter> PutDownSound => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ISoundDescriptorGetter>(_package, _recordData, _PutDownSoundLocation);
-        #endregion
-        private RangeInt32? _DATALocation;
+        public IFormLinkNullableGetter<IStaticGetter> MenuDisplayObject => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IStaticGetter>(_package, _recordData, Payload.MenuDisplayObjectLocation);
+        public IFormLinkNullableGetter<IEquipTypeGetter> EquipmentType => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IEquipTypeGetter>(_package, _recordData, Payload.EquipmentTypeLocation);
+        public ITranslatedStringGetter? Description => Payload.DescriptionLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.DescriptionLocation.Value, _package.MetaData.Constants), StringsSource.DL, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+        public IModelGetter? Model => Payload.Model;
+        public IDestructibleGetter? Destructible => Payload.Destructible;
+        public IFormLinkNullableGetter<ISoundDescriptorGetter> PickUpSound => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ISoundDescriptorGetter>(_package, _recordData, Payload.PickUpSoundLocation);
+        public IFormLinkNullableGetter<ISoundDescriptorGetter> PutDownSound => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ISoundDescriptorGetter>(_package, _recordData, Payload.PutDownSoundLocation);
         #region Value
-        private int _ValueLocation => _DATALocation!.Value.Min;
-        private bool _Value_IsSet => _DATALocation.HasValue;
+        private int _ValueLocation => Payload.DATALocation!.Value.Min;
+        private bool _Value_IsSet => Payload.DATALocation.HasValue;
         public UInt32 Value => _Value_IsSet ? BinaryPrimitives.ReadUInt32LittleEndian(_recordData.Slice(_ValueLocation, 4)) : default(UInt32);
         #endregion
         #region Weight
-        private int _WeightLocation => _DATALocation!.Value.Min + 0x4;
-        private bool _Weight_IsSet => _DATALocation.HasValue;
+        private int _WeightLocation => Payload.DATALocation!.Value.Min + 0x4;
+        private bool _Weight_IsSet => Payload.DATALocation.HasValue;
         public Single Weight => _Weight_IsSet ? _recordData.Slice(_WeightLocation, 4).Float() : default(Single);
         #endregion
-        private RangeInt32? _SPITLocation;
         #region BaseCost
-        private int _BaseCostLocation => _SPITLocation!.Value.Min;
-        private bool _BaseCost_IsSet => _SPITLocation.HasValue;
+        private int _BaseCostLocation => Payload.SPITLocation!.Value.Min;
+        private bool _BaseCost_IsSet => Payload.SPITLocation.HasValue;
         public UInt32 BaseCost => _BaseCost_IsSet ? BinaryPrimitives.ReadUInt32LittleEndian(_recordData.Slice(_BaseCostLocation, 4)) : default(UInt32);
         #endregion
         #region Flags
-        private int _FlagsLocation => _SPITLocation!.Value.Min + 0x4;
-        private bool _Flags_IsSet => _SPITLocation.HasValue;
+        private int _FlagsLocation => Payload.SPITLocation!.Value.Min + 0x4;
+        private bool _Flags_IsSet => Payload.SPITLocation.HasValue;
         public SpellDataFlag Flags => _Flags_IsSet ? (SpellDataFlag)BinaryPrimitives.ReadInt32LittleEndian(_recordData.Span.Slice(_FlagsLocation, 0x4)) : default;
         #endregion
         #region Type
-        private int _TypeLocation => _SPITLocation!.Value.Min + 0x8;
-        private bool _Type_IsSet => _SPITLocation.HasValue;
+        private int _TypeLocation => Payload.SPITLocation!.Value.Min + 0x8;
+        private bool _Type_IsSet => Payload.SPITLocation.HasValue;
         public SpellType Type => _Type_IsSet ? (SpellType)BinaryPrimitives.ReadInt32LittleEndian(_recordData.Span.Slice(_TypeLocation, 0x4)) : default;
         #endregion
         #region ChargeTime
-        private int _ChargeTimeLocation => _SPITLocation!.Value.Min + 0xC;
-        private bool _ChargeTime_IsSet => _SPITLocation.HasValue;
+        private int _ChargeTimeLocation => Payload.SPITLocation!.Value.Min + 0xC;
+        private bool _ChargeTime_IsSet => Payload.SPITLocation.HasValue;
         public Single ChargeTime => _ChargeTime_IsSet ? _recordData.Slice(_ChargeTimeLocation, 4).Float() : default(Single);
         #endregion
         #region CastType
-        private int _CastTypeLocation => _SPITLocation!.Value.Min + 0x10;
-        private bool _CastType_IsSet => _SPITLocation.HasValue;
+        private int _CastTypeLocation => Payload.SPITLocation!.Value.Min + 0x10;
+        private bool _CastType_IsSet => Payload.SPITLocation.HasValue;
         public CastType CastType => _CastType_IsSet ? (CastType)BinaryPrimitives.ReadInt32LittleEndian(_recordData.Span.Slice(_CastTypeLocation, 0x4)) : default;
         #endregion
         #region TargetType
-        private int _TargetTypeLocation => _SPITLocation!.Value.Min + 0x14;
-        private bool _TargetType_IsSet => _SPITLocation.HasValue;
+        private int _TargetTypeLocation => Payload.SPITLocation!.Value.Min + 0x14;
+        private bool _TargetType_IsSet => Payload.SPITLocation.HasValue;
         public TargetType TargetType => _TargetType_IsSet ? (TargetType)BinaryPrimitives.ReadInt32LittleEndian(_recordData.Span.Slice(_TargetTypeLocation, 0x4)) : default;
         #endregion
         #region CastDuration
-        private int _CastDurationLocation => _SPITLocation!.Value.Min + 0x18;
-        private bool _CastDuration_IsSet => _SPITLocation.HasValue;
+        private int _CastDurationLocation => Payload.SPITLocation!.Value.Min + 0x18;
+        private bool _CastDuration_IsSet => Payload.SPITLocation.HasValue;
         public Single CastDuration => _CastDuration_IsSet ? _recordData.Slice(_CastDurationLocation, 4).Float() : default(Single);
         #endregion
         #region Range
-        private int _RangeLocation => _SPITLocation!.Value.Min + 0x1C;
-        private bool _Range_IsSet => _SPITLocation.HasValue;
+        private int _RangeLocation => Payload.SPITLocation!.Value.Min + 0x1C;
+        private bool _Range_IsSet => Payload.SPITLocation.HasValue;
         public Single Range => _Range_IsSet ? _recordData.Slice(_RangeLocation, 4).Float() : default(Single);
         #endregion
         #region HalfCostPerk
-        private int _HalfCostPerkLocation => _SPITLocation!.Value.Min + 0x20;
-        private bool _HalfCostPerk_IsSet => _SPITLocation.HasValue;
+        private int _HalfCostPerkLocation => Payload.SPITLocation!.Value.Min + 0x20;
+        private bool _HalfCostPerk_IsSet => Payload.SPITLocation.HasValue;
         public IFormLinkGetter<IPerkGetter> HalfCostPerk => _HalfCostPerk_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IPerkGetter>(_package, _recordData.Span.Slice(_HalfCostPerkLocation, 0x4), isSet: _HalfCostPerk_IsSet) : FormLink<IPerkGetter>.Null;
         #endregion
-        public IReadOnlyList<IEffectGetter> Effects { get; private set; } = [];
+        public IReadOnlyList<IEffectGetter> Effects => Payload.Effects ?? [];
+
+        internal partial class ScrollRecordDataPayload
+        {
+            public RangeInt32? ObjectBoundsLocation;
+            public int? NameLocation;
+            public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? Keywords;
+            public int? MenuDisplayObjectLocation;
+            public int? EquipmentTypeLocation;
+            public int? DescriptionLocation;
+            public IModelGetter? Model;
+            public IDestructibleGetter? Destructible;
+            public int? PickUpSoundLocation;
+            public int? PutDownSoundLocation;
+            public RangeInt32? DATALocation;
+            public RangeInt32? SPITLocation;
+            public IReadOnlyList<IEffectGetter> Effects = [];
+        }
+
+        private LazyPayload<ScrollRecordDataPayload> _payload = null!;
+
+        internal ScrollRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<ScrollRecordDataPayload>(init, new ScrollRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -3487,10 +3496,10 @@ namespace Mutagen.Bethesda.Skyrim
 
         partial void CustomCtor();
         protected ScrollBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -3501,28 +3510,51 @@ namespace Mutagen.Bethesda.Skyrim
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new ScrollBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -3551,18 +3583,18 @@ namespace Mutagen.Bethesda.Skyrim
             {
                 case RecordTypeInts.OBND:
                 {
-                    _ObjectBoundsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.ObjectBoundsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)Scroll_FieldIndex.ObjectBounds;
                 }
                 case RecordTypeInts.FULL:
                 {
-                    _NameLocation = (stream.Position - offset);
+                    _payload.Fields.NameLocation = (stream.Position - offset);
                     return (int)Scroll_FieldIndex.Name;
                 }
                 case RecordTypeInts.KSIZ:
                 case RecordTypeInts.KWDA:
                 {
-                    this.Keywords = BinaryOverlayList.FactoryByCount<IFormLinkGetter<IKeywordGetter>>(
+                    _payload.Fields.Keywords = BinaryOverlayList.FactoryByCount<IFormLinkGetter<IKeywordGetter>>(
                         stream: stream,
                         package: _package,
                         itemLength: 0x4,
@@ -3574,22 +3606,22 @@ namespace Mutagen.Bethesda.Skyrim
                 }
                 case RecordTypeInts.MDOB:
                 {
-                    _MenuDisplayObjectLocation = (stream.Position - offset);
+                    _payload.Fields.MenuDisplayObjectLocation = (stream.Position - offset);
                     return (int)Scroll_FieldIndex.MenuDisplayObject;
                 }
                 case RecordTypeInts.ETYP:
                 {
-                    _EquipmentTypeLocation = (stream.Position - offset);
+                    _payload.Fields.EquipmentTypeLocation = (stream.Position - offset);
                     return (int)Scroll_FieldIndex.EquipmentType;
                 }
                 case RecordTypeInts.DESC:
                 {
-                    _DescriptionLocation = (stream.Position - offset);
+                    _payload.Fields.DescriptionLocation = (stream.Position - offset);
                     return (int)Scroll_FieldIndex.Description;
                 }
                 case RecordTypeInts.MODL:
                 {
-                    this.Model = ModelBinaryOverlay.ModelFactory(
+                    _payload.Fields.Model = ModelBinaryOverlay.ModelFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());
@@ -3599,7 +3631,7 @@ namespace Mutagen.Bethesda.Skyrim
                 case RecordTypeInts.DSTD:
                 case RecordTypeInts.DMDL:
                 {
-                    this.Destructible = DestructibleBinaryOverlay.DestructibleFactory(
+                    _payload.Fields.Destructible = DestructibleBinaryOverlay.DestructibleFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());
@@ -3607,29 +3639,29 @@ namespace Mutagen.Bethesda.Skyrim
                 }
                 case RecordTypeInts.YNAM:
                 {
-                    _PickUpSoundLocation = (stream.Position - offset);
+                    _payload.Fields.PickUpSoundLocation = (stream.Position - offset);
                     return (int)Scroll_FieldIndex.PickUpSound;
                 }
                 case RecordTypeInts.ZNAM:
                 {
-                    _PutDownSoundLocation = (stream.Position - offset);
+                    _payload.Fields.PutDownSoundLocation = (stream.Position - offset);
                     return (int)Scroll_FieldIndex.PutDownSound;
                 }
                 case RecordTypeInts.DATA:
                 {
-                    _DATALocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.DATALocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     return (int)Scroll_FieldIndex.Weight;
                 }
                 case RecordTypeInts.SPIT:
                 {
-                    _SPITLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.SPITLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     return (int)Scroll_FieldIndex.HalfCostPerk;
                 }
                 case RecordTypeInts.EFID:
                 case RecordTypeInts.EFIT:
                 case RecordTypeInts.CTDA:
                 {
-                    this.Effects = this.ParseRepeatedTypelessSubrecord<IEffectGetter>(
+                    _payload.Fields.Effects = this.ParseRepeatedTypelessSubrecord<IEffectGetter>(
                         stream: stream,
                         translationParams: translationParams,
                         trigger: Effect_Registration.TriggerSpecs,

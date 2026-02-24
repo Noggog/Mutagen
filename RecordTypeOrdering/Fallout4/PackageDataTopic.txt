@@ -1,0 +1,4 @@
+RecordTypes.BNAM,
+RecordTypes.PNAM,
+RecordTypes.PDTO,
+RecordTypes.TPIC,

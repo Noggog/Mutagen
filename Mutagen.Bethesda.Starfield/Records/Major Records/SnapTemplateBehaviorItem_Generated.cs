@@ -1506,7 +1506,14 @@ namespace Mutagen.Bethesda.Starfield
 
         #region ENAM
         private int? _ENAMLocation;
-        public Int32 ENAM => _ENAMLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _ENAMLocation.Value, _package.MetaData.Constants)) : default(Int32);
+        public Int32 ENAM
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _ENAMLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _ENAMLocation.Value, _package.MetaData.Constants)) : default(Int32);
+            }
+        }
         #endregion
         #region BaseObject
         private int? _BaseObjectLocation;

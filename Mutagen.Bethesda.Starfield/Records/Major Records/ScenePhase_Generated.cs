@@ -1874,7 +1874,14 @@ namespace Mutagen.Bethesda.Starfield
 
         #region Name
         private int? _NameLocation;
-        public String? Name => _NameLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NameLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? Name
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _NameLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_data, _NameLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+            }
+        }
         #region Aspects
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         string INamedRequiredGetter.Name => this.Name ?? string.Empty;
@@ -1898,7 +1905,14 @@ namespace Mutagen.Bethesda.Starfield
         #endregion
         #region EditorWidth
         private int? _EditorWidthLocation;
-        public UInt32? EditorWidth => _EditorWidthLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _EditorWidthLocation.Value, _package.MetaData.Constants)) : default(UInt32?);
+        public UInt32? EditorWidth
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _EditorWidthLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _EditorWidthLocation.Value, _package.MetaData.Constants)) : default(UInt32?);
+            }
+        }
         #endregion
         #region Flags
         private int? _FlagsLocation;

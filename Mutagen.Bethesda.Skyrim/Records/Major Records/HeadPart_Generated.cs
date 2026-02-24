@@ -38,6 +38,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -2399,8 +2400,7 @@ namespace Mutagen.Bethesda.Skyrim
         public HeadPart.MajorFlag MajorFlags => (HeadPart.MajorFlag)this.MajorRecordFlagsRaw;
 
         #region Name
-        private int? _NameLocation;
-        public ITranslatedStringGetter? Name => _NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+        public ITranslatedStringGetter? Name => Payload.NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
         #region Aspects
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         string INamedRequiredGetter.Name => this.Name?.String ?? string.Empty;
@@ -2410,29 +2410,37 @@ namespace Mutagen.Bethesda.Skyrim
         ITranslatedStringGetter ITranslatedNamedRequiredGetter.Name => this.Name ?? TranslatedString.Empty;
         #endregion
         #endregion
-        public IModelGetter? Model { get; private set; }
-        #region Flags
-        private int? _FlagsLocation;
-        public HeadPart.Flag Flags => EnumBinaryTranslation<HeadPart.Flag, MutagenFrame, MutagenWriter>.Instance.ParseRecord(_FlagsLocation, _recordData, _package, 1);
-        #endregion
-        #region Type
-        private int? _TypeLocation;
-        public HeadPart.TypeEnum? Type => EnumBinaryTranslation<HeadPart.TypeEnum, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(_TypeLocation, _recordData, _package, 4);
-        #endregion
-        public IReadOnlyList<IFormLinkGetter<IHeadPartGetter>> ExtraParts { get; private set; } = [];
-        public IReadOnlyList<IPartGetter> Parts { get; private set; } = [];
-        #region TextureSet
-        private int? _TextureSetLocation;
-        public IFormLinkNullableGetter<ITextureSetGetter> TextureSet => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ITextureSetGetter>(_package, _recordData, _TextureSetLocation);
-        #endregion
-        #region Color
-        private int? _ColorLocation;
-        public IFormLinkNullableGetter<IColorRecordGetter> Color => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IColorRecordGetter>(_package, _recordData, _ColorLocation);
-        #endregion
-        #region ValidRaces
-        private int? _ValidRacesLocation;
-        public IFormLinkNullableGetter<IFormListGetter> ValidRaces => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IFormListGetter>(_package, _recordData, _ValidRacesLocation);
-        #endregion
+        public IModelGetter? Model => Payload.Model;
+        public HeadPart.Flag Flags => EnumBinaryTranslation<HeadPart.Flag, MutagenFrame, MutagenWriter>.Instance.ParseRecord(Payload.FlagsLocation, _recordData, _package, 1);
+        public HeadPart.TypeEnum? Type => EnumBinaryTranslation<HeadPart.TypeEnum, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(Payload.TypeLocation, _recordData, _package, 4);
+        public IReadOnlyList<IFormLinkGetter<IHeadPartGetter>> ExtraParts => Payload.ExtraParts ?? [];
+        public IReadOnlyList<IPartGetter> Parts => Payload.Parts ?? [];
+        public IFormLinkNullableGetter<ITextureSetGetter> TextureSet => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ITextureSetGetter>(_package, _recordData, Payload.TextureSetLocation);
+        public IFormLinkNullableGetter<IColorRecordGetter> Color => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IColorRecordGetter>(_package, _recordData, Payload.ColorLocation);
+        public IFormLinkNullableGetter<IFormListGetter> ValidRaces => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IFormListGetter>(_package, _recordData, Payload.ValidRacesLocation);
+
+        internal partial class HeadPartRecordDataPayload
+        {
+            public int? NameLocation;
+            public IModelGetter? Model;
+            public int? FlagsLocation;
+            public int? TypeLocation;
+            public IReadOnlyList<IFormLinkGetter<IHeadPartGetter>> ExtraParts = [];
+            public IReadOnlyList<IPartGetter> Parts = [];
+            public int? TextureSetLocation;
+            public int? ColorLocation;
+            public int? ValidRacesLocation;
+        }
+
+        private LazyPayload<HeadPartRecordDataPayload> _payload = null!;
+
+        internal HeadPartRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<HeadPartRecordDataPayload>(init, new HeadPartRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -2440,10 +2448,10 @@ namespace Mutagen.Bethesda.Skyrim
 
         partial void CustomCtor();
         protected HeadPartBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -2454,28 +2462,51 @@ namespace Mutagen.Bethesda.Skyrim
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new HeadPartBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -2504,12 +2535,12 @@ namespace Mutagen.Bethesda.Skyrim
             {
                 case RecordTypeInts.FULL:
                 {
-                    _NameLocation = (stream.Position - offset);
+                    _payload.Fields.NameLocation = (stream.Position - offset);
                     return (int)HeadPart_FieldIndex.Name;
                 }
                 case RecordTypeInts.MODL:
                 {
-                    this.Model = ModelBinaryOverlay.ModelFactory(
+                    _payload.Fields.Model = ModelBinaryOverlay.ModelFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());
@@ -2517,17 +2548,17 @@ namespace Mutagen.Bethesda.Skyrim
                 }
                 case RecordTypeInts.DATA:
                 {
-                    _FlagsLocation = (stream.Position - offset);
+                    _payload.Fields.FlagsLocation = (stream.Position - offset);
                     return (int)HeadPart_FieldIndex.Flags;
                 }
                 case RecordTypeInts.PNAM:
                 {
-                    _TypeLocation = (stream.Position - offset);
+                    _payload.Fields.TypeLocation = (stream.Position - offset);
                     return (int)HeadPart_FieldIndex.Type;
                 }
                 case RecordTypeInts.HNAM:
                 {
-                    this.ExtraParts = BinaryOverlayList.FactoryByArray<IFormLinkGetter<IHeadPartGetter>>(
+                    _payload.Fields.ExtraParts = BinaryOverlayList.FactoryByArray<IFormLinkGetter<IHeadPartGetter>>(
                         mem: stream.RemainingMemory,
                         package: _package,
                         getter: (s, p) => FormLinkBinaryTranslation.Instance.OverlayFactory<IHeadPartGetter>(p, s),
@@ -2542,7 +2573,7 @@ namespace Mutagen.Bethesda.Skyrim
                 case RecordTypeInts.NAM0:
                 case RecordTypeInts.NAM1:
                 {
-                    this.Parts = this.ParseRepeatedTypelessSubrecord<IPartGetter>(
+                    _payload.Fields.Parts = this.ParseRepeatedTypelessSubrecord<IPartGetter>(
                         stream: stream,
                         translationParams: translationParams,
                         trigger: Part_Registration.TriggerSpecs,
@@ -2551,17 +2582,17 @@ namespace Mutagen.Bethesda.Skyrim
                 }
                 case RecordTypeInts.TNAM:
                 {
-                    _TextureSetLocation = (stream.Position - offset);
+                    _payload.Fields.TextureSetLocation = (stream.Position - offset);
                     return (int)HeadPart_FieldIndex.TextureSet;
                 }
                 case RecordTypeInts.CNAM:
                 {
-                    _ColorLocation = (stream.Position - offset);
+                    _payload.Fields.ColorLocation = (stream.Position - offset);
                     return (int)HeadPart_FieldIndex.Color;
                 }
                 case RecordTypeInts.RNAM:
                 {
-                    _ValidRacesLocation = (stream.Position - offset);
+                    _payload.Fields.ValidRacesLocation = (stream.Position - offset);
                     return (int)HeadPart_FieldIndex.ValidRaces;
                 }
                 default:

@@ -1,0 +1,8 @@
+RecordTypes.ITXT,
+RecordTypes.RNAM,
+RecordTypes.ANAM,
+RecordTypes.ITID,
+RecordTypes.UNAM,
+RecordTypes.VNAM,
+RecordTypes.TNAM,
+RecordTypes.CTDA,

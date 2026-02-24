@@ -143,6 +143,7 @@ public static class IMajorRecordGetterExt
 [DebuggerDisplay("{GetType().Name} {this.EditorID?.ToString()} {this.FormKey.ToString()}")]
 internal abstract partial class MajorRecordBinaryOverlay : IMajorRecordGetter
 {
+
     public bool IsCompressed => Enums.HasFlag(MajorRecordFlagsRaw, Constants.CompressedFlag);
     public bool IsDeleted => Enums.HasFlag(MajorRecordFlagsRaw, Constants.DeletedFlag);
 

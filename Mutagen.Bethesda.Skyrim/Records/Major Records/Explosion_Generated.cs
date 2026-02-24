@@ -38,6 +38,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -3012,19 +3013,15 @@ namespace Mutagen.Bethesda.Skyrim
 
 
         #region VirtualMachineAdapter
-        private int? _VirtualMachineAdapterLengthOverride;
-        private RangeInt32? _VirtualMachineAdapterLocation;
-        public IVirtualMachineAdapterGetter? VirtualMachineAdapter => _VirtualMachineAdapterLocation.HasValue ? VirtualMachineAdapterBinaryOverlay.VirtualMachineAdapterFactory(_recordData.Slice(_VirtualMachineAdapterLocation!.Value.Min), _package, TypedParseParams.FromLengthOverride(_VirtualMachineAdapterLengthOverride)) : default;
+        public IVirtualMachineAdapterGetter? VirtualMachineAdapter => Payload.VirtualMachineAdapterLocation.HasValue ? VirtualMachineAdapterBinaryOverlay.VirtualMachineAdapterFactory(_recordData.Slice(Payload.VirtualMachineAdapterLocation!.Value.Min), _package, TypedParseParams.FromLengthOverride(Payload.VirtualMachineAdapterLengthOverride)) : default;
         IAVirtualMachineAdapterGetter? IHaveVirtualMachineAdapterGetter.VirtualMachineAdapter => this.VirtualMachineAdapter;
         #endregion
         #region ObjectBounds
-        private RangeInt32? _ObjectBoundsLocation;
-        private IObjectBoundsGetter? _ObjectBounds => _ObjectBoundsLocation.HasValue ? ObjectBoundsBinaryOverlay.ObjectBoundsFactory(_recordData.Slice(_ObjectBoundsLocation!.Value.Min), _package) : default;
+        private IObjectBoundsGetter? _ObjectBounds => Payload.ObjectBoundsLocation.HasValue ? ObjectBoundsBinaryOverlay.ObjectBoundsFactory(_recordData.Slice(Payload.ObjectBoundsLocation!.Value.Min), _package) : default;
         public IObjectBoundsGetter ObjectBounds => _ObjectBounds ?? new ObjectBounds();
         #endregion
         #region Name
-        private int? _NameLocation;
-        public ITranslatedStringGetter? Name => _NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+        public ITranslatedStringGetter? Name => Payload.NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
         #region Aspects
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         string INamedRequiredGetter.Name => this.Name?.String ?? string.Empty;
@@ -3034,82 +3031,98 @@ namespace Mutagen.Bethesda.Skyrim
         ITranslatedStringGetter ITranslatedNamedRequiredGetter.Name => this.Name ?? TranslatedString.Empty;
         #endregion
         #endregion
-        public IModelGetter? Model { get; private set; }
-        #region ObjectEffect
-        private int? _ObjectEffectLocation;
-        public IFormLinkNullableGetter<IObjectEffectGetter> ObjectEffect => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IObjectEffectGetter>(_package, _recordData, _ObjectEffectLocation);
-        #endregion
-        #region ImageSpaceModifier
-        private int? _ImageSpaceModifierLocation;
-        public IFormLinkNullableGetter<IImageSpaceAdapterGetter> ImageSpaceModifier => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IImageSpaceAdapterGetter>(_package, _recordData, _ImageSpaceModifierLocation);
-        #endregion
-        private RangeInt32? _DATALocation;
-        public Explosion.DATADataType DATADataTypeState { get; private set; }
+        public IModelGetter? Model => Payload.Model;
+        public IFormLinkNullableGetter<IObjectEffectGetter> ObjectEffect => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IObjectEffectGetter>(_package, _recordData, Payload.ObjectEffectLocation);
+        public IFormLinkNullableGetter<IImageSpaceAdapterGetter> ImageSpaceModifier => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IImageSpaceAdapterGetter>(_package, _recordData, Payload.ImageSpaceModifierLocation);
+        public Explosion.DATADataType DATADataTypeState => Payload.DATADataTypeState;
         #region Light
-        private int _LightLocation => _DATALocation!.Value.Min;
-        private bool _Light_IsSet => _DATALocation.HasValue;
+        private int _LightLocation => Payload.DATALocation!.Value.Min;
+        private bool _Light_IsSet => Payload.DATALocation.HasValue;
         public IFormLinkGetter<ILightGetter> Light => _Light_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<ILightGetter>(_package, _recordData.Span.Slice(_LightLocation, 0x4), isSet: _Light_IsSet) : FormLink<ILightGetter>.Null;
         #endregion
         #region Sound1
-        private int _Sound1Location => _DATALocation!.Value.Min + 0x4;
-        private bool _Sound1_IsSet => _DATALocation.HasValue;
+        private int _Sound1Location => Payload.DATALocation!.Value.Min + 0x4;
+        private bool _Sound1_IsSet => Payload.DATALocation.HasValue;
         public IFormLinkGetter<ISoundDescriptorGetter> Sound1 => _Sound1_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<ISoundDescriptorGetter>(_package, _recordData.Span.Slice(_Sound1Location, 0x4), isSet: _Sound1_IsSet) : FormLink<ISoundDescriptorGetter>.Null;
         #endregion
         #region Sound2
-        private int _Sound2Location => _DATALocation!.Value.Min + 0x8;
-        private bool _Sound2_IsSet => _DATALocation.HasValue;
+        private int _Sound2Location => Payload.DATALocation!.Value.Min + 0x8;
+        private bool _Sound2_IsSet => Payload.DATALocation.HasValue;
         public IFormLinkGetter<ISoundDescriptorGetter> Sound2 => _Sound2_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<ISoundDescriptorGetter>(_package, _recordData.Span.Slice(_Sound2Location, 0x4), isSet: _Sound2_IsSet) : FormLink<ISoundDescriptorGetter>.Null;
         #endregion
         #region ImpactDataSet
-        private int _ImpactDataSetLocation => _DATALocation!.Value.Min + 0xC;
-        private bool _ImpactDataSet_IsSet => _DATALocation.HasValue;
+        private int _ImpactDataSetLocation => Payload.DATALocation!.Value.Min + 0xC;
+        private bool _ImpactDataSet_IsSet => Payload.DATALocation.HasValue;
         public IFormLinkGetter<IImpactDataSetGetter> ImpactDataSet => _ImpactDataSet_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IImpactDataSetGetter>(_package, _recordData.Span.Slice(_ImpactDataSetLocation, 0x4), isSet: _ImpactDataSet_IsSet) : FormLink<IImpactDataSetGetter>.Null;
         #endregion
         #region PlacedObject
-        private int _PlacedObjectLocation => _DATALocation!.Value.Min + 0x10;
-        private bool _PlacedObject_IsSet => _DATALocation.HasValue;
+        private int _PlacedObjectLocation => Payload.DATALocation!.Value.Min + 0x10;
+        private bool _PlacedObject_IsSet => Payload.DATALocation.HasValue;
         public IFormLinkGetter<IExplodeSpawnGetter> PlacedObject => _PlacedObject_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IExplodeSpawnGetter>(_package, _recordData.Span.Slice(_PlacedObjectLocation, 0x4), isSet: _PlacedObject_IsSet) : FormLink<IExplodeSpawnGetter>.Null;
         #endregion
         #region SpawnProjectile
-        private int _SpawnProjectileLocation => _DATALocation!.Value.Min + 0x14;
-        private bool _SpawnProjectile_IsSet => _DATALocation.HasValue;
+        private int _SpawnProjectileLocation => Payload.DATALocation!.Value.Min + 0x14;
+        private bool _SpawnProjectile_IsSet => Payload.DATALocation.HasValue;
         public IFormLinkGetter<IProjectileGetter> SpawnProjectile => _SpawnProjectile_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IProjectileGetter>(_package, _recordData.Span.Slice(_SpawnProjectileLocation, 0x4), isSet: _SpawnProjectile_IsSet) : FormLink<IProjectileGetter>.Null;
         #endregion
         #region Force
-        private int _ForceLocation => _DATALocation!.Value.Min + 0x18;
-        private bool _Force_IsSet => _DATALocation.HasValue;
+        private int _ForceLocation => Payload.DATALocation!.Value.Min + 0x18;
+        private bool _Force_IsSet => Payload.DATALocation.HasValue;
         public Single Force => _Force_IsSet ? _recordData.Slice(_ForceLocation, 4).Float() : default(Single);
         #endregion
         #region Damage
-        private int _DamageLocation => _DATALocation!.Value.Min + 0x1C;
-        private bool _Damage_IsSet => _DATALocation.HasValue;
+        private int _DamageLocation => Payload.DATALocation!.Value.Min + 0x1C;
+        private bool _Damage_IsSet => Payload.DATALocation.HasValue;
         public Single Damage => _Damage_IsSet ? _recordData.Slice(_DamageLocation, 4).Float() : default(Single);
         #endregion
         #region Radius
-        private int _RadiusLocation => _DATALocation!.Value.Min + 0x20;
-        private bool _Radius_IsSet => _DATALocation.HasValue;
+        private int _RadiusLocation => Payload.DATALocation!.Value.Min + 0x20;
+        private bool _Radius_IsSet => Payload.DATALocation.HasValue;
         public Single Radius => _Radius_IsSet ? _recordData.Slice(_RadiusLocation, 4).Float() : default(Single);
         #endregion
         #region ISRadius
-        private int _ISRadiusLocation => _DATALocation!.Value.Min + 0x24;
-        private bool _ISRadius_IsSet => _DATALocation.HasValue;
+        private int _ISRadiusLocation => Payload.DATALocation!.Value.Min + 0x24;
+        private bool _ISRadius_IsSet => Payload.DATALocation.HasValue;
         public Single ISRadius => _ISRadius_IsSet ? _recordData.Slice(_ISRadiusLocation, 4).Float() : default(Single);
         #endregion
         #region VerticalOffsetMult
-        private int _VerticalOffsetMultLocation => _DATALocation!.Value.Min + 0x28;
-        private bool _VerticalOffsetMult_IsSet => _DATALocation.HasValue && !DATADataTypeState.HasFlag(Explosion.DATADataType.Break0);
+        private int _VerticalOffsetMultLocation => Payload.DATALocation!.Value.Min + 0x28;
+        private bool _VerticalOffsetMult_IsSet => Payload.DATALocation.HasValue && !DATADataTypeState.HasFlag(Explosion.DATADataType.Break0);
         public Single VerticalOffsetMult => _VerticalOffsetMult_IsSet ? _recordData.Slice(_VerticalOffsetMultLocation, 4).Float() : default(Single);
         #endregion
         #region Flags
-        private int _FlagsLocation => _DATALocation!.Value.Min + 0x2C;
-        private bool _Flags_IsSet => _DATALocation.HasValue && !DATADataTypeState.HasFlag(Explosion.DATADataType.Break1);
+        private int _FlagsLocation => Payload.DATALocation!.Value.Min + 0x2C;
+        private bool _Flags_IsSet => Payload.DATALocation.HasValue && !DATADataTypeState.HasFlag(Explosion.DATADataType.Break1);
         public Explosion.Flag Flags => _Flags_IsSet ? (Explosion.Flag)BinaryPrimitives.ReadInt32LittleEndian(_recordData.Span.Slice(_FlagsLocation, 0x4)) : default;
         #endregion
         #region SoundLevel
-        private int _SoundLevelLocation => _DATALocation!.Value.Min + 0x30;
-        private bool _SoundLevel_IsSet => _DATALocation.HasValue && !DATADataTypeState.HasFlag(Explosion.DATADataType.Break2);
+        private int _SoundLevelLocation => Payload.DATALocation!.Value.Min + 0x30;
+        private bool _SoundLevel_IsSet => Payload.DATALocation.HasValue && !DATADataTypeState.HasFlag(Explosion.DATADataType.Break2);
         public SoundLevel SoundLevel => _SoundLevel_IsSet ? (SoundLevel)BinaryPrimitives.ReadInt32LittleEndian(_recordData.Span.Slice(_SoundLevelLocation, 0x4)) : default;
         #endregion
+
+        internal partial class ExplosionRecordDataPayload
+        {
+            public int? VirtualMachineAdapterLengthOverride;
+            public RangeInt32? VirtualMachineAdapterLocation;
+            public RangeInt32? ObjectBoundsLocation;
+            public int? NameLocation;
+            public IModelGetter? Model;
+            public int? ObjectEffectLocation;
+            public int? ImageSpaceModifierLocation;
+            public RangeInt32? DATALocation;
+            public Explosion.DATADataType DATADataTypeState;
+        }
+
+        private LazyPayload<ExplosionRecordDataPayload> _payload = null!;
+
+        internal ExplosionRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<ExplosionRecordDataPayload>(init, new ExplosionRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -3117,10 +3130,10 @@ namespace Mutagen.Bethesda.Skyrim
 
         partial void CustomCtor();
         protected ExplosionBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -3131,28 +3144,51 @@ namespace Mutagen.Bethesda.Skyrim
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new ExplosionBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -3181,8 +3217,8 @@ namespace Mutagen.Bethesda.Skyrim
             {
                 case RecordTypeInts.VMAD:
                 {
-                    _VirtualMachineAdapterLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
-                    _VirtualMachineAdapterLengthOverride = lastParsed.LengthOverride;
+                    _payload.Fields.VirtualMachineAdapterLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.VirtualMachineAdapterLengthOverride = lastParsed.LengthOverride;
                     if (lastParsed.LengthOverride.HasValue)
                     {
                         stream.Position += lastParsed.LengthOverride.Value;
@@ -3191,17 +3227,17 @@ namespace Mutagen.Bethesda.Skyrim
                 }
                 case RecordTypeInts.OBND:
                 {
-                    _ObjectBoundsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.ObjectBoundsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)Explosion_FieldIndex.ObjectBounds;
                 }
                 case RecordTypeInts.FULL:
                 {
-                    _NameLocation = (stream.Position - offset);
+                    _payload.Fields.NameLocation = (stream.Position - offset);
                     return (int)Explosion_FieldIndex.Name;
                 }
                 case RecordTypeInts.MODL:
                 {
-                    this.Model = ModelBinaryOverlay.ModelFactory(
+                    _payload.Fields.Model = ModelBinaryOverlay.ModelFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());
@@ -3209,29 +3245,29 @@ namespace Mutagen.Bethesda.Skyrim
                 }
                 case RecordTypeInts.EITM:
                 {
-                    _ObjectEffectLocation = (stream.Position - offset);
+                    _payload.Fields.ObjectEffectLocation = (stream.Position - offset);
                     return (int)Explosion_FieldIndex.ObjectEffect;
                 }
                 case RecordTypeInts.MNAM:
                 {
-                    _ImageSpaceModifierLocation = (stream.Position - offset);
+                    _payload.Fields.ImageSpaceModifierLocation = (stream.Position - offset);
                     return (int)Explosion_FieldIndex.ImageSpaceModifier;
                 }
                 case RecordTypeInts.DATA:
                 {
-                    _DATALocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.DATALocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     var subLen = _package.MetaData.Constants.SubrecordHeader(_recordData.Slice((stream.Position - offset))).ContentLength;
                     if (subLen <= 0x28)
                     {
-                        this.DATADataTypeState |= Explosion.DATADataType.Break0;
+                        _payload.Fields.DATADataTypeState |= Explosion.DATADataType.Break0;
                     }
                     if (subLen <= 0x2C)
                     {
-                        this.DATADataTypeState |= Explosion.DATADataType.Break1;
+                        _payload.Fields.DATADataTypeState |= Explosion.DATADataType.Break1;
                     }
                     if (subLen <= 0x30)
                     {
-                        this.DATADataTypeState |= Explosion.DATADataType.Break2;
+                        _payload.Fields.DATADataTypeState |= Explosion.DATADataType.Break2;
                     }
                     return (int)Explosion_FieldIndex.SoundLevel;
                 }

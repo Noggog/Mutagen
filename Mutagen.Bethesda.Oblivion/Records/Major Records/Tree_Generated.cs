@@ -34,6 +34,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -1917,20 +1918,30 @@ namespace Mutagen.Bethesda.Oblivion
         protected override Type LinkType => typeof(ITreeGetter);
 
 
-        public IModelGetter? Model { get; private set; }
-        #region Icon
-        private int? _IconLocation;
-        public String? Icon => _IconLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _IconLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
-        public IReadOnlyList<UInt32>? SpeedTreeSeeds { get; private set; }
-        #region Data
-        private RangeInt32? _DataLocation;
-        public ITreeDataGetter? Data => _DataLocation.HasValue ? TreeDataBinaryOverlay.TreeDataFactory(_recordData.Slice(_DataLocation!.Value.Min), _package) : default;
-        #endregion
-        #region BillboardDimensions
-        private RangeInt32? _BillboardDimensionsLocation;
-        public IDimensionsGetter? BillboardDimensions => _BillboardDimensionsLocation.HasValue ? DimensionsBinaryOverlay.DimensionsFactory(_recordData.Slice(_BillboardDimensionsLocation!.Value.Min), _package) : default;
-        #endregion
+        public IModelGetter? Model => Payload.Model;
+        public String? Icon => Payload.IconLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.IconLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public IReadOnlyList<UInt32>? SpeedTreeSeeds => Payload.SpeedTreeSeeds;
+        public ITreeDataGetter? Data => Payload.DataLocation.HasValue ? TreeDataBinaryOverlay.TreeDataFactory(_recordData.Slice(Payload.DataLocation!.Value.Min), _package) : default;
+        public IDimensionsGetter? BillboardDimensions => Payload.BillboardDimensionsLocation.HasValue ? DimensionsBinaryOverlay.DimensionsFactory(_recordData.Slice(Payload.BillboardDimensionsLocation!.Value.Min), _package) : default;
+
+        internal partial class TreeRecordDataPayload
+        {
+            public IModelGetter? Model;
+            public int? IconLocation;
+            public IReadOnlyList<UInt32>? SpeedTreeSeeds;
+            public RangeInt32? DataLocation;
+            public RangeInt32? BillboardDimensionsLocation;
+        }
+
+        private LazyPayload<TreeRecordDataPayload> _payload = null!;
+
+        internal TreeRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<TreeRecordDataPayload>(init, new TreeRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -1938,10 +1949,10 @@ namespace Mutagen.Bethesda.Oblivion
 
         partial void CustomCtor();
         protected TreeBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -1952,28 +1963,51 @@ namespace Mutagen.Bethesda.Oblivion
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new TreeBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -2002,7 +2036,7 @@ namespace Mutagen.Bethesda.Oblivion
             {
                 case RecordTypeInts.MODL:
                 {
-                    this.Model = ModelBinaryOverlay.ModelFactory(
+                    _payload.Fields.Model = ModelBinaryOverlay.ModelFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());
@@ -2010,12 +2044,12 @@ namespace Mutagen.Bethesda.Oblivion
                 }
                 case RecordTypeInts.ICON:
                 {
-                    _IconLocation = (stream.Position - offset);
+                    _payload.Fields.IconLocation = (stream.Position - offset);
                     return (int)Tree_FieldIndex.Icon;
                 }
                 case RecordTypeInts.SNAM:
                 {
-                    this.SpeedTreeSeeds = BinaryOverlayList.FactoryByStartIndexWithTrigger<UInt32>(
+                    _payload.Fields.SpeedTreeSeeds = BinaryOverlayList.FactoryByStartIndexWithTrigger<UInt32>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -2025,12 +2059,12 @@ namespace Mutagen.Bethesda.Oblivion
                 }
                 case RecordTypeInts.CNAM:
                 {
-                    _DataLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.DataLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)Tree_FieldIndex.Data;
                 }
                 case RecordTypeInts.BNAM:
                 {
-                    _BillboardDimensionsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.BillboardDimensionsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)Tree_FieldIndex.BillboardDimensions;
                 }
                 default:

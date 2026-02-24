@@ -39,14 +39,17 @@ partial class LeveledItemBinaryWriteTranslation
 
 partial class LeveledItemBinaryOverlay
 {
-    private bool _vestigialMarker;
+    internal partial class LeveledItemRecordDataPayload
+    {
+        public int? FlagsLocation;
+        public bool VestigialMarker;
+    }
 
-    private int? _FlagsLocation;
-    bool GetFlagsIsSetCustom() => _FlagsLocation.HasValue || _vestigialMarker;
+    bool GetFlagsIsSetCustom() => Payload.FlagsLocation.HasValue || Payload.VestigialMarker;
     public partial LeveledFlag? GetFlagsCustom()
     {
-        var ret = _FlagsLocation.HasValue ? (LeveledFlag)HeaderTranslation.ExtractSubrecordMemory(_recordData, _FlagsLocation.Value, _package.MetaData.Constants)[0] : default(LeveledFlag?);
-        if (_vestigialMarker)
+        var ret = Payload.FlagsLocation.HasValue ? (LeveledFlag)HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.FlagsLocation.Value, _package.MetaData.Constants)[0] : default(LeveledFlag?);
+        if (Payload.VestigialMarker)
         {
             if (ret.HasValue)
             {
@@ -61,7 +64,7 @@ partial class LeveledItemBinaryOverlay
     }
     partial void FlagsCustomParse(OverlayStream stream, int finalPos, int offset)
     {
-        _FlagsLocation = (ushort)(stream.Position - offset);
+        _payload.Fields.FlagsLocation = (ushort)(stream.Position - offset);
     }
 
     public partial ParseResult VestigialCustomParse(OverlayStream stream, int offset, PreviousParse lastParsed)
@@ -73,7 +76,7 @@ partial class LeveledItemBinaryOverlay
         }
         if (stream.ReadUInt8() > 0)
         {
-            this._vestigialMarker = true;
+            _payload.Fields.VestigialMarker = true;
         }
 
         return null;

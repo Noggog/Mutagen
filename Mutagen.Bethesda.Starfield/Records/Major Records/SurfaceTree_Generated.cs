@@ -36,6 +36,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -2336,49 +2337,58 @@ namespace Mutagen.Bethesda.Starfield
         protected override Type LinkType => typeof(ISurfaceTreeGetter);
 
 
-        public IReadOnlyList<IAComponentGetter> Components { get; private set; } = [];
-        #region CNAM
-        private int? _CNAMLocation;
-        public ReadOnlyMemorySlice<Byte> CNAM => _CNAMLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _CNAMLocation.Value, _package.MetaData.Constants) : ReadOnlyMemorySlice<byte>.Empty;
-        #endregion
-        #region DNAM
-        private int? _DNAMLocation;
-        public ReadOnlyMemorySlice<Byte> DNAM => _DNAMLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _DNAMLocation.Value, _package.MetaData.Constants) : ReadOnlyMemorySlice<byte>.Empty;
-        #endregion
+        public IReadOnlyList<IAComponentGetter> Components => Payload.Components ?? [];
+        public ReadOnlyMemorySlice<Byte> CNAM => Payload.CNAMLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.CNAMLocation.Value, _package.MetaData.Constants) : ReadOnlyMemorySlice<byte>.Empty;
+        public ReadOnlyMemorySlice<Byte> DNAM => Payload.DNAMLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.DNAMLocation.Value, _package.MetaData.Constants) : ReadOnlyMemorySlice<byte>.Empty;
         #region SurfacePatterns
-        private int? _SurfacePatternsLengthOverride;
-        private int? _SurfacePatternsLocation;
         private readonly static ReadOnlyMemorySlice<IFormLinkGetter<ISurfacePatternGetter>> _defaultSurfacePatterns = ArrayExt.Create(65536, FormLink<ISurfacePatternGetter>.Null);
-        public ReadOnlyMemorySlice<IFormLinkGetter<ISurfacePatternGetter>> SurfacePatterns => _SurfacePatternsLocation.HasValue ? BinaryOverlayArrayHelper.FormLinkSliceFromFixedSize<ISurfacePatternGetter>(HeaderTranslation.ExtractSubrecordMemory(_recordData, _SurfacePatternsLocation.Value, _package.MetaData.Constants, TypedParseParams.FromLengthOverride(_SurfacePatternsLengthOverride)), amount: 65536, masterReferences: _package.MetaData.MasterReferences) : _defaultSurfacePatterns;
+        public ReadOnlyMemorySlice<IFormLinkGetter<ISurfacePatternGetter>> SurfacePatterns => Payload.SurfacePatternsLocation.HasValue ? BinaryOverlayArrayHelper.FormLinkSliceFromFixedSize<ISurfacePatternGetter>(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.SurfacePatternsLocation.Value, _package.MetaData.Constants, TypedParseParams.FromLengthOverride(Payload.SurfacePatternsLengthOverride)), amount: 65536, masterReferences: _package.MetaData.MasterReferences) : _defaultSurfacePatterns;
         #endregion
         #region GNAM
-        private int? _GNAMLocation;
-        private int? _GNAMLengthOverride;
         public ReadOnlyMemorySlice<Byte>? GNAM => PluginUtilityTranslation.ReadByteArrayWithOverflow(
             _recordData,
             _package.MetaData.Constants,
-            _GNAMLocation,
-            _GNAMLengthOverride);
+            Payload.GNAMLocation,
+            Payload.GNAMLengthOverride);
         #endregion
         #region SurfacePatterns2
-        private int? _SurfacePatterns2LengthOverride;
-        private int? _SurfacePatterns2Location;
         private readonly static ReadOnlyMemorySlice<IFormLinkGetter<ISurfacePatternGetter>> _defaultSurfacePatterns2 = ArrayExt.Create(65536, FormLink<ISurfacePatternGetter>.Null);
-        public ReadOnlyMemorySlice<IFormLinkGetter<ISurfacePatternGetter>> SurfacePatterns2 => _SurfacePatterns2Location.HasValue ? BinaryOverlayArrayHelper.FormLinkSliceFromFixedSize<ISurfacePatternGetter>(HeaderTranslation.ExtractSubrecordMemory(_recordData, _SurfacePatterns2Location.Value, _package.MetaData.Constants, TypedParseParams.FromLengthOverride(_SurfacePatterns2LengthOverride)), amount: 65536, masterReferences: _package.MetaData.MasterReferences) : _defaultSurfacePatterns2;
+        public ReadOnlyMemorySlice<IFormLinkGetter<ISurfacePatternGetter>> SurfacePatterns2 => Payload.SurfacePatterns2Location.HasValue ? BinaryOverlayArrayHelper.FormLinkSliceFromFixedSize<ISurfacePatternGetter>(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.SurfacePatterns2Location.Value, _package.MetaData.Constants, TypedParseParams.FromLengthOverride(Payload.SurfacePatterns2LengthOverride)), amount: 65536, masterReferences: _package.MetaData.MasterReferences) : _defaultSurfacePatterns2;
         #endregion
         #region GNAM2
-        private int? _GNAM2Location;
-        private int? _GNAM2LengthOverride;
         public ReadOnlyMemorySlice<Byte>? GNAM2 => PluginUtilityTranslation.ReadByteArrayWithOverflow(
             _recordData,
             _package.MetaData.Constants,
-            _GNAM2Location,
-            _GNAM2LengthOverride);
+            Payload.GNAM2Location,
+            Payload.GNAM2LengthOverride);
         #endregion
-        #region Filter
-        private int? _FilterLocation;
-        public String Filter => _FilterLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _FilterLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : string.Empty;
-        #endregion
+        public String Filter => Payload.FilterLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.FilterLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : string.Empty;
+
+        internal partial class SurfaceTreeRecordDataPayload
+        {
+            public IReadOnlyList<IAComponentGetter> Components = [];
+            public int? CNAMLocation;
+            public int? DNAMLocation;
+            public int? SurfacePatternsLengthOverride;
+            public int? SurfacePatternsLocation;
+            public int? GNAMLocation;
+            public int? GNAMLengthOverride;
+            public int? SurfacePatterns2LengthOverride;
+            public int? SurfacePatterns2Location;
+            public int? GNAM2Location;
+            public int? GNAM2LengthOverride;
+            public int? FilterLocation;
+        }
+
+        private LazyPayload<SurfaceTreeRecordDataPayload> _payload = null!;
+
+        internal SurfaceTreeRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<SurfaceTreeRecordDataPayload>(init, new SurfaceTreeRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -2386,10 +2396,10 @@ namespace Mutagen.Bethesda.Starfield
 
         partial void CustomCtor();
         protected SurfaceTreeBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -2400,28 +2410,51 @@ namespace Mutagen.Bethesda.Starfield
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new SurfaceTreeBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -2450,7 +2483,7 @@ namespace Mutagen.Bethesda.Starfield
             {
                 case RecordTypeInts.BFCB:
                 {
-                    this.Components = this.ParseRepeatedTypelessSubrecord<IAComponentGetter>(
+                    _payload.Fields.Components = this.ParseRepeatedTypelessSubrecord<IAComponentGetter>(
                         stream: stream,
                         translationParams: translationParams,
                         trigger: AComponent_Registration.TriggerSpecs,
@@ -2459,12 +2492,12 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.CNAM:
                 {
-                    _CNAMLocation = (stream.Position - offset);
+                    _payload.Fields.CNAMLocation = (stream.Position - offset);
                     return (int)SurfaceTree_FieldIndex.CNAM;
                 }
                 case RecordTypeInts.DNAM:
                 {
-                    _DNAMLocation = (stream.Position - offset);
+                    _payload.Fields.DNAMLocation = (stream.Position - offset);
                     return (int)SurfaceTree_FieldIndex.DNAM;
                 }
                 case RecordTypeInts.FNAM:
@@ -2472,8 +2505,8 @@ namespace Mutagen.Bethesda.Starfield
                     if (!lastParsed.ParsedIndex.HasValue
                         || lastParsed.ParsedIndex.Value <= (int)SurfaceTree_FieldIndex.DNAM)
                     {
-                        _SurfacePatternsLocation = (stream.Position - offset);
-                        _SurfacePatternsLengthOverride = lastParsed.LengthOverride;
+                        _payload.Fields.SurfacePatternsLocation = (stream.Position - offset);
+                        _payload.Fields.SurfacePatternsLengthOverride = lastParsed.LengthOverride;
                         if (lastParsed.LengthOverride.HasValue)
                         {
                             stream.Position += lastParsed.LengthOverride.Value;
@@ -2482,8 +2515,8 @@ namespace Mutagen.Bethesda.Starfield
                     }
                     else if (lastParsed.ParsedIndex.Value <= (int)SurfaceTree_FieldIndex.GNAM)
                     {
-                        _SurfacePatterns2Location = (stream.Position - offset);
-                        _SurfacePatterns2LengthOverride = lastParsed.LengthOverride;
+                        _payload.Fields.SurfacePatterns2Location = (stream.Position - offset);
+                        _payload.Fields.SurfacePatterns2LengthOverride = lastParsed.LengthOverride;
                         if (lastParsed.LengthOverride.HasValue)
                         {
                             stream.Position += lastParsed.LengthOverride.Value;
@@ -2496,8 +2529,8 @@ namespace Mutagen.Bethesda.Starfield
                         {
                             case 0:
                             {
-                                _SurfacePatternsLocation = (stream.Position - offset);
-                                _SurfacePatternsLengthOverride = lastParsed.LengthOverride;
+                                _payload.Fields.SurfacePatternsLocation = (stream.Position - offset);
+                                _payload.Fields.SurfacePatternsLengthOverride = lastParsed.LengthOverride;
                                 if (lastParsed.LengthOverride.HasValue)
                                 {
                                     stream.Position += lastParsed.LengthOverride.Value;
@@ -2506,8 +2539,8 @@ namespace Mutagen.Bethesda.Starfield
                             }
                             case 1:
                             {
-                                _SurfacePatterns2Location = (stream.Position - offset);
-                                _SurfacePatterns2LengthOverride = lastParsed.LengthOverride;
+                                _payload.Fields.SurfacePatterns2Location = (stream.Position - offset);
+                                _payload.Fields.SurfacePatterns2LengthOverride = lastParsed.LengthOverride;
                                 if (lastParsed.LengthOverride.HasValue)
                                 {
                                     stream.Position += lastParsed.LengthOverride.Value;
@@ -2524,8 +2557,8 @@ namespace Mutagen.Bethesda.Starfield
                     if (!lastParsed.ParsedIndex.HasValue
                         || lastParsed.ParsedIndex.Value <= (int)SurfaceTree_FieldIndex.SurfacePatterns)
                     {
-                        _GNAMLocation = (stream.Position - offset);
-                        _GNAMLengthOverride = lastParsed.LengthOverride;
+                        _payload.Fields.GNAMLocation = (stream.Position - offset);
+                        _payload.Fields.GNAMLengthOverride = lastParsed.LengthOverride;
                         if (lastParsed.LengthOverride.HasValue)
                         {
                             stream.Position += lastParsed.LengthOverride.Value;
@@ -2534,8 +2567,8 @@ namespace Mutagen.Bethesda.Starfield
                     }
                     else if (lastParsed.ParsedIndex.Value <= (int)SurfaceTree_FieldIndex.SurfacePatterns2)
                     {
-                        _GNAM2Location = (stream.Position - offset);
-                        _GNAM2LengthOverride = lastParsed.LengthOverride;
+                        _payload.Fields.GNAM2Location = (stream.Position - offset);
+                        _payload.Fields.GNAM2LengthOverride = lastParsed.LengthOverride;
                         if (lastParsed.LengthOverride.HasValue)
                         {
                             stream.Position += lastParsed.LengthOverride.Value;
@@ -2548,8 +2581,8 @@ namespace Mutagen.Bethesda.Starfield
                         {
                             case 0:
                             {
-                                _GNAMLocation = (stream.Position - offset);
-                                _GNAMLengthOverride = lastParsed.LengthOverride;
+                                _payload.Fields.GNAMLocation = (stream.Position - offset);
+                                _payload.Fields.GNAMLengthOverride = lastParsed.LengthOverride;
                                 if (lastParsed.LengthOverride.HasValue)
                                 {
                                     stream.Position += lastParsed.LengthOverride.Value;
@@ -2558,8 +2591,8 @@ namespace Mutagen.Bethesda.Starfield
                             }
                             case 1:
                             {
-                                _GNAM2Location = (stream.Position - offset);
-                                _GNAM2LengthOverride = lastParsed.LengthOverride;
+                                _payload.Fields.GNAM2Location = (stream.Position - offset);
+                                _payload.Fields.GNAM2LengthOverride = lastParsed.LengthOverride;
                                 if (lastParsed.LengthOverride.HasValue)
                                 {
                                     stream.Position += lastParsed.LengthOverride.Value;
@@ -2573,7 +2606,7 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.NAM1:
                 {
-                    _FilterLocation = (stream.Position - offset);
+                    _payload.Fields.FilterLocation = (stream.Position - offset);
                     return (int)SurfaceTree_FieldIndex.Filter;
                 }
                 case RecordTypeInts.XXXX:

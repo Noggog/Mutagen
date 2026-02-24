@@ -1,0 +1,4 @@
+RecordTypes.EDID,
+RecordTypes.FULL,
+RecordTypes.HNAM,
+RecordTypes.INAM,

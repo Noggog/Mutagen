@@ -124,20 +124,25 @@ partial class RaceBinaryCreateTranslation
 
 partial class RaceBinaryOverlay
 {
+    internal partial class RaceRecordDataPayload
+    {
+        public int? FaceFxPhonemesLoc;
+        public int? BipedObjectNamesLoc;
+        public int? BodyTemplateLocation;
+    }
+
     public bool ExportingExtraNam2 { get; private set; }
     public bool ExportingExtraNam3 => throw new NotImplementedException();
 
-    private int? _faceFxPhonemesLoc;
     public IFaceFxPhonemesGetter FaceFxPhonemes => GetFaceFx();
 
-    private int? _bipedObjectNamesLoc;
     public IReadOnlyDictionary<BipedObject, string> BipedObjectNames
     {
         get
         {
-            if (_bipedObjectNamesLoc == null) return DictionaryExt.Empty<BipedObject, string>();
+            if (Payload.BipedObjectNamesLoc == null) return DictionaryExt.Empty<BipedObject, string>();
             var ret = new Dictionary<BipedObject, string>();
-            var loc = _bipedObjectNamesLoc.Value;
+            var loc = Payload.BipedObjectNamesLoc.Value;
             for (int i = 0; i < RaceBinaryCreateTranslation.NumBipedObjectNames; i++)
             {
                 if (!_package.MetaData.Constants.TrySubrecord(_recordData.Slice(loc), RecordTypes.NAME, out var subHeader)) break;
@@ -155,7 +160,7 @@ partial class RaceBinaryOverlay
 
     void BipedObjectNamesCustomParse(OverlayStream stream, int finalPos, int offset)
     {
-        _bipedObjectNamesLoc = (ushort)(stream.Position - offset);
+        _payload.Fields.BipedObjectNamesLoc = (ushort)(stream.Position - offset);
         PluginUtilityTranslation.SkipPastAll(stream, _package.MetaData.Constants, RecordTypes.NAME);
     }
 
@@ -167,9 +172,9 @@ partial class RaceBinaryOverlay
 
     public partial ParseResult FaceFxPhonemesRawParsingCustomParse(OverlayStream stream, int offset, PreviousParse lastParsed)
     {
-        if (_faceFxPhonemesLoc == null)
+        if (_payload.Fields.FaceFxPhonemesLoc == null)
         {
-            _faceFxPhonemesLoc = (ushort)(stream.Position - offset);
+            _payload.Fields.FaceFxPhonemesLoc = (ushort)(stream.Position - offset);
         }
         PluginUtilityTranslation.SkipPastAll(stream, _package.MetaData.Constants, RecordTypes.PHTN);
         PluginUtilityTranslation.SkipPastAll(stream, _package.MetaData.Constants, RecordTypes.PHWT);
@@ -179,15 +184,16 @@ partial class RaceBinaryOverlay
     private FaceFxPhonemes GetFaceFx()
     {
         var ret = new FaceFxPhonemes();
-        if (_faceFxPhonemesLoc == null) return ret;
-        var frame = new MutagenFrame(new MutagenMemoryReadStream(_recordData.Slice(_faceFxPhonemesLoc.Value), _package.MetaData));
+        var faceFxLoc = Payload.FaceFxPhonemesLoc;
+        if (faceFxLoc == null) return ret;
+        var frame = new MutagenFrame(new MutagenMemoryReadStream(_recordData.Slice(faceFxLoc.Value), _package.MetaData));
         FaceFxPhonemesBinaryCreateTranslation.ParseFaceFxPhonemes(frame, ret);
         return ret;
     }
 
     public partial Race.Flag GetFlagsCustom()
     {
-        if (!_DATALocation.HasValue) return default;
+        if (!Payload.DATALocation.HasValue) return default;
         var flag = (Race.Flag)BinaryPrimitives.ReadInt32LittleEndian(_recordData.Span.Slice(_FlagsLocation, 4));
 
         // Clear out upper flags
@@ -200,13 +206,15 @@ partial class RaceBinaryOverlay
         return flag;
     }
 
-    private int? _BodyTemplateLocation;
-    public partial IBodyTemplateGetter? GetBodyTemplateCustom() => _BodyTemplateLocation.HasValue ? BodyTemplateBinaryOverlay.CustomFactory(new OverlayStream(_recordData.Slice(_BodyTemplateLocation!.Value), _package), _package) : default;
-    public bool BodyTemplate_IsSet => _BodyTemplateLocation.HasValue;
+    public partial IBodyTemplateGetter? GetBodyTemplateCustom()
+    {
+        return Payload.BodyTemplateLocation.HasValue ? BodyTemplateBinaryOverlay.CustomFactory(new OverlayStream(_recordData.Slice(Payload.BodyTemplateLocation!.Value), _package), _package) : default;
+    }
+    public bool BodyTemplate_IsSet => Payload.BodyTemplateLocation.HasValue;
 
     partial void BodyTemplateCustomParse(OverlayStream stream, int finalPos, int offset)
     {
-        _BodyTemplateLocation = (stream.Position - offset);
+        _payload.Fields.BodyTemplateLocation = (stream.Position - offset);
     }
 }
 

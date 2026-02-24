@@ -1868,19 +1868,47 @@ namespace Mutagen.Bethesda.Starfield
         #endregion
         #region HNAM
         private int? _HNAMLocation;
-        public Single HNAM => _HNAMLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _HNAMLocation.Value, _package.MetaData.Constants).Float() : default(Single);
+        public Single HNAM
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _HNAMLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_data, _HNAMLocation.Value, _package.MetaData.Constants).Float() : default(Single);
+            }
+        }
         #endregion
         #region VCLR
         private int? _VCLRLocation;
-        public Single VCLR => _VCLRLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _VCLRLocation.Value, _package.MetaData.Constants).Float() : default(Single);
+        public Single VCLR
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _VCLRLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_data, _VCLRLocation.Value, _package.MetaData.Constants).Float() : default(Single);
+            }
+        }
         #endregion
         #region BTXT
         private int? _BTXTLocation;
-        public Int32 BTXT => _BTXTLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _BTXTLocation.Value, _package.MetaData.Constants)) : default(Int32);
+        public Int32 BTXT
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _BTXTLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _BTXTLocation.Value, _package.MetaData.Constants)) : default(Int32);
+            }
+        }
         #endregion
         #region FLMV
         private int? _FLMVLocation;
-        public Int32 FLMV => _FLMVLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _FLMVLocation.Value, _package.MetaData.Constants)) : default(Int32);
+        public Int32 FLMV
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _FLMVLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _FLMVLocation.Value, _package.MetaData.Constants)) : default(Int32);
+            }
+        }
         #endregion
         public ISoundReferenceGetter? WED0 { get; private set; }
         public IReadOnlyList<IConditionGetter> Conditions { get; private set; } = [];
@@ -1890,7 +1918,14 @@ namespace Mutagen.Bethesda.Starfield
         #endregion
         #region LVLO
         private int? _LVLOLocation;
-        public Int32? LVLO => _LVLOLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _LVLOLocation.Value, _package.MetaData.Constants)) : default(Int32?);
+        public Int32? LVLO
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _LVLOLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _LVLOLocation.Value, _package.MetaData.Constants)) : default(Int32?);
+            }
+        }
         #endregion
         partial void CustomFactoryEnd(
             OverlayStream stream,

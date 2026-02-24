@@ -2350,7 +2350,14 @@ namespace Mutagen.Bethesda.Starfield
         #endregion
         #region Subgraph
         private int? _SubgraphLocation;
-        public String? Subgraph => _SubgraphLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _SubgraphLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? Subgraph
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _SubgraphLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_data, _SubgraphLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+            }
+        }
         #endregion
         #region BodyArchetype
         private int? _BodyArchetypeLocation;
@@ -2366,31 +2373,80 @@ namespace Mutagen.Bethesda.Starfield
         #endregion
         #region UseDialogueAnimation
         private int? _UseDialogueAnimationLocation;
-        public Boolean UseDialogueAnimation => _UseDialogueAnimationLocation.HasValue ? true : default(Boolean);
+        public Boolean UseDialogueAnimation
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _UseDialogueAnimationLocation.HasValue ? true : default(Boolean);
+            }
+        }
         #endregion
         #region UseAnimationBodyArchetype
         private int? _UseAnimationBodyArchetypeLocation;
-        public Boolean UseAnimationBodyArchetype => _UseAnimationBodyArchetypeLocation.HasValue ? true : default(Boolean);
+        public Boolean UseAnimationBodyArchetype
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _UseAnimationBodyArchetypeLocation.HasValue ? true : default(Boolean);
+            }
+        }
         #endregion
         #region HasAnimationFaceArchetype
         private int? _HasAnimationFaceArchetypeLocation;
-        public Boolean HasAnimationFaceArchetype => _HasAnimationFaceArchetypeLocation.HasValue ? true : default(Boolean);
+        public Boolean HasAnimationFaceArchetype
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _HasAnimationFaceArchetypeLocation.HasValue ? true : default(Boolean);
+            }
+        }
         #endregion
         #region AnimationCompleteEndsPhase
         private int? _AnimationCompleteEndsPhaseLocation;
-        public Boolean AnimationCompleteEndsPhase => _AnimationCompleteEndsPhaseLocation.HasValue ? true : default(Boolean);
+        public Boolean AnimationCompleteEndsPhase
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _AnimationCompleteEndsPhaseLocation.HasValue ? true : default(Boolean);
+            }
+        }
         #endregion
         #region AnimationOnlyMovement
         private int? _AnimationOnlyMovementLocation;
-        public Boolean AnimationOnlyMovement => _AnimationOnlyMovementLocation.HasValue ? true : default(Boolean);
+        public Boolean AnimationOnlyMovement
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _AnimationOnlyMovementLocation.HasValue ? true : default(Boolean);
+            }
+        }
         #endregion
         #region UseFlavorAnimation
         private int? _UseFlavorAnimationLocation;
-        public Boolean UseFlavorAnimation => _UseFlavorAnimationLocation.HasValue ? true : default(Boolean);
+        public Boolean UseFlavorAnimation
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _UseFlavorAnimationLocation.HasValue ? true : default(Boolean);
+            }
+        }
         #endregion
         #region DelayStartTimeAction
         private int? _DelayStartTimeActionLocation;
-        public Single? DelayStartTimeAction => _DelayStartTimeActionLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _DelayStartTimeActionLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public Single? DelayStartTimeAction
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _DelayStartTimeActionLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_data, _DelayStartTimeActionLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+            }
+        }
         #endregion
         public IReadOnlyList<IConditionGetter> Conditions { get; private set; } = [];
         #region Action
@@ -2399,19 +2455,47 @@ namespace Mutagen.Bethesda.Starfield
         #endregion
         #region UseActorAnimationAction
         private int? _UseActorAnimationActionLocation;
-        public Boolean UseActorAnimationAction => _UseActorAnimationActionLocation.HasValue ? true : default(Boolean);
+        public Boolean UseActorAnimationAction
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _UseActorAnimationActionLocation.HasValue ? true : default(Boolean);
+            }
+        }
         #endregion
         #region AnimationHoldEvent
         private int? _AnimationHoldEventLocation;
-        public Boolean AnimationHoldEvent => _AnimationHoldEventLocation.HasValue ? true : default(Boolean);
+        public Boolean AnimationHoldEvent
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _AnimationHoldEventLocation.HasValue ? true : default(Boolean);
+            }
+        }
         #endregion
         #region DTGT
         private int? _DTGTLocation;
-        public Int32? DTGT => _DTGTLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _DTGTLocation.Value, _package.MetaData.Constants)) : default(Int32?);
+        public Int32? DTGT
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _DTGTLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _DTGTLocation.Value, _package.MetaData.Constants)) : default(Int32?);
+            }
+        }
         #endregion
         #region ACEP
         private int? _ACEPLocation;
-        public Boolean ACEP => _ACEPLocation.HasValue ? true : default(Boolean);
+        public Boolean ACEP
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _ACEPLocation.HasValue ? true : default(Boolean);
+            }
+        }
         #endregion
         partial void CustomFactoryEnd(
             OverlayStream stream,

@@ -1159,7 +1159,14 @@ namespace Mutagen.Bethesda.Starfield
 
         #region FromEvent
         private int? _FromEventLocation;
-        public RecordType? FromEvent => _FromEventLocation.HasValue ? new RecordType(BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _FromEventLocation.Value, _package.MetaData.Constants))) : default(RecordType?);
+        public RecordType? FromEvent
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _FromEventLocation.HasValue ? new RecordType(BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _FromEventLocation.Value, _package.MetaData.Constants))) : default(RecordType?);
+            }
+        }
         #endregion
         #region EventData
         private int? _EventDataLocation;

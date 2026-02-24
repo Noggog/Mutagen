@@ -1,0 +1,7 @@
+RecordTypes.HEDR,
+RecordTypes.OFST,
+RecordTypes.DELE,
+RecordTypes.CNAM,
+RecordTypes.SNAM,
+RecordTypes.MAST,
+RecordTypes.DATA,

@@ -1,0 +1,6 @@
+RecordTypes.EDID,
+RecordTypes.OBND,
+RecordTypes.FULL,
+RecordTypes.EFID,
+RecordTypes.EFIT,
+RecordTypes.CTDA,

@@ -1,0 +1,4 @@
+RecordTypes.RNAM,
+RecordTypes.MNAM,
+RecordTypes.FNAM,
+RecordTypes.INAM,

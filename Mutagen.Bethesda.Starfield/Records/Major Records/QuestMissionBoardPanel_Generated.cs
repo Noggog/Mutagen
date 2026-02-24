@@ -1237,15 +1237,36 @@ namespace Mutagen.Bethesda.Starfield
 
         #region Header
         private int? _HeaderLocation;
-        public ITranslatedStringGetter? Header => _HeaderLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _HeaderLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+        public ITranslatedStringGetter? Header
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _HeaderLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_data, _HeaderLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+            }
+        }
         #endregion
         #region Line1
         private int? _Line1Location;
-        public ITranslatedStringGetter? Line1 => _Line1Location.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _Line1Location.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+        public ITranslatedStringGetter? Line1
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _Line1Location.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_data, _Line1Location.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+            }
+        }
         #endregion
         #region Line2
         private int? _Line2Location;
-        public ITranslatedStringGetter? Line2 => _Line2Location.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _Line2Location.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+        public ITranslatedStringGetter? Line2
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _Line2Location.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_data, _Line2Location.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+            }
+        }
         #endregion
         partial void CustomFactoryEnd(
             OverlayStream stream,

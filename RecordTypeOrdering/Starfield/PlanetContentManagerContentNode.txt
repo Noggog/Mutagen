@@ -1,0 +1,8 @@
+RecordTypes.EDID,
+RecordTypes.BFCB,
+RecordTypes.BFCE,
+RecordTypes.PCCC,
+RecordTypes.IOVR,
+RecordTypes.KWDA,
+RecordTypes.PRTN,
+RecordTypes.PRVN,

@@ -1236,7 +1236,14 @@ namespace Mutagen.Bethesda.Starfield
 
         #region AliasID
         private int? _AliasIDLocation;
-        public Int32? AliasID => _AliasIDLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _AliasIDLocation.Value, _package.MetaData.Constants)) : default(Int32?);
+        public Int32? AliasID
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _AliasIDLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _AliasIDLocation.Value, _package.MetaData.Constants)) : default(Int32?);
+            }
+        }
         #endregion
         #region Keyword
         private int? _KeywordLocation;

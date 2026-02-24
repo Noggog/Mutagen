@@ -1,3 +1,4 @@
+using System.Buffers.Binary;
 using Mutagen.Bethesda.Plugins.Binary.Headers;
 using Mutagen.Bethesda.Plugins.Binary.Translations;
 using Mutagen.Bethesda.Plugins.Exceptions;
@@ -52,17 +53,90 @@ internal abstract class PluginBinaryOverlay : ILoquiObject
 
     ILoquiRegistration ILoquiObject.Registration => throw new NotImplementedException();
 
-    internal ReadOnlyMemorySlice<byte> _structData;
-    internal ReadOnlyMemorySlice<byte> _recordData;
+    private readonly LazyMajorRecordData? _lazyRecordData;
+    private ReadOnlyMemorySlice<byte> _directStructData;
+    private ReadOnlyMemorySlice<byte> _directRecordData;
     internal BinaryOverlayFactoryPackage _package;
+
+    /// <summary>
+    /// Struct data (header portion after Type and Length) - always available without decompression.
+    /// For major records using lazy decompression, this comes from LazyMajorRecordData.
+    /// Can be reassigned by custom code in non-lazy scenarios.
+    /// </summary>
+    internal ReadOnlyMemorySlice<byte> _structData
+    {
+        get => _lazyRecordData != null ? _lazyRecordData.StructData : _directStructData;
+        set => _directStructData = value;
+    }
+
+    /// <summary>
+    /// Record data (content after header) - lazily decompressed if the record is compressed.
+    /// For major records using lazy decompression, this comes from LazyMajorRecordData.
+    /// For non-major overlays (groups, subrecords), this is directly available.
+    /// Can be reassigned by custom code in non-lazy scenarios.
+    /// </summary>
+    internal ReadOnlyMemorySlice<byte> _recordData
+    {
+        get => _lazyRecordData != null ? _lazyRecordData.RecordData : _directRecordData;
+        set => _directRecordData = value;
+    }
 
     protected PluginBinaryOverlay(
         MemoryPair memoryPair,
         BinaryOverlayFactoryPackage package)
     {
-        _structData = memoryPair.StructData;
-        _recordData = memoryPair.RecordData;
+        _directStructData = memoryPair.StructData;
+        _directRecordData = memoryPair.RecordData;
         _package = package;
+    }
+
+    protected PluginBinaryOverlay(
+        LazyMajorRecordData lazyRecordData,
+        BinaryOverlayFactoryPackage package)
+    {
+        _lazyRecordData = lazyRecordData;
+        _package = package;
+    }
+
+
+    /// <summary>
+    /// Creates a stream for deferred FillSubrecordTypes execution.
+    /// This is called from the lazy initializer when a subrecord field is first accessed.
+    /// </summary>
+    internal static OverlayStream CreateSubrecordStream(
+        LazyMajorRecordData lazyRecordData,
+        ReadOnlyMemorySlice<byte> originalSlice,
+        GameConstants meta,
+        BinaryOverlayFactoryPackage package,
+        out int finalPos)
+    {
+        var recordData = lazyRecordData.RecordData; // Triggers decompression if needed
+        var offset = meta.MajorConstants.HeaderLength;
+        var headerLength = meta.MajorRecordHeader(originalSlice).HeaderLength;
+
+        if (lazyRecordData.IsCompressed)
+        {
+            finalPos = offset + recordData.Length;
+
+            // Build buffer: header + decompressed content
+            var buffer = new byte[offset + recordData.Length];
+            originalSlice.Slice(0, headerLength).Span.CopyTo(buffer);
+            BinaryPrimitives.WriteUInt32LittleEndian(
+                buffer.AsSpan().Slice(Constants.HeaderLength),
+                (uint)recordData.Length);
+            recordData.Span.CopyTo(buffer.AsSpan().Slice(offset));
+
+            var stream = new OverlayStream(buffer, package.MetaData);
+            stream.Position = offset;
+            return stream;
+        }
+        else
+        {
+            finalPos = offset + recordData.Length;
+            var stream = new OverlayStream(originalSlice, package.MetaData);
+            stream.Position = offset;
+            return stream;
+        }
     }
 
     public static void FillModTypes(
@@ -1019,8 +1093,8 @@ internal abstract class PluginBinaryOverlay : ILoquiObject
     }
 
     public static OverlayStream ExtractRecordMemory(
-        OverlayStream stream, 
-        GameConstants meta, 
+        OverlayStream stream,
+        GameConstants meta,
         out MemoryPair memoryPair,
         out int offset,
         out int finalPos)
@@ -1031,6 +1105,40 @@ internal abstract class PluginBinaryOverlay : ILoquiObject
         offset = meta.MajorConstants.HeaderLength;
         finalPos = stream.Position + memoryPair.RecordData.Length;
         return stream;
+    }
+
+    /// <summary>
+    /// Extracts record memory with lazy decompression support.
+    /// For compressed records, decompression is deferred until content is actually accessed.
+    /// Header data (flags, FormID, etc.) is always available immediately.
+    /// This method does NOT trigger decompression - it only captures the original bytes
+    /// and moves the stream position past the record.
+    /// </summary>
+    public static void ExtractRecordMemoryLazy(
+        OverlayStream stream,
+        GameConstants meta,
+        out LazyMajorRecordData lazyRecordData,
+        out ReadOnlyMemorySlice<byte> originalSlice,
+        out int offset,
+        out int totalLength)
+    {
+        var majorHeader = meta.MajorRecordHeader(stream.RemainingMemory);
+        totalLength = (int)majorHeader.TotalLength;
+
+        // Capture the original record bytes (header + compressed/uncompressed content)
+        originalSlice = stream.RemainingMemory.Slice(0, totalLength);
+
+        // Create LazyMajorRecordData - this does NOT trigger decompression
+        lazyRecordData = new LazyMajorRecordData(originalSlice, meta);
+
+        // Calculate offset (position after header where subrecords start)
+        offset = meta.MajorConstants.HeaderLength;
+
+        // Move stream past this entire record (compressed or not)
+        stream.Position += totalLength;
+
+        // DO NOT call lazyRecordData.RecordData here - that would trigger decompression!
+        // The caller (generated code) will handle deferred decompression via Lazy<>
     }
 
     public static OverlayStream ExtractGroupMemory(

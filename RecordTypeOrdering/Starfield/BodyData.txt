@@ -1,0 +1,8 @@
+RecordTypes.INDX,
+RecordTypes.MODL,
+RecordTypes.MODT,
+RecordTypes.MOLM,
+RecordTypes.FLLD,
+RecordTypes.XFLG,
+RecordTypes.MODC,
+RecordTypes.MODF,

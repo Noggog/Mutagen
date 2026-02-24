@@ -38,6 +38,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -6407,11 +6408,10 @@ namespace Mutagen.Bethesda.Starfield
 
         public Worldspace.MajorFlag MajorFlags => (Worldspace.MajorFlag)this.MajorRecordFlagsRaw;
 
-        public IReadOnlyList<IAComponentGetter> Components { get; private set; } = [];
-        public IReadOnlyList<IWorldspaceGridReferenceGetter> LargeReferences { get; private set; } = [];
+        public IReadOnlyList<IAComponentGetter> Components => Payload.Components ?? [];
+        public IReadOnlyList<IWorldspaceGridReferenceGetter> LargeReferences => Payload.LargeReferences ?? [];
         #region Name
-        private int? _NameLocation;
-        public ITranslatedStringGetter? Name => _NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+        public ITranslatedStringGetter? Name => Payload.NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
         #region Aspects
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         string INamedRequiredGetter.Name => this.Name?.String ?? string.Empty;
@@ -6421,129 +6421,112 @@ namespace Mutagen.Bethesda.Starfield
         ITranslatedStringGetter ITranslatedNamedRequiredGetter.Name => this.Name ?? TranslatedString.Empty;
         #endregion
         #endregion
-        #region EncounterLocation
-        private int? _EncounterLocationLocation;
-        public IFormLinkNullableGetter<ILocationGetter> EncounterLocation => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ILocationGetter>(_package, _recordData, _EncounterLocationLocation);
-        #endregion
-        #region Location
-        private int? _LocationLocation;
-        public IFormLinkNullableGetter<ILocationGetter> Location => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ILocationGetter>(_package, _recordData, _LocationLocation);
-        #endregion
-        #region Biome
-        private int? _BiomeLocation;
-        public IFormLinkNullableGetter<IBiomeGetter> Biome => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IBiomeGetter>(_package, _recordData, _BiomeLocation);
-        #endregion
-        public IWorldspaceParentGetter? Parent { get; private set; }
-        #region Climate
-        private int? _ClimateLocation;
-        public IFormLinkNullableGetter<IClimateGetter> Climate => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IClimateGetter>(_package, _recordData, _ClimateLocation);
-        #endregion
-        #region Water
-        private int? _WaterLocation;
-        public IFormLinkNullableGetter<IWaterGetter> Water => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IWaterGetter>(_package, _recordData, _WaterLocation);
-        #endregion
-        #region NAM7
-        private int? _NAM7Location;
-        public String? NAM7 => _NAM7Location.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NAM7Location.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
-        #region LodWater
-        private int? _LodWaterLocation;
-        public IFormLinkNullableGetter<IWaterGetter> LodWater => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IWaterGetter>(_package, _recordData, _LodWaterLocation);
-        #endregion
-        #region LodWaterHeight
-        private int? _LodWaterHeightLocation;
-        public Single? LodWaterHeight => _LodWaterHeightLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _LodWaterHeightLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
-        #endregion
-        #region LandDefaults
-        private RangeInt32? _LandDefaultsLocation;
-        public IWorldspaceLandDefaultsGetter? LandDefaults => _LandDefaultsLocation.HasValue ? WorldspaceLandDefaultsBinaryOverlay.WorldspaceLandDefaultsFactory(_recordData.Slice(_LandDefaultsLocation!.Value.Min), _package) : default;
-        #endregion
-        #region MapData
-        private RangeInt32? _MapDataLocation;
-        public IWorldspaceMapGetter? MapData => _MapDataLocation.HasValue ? WorldspaceMapBinaryOverlay.WorldspaceMapFactory(_recordData.Slice(_MapDataLocation!.Value.Min), _package) : default;
-        #endregion
-        private RangeInt32? _ONAMLocation;
+        public IFormLinkNullableGetter<ILocationGetter> EncounterLocation => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ILocationGetter>(_package, _recordData, Payload.EncounterLocationLocation);
+        public IFormLinkNullableGetter<ILocationGetter> Location => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ILocationGetter>(_package, _recordData, Payload.LocationLocation);
+        public IFormLinkNullableGetter<IBiomeGetter> Biome => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IBiomeGetter>(_package, _recordData, Payload.BiomeLocation);
+        public IWorldspaceParentGetter? Parent => Payload.Parent;
+        public IFormLinkNullableGetter<IClimateGetter> Climate => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IClimateGetter>(_package, _recordData, Payload.ClimateLocation);
+        public IFormLinkNullableGetter<IWaterGetter> Water => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IWaterGetter>(_package, _recordData, Payload.WaterLocation);
+        public String? NAM7 => Payload.NAM7Location.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NAM7Location.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public IFormLinkNullableGetter<IWaterGetter> LodWater => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IWaterGetter>(_package, _recordData, Payload.LodWaterLocation);
+        public Single? LodWaterHeight => Payload.LodWaterHeightLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.LodWaterHeightLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public IWorldspaceLandDefaultsGetter? LandDefaults => Payload.LandDefaultsLocation.HasValue ? WorldspaceLandDefaultsBinaryOverlay.WorldspaceLandDefaultsFactory(_recordData.Slice(Payload.LandDefaultsLocation!.Value.Min), _package) : default;
+        public IWorldspaceMapGetter? MapData => Payload.MapDataLocation.HasValue ? WorldspaceMapBinaryOverlay.WorldspaceMapFactory(_recordData.Slice(Payload.MapDataLocation!.Value.Min), _package) : default;
         #region WorldMapOffsetScale
-        private int _WorldMapOffsetScaleLocation => _ONAMLocation!.Value.Min;
-        private bool _WorldMapOffsetScale_IsSet => _ONAMLocation.HasValue;
+        private int _WorldMapOffsetScaleLocation => Payload.ONAMLocation!.Value.Min;
+        private bool _WorldMapOffsetScale_IsSet => Payload.ONAMLocation.HasValue;
         public Single WorldMapOffsetScale => _WorldMapOffsetScale_IsSet ? _recordData.Slice(_WorldMapOffsetScaleLocation, 4).Float() : default(Single);
         #endregion
         #region WorldMapCellOffset
-        private int _WorldMapCellOffsetLocation => _ONAMLocation!.Value.Min + 0x4;
-        private bool _WorldMapCellOffset_IsSet => _ONAMLocation.HasValue;
+        private int _WorldMapCellOffsetLocation => Payload.ONAMLocation!.Value.Min + 0x4;
+        private bool _WorldMapCellOffset_IsSet => Payload.ONAMLocation.HasValue;
         public P3Float WorldMapCellOffset => _WorldMapCellOffset_IsSet ? P3FloatBinaryTranslation<MutagenFrame, MutagenWriter>.Instance.Read(_recordData.Slice(_WorldMapCellOffsetLocation, 12)) : default(P3Float);
         #endregion
-        #region DistantLodMultiplier
-        private int? _DistantLodMultiplierLocation;
-        public Single? DistantLodMultiplier => _DistantLodMultiplierLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _DistantLodMultiplierLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
-        #endregion
-        #region Flags
-        private int? _FlagsLocation;
-        public Worldspace.Flag Flags => EnumBinaryTranslation<Worldspace.Flag, MutagenFrame, MutagenWriter>.Instance.ParseRecord(_FlagsLocation, _recordData, _package, 1);
-        #endregion
-        #region FNAM
-        private int? _FNAMLocation;
-        public ReadOnlyMemorySlice<Byte>? FNAM => _FNAMLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _FNAMLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
-        #endregion
-        private RangeInt32? _NAM0Location;
+        public Single? DistantLodMultiplier => Payload.DistantLodMultiplierLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.DistantLodMultiplierLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public Worldspace.Flag Flags => EnumBinaryTranslation<Worldspace.Flag, MutagenFrame, MutagenWriter>.Instance.ParseRecord(Payload.FlagsLocation, _recordData, _package, 1);
+        public ReadOnlyMemorySlice<Byte>? FNAM => Payload.FNAMLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.FNAMLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
         #region ObjectBoundsMin
-        private int _ObjectBoundsMinLocation => _NAM0Location!.Value.Min;
+        private int _ObjectBoundsMinLocation => Payload.NAM0Location!.Value.Min;
         public partial P2Float GetObjectBoundsMinCustom();
         public P2Float ObjectBoundsMin => GetObjectBoundsMinCustom();
         partial void CustomObjectBoundsMinEndPos();
         #endregion
-        private RangeInt32? _NAM9Location;
         #region ObjectBoundsMax
-        private int _ObjectBoundsMaxLocation => _NAM9Location!.Value.Min;
+        private int _ObjectBoundsMaxLocation => Payload.NAM9Location!.Value.Min;
         public partial P2Float GetObjectBoundsMaxCustom();
         public P2Float ObjectBoundsMax => GetObjectBoundsMaxCustom();
         partial void CustomObjectBoundsMaxEndPos();
         #endregion
-        #region Music
-        private int? _MusicLocation;
-        public IFormLinkNullableGetter<IMusicTypeGetter> Music => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IMusicTypeGetter>(_package, _recordData, _MusicLocation);
-        #endregion
-        #region AmbienceSet
-        private int? _AmbienceSetLocation;
-        public IFormLinkNullableGetter<IAmbienceSetGetter> AmbienceSet => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IAmbienceSetGetter>(_package, _recordData, _AmbienceSetLocation);
-        #endregion
-        #region EnvironmentMap
-        private int? _EnvironmentMapLocation;
-        public String? EnvironmentMap => _EnvironmentMapLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _EnvironmentMapLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
-        #region WaterEnvironmentMap
-        private int? _WaterEnvironmentMapLocation;
-        public String? WaterEnvironmentMap => _WaterEnvironmentMapLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _WaterEnvironmentMapLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
-        #region GNAM
-        private int? _GNAMLocation;
-        public Single? GNAM => _GNAMLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _GNAMLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
-        #endregion
-        public IReadOnlyList<IFormLinkGetter<ILandscapeTextureGetter>> LandscapeTextures { get; private set; } = [];
-        public IReadOnlyList<P2Int16>? CellWaterHeightLocations { get; private set; }
-        public IReadOnlyList<Single>? WaterHeights { get; private set; }
-        #region HNAM
-        private int? _HNAMLocation;
-        public ReadOnlyMemorySlice<Byte>? HNAM => _HNAMLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _HNAMLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
-        #endregion
+        public IFormLinkNullableGetter<IMusicTypeGetter> Music => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IMusicTypeGetter>(_package, _recordData, Payload.MusicLocation);
+        public IFormLinkNullableGetter<IAmbienceSetGetter> AmbienceSet => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IAmbienceSetGetter>(_package, _recordData, Payload.AmbienceSetLocation);
+        public String? EnvironmentMap => Payload.EnvironmentMapLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.EnvironmentMapLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? WaterEnvironmentMap => Payload.WaterEnvironmentMapLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.WaterEnvironmentMapLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public Single? GNAM => Payload.GNAMLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.GNAMLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public IReadOnlyList<IFormLinkGetter<ILandscapeTextureGetter>> LandscapeTextures => Payload.LandscapeTextures ?? [];
+        public IReadOnlyList<P2Int16>? CellWaterHeightLocations => Payload.CellWaterHeightLocations;
+        public IReadOnlyList<Single>? WaterHeights => Payload.WaterHeights;
+        public ReadOnlyMemorySlice<Byte>? HNAM => Payload.HNAMLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.HNAMLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
         #region OffsetData
-        private int? _OffsetDataLocation;
-        private int? _OffsetDataLengthOverride;
         public ReadOnlyMemorySlice<Byte>? OffsetData => PluginUtilityTranslation.ReadByteArrayWithOverflow(
             _recordData,
             _package.MetaData.Constants,
-            _OffsetDataLocation,
-            _OffsetDataLengthOverride);
+            Payload.OffsetDataLocation,
+            Payload.OffsetDataLengthOverride);
         #endregion
         #region CellSizeData
-        private int? _CellSizeDataLocation;
-        private int? _CellSizeDataLengthOverride;
         public ReadOnlyMemorySlice<Byte>? CellSizeData => PluginUtilityTranslation.ReadByteArrayWithOverflow(
             _recordData,
             _package.MetaData.Constants,
-            _CellSizeDataLocation,
-            _CellSizeDataLengthOverride);
+            Payload.CellSizeDataLocation,
+            Payload.CellSizeDataLengthOverride);
         #endregion
+
+        internal partial class WorldspaceRecordDataPayload
+        {
+            public IReadOnlyList<IAComponentGetter> Components = [];
+            public IReadOnlyList<IWorldspaceGridReferenceGetter> LargeReferences = [];
+            public int? NameLocation;
+            public int? EncounterLocationLocation;
+            public int? LocationLocation;
+            public int? BiomeLocation;
+            public IWorldspaceParentGetter? Parent;
+            public int? ClimateLocation;
+            public int? WaterLocation;
+            public int? NAM7Location;
+            public int? LodWaterLocation;
+            public int? LodWaterHeightLocation;
+            public RangeInt32? LandDefaultsLocation;
+            public RangeInt32? MapDataLocation;
+            public RangeInt32? ONAMLocation;
+            public int? DistantLodMultiplierLocation;
+            public int? FlagsLocation;
+            public int? FNAMLocation;
+            public RangeInt32? NAM0Location;
+            public RangeInt32? NAM9Location;
+            public int? MusicLocation;
+            public int? AmbienceSetLocation;
+            public int? EnvironmentMapLocation;
+            public int? WaterEnvironmentMapLocation;
+            public int? GNAMLocation;
+            public IReadOnlyList<IFormLinkGetter<ILandscapeTextureGetter>> LandscapeTextures = [];
+            public IReadOnlyList<P2Int16>? CellWaterHeightLocations;
+            public IReadOnlyList<Single>? WaterHeights;
+            public int? HNAMLocation;
+            public int? OffsetDataLocation;
+            public int? OffsetDataLengthOverride;
+            public int? CellSizeDataLocation;
+            public int? CellSizeDataLengthOverride;
+        }
+
+        private LazyPayload<WorldspaceRecordDataPayload> _payload = null!;
+
+        internal WorldspaceRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<WorldspaceRecordDataPayload>(init, new WorldspaceRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -6555,10 +6538,10 @@ namespace Mutagen.Bethesda.Starfield
 
         partial void CustomCtor();
         protected WorldspaceBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -6570,28 +6553,51 @@ namespace Mutagen.Bethesda.Starfield
             TypedParseParams translationParams = default)
         {
             var origStream = stream;
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new WorldspaceBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             ret.CustomEnd(
                 stream: origStream,
                 finalPos: stream.Length,
@@ -6624,7 +6630,7 @@ namespace Mutagen.Bethesda.Starfield
             {
                 case RecordTypeInts.BFCB:
                 {
-                    this.Components = this.ParseRepeatedTypelessSubrecord<IAComponentGetter>(
+                    _payload.Fields.Components = this.ParseRepeatedTypelessSubrecord<IAComponentGetter>(
                         stream: stream,
                         translationParams: translationParams,
                         trigger: AComponent_Registration.TriggerSpecs,
@@ -6633,7 +6639,7 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.RNAM:
                 {
-                    this.LargeReferences = BinaryOverlayList.FactoryByArray<IWorldspaceGridReferenceGetter>(
+                    _payload.Fields.LargeReferences = BinaryOverlayList.FactoryByArray<IWorldspaceGridReferenceGetter>(
                         mem: stream.RemainingMemory,
                         package: _package,
                         translationParams: translationParams,
@@ -6648,27 +6654,27 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.FULL:
                 {
-                    _NameLocation = (stream.Position - offset);
+                    _payload.Fields.NameLocation = (stream.Position - offset);
                     return (int)Worldspace_FieldIndex.Name;
                 }
                 case RecordTypeInts.XEZN:
                 {
-                    _EncounterLocationLocation = (stream.Position - offset);
+                    _payload.Fields.EncounterLocationLocation = (stream.Position - offset);
                     return (int)Worldspace_FieldIndex.EncounterLocation;
                 }
                 case RecordTypeInts.XLCN:
                 {
-                    _LocationLocation = (stream.Position - offset);
+                    _payload.Fields.LocationLocation = (stream.Position - offset);
                     return (int)Worldspace_FieldIndex.Location;
                 }
                 case RecordTypeInts.BNAM:
                 {
-                    _BiomeLocation = (stream.Position - offset);
+                    _payload.Fields.BiomeLocation = (stream.Position - offset);
                     return (int)Worldspace_FieldIndex.Biome;
                 }
                 case RecordTypeInts.WNAM:
                 {
-                    this.Parent = WorldspaceParentBinaryOverlay.WorldspaceParentFactory(
+                    _payload.Fields.Parent = WorldspaceParentBinaryOverlay.WorldspaceParentFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());
@@ -6676,97 +6682,97 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.CNAM:
                 {
-                    _ClimateLocation = (stream.Position - offset);
+                    _payload.Fields.ClimateLocation = (stream.Position - offset);
                     return (int)Worldspace_FieldIndex.Climate;
                 }
                 case RecordTypeInts.NAM2:
                 {
-                    _WaterLocation = (stream.Position - offset);
+                    _payload.Fields.WaterLocation = (stream.Position - offset);
                     return (int)Worldspace_FieldIndex.Water;
                 }
                 case RecordTypeInts.NAM7:
                 {
-                    _NAM7Location = (stream.Position - offset);
+                    _payload.Fields.NAM7Location = (stream.Position - offset);
                     return (int)Worldspace_FieldIndex.NAM7;
                 }
                 case RecordTypeInts.NAM3:
                 {
-                    _LodWaterLocation = (stream.Position - offset);
+                    _payload.Fields.LodWaterLocation = (stream.Position - offset);
                     return (int)Worldspace_FieldIndex.LodWater;
                 }
                 case RecordTypeInts.NAM4:
                 {
-                    _LodWaterHeightLocation = (stream.Position - offset);
+                    _payload.Fields.LodWaterHeightLocation = (stream.Position - offset);
                     return (int)Worldspace_FieldIndex.LodWaterHeight;
                 }
                 case RecordTypeInts.DNAM:
                 {
-                    _LandDefaultsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.LandDefaultsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)Worldspace_FieldIndex.LandDefaults;
                 }
                 case RecordTypeInts.MNAM:
                 {
-                    _MapDataLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.MapDataLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)Worldspace_FieldIndex.MapData;
                 }
                 case RecordTypeInts.ONAM:
                 {
-                    _ONAMLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.ONAMLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     return (int)Worldspace_FieldIndex.WorldMapCellOffset;
                 }
                 case RecordTypeInts.NAMA:
                 {
-                    _DistantLodMultiplierLocation = (stream.Position - offset);
+                    _payload.Fields.DistantLodMultiplierLocation = (stream.Position - offset);
                     return (int)Worldspace_FieldIndex.DistantLodMultiplier;
                 }
                 case RecordTypeInts.DATA:
                 {
-                    _FlagsLocation = (stream.Position - offset);
+                    _payload.Fields.FlagsLocation = (stream.Position - offset);
                     return (int)Worldspace_FieldIndex.Flags;
                 }
                 case RecordTypeInts.FNAM:
                 {
-                    _FNAMLocation = (stream.Position - offset);
+                    _payload.Fields.FNAMLocation = (stream.Position - offset);
                     return (int)Worldspace_FieldIndex.FNAM;
                 }
                 case RecordTypeInts.NAM0:
                 {
-                    _NAM0Location = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.NAM0Location = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     return (int)Worldspace_FieldIndex.ObjectBoundsMin;
                 }
                 case RecordTypeInts.NAM9:
                 {
-                    _NAM9Location = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.NAM9Location = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     return (int)Worldspace_FieldIndex.ObjectBoundsMax;
                 }
                 case RecordTypeInts.ZNAM:
                 {
-                    _MusicLocation = (stream.Position - offset);
+                    _payload.Fields.MusicLocation = (stream.Position - offset);
                     return (int)Worldspace_FieldIndex.Music;
                 }
                 case RecordTypeInts.WAMB:
                 {
-                    _AmbienceSetLocation = (stream.Position - offset);
+                    _payload.Fields.AmbienceSetLocation = (stream.Position - offset);
                     return (int)Worldspace_FieldIndex.AmbienceSet;
                 }
                 case RecordTypeInts.XEMP:
                 {
-                    _EnvironmentMapLocation = (stream.Position - offset);
+                    _payload.Fields.EnvironmentMapLocation = (stream.Position - offset);
                     return (int)Worldspace_FieldIndex.EnvironmentMap;
                 }
                 case RecordTypeInts.XWEM:
                 {
-                    _WaterEnvironmentMapLocation = (stream.Position - offset);
+                    _payload.Fields.WaterEnvironmentMapLocation = (stream.Position - offset);
                     return (int)Worldspace_FieldIndex.WaterEnvironmentMap;
                 }
                 case RecordTypeInts.GNAM:
                 {
-                    _GNAMLocation = (stream.Position - offset);
+                    _payload.Fields.GNAMLocation = (stream.Position - offset);
                     return (int)Worldspace_FieldIndex.GNAM;
                 }
                 case RecordTypeInts.LNAM:
                 {
-                    this.LandscapeTextures = BinaryOverlayList.FactoryByArray<IFormLinkGetter<ILandscapeTextureGetter>>(
+                    _payload.Fields.LandscapeTextures = BinaryOverlayList.FactoryByArray<IFormLinkGetter<ILandscapeTextureGetter>>(
                         mem: stream.RemainingMemory,
                         package: _package,
                         getter: (s, p) => FormLinkBinaryTranslation.Instance.OverlayFactory<ILandscapeTextureGetter>(p, s),
@@ -6780,7 +6786,7 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.XCLW:
                 {
-                    this.CellWaterHeightLocations = BinaryOverlayList.FactoryByStartIndexWithTrigger<P2Int16>(
+                    _payload.Fields.CellWaterHeightLocations = BinaryOverlayList.FactoryByStartIndexWithTrigger<P2Int16>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -6790,7 +6796,7 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.WHGT:
                 {
-                    this.WaterHeights = BinaryOverlayList.FactoryByStartIndexWithTrigger<Single>(
+                    _payload.Fields.WaterHeights = BinaryOverlayList.FactoryByStartIndexWithTrigger<Single>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -6800,13 +6806,13 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.HNAM:
                 {
-                    _HNAMLocation = (stream.Position - offset);
+                    _payload.Fields.HNAMLocation = (stream.Position - offset);
                     return (int)Worldspace_FieldIndex.HNAM;
                 }
                 case RecordTypeInts.OFST:
                 {
-                    _OffsetDataLocation = (stream.Position - offset);
-                    _OffsetDataLengthOverride = lastParsed.LengthOverride;
+                    _payload.Fields.OffsetDataLocation = (stream.Position - offset);
+                    _payload.Fields.OffsetDataLengthOverride = lastParsed.LengthOverride;
                     if (lastParsed.LengthOverride.HasValue)
                     {
                         stream.Position += lastParsed.LengthOverride.Value;
@@ -6815,8 +6821,8 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.CLSZ:
                 {
-                    _CellSizeDataLocation = (stream.Position - offset);
-                    _CellSizeDataLengthOverride = lastParsed.LengthOverride;
+                    _payload.Fields.CellSizeDataLocation = (stream.Position - offset);
+                    _payload.Fields.CellSizeDataLengthOverride = lastParsed.LengthOverride;
                     if (lastParsed.LengthOverride.HasValue)
                     {
                         stream.Position += lastParsed.LengthOverride.Value;

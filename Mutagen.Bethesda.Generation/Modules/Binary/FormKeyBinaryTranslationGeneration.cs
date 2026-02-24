@@ -31,6 +31,7 @@ public class FormKeyBinaryTranslationGeneration : PrimitiveBinaryTranslationGene
         string passedLengthAccessor,
         DataType dataType)
     {
+        var payloadSb = (this.Module as PluginTranslationModule)?.CurrentPayloadFieldsSb;
         var data = typeGen.CustomData[Constants.DataKey] as MutagenFieldData;
         if (data.RecordType.HasValue
             || await this.ExpectedLength(objGen, typeGen) == null)
@@ -38,7 +39,10 @@ public class FormKeyBinaryTranslationGeneration : PrimitiveBinaryTranslationGene
             return;
             throw new NotImplementedException();
         }
-        var posStr = dataType == null ? $"{passedLengthAccessor}" : $"_{dataType.GetFieldData().RecordType}Location + {passedLengthAccessor}";
+        var dtLocRef = dataType == null ? null : (payloadSb != null
+            ? $"Payload.{dataType.GetFieldData().RecordType}Location"
+            : $"_{dataType.GetFieldData().RecordType}Location");
+        var posStr = dataType == null ? $"{passedLengthAccessor}" : $"{dtLocRef} + {passedLengthAccessor}";
         sb.AppendLine($"public {typeGen.TypeName(getter: true)} {typeGen.Name} => FormKeyBinaryTranslation.Instance.Parse({structDataAccessor}.Span.Slice({posStr}, {(await this.ExpectedLength(objGen, typeGen)).Value}), this._package.{nameof(BinaryOverlayFactoryPackage.MetaData)}.{nameof(ParsingMeta.MasterReferences)}, reference: false);");
     }
 

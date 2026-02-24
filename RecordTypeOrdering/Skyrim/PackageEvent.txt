@@ -1,0 +1,7 @@
+RecordTypes.INAM,
+RecordTypes.SCHR,
+RecordTypes.SCDA,
+RecordTypes.SCTX,
+RecordTypes.QNAM,
+RecordTypes.TNAM,
+RecordTypes.PDTO,

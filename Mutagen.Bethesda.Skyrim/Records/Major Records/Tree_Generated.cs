@@ -38,6 +38,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -2511,32 +2512,19 @@ namespace Mutagen.Bethesda.Skyrim
         public Tree.MajorFlag MajorFlags => (Tree.MajorFlag)this.MajorRecordFlagsRaw;
 
         #region VirtualMachineAdapter
-        private int? _VirtualMachineAdapterLengthOverride;
-        private RangeInt32? _VirtualMachineAdapterLocation;
-        public IVirtualMachineAdapterGetter? VirtualMachineAdapter => _VirtualMachineAdapterLocation.HasValue ? VirtualMachineAdapterBinaryOverlay.VirtualMachineAdapterFactory(_recordData.Slice(_VirtualMachineAdapterLocation!.Value.Min), _package, TypedParseParams.FromLengthOverride(_VirtualMachineAdapterLengthOverride)) : default;
+        public IVirtualMachineAdapterGetter? VirtualMachineAdapter => Payload.VirtualMachineAdapterLocation.HasValue ? VirtualMachineAdapterBinaryOverlay.VirtualMachineAdapterFactory(_recordData.Slice(Payload.VirtualMachineAdapterLocation!.Value.Min), _package, TypedParseParams.FromLengthOverride(Payload.VirtualMachineAdapterLengthOverride)) : default;
         IAVirtualMachineAdapterGetter? IHaveVirtualMachineAdapterGetter.VirtualMachineAdapter => this.VirtualMachineAdapter;
         #endregion
         #region ObjectBounds
-        private RangeInt32? _ObjectBoundsLocation;
-        private IObjectBoundsGetter? _ObjectBounds => _ObjectBoundsLocation.HasValue ? ObjectBoundsBinaryOverlay.ObjectBoundsFactory(_recordData.Slice(_ObjectBoundsLocation!.Value.Min), _package) : default;
+        private IObjectBoundsGetter? _ObjectBounds => Payload.ObjectBoundsLocation.HasValue ? ObjectBoundsBinaryOverlay.ObjectBoundsFactory(_recordData.Slice(Payload.ObjectBoundsLocation!.Value.Min), _package) : default;
         public IObjectBoundsGetter ObjectBounds => _ObjectBounds ?? new ObjectBounds();
         #endregion
-        public IModelGetter? Model { get; private set; }
-        #region Ingredient
-        private int? _IngredientLocation;
-        public IFormLinkNullableGetter<IHarvestTargetGetter> Ingredient => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IHarvestTargetGetter>(_package, _recordData, _IngredientLocation);
-        #endregion
-        #region HarvestSound
-        private int? _HarvestSoundLocation;
-        public IFormLinkNullableGetter<ISoundDescriptorGetter> HarvestSound => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ISoundDescriptorGetter>(_package, _recordData, _HarvestSoundLocation);
-        #endregion
-        #region Production
-        private RangeInt32? _ProductionLocation;
-        public ISeasonalIngredientProductionGetter? Production => _ProductionLocation.HasValue ? SeasonalIngredientProductionBinaryOverlay.SeasonalIngredientProductionFactory(_recordData.Slice(_ProductionLocation!.Value.Min), _package) : default;
-        #endregion
+        public IModelGetter? Model => Payload.Model;
+        public IFormLinkNullableGetter<IHarvestTargetGetter> Ingredient => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IHarvestTargetGetter>(_package, _recordData, Payload.IngredientLocation);
+        public IFormLinkNullableGetter<ISoundDescriptorGetter> HarvestSound => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ISoundDescriptorGetter>(_package, _recordData, Payload.HarvestSoundLocation);
+        public ISeasonalIngredientProductionGetter? Production => Payload.ProductionLocation.HasValue ? SeasonalIngredientProductionBinaryOverlay.SeasonalIngredientProductionFactory(_recordData.Slice(Payload.ProductionLocation!.Value.Min), _package) : default;
         #region Name
-        private int? _NameLocation;
-        public ITranslatedStringGetter? Name => _NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+        public ITranslatedStringGetter? Name => Payload.NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
         #region Aspects
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         string INamedRequiredGetter.Name => this.Name?.String ?? string.Empty;
@@ -2546,32 +2534,54 @@ namespace Mutagen.Bethesda.Skyrim
         ITranslatedStringGetter ITranslatedNamedRequiredGetter.Name => this.Name ?? TranslatedString.Empty;
         #endregion
         #endregion
-        private RangeInt32? _CNAMLocation;
         #region TrunkFlexibility
-        private int _TrunkFlexibilityLocation => _CNAMLocation!.Value.Min;
-        private bool _TrunkFlexibility_IsSet => _CNAMLocation.HasValue;
+        private int _TrunkFlexibilityLocation => Payload.CNAMLocation!.Value.Min;
+        private bool _TrunkFlexibility_IsSet => Payload.CNAMLocation.HasValue;
         public Single TrunkFlexibility => _TrunkFlexibility_IsSet ? _recordData.Slice(_TrunkFlexibilityLocation, 4).Float() : default(Single);
         #endregion
         #region BranchFlexibility
-        private int _BranchFlexibilityLocation => _CNAMLocation!.Value.Min + 0x4;
-        private bool _BranchFlexibility_IsSet => _CNAMLocation.HasValue;
+        private int _BranchFlexibilityLocation => Payload.CNAMLocation!.Value.Min + 0x4;
+        private bool _BranchFlexibility_IsSet => Payload.CNAMLocation.HasValue;
         public Single BranchFlexibility => _BranchFlexibility_IsSet ? _recordData.Slice(_BranchFlexibilityLocation, 4).Float() : default(Single);
         #endregion
         #region Unknown
-        private int _UnknownLocation => _CNAMLocation!.Value.Min + 0x8;
-        private bool _Unknown_IsSet => _CNAMLocation.HasValue;
+        private int _UnknownLocation => Payload.CNAMLocation!.Value.Min + 0x8;
+        private bool _Unknown_IsSet => Payload.CNAMLocation.HasValue;
         public ReadOnlyMemorySlice<Byte> Unknown => _Unknown_IsSet ? _recordData.Span.Slice(_UnknownLocation, 32).ToArray() : ReadOnlyMemorySlice<byte>.Empty;
         #endregion
         #region LeafAmplitude
-        private int _LeafAmplitudeLocation => _CNAMLocation!.Value.Min + 0x28;
-        private bool _LeafAmplitude_IsSet => _CNAMLocation.HasValue;
+        private int _LeafAmplitudeLocation => Payload.CNAMLocation!.Value.Min + 0x28;
+        private bool _LeafAmplitude_IsSet => Payload.CNAMLocation.HasValue;
         public Single LeafAmplitude => _LeafAmplitude_IsSet ? _recordData.Slice(_LeafAmplitudeLocation, 4).Float() : default(Single);
         #endregion
         #region LeafFrequency
-        private int _LeafFrequencyLocation => _CNAMLocation!.Value.Min + 0x2C;
-        private bool _LeafFrequency_IsSet => _CNAMLocation.HasValue;
+        private int _LeafFrequencyLocation => Payload.CNAMLocation!.Value.Min + 0x2C;
+        private bool _LeafFrequency_IsSet => Payload.CNAMLocation.HasValue;
         public Single LeafFrequency => _LeafFrequency_IsSet ? _recordData.Slice(_LeafFrequencyLocation, 4).Float() : default(Single);
         #endregion
+
+        internal partial class TreeRecordDataPayload
+        {
+            public int? VirtualMachineAdapterLengthOverride;
+            public RangeInt32? VirtualMachineAdapterLocation;
+            public RangeInt32? ObjectBoundsLocation;
+            public IModelGetter? Model;
+            public int? IngredientLocation;
+            public int? HarvestSoundLocation;
+            public RangeInt32? ProductionLocation;
+            public int? NameLocation;
+            public RangeInt32? CNAMLocation;
+        }
+
+        private LazyPayload<TreeRecordDataPayload> _payload = null!;
+
+        internal TreeRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<TreeRecordDataPayload>(init, new TreeRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -2579,10 +2589,10 @@ namespace Mutagen.Bethesda.Skyrim
 
         partial void CustomCtor();
         protected TreeBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -2593,28 +2603,51 @@ namespace Mutagen.Bethesda.Skyrim
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new TreeBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -2643,8 +2676,8 @@ namespace Mutagen.Bethesda.Skyrim
             {
                 case RecordTypeInts.VMAD:
                 {
-                    _VirtualMachineAdapterLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
-                    _VirtualMachineAdapterLengthOverride = lastParsed.LengthOverride;
+                    _payload.Fields.VirtualMachineAdapterLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.VirtualMachineAdapterLengthOverride = lastParsed.LengthOverride;
                     if (lastParsed.LengthOverride.HasValue)
                     {
                         stream.Position += lastParsed.LengthOverride.Value;
@@ -2653,12 +2686,12 @@ namespace Mutagen.Bethesda.Skyrim
                 }
                 case RecordTypeInts.OBND:
                 {
-                    _ObjectBoundsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.ObjectBoundsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)Tree_FieldIndex.ObjectBounds;
                 }
                 case RecordTypeInts.MODL:
                 {
-                    this.Model = ModelBinaryOverlay.ModelFactory(
+                    _payload.Fields.Model = ModelBinaryOverlay.ModelFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());
@@ -2666,27 +2699,27 @@ namespace Mutagen.Bethesda.Skyrim
                 }
                 case RecordTypeInts.PFIG:
                 {
-                    _IngredientLocation = (stream.Position - offset);
+                    _payload.Fields.IngredientLocation = (stream.Position - offset);
                     return (int)Tree_FieldIndex.Ingredient;
                 }
                 case RecordTypeInts.SNAM:
                 {
-                    _HarvestSoundLocation = (stream.Position - offset);
+                    _payload.Fields.HarvestSoundLocation = (stream.Position - offset);
                     return (int)Tree_FieldIndex.HarvestSound;
                 }
                 case RecordTypeInts.PFPC:
                 {
-                    _ProductionLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.ProductionLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)Tree_FieldIndex.Production;
                 }
                 case RecordTypeInts.FULL:
                 {
-                    _NameLocation = (stream.Position - offset);
+                    _payload.Fields.NameLocation = (stream.Position - offset);
                     return (int)Tree_FieldIndex.Name;
                 }
                 case RecordTypeInts.CNAM:
                 {
-                    _CNAMLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.CNAMLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     return (int)Tree_FieldIndex.LeafFrequency;
                 }
                 case RecordTypeInts.XXXX:

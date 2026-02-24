@@ -2684,11 +2684,25 @@ namespace Mutagen.Bethesda.Starfield
         #endregion
         #region Author
         private int? _AuthorLocation;
-        public String? Author => _AuthorLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _AuthorLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? Author
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _AuthorLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_data, _AuthorLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+            }
+        }
         #endregion
         #region Description
         private int? _DescriptionLocation;
-        public String? Description => _DescriptionLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _DescriptionLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? Description
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _DescriptionLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_data, _DescriptionLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+            }
+        }
         #endregion
         public IReadOnlyList<IMasterReferenceGetter> MasterReferences { get; private set; } = [];
         public IReadOnlyList<IFormLinkGetter<IStarfieldMajorRecordGetter>>? OverriddenForms { get; private set; }
@@ -2699,15 +2713,36 @@ namespace Mutagen.Bethesda.Starfield
         public IReadOnlyList<ITransientTypeGetter> TransientTypes { get; private set; } = [];
         #region Branch
         private int? _BranchLocation;
-        public String? Branch => _BranchLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _BranchLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? Branch
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _BranchLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_data, _BranchLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+            }
+        }
         #endregion
         #region INTV
         private int? _INTVLocation;
-        public Int32? INTV => _INTVLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _INTVLocation.Value, _package.MetaData.Constants)) : default(Int32?);
+        public Int32? INTV
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _INTVLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _INTVLocation.Value, _package.MetaData.Constants)) : default(Int32?);
+            }
+        }
         #endregion
         #region InteriorCellCount
         private int? _InteriorCellCountLocation;
-        public Int32? InteriorCellCount => _InteriorCellCountLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _InteriorCellCountLocation.Value, _package.MetaData.Constants)) : default(Int32?);
+        public Int32? InteriorCellCount
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _InteriorCellCountLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _InteriorCellCountLocation.Value, _package.MetaData.Constants)) : default(Int32?);
+            }
+        }
         #endregion
         #region CHGL
         private int? _CHGLLocation;

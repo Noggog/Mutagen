@@ -1,0 +1,3 @@
+RecordTypes.EDID,
+RecordTypes.DALC,
+RecordTypes.WGDR,

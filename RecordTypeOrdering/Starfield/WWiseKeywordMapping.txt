@@ -1,0 +1,6 @@
+RecordTypes.EDID,
+RecordTypes.WMTI,
+RecordTypes.WMKA,
+RecordTypes.WMSS,
+RecordTypes.WMSI,
+RecordTypes.WMSD,

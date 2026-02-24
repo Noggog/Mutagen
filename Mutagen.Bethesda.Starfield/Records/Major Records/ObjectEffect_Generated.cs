@@ -36,6 +36,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -2129,17 +2130,12 @@ namespace Mutagen.Bethesda.Starfield
 
 
         #region ObjectBounds
-        private RangeInt32? _ObjectBoundsLocation;
-        private IObjectBoundsGetter? _ObjectBounds => _ObjectBoundsLocation.HasValue ? ObjectBoundsBinaryOverlay.ObjectBoundsFactory(_recordData.Slice(_ObjectBoundsLocation!.Value.Min), _package) : default;
+        private IObjectBoundsGetter? _ObjectBounds => Payload.ObjectBoundsLocation.HasValue ? ObjectBoundsBinaryOverlay.ObjectBoundsFactory(_recordData.Slice(Payload.ObjectBoundsLocation!.Value.Min), _package) : default;
         public IObjectBoundsGetter ObjectBounds => _ObjectBounds ?? new ObjectBounds();
         #endregion
-        #region DirtinessScale
-        private int? _DirtinessScaleLocation;
-        public Percent DirtinessScale => _DirtinessScaleLocation.HasValue ? PercentBinaryTranslation.GetPercent(HeaderTranslation.ExtractSubrecordMemory(_recordData, _DirtinessScaleLocation.Value, _package.MetaData.Constants), FloatIntegerType.UInt) : default(Percent);
-        #endregion
+        public Percent DirtinessScale => Payload.DirtinessScaleLocation.HasValue ? PercentBinaryTranslation.GetPercent(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.DirtinessScaleLocation.Value, _package.MetaData.Constants), FloatIntegerType.UInt) : default(Percent);
         #region Name
-        private int? _NameLocation;
-        public ITranslatedStringGetter? Name => _NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+        public ITranslatedStringGetter? Name => Payload.NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
         #region Aspects
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         string INamedRequiredGetter.Name => this.Name?.String ?? string.Empty;
@@ -2149,21 +2145,35 @@ namespace Mutagen.Bethesda.Starfield
         ITranslatedStringGetter ITranslatedNamedRequiredGetter.Name => this.Name ?? TranslatedString.Empty;
         #endregion
         #endregion
-        #region MAGF
-        private int? _MAGFLocation;
-        public Int32? MAGF => _MAGFLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _MAGFLocation.Value, _package.MetaData.Constants)) : default(Int32?);
-        #endregion
-        #region MUID
-        private int? _MUIDLocation;
-        public Int32? MUID => _MUIDLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _MUIDLocation.Value, _package.MetaData.Constants)) : default(Int32?);
-        #endregion
-        private RangeInt32? _ENITLocation;
+        public Int32? MAGF => Payload.MAGFLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.MAGFLocation.Value, _package.MetaData.Constants)) : default(Int32?);
+        public Int32? MUID => Payload.MUIDLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.MUIDLocation.Value, _package.MetaData.Constants)) : default(Int32?);
         #region UnknownENIT
-        private int _UnknownENITLocation => _ENITLocation!.Value.Min;
-        private bool _UnknownENIT_IsSet => _ENITLocation.HasValue;
+        private int _UnknownENITLocation => Payload.ENITLocation!.Value.Min;
+        private bool _UnknownENIT_IsSet => Payload.ENITLocation.HasValue;
         public ReadOnlyMemorySlice<Byte> UnknownENIT => _UnknownENIT_IsSet ? _recordData.Span.Slice(_UnknownENITLocation, 27).ToArray() : ReadOnlyMemorySlice<byte>.Empty;
         #endregion
-        public IReadOnlyList<IEffectGetter> Effects { get; private set; } = [];
+        public IReadOnlyList<IEffectGetter> Effects => Payload.Effects ?? [];
+
+        internal partial class ObjectEffectRecordDataPayload
+        {
+            public RangeInt32? ObjectBoundsLocation;
+            public int? DirtinessScaleLocation;
+            public int? NameLocation;
+            public int? MAGFLocation;
+            public int? MUIDLocation;
+            public RangeInt32? ENITLocation;
+            public IReadOnlyList<IEffectGetter> Effects = [];
+        }
+
+        private LazyPayload<ObjectEffectRecordDataPayload> _payload = null!;
+
+        internal ObjectEffectRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<ObjectEffectRecordDataPayload>(init, new ObjectEffectRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -2171,10 +2181,10 @@ namespace Mutagen.Bethesda.Starfield
 
         partial void CustomCtor();
         protected ObjectEffectBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -2185,28 +2195,51 @@ namespace Mutagen.Bethesda.Starfield
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new ObjectEffectBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -2235,17 +2268,17 @@ namespace Mutagen.Bethesda.Starfield
             {
                 case RecordTypeInts.OBND:
                 {
-                    _ObjectBoundsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.ObjectBoundsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)ObjectEffect_FieldIndex.ObjectBounds;
                 }
                 case RecordTypeInts.ODTY:
                 {
-                    _DirtinessScaleLocation = (stream.Position - offset);
+                    _payload.Fields.DirtinessScaleLocation = (stream.Position - offset);
                     return (int)ObjectEffect_FieldIndex.DirtinessScale;
                 }
                 case RecordTypeInts.FULL:
                 {
-                    _NameLocation = (stream.Position - offset);
+                    _payload.Fields.NameLocation = (stream.Position - offset);
                     return (int)ObjectEffect_FieldIndex.Name;
                 }
                 case RecordTypeInts.MAGF:
@@ -2253,12 +2286,12 @@ namespace Mutagen.Bethesda.Starfield
                     if (!lastParsed.ParsedIndex.HasValue
                         || lastParsed.ParsedIndex.Value <= (int)ObjectEffect_FieldIndex.Name)
                     {
-                        _MAGFLocation = (stream.Position - offset);
+                        _payload.Fields.MAGFLocation = (stream.Position - offset);
                         return new ParseResult((int)ObjectEffect_FieldIndex.MAGF, type);
                     }
                     else if (lastParsed.ParsedIndex.Value <= (int)ObjectEffect_FieldIndex.UnknownENIT)
                     {
-                        this.Effects = this.ParseRepeatedTypelessSubrecord<IEffectGetter>(
+                        _payload.Fields.Effects = this.ParseRepeatedTypelessSubrecord<IEffectGetter>(
                             stream: stream,
                             translationParams: translationParams,
                             trigger: Effect_Registration.TriggerSpecs,
@@ -2271,12 +2304,12 @@ namespace Mutagen.Bethesda.Starfield
                         {
                             case 0:
                             {
-                                _MAGFLocation = (stream.Position - offset);
+                                _payload.Fields.MAGFLocation = (stream.Position - offset);
                                 return new ParseResult((int)ObjectEffect_FieldIndex.MAGF, type);
                             }
                             case 1:
                             {
-                                this.Effects = this.ParseRepeatedTypelessSubrecord<IEffectGetter>(
+                                _payload.Fields.Effects = this.ParseRepeatedTypelessSubrecord<IEffectGetter>(
                                     stream: stream,
                                     translationParams: translationParams,
                                     trigger: Effect_Registration.TriggerSpecs,
@@ -2293,12 +2326,12 @@ namespace Mutagen.Bethesda.Starfield
                     if (!lastParsed.ParsedIndex.HasValue
                         || lastParsed.ParsedIndex.Value <= (int)ObjectEffect_FieldIndex.MAGF)
                     {
-                        _MUIDLocation = (stream.Position - offset);
+                        _payload.Fields.MUIDLocation = (stream.Position - offset);
                         return new ParseResult((int)ObjectEffect_FieldIndex.MUID, type);
                     }
                     else if (lastParsed.ParsedIndex.Value <= (int)ObjectEffect_FieldIndex.UnknownENIT)
                     {
-                        this.Effects = this.ParseRepeatedTypelessSubrecord<IEffectGetter>(
+                        _payload.Fields.Effects = this.ParseRepeatedTypelessSubrecord<IEffectGetter>(
                             stream: stream,
                             translationParams: translationParams,
                             trigger: Effect_Registration.TriggerSpecs,
@@ -2311,12 +2344,12 @@ namespace Mutagen.Bethesda.Starfield
                         {
                             case 0:
                             {
-                                _MUIDLocation = (stream.Position - offset);
+                                _payload.Fields.MUIDLocation = (stream.Position - offset);
                                 return new ParseResult((int)ObjectEffect_FieldIndex.MUID, type);
                             }
                             case 1:
                             {
-                                this.Effects = this.ParseRepeatedTypelessSubrecord<IEffectGetter>(
+                                _payload.Fields.Effects = this.ParseRepeatedTypelessSubrecord<IEffectGetter>(
                                     stream: stream,
                                     translationParams: translationParams,
                                     trigger: Effect_Registration.TriggerSpecs,
@@ -2330,7 +2363,7 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.ENIT:
                 {
-                    _ENITLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.ENITLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     return (int)ObjectEffect_FieldIndex.UnknownENIT;
                 }
                 case RecordTypeInts.EFID:
@@ -2341,7 +2374,7 @@ namespace Mutagen.Bethesda.Starfield
                 case RecordTypeInts.ZNAM:
                 case RecordTypeInts.EFIF:
                 {
-                    this.Effects = this.ParseRepeatedTypelessSubrecord<IEffectGetter>(
+                    _payload.Fields.Effects = this.ParseRepeatedTypelessSubrecord<IEffectGetter>(
                         stream: stream,
                         translationParams: translationParams,
                         trigger: Effect_Registration.TriggerSpecs,

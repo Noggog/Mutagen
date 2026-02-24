@@ -1,0 +1,8 @@
+RecordTypes.EDID,
+RecordTypes.DATA,
+RecordTypes.VNML,
+RecordTypes.VHGT,
+RecordTypes.VCLR,
+RecordTypes.BTXT,
+RecordTypes.ATXT,
+RecordTypes.VTEX,

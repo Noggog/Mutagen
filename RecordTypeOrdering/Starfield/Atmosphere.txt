@@ -1,0 +1,4 @@
+RecordTypes.EDID,
+RecordTypes.REFL,
+RecordTypes.RFDP,
+RecordTypes.RDIF,

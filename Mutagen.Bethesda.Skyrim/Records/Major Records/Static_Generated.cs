@@ -37,6 +37,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -2142,37 +2143,51 @@ namespace Mutagen.Bethesda.Skyrim
         public Static.MajorFlag MajorFlags => (Static.MajorFlag)this.MajorRecordFlagsRaw;
 
         #region ObjectBounds
-        private RangeInt32? _ObjectBoundsLocation;
-        private IObjectBoundsGetter? _ObjectBounds => _ObjectBoundsLocation.HasValue ? ObjectBoundsBinaryOverlay.ObjectBoundsFactory(_recordData.Slice(_ObjectBoundsLocation!.Value.Min), _package) : default;
+        private IObjectBoundsGetter? _ObjectBounds => Payload.ObjectBoundsLocation.HasValue ? ObjectBoundsBinaryOverlay.ObjectBoundsFactory(_recordData.Slice(Payload.ObjectBoundsLocation!.Value.Min), _package) : default;
         public IObjectBoundsGetter ObjectBounds => _ObjectBounds ?? new ObjectBounds();
         #endregion
-        public IModelGetter? Model { get; private set; }
-        private RangeInt32? _DNAMLocation;
-        public Static.DNAMDataType DNAMDataTypeState { get; private set; }
+        public IModelGetter? Model => Payload.Model;
+        public Static.DNAMDataType DNAMDataTypeState => Payload.DNAMDataTypeState;
         #region MaxAngle
-        private int _MaxAngleLocation => _DNAMLocation!.Value.Min;
-        private bool _MaxAngle_IsSet => _DNAMLocation.HasValue;
+        private int _MaxAngleLocation => Payload.DNAMLocation!.Value.Min;
+        private bool _MaxAngle_IsSet => Payload.DNAMLocation.HasValue;
         public Single MaxAngle => _MaxAngle_IsSet ? _recordData.Slice(_MaxAngleLocation, 4).Float() : default(Single);
         #endregion
         #region Material
-        private int _MaterialLocation => _DNAMLocation!.Value.Min + 0x4;
-        private bool _Material_IsSet => _DNAMLocation.HasValue;
+        private int _MaterialLocation => Payload.DNAMLocation!.Value.Min + 0x4;
+        private bool _Material_IsSet => Payload.DNAMLocation.HasValue;
         public IFormLinkGetter<IMaterialObjectGetter> Material => _Material_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IMaterialObjectGetter>(_package, _recordData.Span.Slice(_MaterialLocation, 0x4), isSet: _Material_IsSet) : FormLink<IMaterialObjectGetter>.Null;
         #endregion
         #region Flags
-        private int _FlagsLocation => _DNAMLocation!.Value.Min + 0x8;
-        private bool _Flags_IsSet => _DNAMLocation.HasValue && !DNAMDataTypeState.HasFlag(Static.DNAMDataType.Break0);
+        private int _FlagsLocation => Payload.DNAMLocation!.Value.Min + 0x8;
+        private bool _Flags_IsSet => Payload.DNAMLocation.HasValue && !DNAMDataTypeState.HasFlag(Static.DNAMDataType.Break0);
         public Static.Flag Flags => _Flags_IsSet ? (Static.Flag)_recordData.Span.Slice(_FlagsLocation, 0x1)[0] : default;
         #endregion
         #region Unused
-        private int _UnusedLocation => _DNAMLocation!.Value.Min + 0x9;
-        private bool _Unused_IsSet => _DNAMLocation.HasValue && !DNAMDataTypeState.HasFlag(Static.DNAMDataType.Break0);
+        private int _UnusedLocation => Payload.DNAMLocation!.Value.Min + 0x9;
+        private bool _Unused_IsSet => Payload.DNAMLocation.HasValue && !DNAMDataTypeState.HasFlag(Static.DNAMDataType.Break0);
         public ReadOnlyMemorySlice<Byte> Unused => _Unused_IsSet ? _recordData.Span.Slice(_UnusedLocation, 3).ToArray() : ReadOnlyMemorySlice<byte>.Empty;
         #endregion
-        #region Lod
-        private RangeInt32? _LodLocation;
-        public ILodGetter? Lod => _LodLocation.HasValue ? LodBinaryOverlay.LodFactory(_recordData.Slice(_LodLocation!.Value.Min), _package) : default;
-        #endregion
+        public ILodGetter? Lod => Payload.LodLocation.HasValue ? LodBinaryOverlay.LodFactory(_recordData.Slice(Payload.LodLocation!.Value.Min), _package) : default;
+
+        internal partial class StaticRecordDataPayload
+        {
+            public RangeInt32? ObjectBoundsLocation;
+            public IModelGetter? Model;
+            public RangeInt32? DNAMLocation;
+            public Static.DNAMDataType DNAMDataTypeState;
+            public RangeInt32? LodLocation;
+        }
+
+        private LazyPayload<StaticRecordDataPayload> _payload = null!;
+
+        internal StaticRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<StaticRecordDataPayload>(init, new StaticRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -2180,10 +2195,10 @@ namespace Mutagen.Bethesda.Skyrim
 
         partial void CustomCtor();
         protected StaticBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -2194,28 +2209,51 @@ namespace Mutagen.Bethesda.Skyrim
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new StaticBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -2244,12 +2282,12 @@ namespace Mutagen.Bethesda.Skyrim
             {
                 case RecordTypeInts.OBND:
                 {
-                    _ObjectBoundsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.ObjectBoundsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)Static_FieldIndex.ObjectBounds;
                 }
                 case RecordTypeInts.MODL:
                 {
-                    this.Model = ModelBinaryOverlay.ModelFactory(
+                    _payload.Fields.Model = ModelBinaryOverlay.ModelFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());
@@ -2257,17 +2295,17 @@ namespace Mutagen.Bethesda.Skyrim
                 }
                 case RecordTypeInts.DNAM:
                 {
-                    _DNAMLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.DNAMLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     var subLen = _package.MetaData.Constants.SubrecordHeader(_recordData.Slice((stream.Position - offset))).ContentLength;
                     if (subLen <= 0x8)
                     {
-                        this.DNAMDataTypeState |= Static.DNAMDataType.Break0;
+                        _payload.Fields.DNAMDataTypeState |= Static.DNAMDataType.Break0;
                     }
                     return (int)Static_FieldIndex.Unused;
                 }
                 case RecordTypeInts.MNAM:
                 {
-                    _LodLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.LodLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)Static_FieldIndex.Lod;
                 }
                 default:

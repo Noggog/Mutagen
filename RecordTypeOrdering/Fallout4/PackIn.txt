@@ -1,0 +1,5 @@
+RecordTypes.EDID,
+RecordTypes.OBND,
+RecordTypes.FLTR,
+RecordTypes.CNAM,
+RecordTypes.VNAM,

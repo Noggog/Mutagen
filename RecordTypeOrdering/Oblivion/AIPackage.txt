@@ -1,0 +1,7 @@
+RecordTypes.EDID,
+RecordTypes.PKDT,
+RecordTypes.PLDT,
+RecordTypes.PSDT,
+RecordTypes.PTDT,
+RecordTypes.CTDA,
+RecordTypes.CTDT,

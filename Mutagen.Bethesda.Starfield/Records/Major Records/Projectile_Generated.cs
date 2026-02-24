@@ -38,6 +38,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -5032,26 +5033,15 @@ namespace Mutagen.Bethesda.Starfield
 
 
         #region ObjectBounds
-        private RangeInt32? _ObjectBoundsLocation;
-        private IObjectBoundsGetter? _ObjectBounds => _ObjectBoundsLocation.HasValue ? ObjectBoundsBinaryOverlay.ObjectBoundsFactory(_recordData.Slice(_ObjectBoundsLocation!.Value.Min), _package) : default;
+        private IObjectBoundsGetter? _ObjectBounds => Payload.ObjectBoundsLocation.HasValue ? ObjectBoundsBinaryOverlay.ObjectBoundsFactory(_recordData.Slice(Payload.ObjectBoundsLocation!.Value.Min), _package) : default;
         public IObjectBoundsGetter ObjectBounds => _ObjectBounds ?? new ObjectBounds();
         #endregion
-        #region DirtinessScale
-        private int? _DirtinessScaleLocation;
-        public Percent DirtinessScale => _DirtinessScaleLocation.HasValue ? PercentBinaryTranslation.GetPercent(HeaderTranslation.ExtractSubrecordMemory(_recordData, _DirtinessScaleLocation.Value, _package.MetaData.Constants), FloatIntegerType.UInt) : default(Percent);
-        #endregion
-        #region ObjectPaletteDefaults
-        private RangeInt32? _ObjectPaletteDefaultsLocation;
-        public IObjectPaletteDefaultsGetter? ObjectPaletteDefaults => _ObjectPaletteDefaultsLocation.HasValue ? ObjectPaletteDefaultsBinaryOverlay.ObjectPaletteDefaultsFactory(_recordData.Slice(_ObjectPaletteDefaultsLocation!.Value.Min), _package) : default;
-        #endregion
-        #region XALG
-        private int? _XALGLocation;
-        public UInt64? XALG => _XALGLocation.HasValue ? BinaryPrimitives.ReadUInt64LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _XALGLocation.Value, _package.MetaData.Constants)) : default(UInt64?);
-        #endregion
-        public IReadOnlyList<IAComponentGetter> Components { get; private set; } = [];
+        public Percent DirtinessScale => Payload.DirtinessScaleLocation.HasValue ? PercentBinaryTranslation.GetPercent(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.DirtinessScaleLocation.Value, _package.MetaData.Constants), FloatIntegerType.UInt) : default(Percent);
+        public IObjectPaletteDefaultsGetter? ObjectPaletteDefaults => Payload.ObjectPaletteDefaultsLocation.HasValue ? ObjectPaletteDefaultsBinaryOverlay.ObjectPaletteDefaultsFactory(_recordData.Slice(Payload.ObjectPaletteDefaultsLocation!.Value.Min), _package) : default;
+        public UInt64? XALG => Payload.XALGLocation.HasValue ? BinaryPrimitives.ReadUInt64LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.XALGLocation.Value, _package.MetaData.Constants)) : default(UInt64?);
+        public IReadOnlyList<IAComponentGetter> Components => Payload.Components ?? [];
         #region Name
-        private int? _NameLocation;
-        public ITranslatedStringGetter? Name => _NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+        public ITranslatedStringGetter? Name => Payload.NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
         #region Aspects
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         string INamedRequiredGetter.Name => this.Name?.String ?? string.Empty;
@@ -5061,193 +5051,206 @@ namespace Mutagen.Bethesda.Starfield
         ITranslatedStringGetter ITranslatedNamedRequiredGetter.Name => this.Name ?? TranslatedString.Empty;
         #endregion
         #endregion
-        public IModelGetter? Model { get; private set; }
-        public IDestructibleGetter? Destructible { get; private set; }
-        #region Unused
-        private int? _UnusedLocation;
-        public ReadOnlyMemorySlice<Byte>? Unused => _UnusedLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _UnusedLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
-        #endregion
-        private RangeInt32? _PRODLocation;
+        public IModelGetter? Model => Payload.Model;
+        public IDestructibleGetter? Destructible => Payload.Destructible;
+        public ReadOnlyMemorySlice<Byte>? Unused => Payload.UnusedLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.UnusedLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
         #region Flags
-        private int _FlagsLocation => _PRODLocation!.Value.Min;
-        private bool _Flags_IsSet => _PRODLocation.HasValue;
+        private int _FlagsLocation => Payload.PRODLocation!.Value.Min;
+        private bool _Flags_IsSet => Payload.PRODLocation.HasValue;
         public Projectile.Flag Flags => _Flags_IsSet ? (Projectile.Flag)BinaryPrimitives.ReadUInt16LittleEndian(_recordData.Span.Slice(_FlagsLocation, 0x2)) : default;
         #endregion
         #region Type
-        private int _TypeLocation => _PRODLocation!.Value.Min + 0x2;
-        private bool _Type_IsSet => _PRODLocation.HasValue;
+        private int _TypeLocation => Payload.PRODLocation!.Value.Min + 0x2;
+        private bool _Type_IsSet => Payload.PRODLocation.HasValue;
         public Projectile.TypeEnum Type => _Type_IsSet ? (Projectile.TypeEnum)BinaryPrimitives.ReadUInt16LittleEndian(_recordData.Span.Slice(_TypeLocation, 0x2)) : default;
         #endregion
         #region Gravity
-        private int _GravityLocation => _PRODLocation!.Value.Min + 0x4;
-        private bool _Gravity_IsSet => _PRODLocation.HasValue;
+        private int _GravityLocation => Payload.PRODLocation!.Value.Min + 0x4;
+        private bool _Gravity_IsSet => Payload.PRODLocation.HasValue;
         public Single Gravity => _Gravity_IsSet ? _recordData.Slice(_GravityLocation, 4).Float() : default(Single);
         #endregion
         #region Speed
-        private int _SpeedLocation => _PRODLocation!.Value.Min + 0x8;
-        private bool _Speed_IsSet => _PRODLocation.HasValue;
+        private int _SpeedLocation => Payload.PRODLocation!.Value.Min + 0x8;
+        private bool _Speed_IsSet => Payload.PRODLocation.HasValue;
         public Single Speed => _Speed_IsSet ? _recordData.Slice(_SpeedLocation, 4).Float() : default(Single);
         #endregion
         #region Range
-        private int _RangeLocation => _PRODLocation!.Value.Min + 0xC;
-        private bool _Range_IsSet => _PRODLocation.HasValue;
+        private int _RangeLocation => Payload.PRODLocation!.Value.Min + 0xC;
+        private bool _Range_IsSet => Payload.PRODLocation.HasValue;
         public Single Range => _Range_IsSet ? _recordData.Slice(_RangeLocation, 4).Float() : default(Single);
         #endregion
         #region Light
-        private int _LightLocation => _PRODLocation!.Value.Min + 0x10;
-        private bool _Light_IsSet => _PRODLocation.HasValue;
+        private int _LightLocation => Payload.PRODLocation!.Value.Min + 0x10;
+        private bool _Light_IsSet => Payload.PRODLocation.HasValue;
         public IFormLinkGetter<ILightGetter> Light => _Light_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<ILightGetter>(_package, _recordData.Span.Slice(_LightLocation, 0x4), isSet: _Light_IsSet) : FormLink<ILightGetter>.Null;
         #endregion
         #region MuzzleFlash
-        private int _MuzzleFlashLocation => _PRODLocation!.Value.Min + 0x14;
-        private bool _MuzzleFlash_IsSet => _PRODLocation.HasValue;
+        private int _MuzzleFlashLocation => Payload.PRODLocation!.Value.Min + 0x14;
+        private bool _MuzzleFlash_IsSet => Payload.PRODLocation.HasValue;
         public IFormLinkGetter<ILightGetter> MuzzleFlash => _MuzzleFlash_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<ILightGetter>(_package, _recordData.Span.Slice(_MuzzleFlashLocation, 0x4), isSet: _MuzzleFlash_IsSet) : FormLink<ILightGetter>.Null;
         #endregion
         #region ExplosionAltTriggerProximity
-        private int _ExplosionAltTriggerProximityLocation => _PRODLocation!.Value.Min + 0x18;
-        private bool _ExplosionAltTriggerProximity_IsSet => _PRODLocation.HasValue;
+        private int _ExplosionAltTriggerProximityLocation => Payload.PRODLocation!.Value.Min + 0x18;
+        private bool _ExplosionAltTriggerProximity_IsSet => Payload.PRODLocation.HasValue;
         public Single ExplosionAltTriggerProximity => _ExplosionAltTriggerProximity_IsSet ? _recordData.Slice(_ExplosionAltTriggerProximityLocation, 4).Float() : default(Single);
         #endregion
         #region ExplosionAltTriggerTimer
-        private int _ExplosionAltTriggerTimerLocation => _PRODLocation!.Value.Min + 0x1C;
-        private bool _ExplosionAltTriggerTimer_IsSet => _PRODLocation.HasValue;
+        private int _ExplosionAltTriggerTimerLocation => Payload.PRODLocation!.Value.Min + 0x1C;
+        private bool _ExplosionAltTriggerTimer_IsSet => Payload.PRODLocation.HasValue;
         public Single ExplosionAltTriggerTimer => _ExplosionAltTriggerTimer_IsSet ? _recordData.Slice(_ExplosionAltTriggerTimerLocation, 4).Float() : default(Single);
         #endregion
         #region Explosion
-        private int _ExplosionLocation => _PRODLocation!.Value.Min + 0x20;
-        private bool _Explosion_IsSet => _PRODLocation.HasValue;
+        private int _ExplosionLocation => Payload.PRODLocation!.Value.Min + 0x20;
+        private bool _Explosion_IsSet => Payload.PRODLocation.HasValue;
         public IFormLinkGetter<IExplosionGetter> Explosion => _Explosion_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IExplosionGetter>(_package, _recordData.Span.Slice(_ExplosionLocation, 0x4), isSet: _Explosion_IsSet) : FormLink<IExplosionGetter>.Null;
         #endregion
         #region MuzzleFlashDuration
-        private int _MuzzleFlashDurationLocation => _PRODLocation!.Value.Min + 0x24;
-        private bool _MuzzleFlashDuration_IsSet => _PRODLocation.HasValue;
+        private int _MuzzleFlashDurationLocation => Payload.PRODLocation!.Value.Min + 0x24;
+        private bool _MuzzleFlashDuration_IsSet => Payload.PRODLocation.HasValue;
         public Single MuzzleFlashDuration => _MuzzleFlashDuration_IsSet ? _recordData.Slice(_MuzzleFlashDurationLocation, 4).Float() : default(Single);
         #endregion
         #region FadeDuration
-        private int _FadeDurationLocation => _PRODLocation!.Value.Min + 0x28;
-        private bool _FadeDuration_IsSet => _PRODLocation.HasValue;
+        private int _FadeDurationLocation => Payload.PRODLocation!.Value.Min + 0x28;
+        private bool _FadeDuration_IsSet => Payload.PRODLocation.HasValue;
         public Single FadeDuration => _FadeDuration_IsSet ? _recordData.Slice(_FadeDurationLocation, 4).Float() : default(Single);
         #endregion
         #region ImpactForce
-        private int _ImpactForceLocation => _PRODLocation!.Value.Min + 0x2C;
-        private bool _ImpactForce_IsSet => _PRODLocation.HasValue;
+        private int _ImpactForceLocation => Payload.PRODLocation!.Value.Min + 0x2C;
+        private bool _ImpactForce_IsSet => Payload.PRODLocation.HasValue;
         public Single ImpactForce => _ImpactForce_IsSet ? _recordData.Slice(_ImpactForceLocation, 4).Float() : default(Single);
         #endregion
         #region DefaultWeaponSource
-        private int _DefaultWeaponSourceLocation => _PRODLocation!.Value.Min + 0x30;
-        private bool _DefaultWeaponSource_IsSet => _PRODLocation.HasValue;
+        private int _DefaultWeaponSourceLocation => Payload.PRODLocation!.Value.Min + 0x30;
+        private bool _DefaultWeaponSource_IsSet => Payload.PRODLocation.HasValue;
         public IFormLinkGetter<IWeaponGetter> DefaultWeaponSource => _DefaultWeaponSource_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IWeaponGetter>(_package, _recordData.Span.Slice(_DefaultWeaponSourceLocation, 0x4), isSet: _DefaultWeaponSource_IsSet) : FormLink<IWeaponGetter>.Null;
         #endregion
         #region ConeSpread
-        private int _ConeSpreadLocation => _PRODLocation!.Value.Min + 0x34;
-        private bool _ConeSpread_IsSet => _PRODLocation.HasValue;
+        private int _ConeSpreadLocation => Payload.PRODLocation!.Value.Min + 0x34;
+        private bool _ConeSpread_IsSet => Payload.PRODLocation.HasValue;
         public Single ConeSpread => _ConeSpread_IsSet ? _recordData.Slice(_ConeSpreadLocation, 4).Float() : default(Single);
         #endregion
         #region CollisionRadius
-        private int _CollisionRadiusLocation => _PRODLocation!.Value.Min + 0x38;
-        private bool _CollisionRadius_IsSet => _PRODLocation.HasValue;
+        private int _CollisionRadiusLocation => Payload.PRODLocation!.Value.Min + 0x38;
+        private bool _CollisionRadius_IsSet => Payload.PRODLocation.HasValue;
         public Single CollisionRadius => _CollisionRadius_IsSet ? _recordData.Slice(_CollisionRadiusLocation, 4).Float() : default(Single);
         #endregion
         #region Lifetime
-        private int _LifetimeLocation => _PRODLocation!.Value.Min + 0x3C;
-        private bool _Lifetime_IsSet => _PRODLocation.HasValue;
+        private int _LifetimeLocation => Payload.PRODLocation!.Value.Min + 0x3C;
+        private bool _Lifetime_IsSet => Payload.PRODLocation.HasValue;
         public Single Lifetime => _Lifetime_IsSet ? _recordData.Slice(_LifetimeLocation, 4).Float() : default(Single);
         #endregion
         #region RelaunchInterval
-        private int _RelaunchIntervalLocation => _PRODLocation!.Value.Min + 0x40;
-        private bool _RelaunchInterval_IsSet => _PRODLocation.HasValue;
+        private int _RelaunchIntervalLocation => Payload.PRODLocation!.Value.Min + 0x40;
+        private bool _RelaunchInterval_IsSet => Payload.PRODLocation.HasValue;
         public Single RelaunchInterval => _RelaunchInterval_IsSet ? _recordData.Slice(_RelaunchIntervalLocation, 4).Float() : default(Single);
         #endregion
         #region DecalData
-        private int _DecalDataLocation => _PRODLocation!.Value.Min + 0x44;
-        private bool _DecalData_IsSet => _PRODLocation.HasValue;
+        private int _DecalDataLocation => Payload.PRODLocation!.Value.Min + 0x44;
+        private bool _DecalData_IsSet => Payload.PRODLocation.HasValue;
         public IFormLinkGetter<ITextureSetGetter> DecalData => _DecalData_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<ITextureSetGetter>(_package, _recordData.Span.Slice(_DecalDataLocation, 0x4), isSet: _DecalData_IsSet) : FormLink<ITextureSetGetter>.Null;
         #endregion
         #region CollisionLayer
-        private int _CollisionLayerLocation => _PRODLocation!.Value.Min + 0x48;
-        private bool _CollisionLayer_IsSet => _PRODLocation.HasValue;
+        private int _CollisionLayerLocation => Payload.PRODLocation!.Value.Min + 0x48;
+        private bool _CollisionLayer_IsSet => Payload.PRODLocation.HasValue;
         public IFormLinkGetter<ICollisionLayerGetter> CollisionLayer => _CollisionLayer_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<ICollisionLayerGetter>(_package, _recordData.Span.Slice(_CollisionLayerLocation, 0x4), isSet: _CollisionLayer_IsSet) : FormLink<ICollisionLayerGetter>.Null;
         #endregion
         #region TracerFrequency
-        private int _TracerFrequencyLocation => _PRODLocation!.Value.Min + 0x4C;
-        private bool _TracerFrequency_IsSet => _PRODLocation.HasValue;
+        private int _TracerFrequencyLocation => Payload.PRODLocation!.Value.Min + 0x4C;
+        private bool _TracerFrequency_IsSet => Payload.PRODLocation.HasValue;
         public Byte TracerFrequency => _TracerFrequency_IsSet ? _recordData.Span[_TracerFrequencyLocation] : default;
         #endregion
         #region UnknownPROD1
-        private int _UnknownPROD1Location => _PRODLocation!.Value.Min + 0x4D;
-        private bool _UnknownPROD1_IsSet => _PRODLocation.HasValue;
+        private int _UnknownPROD1Location => Payload.PRODLocation!.Value.Min + 0x4D;
+        private bool _UnknownPROD1_IsSet => Payload.PRODLocation.HasValue;
         public UInt32 UnknownPROD1 => _UnknownPROD1_IsSet ? BinaryPrimitives.ReadUInt32LittleEndian(_recordData.Slice(_UnknownPROD1Location, 4)) : default(UInt32);
         #endregion
         #region UnknownPRODString1
-        private int _UnknownPRODString1Location => _PRODLocation!.Value.Min + 0x51;
-        private bool _UnknownPRODString1_IsSet => _PRODLocation.HasValue;
+        private int _UnknownPRODString1Location => Payload.PRODLocation!.Value.Min + 0x51;
+        private bool _UnknownPRODString1_IsSet => Payload.PRODLocation.HasValue;
         public String UnknownPRODString1 => _UnknownPRODString1_IsSet ? BinaryStringUtility.ParsePrependedString(_recordData.Slice(_UnknownPRODString1Location), lengthLength: 4, encoding: _package.MetaData.Encodings.NonTranslated) : string.Empty;
         protected int UnknownPRODString1EndingPos;
         #endregion
         #region UnknownPROD2
         private int _UnknownPROD2Location => UnknownPRODString1EndingPos;
-        private bool _UnknownPROD2_IsSet => _PRODLocation.HasValue;
+        private bool _UnknownPROD2_IsSet => Payload.PRODLocation.HasValue;
         public Single UnknownPROD2 => _UnknownPROD2_IsSet ? _recordData.Slice(_UnknownPROD2Location, 4).Float() : default(Single);
         #endregion
         #region UnknownPROD3
         private int _UnknownPROD3Location => UnknownPRODString1EndingPos + 0x4;
-        private bool _UnknownPROD3_IsSet => _PRODLocation.HasValue;
+        private bool _UnknownPROD3_IsSet => Payload.PRODLocation.HasValue;
         public UInt32 UnknownPROD3 => _UnknownPROD3_IsSet ? BinaryPrimitives.ReadUInt32LittleEndian(_recordData.Slice(_UnknownPROD3Location, 4)) : default(UInt32);
         #endregion
         #region UnknownPROD4
         private int _UnknownPROD4Location => UnknownPRODString1EndingPos + 0x8;
-        private bool _UnknownPROD4_IsSet => _PRODLocation.HasValue;
+        private bool _UnknownPROD4_IsSet => Payload.PRODLocation.HasValue;
         public Byte UnknownPROD4 => _UnknownPROD4_IsSet ? _recordData.Span[_UnknownPROD4Location] : default;
         #endregion
         #region UnknownPRODString2
         private int _UnknownPRODString2Location => UnknownPRODString1EndingPos + 0x9;
-        private bool _UnknownPRODString2_IsSet => _PRODLocation.HasValue;
+        private bool _UnknownPRODString2_IsSet => Payload.PRODLocation.HasValue;
         public String UnknownPRODString2 => _UnknownPRODString2_IsSet ? BinaryStringUtility.ParsePrependedString(_recordData.Slice(_UnknownPRODString2Location), lengthLength: 4, encoding: _package.MetaData.Encodings.NonTranslated) : string.Empty;
         protected int UnknownPRODString2EndingPos;
         #endregion
         #region UnknownPROD5
         private int _UnknownPROD5Location => UnknownPRODString2EndingPos;
-        private bool _UnknownPROD5_IsSet => _PRODLocation.HasValue;
+        private bool _UnknownPROD5_IsSet => Payload.PRODLocation.HasValue;
         public Single UnknownPROD5 => _UnknownPROD5_IsSet ? _recordData.Slice(_UnknownPROD5Location, 4).Float() : default(Single);
         #endregion
         #region UnknownPROD6
         private int _UnknownPROD6Location => UnknownPRODString2EndingPos + 0x4;
-        private bool _UnknownPROD6_IsSet => _PRODLocation.HasValue;
+        private bool _UnknownPROD6_IsSet => Payload.PRODLocation.HasValue;
         public Single UnknownPROD6 => _UnknownPROD6_IsSet ? _recordData.Slice(_UnknownPROD6Location, 4).Float() : default(Single);
         #endregion
         #region UnknownPROD7
         private int _UnknownPROD7Location => UnknownPRODString2EndingPos + 0x8;
-        private bool _UnknownPROD7_IsSet => _PRODLocation.HasValue;
+        private bool _UnknownPROD7_IsSet => Payload.PRODLocation.HasValue;
         public Single UnknownPROD7 => _UnknownPROD7_IsSet ? _recordData.Slice(_UnknownPROD7Location, 4).Float() : default(Single);
         #endregion
         #region UnknownPROD8
         private int _UnknownPROD8Location => UnknownPRODString2EndingPos + 0xC;
-        private bool _UnknownPROD8_IsSet => _PRODLocation.HasValue;
+        private bool _UnknownPROD8_IsSet => Payload.PRODLocation.HasValue;
         public Single UnknownPROD8 => _UnknownPROD8_IsSet ? _recordData.Slice(_UnknownPROD8Location, 4).Float() : default(Single);
         #endregion
-        #region MuzzleFlashModel
-        private int? _MuzzleFlashModelLocation;
-        public String MuzzleFlashModel => _MuzzleFlashModelLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _MuzzleFlashModelLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : string.Empty;
-        #endregion
-        #region TextureFilesHashes
-        private int? _TextureFilesHashesLocation;
-        public ReadOnlyMemorySlice<Byte>? TextureFilesHashes => _TextureFilesHashesLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _TextureFilesHashesLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
-        #endregion
-        #region FLLD
-        private int? _FLLDLocation;
-        public ReadOnlyMemorySlice<Byte>? FLLD => _FLLDLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _FLLDLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
-        #endregion
-        public ISoundReferenceGetter? ActiveSound { get; private set; }
-        public ISoundReferenceGetter? CountdownEndSound { get; private set; }
-        public ISoundReferenceGetter? DisableSound { get; private set; }
-        #region SoundLevel
-        private int? _SoundLevelLocation;
-        public SoundLevel? SoundLevel => EnumBinaryTranslation<SoundLevel, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(_SoundLevelLocation, _recordData, _package, 4);
-        #endregion
-        #region CurveTable
-        private int? _CurveTableLocation;
-        public IFormLinkNullableGetter<ICurveTableGetter> CurveTable => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ICurveTableGetter>(_package, _recordData, _CurveTableLocation);
-        #endregion
+        public String MuzzleFlashModel => Payload.MuzzleFlashModelLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.MuzzleFlashModelLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : string.Empty;
+        public ReadOnlyMemorySlice<Byte>? TextureFilesHashes => Payload.TextureFilesHashesLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.TextureFilesHashesLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
+        public ReadOnlyMemorySlice<Byte>? FLLD => Payload.FLLDLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.FLLDLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
+        public ISoundReferenceGetter? ActiveSound => Payload.ActiveSound;
+        public ISoundReferenceGetter? CountdownEndSound => Payload.CountdownEndSound;
+        public ISoundReferenceGetter? DisableSound => Payload.DisableSound;
+        public SoundLevel? SoundLevel => EnumBinaryTranslation<SoundLevel, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(Payload.SoundLevelLocation, _recordData, _package, 4);
+        public IFormLinkNullableGetter<ICurveTableGetter> CurveTable => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ICurveTableGetter>(_package, _recordData, Payload.CurveTableLocation);
+
+        internal partial class ProjectileRecordDataPayload
+        {
+            public RangeInt32? ObjectBoundsLocation;
+            public int? DirtinessScaleLocation;
+            public RangeInt32? ObjectPaletteDefaultsLocation;
+            public int? XALGLocation;
+            public IReadOnlyList<IAComponentGetter> Components = [];
+            public int? NameLocation;
+            public IModelGetter? Model;
+            public IDestructibleGetter? Destructible;
+            public int? UnusedLocation;
+            public RangeInt32? PRODLocation;
+            public int? MuzzleFlashModelLocation;
+            public int? TextureFilesHashesLocation;
+            public int? FLLDLocation;
+            public ISoundReferenceGetter? ActiveSound;
+            public ISoundReferenceGetter? CountdownEndSound;
+            public ISoundReferenceGetter? DisableSound;
+            public int? SoundLevelLocation;
+            public int? CurveTableLocation;
+        }
+
+        private LazyPayload<ProjectileRecordDataPayload> _payload = null!;
+
+        internal ProjectileRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<ProjectileRecordDataPayload>(init, new ProjectileRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -5255,10 +5258,10 @@ namespace Mutagen.Bethesda.Starfield
 
         partial void CustomCtor();
         protected ProjectileBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -5269,30 +5272,53 @@ namespace Mutagen.Bethesda.Starfield
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new ProjectileBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
-            ret.UnknownPRODString1EndingPos = ret._PRODLocation!.Value.Min + 0x51 + BinaryPrimitives.ReadInt32LittleEndian(ret._recordData.Slice(ret._PRODLocation!.Value.Min + 0x51)) + 4;
-            ret.UnknownPRODString2EndingPos = ret.UnknownPRODString1EndingPos + 0x9 + BinaryPrimitives.ReadInt32LittleEndian(ret._recordData.Slice(ret.UnknownPRODString1EndingPos + 0x9)) + 4;
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                ret.UnknownPRODString1EndingPos = ret._payload.Fields.PRODLocation!.Value.Min + 0x51 + BinaryPrimitives.ReadInt32LittleEndian(ret._recordData.Slice(ret._payload.Fields.PRODLocation!.Value.Min + 0x51)) + 4;
+                ret.UnknownPRODString2EndingPos = ret.UnknownPRODString1EndingPos + 0x9 + BinaryPrimitives.ReadInt32LittleEndian(ret._recordData.Slice(ret.UnknownPRODString1EndingPos + 0x9)) + 4;
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -5321,27 +5347,27 @@ namespace Mutagen.Bethesda.Starfield
             {
                 case RecordTypeInts.OBND:
                 {
-                    _ObjectBoundsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.ObjectBoundsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)Projectile_FieldIndex.ObjectBounds;
                 }
                 case RecordTypeInts.ODTY:
                 {
-                    _DirtinessScaleLocation = (stream.Position - offset);
+                    _payload.Fields.DirtinessScaleLocation = (stream.Position - offset);
                     return (int)Projectile_FieldIndex.DirtinessScale;
                 }
                 case RecordTypeInts.OPDS:
                 {
-                    _ObjectPaletteDefaultsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.ObjectPaletteDefaultsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)Projectile_FieldIndex.ObjectPaletteDefaults;
                 }
                 case RecordTypeInts.XALG:
                 {
-                    _XALGLocation = (stream.Position - offset);
+                    _payload.Fields.XALGLocation = (stream.Position - offset);
                     return (int)Projectile_FieldIndex.XALG;
                 }
                 case RecordTypeInts.BFCB:
                 {
-                    this.Components = this.ParseRepeatedTypelessSubrecord<IAComponentGetter>(
+                    _payload.Fields.Components = this.ParseRepeatedTypelessSubrecord<IAComponentGetter>(
                         stream: stream,
                         translationParams: translationParams,
                         trigger: AComponent_Registration.TriggerSpecs,
@@ -5350,7 +5376,7 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.FULL:
                 {
-                    _NameLocation = (stream.Position - offset);
+                    _payload.Fields.NameLocation = (stream.Position - offset);
                     return (int)Projectile_FieldIndex.Name;
                 }
                 case RecordTypeInts.MODL:
@@ -5364,7 +5390,7 @@ namespace Mutagen.Bethesda.Starfield
                     if (!lastParsed.ParsedIndex.HasValue
                         || lastParsed.ParsedIndex.Value <= (int)Projectile_FieldIndex.Name)
                     {
-                        this.Model = ModelBinaryOverlay.ModelFactory(
+                        _payload.Fields.Model = ModelBinaryOverlay.ModelFactory(
                             stream: stream,
                             package: _package,
                             translationParams: translationParams.DoNotShortCircuit());
@@ -5372,7 +5398,7 @@ namespace Mutagen.Bethesda.Starfield
                     }
                     else if (lastParsed.ParsedIndex.Value <= (int)Projectile_FieldIndex.TextureFilesHashes)
                     {
-                        _FLLDLocation = (stream.Position - offset);
+                        _payload.Fields.FLLDLocation = (stream.Position - offset);
                         return new ParseResult((int)Projectile_FieldIndex.FLLD, type);
                     }
                     else
@@ -5381,7 +5407,7 @@ namespace Mutagen.Bethesda.Starfield
                         {
                             case 0:
                             {
-                                this.Model = ModelBinaryOverlay.ModelFactory(
+                                _payload.Fields.Model = ModelBinaryOverlay.ModelFactory(
                                     stream: stream,
                                     package: _package,
                                     translationParams: translationParams.DoNotShortCircuit());
@@ -5389,7 +5415,7 @@ namespace Mutagen.Bethesda.Starfield
                             }
                             case 1:
                             {
-                                _FLLDLocation = (stream.Position - offset);
+                                _payload.Fields.FLLDLocation = (stream.Position - offset);
                                 return new ParseResult((int)Projectile_FieldIndex.FLLD, type);
                             }
                             default:
@@ -5402,7 +5428,7 @@ namespace Mutagen.Bethesda.Starfield
                 case RecordTypeInts.DSDL:
                 case RecordTypeInts.DSTD:
                 {
-                    this.Destructible = DestructibleBinaryOverlay.DestructibleFactory(
+                    _payload.Fields.Destructible = DestructibleBinaryOverlay.DestructibleFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());
@@ -5410,28 +5436,28 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.DATA:
                 {
-                    _UnusedLocation = (stream.Position - offset);
+                    _payload.Fields.UnusedLocation = (stream.Position - offset);
                     return (int)Projectile_FieldIndex.Unused;
                 }
                 case RecordTypeInts.PROD:
                 {
-                    _PRODLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.PRODLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     return (int)Projectile_FieldIndex.UnknownPROD8;
                 }
                 case RecordTypeInts.NAM1:
                 {
-                    _MuzzleFlashModelLocation = (stream.Position - offset);
+                    _payload.Fields.MuzzleFlashModelLocation = (stream.Position - offset);
                     return (int)Projectile_FieldIndex.MuzzleFlashModel;
                 }
                 case RecordTypeInts.NAM2:
                 {
-                    _TextureFilesHashesLocation = (stream.Position - offset);
+                    _payload.Fields.TextureFilesHashesLocation = (stream.Position - offset);
                     return (int)Projectile_FieldIndex.TextureFilesHashes;
                 }
                 case RecordTypeInts.PRAS:
                 {
                     stream.Position += _package.MetaData.Constants.SubConstants.HeaderLength;
-                    this.ActiveSound = SoundReferenceBinaryOverlay.SoundReferenceFactory(
+                    _payload.Fields.ActiveSound = SoundReferenceBinaryOverlay.SoundReferenceFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());
@@ -5440,7 +5466,7 @@ namespace Mutagen.Bethesda.Starfield
                 case RecordTypeInts.PRCS:
                 {
                     stream.Position += _package.MetaData.Constants.SubConstants.HeaderLength;
-                    this.CountdownEndSound = SoundReferenceBinaryOverlay.SoundReferenceFactory(
+                    _payload.Fields.CountdownEndSound = SoundReferenceBinaryOverlay.SoundReferenceFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());
@@ -5449,7 +5475,7 @@ namespace Mutagen.Bethesda.Starfield
                 case RecordTypeInts.PRDS:
                 {
                     stream.Position += _package.MetaData.Constants.SubConstants.HeaderLength;
-                    this.DisableSound = SoundReferenceBinaryOverlay.SoundReferenceFactory(
+                    _payload.Fields.DisableSound = SoundReferenceBinaryOverlay.SoundReferenceFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());
@@ -5457,12 +5483,12 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.VNAM:
                 {
-                    _SoundLevelLocation = (stream.Position - offset);
+                    _payload.Fields.SoundLevelLocation = (stream.Position - offset);
                     return (int)Projectile_FieldIndex.SoundLevel;
                 }
                 case RecordTypeInts.NAM3:
                 {
-                    _CurveTableLocation = (stream.Position - offset);
+                    _payload.Fields.CurveTableLocation = (stream.Position - offset);
                     return (int)Projectile_FieldIndex.CurveTable;
                 }
                 default:

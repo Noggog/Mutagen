@@ -36,6 +36,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -3278,85 +3279,65 @@ namespace Mutagen.Bethesda.Fallout4
         public DialogResponses.MajorFlag MajorFlags => (DialogResponses.MajorFlag)this.MajorRecordFlagsRaw;
 
         #region VirtualMachineAdapter
-        private int? _VirtualMachineAdapterLengthOverride;
-        private RangeInt32? _VirtualMachineAdapterLocation;
-        public IDialogResponsesAdapterGetter? VirtualMachineAdapter => _VirtualMachineAdapterLocation.HasValue ? DialogResponsesAdapterBinaryOverlay.DialogResponsesAdapterFactory(_recordData.Slice(_VirtualMachineAdapterLocation!.Value.Min), _package, TypedParseParams.FromLengthOverride(_VirtualMachineAdapterLengthOverride)) : default;
+        public IDialogResponsesAdapterGetter? VirtualMachineAdapter => Payload.VirtualMachineAdapterLocation.HasValue ? DialogResponsesAdapterBinaryOverlay.DialogResponsesAdapterFactory(_recordData.Slice(Payload.VirtualMachineAdapterLocation!.Value.Min), _package, TypedParseParams.FromLengthOverride(Payload.VirtualMachineAdapterLengthOverride)) : default;
         IAVirtualMachineAdapterGetter? IHaveVirtualMachineAdapterGetter.VirtualMachineAdapter => this.VirtualMachineAdapter;
         #endregion
-        #region Flags
-        private RangeInt32? _FlagsLocation;
-        public IDialogResponseFlagsGetter? Flags => _FlagsLocation.HasValue ? DialogResponseFlagsBinaryOverlay.DialogResponseFlagsFactory(_recordData.Slice(_FlagsLocation!.Value.Min), _package) : default;
-        #endregion
-        #region Topic
-        private int? _TopicLocation;
-        public IFormLinkNullableGetter<IDialogTopicGetter> Topic => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IDialogTopicGetter>(_package, _recordData, _TopicLocation);
-        #endregion
-        #region PreviousDialog
-        private int? _PreviousDialogLocation;
-        public IFormLinkNullableGetter<IDialogResponsesGetter> PreviousDialog => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IDialogResponsesGetter>(_package, _recordData, _PreviousDialogLocation);
-        #endregion
-        #region SharedDialog
-        private int? _SharedDialogLocation;
-        public IFormLinkNullableGetter<IDialogResponsesGetter> SharedDialog => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IDialogResponsesGetter>(_package, _recordData, _SharedDialogLocation);
-        #endregion
-        #region DialogGroup
-        private int? _DialogGroupLocation;
-        public IFormLinkNullableGetter<IDialogResponsesGetter> DialogGroup => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IDialogResponsesGetter>(_package, _recordData, _DialogGroupLocation);
-        #endregion
-        #region OverrideFileName
-        private int? _OverrideFileNameLocation;
-        public String? OverrideFileName => _OverrideFileNameLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _OverrideFileNameLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
-        public IReadOnlyList<IDialogResponseGetter> Responses { get; private set; } = [];
-        public IReadOnlyList<IConditionGetter> Conditions { get; private set; } = [];
-        #region Prompt
-        private int? _PromptLocation;
-        public ITranslatedStringGetter? Prompt => _PromptLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _PromptLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
-        #endregion
-        #region Speaker
-        private int? _SpeakerLocation;
-        public IFormLinkNullableGetter<INpcGetter> Speaker => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<INpcGetter>(_package, _recordData, _SpeakerLocation);
-        #endregion
-        #region StartScene
-        private int? _StartSceneLocation;
-        public IFormLinkNullableGetter<ISceneGetter> StartScene => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ISceneGetter>(_package, _recordData, _StartSceneLocation);
-        #endregion
-        #region INTV
-        private int? _INTVLocation;
-        public ReadOnlyMemorySlice<Byte>? INTV => _INTVLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _INTVLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
-        #endregion
-        #region ForcedAlias
-        private int? _ForcedAliasLocation;
-        public Int32? ForcedAlias => _ForcedAliasLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _ForcedAliasLocation.Value, _package.MetaData.Constants)) : default(Int32?);
-        #endregion
-        #region AudioOutputOverride
-        private int? _AudioOutputOverrideLocation;
-        public IFormLinkNullableGetter<ISoundOutputModelGetter> AudioOutputOverride => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ISoundOutputModelGetter>(_package, _recordData, _AudioOutputOverrideLocation);
-        #endregion
-        #region GreetDistance
-        private int? _GreetDistanceLocation;
-        public UInt32? GreetDistance => _GreetDistanceLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _GreetDistanceLocation.Value, _package.MetaData.Constants)) : default(UInt32?);
-        #endregion
-        #region SetParentQuestStage
-        private RangeInt32? _SetParentQuestStageLocation;
-        public IDialogSetParentQuestStageGetter? SetParentQuestStage => _SetParentQuestStageLocation.HasValue ? DialogSetParentQuestStageBinaryOverlay.DialogSetParentQuestStageFactory(_recordData.Slice(_SetParentQuestStageLocation!.Value.Min), _package) : default;
-        #endregion
-        #region StartScenePhase
-        private int? _StartScenePhaseLocation;
-        public String? StartScenePhase => _StartScenePhaseLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _StartScenePhaseLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
-        #region Challenge
-        private int? _ChallengeLocation;
-        public DialogResponses.ChallengeType? Challenge => EnumBinaryTranslation<DialogResponses.ChallengeType, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(_ChallengeLocation, _recordData, _package, 4);
-        #endregion
-        #region ResetGlobal
-        private int? _ResetGlobalLocation;
-        public IFormLinkNullableGetter<IGlobalGetter> ResetGlobal => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IGlobalGetter>(_package, _recordData, _ResetGlobalLocation);
-        #endregion
-        #region SubtitlePriority
-        private int? _SubtitlePriorityLocation;
-        public DialogResponses.SubtitlePriorityLevel? SubtitlePriority => EnumBinaryTranslation<DialogResponses.SubtitlePriorityLevel, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(_SubtitlePriorityLocation, _recordData, _package, 4);
-        #endregion
+        public IDialogResponseFlagsGetter? Flags => Payload.FlagsLocation.HasValue ? DialogResponseFlagsBinaryOverlay.DialogResponseFlagsFactory(_recordData.Slice(Payload.FlagsLocation!.Value.Min), _package) : default;
+        public IFormLinkNullableGetter<IDialogTopicGetter> Topic => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IDialogTopicGetter>(_package, _recordData, Payload.TopicLocation);
+        public IFormLinkNullableGetter<IDialogResponsesGetter> PreviousDialog => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IDialogResponsesGetter>(_package, _recordData, Payload.PreviousDialogLocation);
+        public IFormLinkNullableGetter<IDialogResponsesGetter> SharedDialog => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IDialogResponsesGetter>(_package, _recordData, Payload.SharedDialogLocation);
+        public IFormLinkNullableGetter<IDialogResponsesGetter> DialogGroup => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IDialogResponsesGetter>(_package, _recordData, Payload.DialogGroupLocation);
+        public String? OverrideFileName => Payload.OverrideFileNameLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.OverrideFileNameLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public IReadOnlyList<IDialogResponseGetter> Responses => Payload.Responses ?? [];
+        public IReadOnlyList<IConditionGetter> Conditions => Payload.Conditions ?? [];
+        public ITranslatedStringGetter? Prompt => Payload.PromptLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.PromptLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+        public IFormLinkNullableGetter<INpcGetter> Speaker => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<INpcGetter>(_package, _recordData, Payload.SpeakerLocation);
+        public IFormLinkNullableGetter<ISceneGetter> StartScene => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ISceneGetter>(_package, _recordData, Payload.StartSceneLocation);
+        public ReadOnlyMemorySlice<Byte>? INTV => Payload.INTVLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.INTVLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
+        public Int32? ForcedAlias => Payload.ForcedAliasLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.ForcedAliasLocation.Value, _package.MetaData.Constants)) : default(Int32?);
+        public IFormLinkNullableGetter<ISoundOutputModelGetter> AudioOutputOverride => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ISoundOutputModelGetter>(_package, _recordData, Payload.AudioOutputOverrideLocation);
+        public UInt32? GreetDistance => Payload.GreetDistanceLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.GreetDistanceLocation.Value, _package.MetaData.Constants)) : default(UInt32?);
+        public IDialogSetParentQuestStageGetter? SetParentQuestStage => Payload.SetParentQuestStageLocation.HasValue ? DialogSetParentQuestStageBinaryOverlay.DialogSetParentQuestStageFactory(_recordData.Slice(Payload.SetParentQuestStageLocation!.Value.Min), _package) : default;
+        public String? StartScenePhase => Payload.StartScenePhaseLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.StartScenePhaseLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public DialogResponses.ChallengeType? Challenge => EnumBinaryTranslation<DialogResponses.ChallengeType, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(Payload.ChallengeLocation, _recordData, _package, 4);
+        public IFormLinkNullableGetter<IGlobalGetter> ResetGlobal => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IGlobalGetter>(_package, _recordData, Payload.ResetGlobalLocation);
+        public DialogResponses.SubtitlePriorityLevel? SubtitlePriority => EnumBinaryTranslation<DialogResponses.SubtitlePriorityLevel, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(Payload.SubtitlePriorityLocation, _recordData, _package, 4);
+
+        internal partial class DialogResponsesRecordDataPayload
+        {
+            public int? VirtualMachineAdapterLengthOverride;
+            public RangeInt32? VirtualMachineAdapterLocation;
+            public RangeInt32? FlagsLocation;
+            public int? TopicLocation;
+            public int? PreviousDialogLocation;
+            public int? SharedDialogLocation;
+            public int? DialogGroupLocation;
+            public int? OverrideFileNameLocation;
+            public IReadOnlyList<IDialogResponseGetter> Responses = [];
+            public IReadOnlyList<IConditionGetter> Conditions = [];
+            public int? PromptLocation;
+            public int? SpeakerLocation;
+            public int? StartSceneLocation;
+            public int? INTVLocation;
+            public int? ForcedAliasLocation;
+            public int? AudioOutputOverrideLocation;
+            public int? GreetDistanceLocation;
+            public RangeInt32? SetParentQuestStageLocation;
+            public int? StartScenePhaseLocation;
+            public int? ChallengeLocation;
+            public int? ResetGlobalLocation;
+            public int? SubtitlePriorityLocation;
+        }
+
+        private LazyPayload<DialogResponsesRecordDataPayload> _payload = null!;
+
+        internal DialogResponsesRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<DialogResponsesRecordDataPayload>(init, new DialogResponsesRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -3364,10 +3345,10 @@ namespace Mutagen.Bethesda.Fallout4
 
         partial void CustomCtor();
         protected DialogResponsesBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -3378,28 +3359,51 @@ namespace Mutagen.Bethesda.Fallout4
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new DialogResponsesBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -3428,8 +3432,8 @@ namespace Mutagen.Bethesda.Fallout4
             {
                 case RecordTypeInts.VMAD:
                 {
-                    _VirtualMachineAdapterLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
-                    _VirtualMachineAdapterLengthOverride = lastParsed.LengthOverride;
+                    _payload.Fields.VirtualMachineAdapterLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.VirtualMachineAdapterLengthOverride = lastParsed.LengthOverride;
                     if (lastParsed.LengthOverride.HasValue)
                     {
                         stream.Position += lastParsed.LengthOverride.Value;
@@ -3438,37 +3442,37 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.ENAM:
                 {
-                    _FlagsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.FlagsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)DialogResponses_FieldIndex.Flags;
                 }
                 case RecordTypeInts.TPIC:
                 {
-                    _TopicLocation = (stream.Position - offset);
+                    _payload.Fields.TopicLocation = (stream.Position - offset);
                     return (int)DialogResponses_FieldIndex.Topic;
                 }
                 case RecordTypeInts.PNAM:
                 {
-                    _PreviousDialogLocation = (stream.Position - offset);
+                    _payload.Fields.PreviousDialogLocation = (stream.Position - offset);
                     return (int)DialogResponses_FieldIndex.PreviousDialog;
                 }
                 case RecordTypeInts.DNAM:
                 {
-                    _SharedDialogLocation = (stream.Position - offset);
+                    _payload.Fields.SharedDialogLocation = (stream.Position - offset);
                     return (int)DialogResponses_FieldIndex.SharedDialog;
                 }
                 case RecordTypeInts.GNAM:
                 {
-                    _DialogGroupLocation = (stream.Position - offset);
+                    _payload.Fields.DialogGroupLocation = (stream.Position - offset);
                     return (int)DialogResponses_FieldIndex.DialogGroup;
                 }
                 case RecordTypeInts.IOVR:
                 {
-                    _OverrideFileNameLocation = (stream.Position - offset);
+                    _payload.Fields.OverrideFileNameLocation = (stream.Position - offset);
                     return (int)DialogResponses_FieldIndex.OverrideFileName;
                 }
                 case RecordTypeInts.TRDA:
                 {
-                    this.Responses = this.ParseRepeatedTypelessSubrecord<IDialogResponseGetter>(
+                    _payload.Fields.Responses = this.ParseRepeatedTypelessSubrecord<IDialogResponseGetter>(
                         stream: stream,
                         translationParams: translationParams,
                         trigger: DialogResponse_Registration.TriggerSpecs,
@@ -3477,7 +3481,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.CTDA:
                 {
-                    this.Conditions = BinaryOverlayList.FactoryByArray<IConditionGetter>(
+                    _payload.Fields.Conditions = BinaryOverlayList.FactoryByArray<IConditionGetter>(
                         mem: stream.RemainingMemory,
                         package: _package,
                         translationParams: translationParams,
@@ -3492,62 +3496,62 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.RNAM:
                 {
-                    _PromptLocation = (stream.Position - offset);
+                    _payload.Fields.PromptLocation = (stream.Position - offset);
                     return (int)DialogResponses_FieldIndex.Prompt;
                 }
                 case RecordTypeInts.ANAM:
                 {
-                    _SpeakerLocation = (stream.Position - offset);
+                    _payload.Fields.SpeakerLocation = (stream.Position - offset);
                     return (int)DialogResponses_FieldIndex.Speaker;
                 }
                 case RecordTypeInts.TSCE:
                 {
-                    _StartSceneLocation = (stream.Position - offset);
+                    _payload.Fields.StartSceneLocation = (stream.Position - offset);
                     return (int)DialogResponses_FieldIndex.StartScene;
                 }
                 case RecordTypeInts.INTV:
                 {
-                    _INTVLocation = (stream.Position - offset);
+                    _payload.Fields.INTVLocation = (stream.Position - offset);
                     return (int)DialogResponses_FieldIndex.INTV;
                 }
                 case RecordTypeInts.ALFA:
                 {
-                    _ForcedAliasLocation = (stream.Position - offset);
+                    _payload.Fields.ForcedAliasLocation = (stream.Position - offset);
                     return (int)DialogResponses_FieldIndex.ForcedAlias;
                 }
                 case RecordTypeInts.ONAM:
                 {
-                    _AudioOutputOverrideLocation = (stream.Position - offset);
+                    _payload.Fields.AudioOutputOverrideLocation = (stream.Position - offset);
                     return (int)DialogResponses_FieldIndex.AudioOutputOverride;
                 }
                 case RecordTypeInts.GREE:
                 {
-                    _GreetDistanceLocation = (stream.Position - offset);
+                    _payload.Fields.GreetDistanceLocation = (stream.Position - offset);
                     return (int)DialogResponses_FieldIndex.GreetDistance;
                 }
                 case RecordTypeInts.TIQS:
                 {
-                    _SetParentQuestStageLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.SetParentQuestStageLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)DialogResponses_FieldIndex.SetParentQuestStage;
                 }
                 case RecordTypeInts.NAM0:
                 {
-                    _StartScenePhaseLocation = (stream.Position - offset);
+                    _payload.Fields.StartScenePhaseLocation = (stream.Position - offset);
                     return (int)DialogResponses_FieldIndex.StartScenePhase;
                 }
                 case RecordTypeInts.INCC:
                 {
-                    _ChallengeLocation = (stream.Position - offset);
+                    _payload.Fields.ChallengeLocation = (stream.Position - offset);
                     return (int)DialogResponses_FieldIndex.Challenge;
                 }
                 case RecordTypeInts.MODQ:
                 {
-                    _ResetGlobalLocation = (stream.Position - offset);
+                    _payload.Fields.ResetGlobalLocation = (stream.Position - offset);
                     return (int)DialogResponses_FieldIndex.ResetGlobal;
                 }
                 case RecordTypeInts.INAM:
                 {
-                    _SubtitlePriorityLocation = (stream.Position - offset);
+                    _payload.Fields.SubtitlePriorityLocation = (stream.Position - offset);
                     return (int)DialogResponses_FieldIndex.SubtitlePriority;
                 }
                 case RecordTypeInts.XXXX:

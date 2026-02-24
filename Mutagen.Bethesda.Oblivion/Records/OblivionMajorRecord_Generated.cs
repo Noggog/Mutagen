@@ -35,6 +35,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -1661,6 +1662,20 @@ namespace Mutagen.Bethesda.Oblivion
                 translationParams: translationParams);
         }
 
+
+        internal partial class OblivionMajorRecordRecordDataPayload
+        {
+        }
+
+        private LazyPayload<OblivionMajorRecordRecordDataPayload> _payload = null!;
+
+        internal OblivionMajorRecordRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<OblivionMajorRecordRecordDataPayload>(init, new OblivionMajorRecordRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -1668,10 +1683,10 @@ namespace Mutagen.Bethesda.Oblivion
 
         partial void CustomCtor();
         protected OblivionMajorRecordBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();

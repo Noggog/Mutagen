@@ -36,6 +36,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -1738,30 +1739,36 @@ namespace Mutagen.Bethesda.Fallout4
 
         public ActionRecord.MajorFlag MajorFlags => (ActionRecord.MajorFlag)this.MajorRecordFlagsRaw;
 
-        #region Color
-        private int? _ColorLocation;
-        public Color? Color => _ColorLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _ColorLocation.Value, _package.MetaData.Constants).ReadColor(ColorBinaryType.Alpha) : default(Color?);
-        #endregion
-        #region Notes
-        private int? _NotesLocation;
-        public String? Notes => _NotesLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NotesLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
-        #region Type
-        private int? _TypeLocation;
-        public ActionRecord.TypeEnum? Type => EnumBinaryTranslation<ActionRecord.TypeEnum, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(_TypeLocation, _recordData, _package, 4);
-        #endregion
-        #region AttractionRule
-        private int? _AttractionRuleLocation;
-        public IFormLinkNullableGetter<IAttractionRuleGetter> AttractionRule => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IAttractionRuleGetter>(_package, _recordData, _AttractionRuleLocation);
-        #endregion
+        public Color? Color => Payload.ColorLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.ColorLocation.Value, _package.MetaData.Constants).ReadColor(ColorBinaryType.Alpha) : default(Color?);
+        public String? Notes => Payload.NotesLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NotesLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public ActionRecord.TypeEnum? Type => EnumBinaryTranslation<ActionRecord.TypeEnum, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(Payload.TypeLocation, _recordData, _package, 4);
+        public IFormLinkNullableGetter<IAttractionRuleGetter> AttractionRule => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IAttractionRuleGetter>(_package, _recordData, Payload.AttractionRuleLocation);
         #region Name
-        private int? _NameLocation;
-        public String? Name => _NameLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NameLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? Name => Payload.NameLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NameLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
         #region Aspects
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         string INamedRequiredGetter.Name => this.Name ?? string.Empty;
         #endregion
         #endregion
+
+        internal partial class ActionRecordRecordDataPayload
+        {
+            public int? ColorLocation;
+            public int? NotesLocation;
+            public int? TypeLocation;
+            public int? AttractionRuleLocation;
+            public int? NameLocation;
+        }
+
+        private LazyPayload<ActionRecordRecordDataPayload> _payload = null!;
+
+        internal ActionRecordRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<ActionRecordRecordDataPayload>(init, new ActionRecordRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -1769,10 +1776,10 @@ namespace Mutagen.Bethesda.Fallout4
 
         partial void CustomCtor();
         protected ActionRecordBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -1783,28 +1790,51 @@ namespace Mutagen.Bethesda.Fallout4
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new ActionRecordBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -1833,27 +1863,27 @@ namespace Mutagen.Bethesda.Fallout4
             {
                 case RecordTypeInts.CNAM:
                 {
-                    _ColorLocation = (stream.Position - offset);
+                    _payload.Fields.ColorLocation = (stream.Position - offset);
                     return (int)ActionRecord_FieldIndex.Color;
                 }
                 case RecordTypeInts.DNAM:
                 {
-                    _NotesLocation = (stream.Position - offset);
+                    _payload.Fields.NotesLocation = (stream.Position - offset);
                     return (int)ActionRecord_FieldIndex.Notes;
                 }
                 case RecordTypeInts.TNAM:
                 {
-                    _TypeLocation = (stream.Position - offset);
+                    _payload.Fields.TypeLocation = (stream.Position - offset);
                     return (int)ActionRecord_FieldIndex.Type;
                 }
                 case RecordTypeInts.DATA:
                 {
-                    _AttractionRuleLocation = (stream.Position - offset);
+                    _payload.Fields.AttractionRuleLocation = (stream.Position - offset);
                     return (int)ActionRecord_FieldIndex.AttractionRule;
                 }
                 case RecordTypeInts.FULL:
                 {
-                    _NameLocation = (stream.Position - offset);
+                    _payload.Fields.NameLocation = (stream.Position - offset);
                     return (int)ActionRecord_FieldIndex.Name;
                 }
                 default:

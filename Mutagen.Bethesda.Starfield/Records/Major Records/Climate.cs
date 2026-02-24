@@ -89,17 +89,17 @@ partial class ClimateBinaryWriteTranslation
 
 partial class ClimateBinaryOverlay
 {
-    public partial TimeOnly GetSunriseBeginCustom() => _TNAMLocation.HasValue ? ClimateBinaryCreateTranslation.GetTime(_recordData.Span[_TNAMLocation.Value.Min + 0]) : default;
-    public partial TimeOnly GetSunriseEndCustom() => _TNAMLocation.HasValue ? ClimateBinaryCreateTranslation.GetTime(_recordData.Span[_TNAMLocation!.Value.Min + 1]) : default;
-    public partial TimeOnly GetSunsetBeginCustom() => _TNAMLocation.HasValue ? ClimateBinaryCreateTranslation.GetTime(_recordData.Span[_TNAMLocation!.Value.Min + 2]) : default;
-    public partial TimeOnly GetSunsetEndCustom() => _TNAMLocation.HasValue ? ClimateBinaryCreateTranslation.GetTime(_recordData.Span[_TNAMLocation!.Value.Min + 3]) : default;
+    public partial TimeOnly GetSunriseBeginCustom() => Payload.TNAMLocation.HasValue ? ClimateBinaryCreateTranslation.GetTime(_recordData.Span[Payload.TNAMLocation.Value.Min + 0]) : default;
+    public partial TimeOnly GetSunriseEndCustom() => Payload.TNAMLocation.HasValue ? ClimateBinaryCreateTranslation.GetTime(_recordData.Span[Payload.TNAMLocation!.Value.Min + 1]) : default;
+    public partial TimeOnly GetSunsetBeginCustom() => Payload.TNAMLocation.HasValue ? ClimateBinaryCreateTranslation.GetTime(_recordData.Span[Payload.TNAMLocation!.Value.Min + 2]) : default;
+    public partial TimeOnly GetSunsetEndCustom() => Payload.TNAMLocation.HasValue ? ClimateBinaryCreateTranslation.GetTime(_recordData.Span[Payload.TNAMLocation!.Value.Min + 3]) : default;
 
     public byte PhaseLength
     {
         get
         {
-            if (!_TNAMLocation.HasValue) return default;
-            return (byte)(_recordData[_TNAMLocation.Value.Min + 5] % 64);
+            if (!Payload.TNAMLocation.HasValue) return default;
+            return (byte)(_recordData[Payload.TNAMLocation.Value.Min + 5] % 64);
         }
     }
 }

@@ -38,6 +38,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -3300,10 +3301,9 @@ namespace Mutagen.Bethesda.Starfield
         }
         public AObjectModification.MajorFlag MajorFlags => (AObjectModification.MajorFlag)this.MajorRecordFlagsRaw;
 
-        public IReadOnlyList<IAComponentGetter> Components { get; private set; } = [];
+        public IReadOnlyList<IAComponentGetter> Components => Payload.Components ?? [];
         #region Name
-        private int? _NameLocation;
-        public ITranslatedStringGetter? Name => _NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+        public ITranslatedStringGetter? Name => Payload.NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
         #region Aspects
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         string INamedRequiredGetter.Name => this.Name?.String ?? string.Empty;
@@ -3313,31 +3313,42 @@ namespace Mutagen.Bethesda.Starfield
         ITranslatedStringGetter ITranslatedNamedRequiredGetter.Name => this.Name ?? TranslatedString.Empty;
         #endregion
         #endregion
-        #region Description
-        private int? _DescriptionLocation;
-        public ITranslatedStringGetter? Description => _DescriptionLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _DescriptionLocation.Value, _package.MetaData.Constants), StringsSource.DL, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
-        #endregion
-        public IModelGetter? Model { get; private set; }
+        public ITranslatedStringGetter? Description => Payload.DescriptionLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.DescriptionLocation.Value, _package.MetaData.Constants), StringsSource.DL, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+        public IModelGetter? Model => Payload.Model;
         #region DataParse
         public partial ParseResult DataParseCustomParse(
             OverlayStream stream,
             int offset,
             PreviousParse lastParsed);
         #endregion
-        public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? TargetOmodKeywords { get; private set; }
-        public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? FilterKeywords { get; private set; }
-        #region LooseMod
-        private int? _LooseModLocation;
-        public IFormLinkNullableGetter<IMiscItemGetter> LooseMod => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IMiscItemGetter>(_package, _recordData, _LooseModLocation);
-        #endregion
-        #region Priority
-        private int? _PriorityLocation;
-        public Byte? Priority => _PriorityLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _PriorityLocation.Value, _package.MetaData.Constants)[0] : default(Byte?);
-        #endregion
-        #region Filter
-        private int? _FilterLocation;
-        public String? Filter => _FilterLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _FilterLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
+        public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? TargetOmodKeywords => Payload.TargetOmodKeywords;
+        public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? FilterKeywords => Payload.FilterKeywords;
+        public IFormLinkNullableGetter<IMiscItemGetter> LooseMod => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IMiscItemGetter>(_package, _recordData, Payload.LooseModLocation);
+        public Byte? Priority => Payload.PriorityLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.PriorityLocation.Value, _package.MetaData.Constants)[0] : default(Byte?);
+        public String? Filter => Payload.FilterLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.FilterLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+
+        internal partial class AObjectModificationRecordDataPayload
+        {
+            public IReadOnlyList<IAComponentGetter> Components = [];
+            public int? NameLocation;
+            public int? DescriptionLocation;
+            public IModelGetter? Model;
+            public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? TargetOmodKeywords;
+            public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? FilterKeywords;
+            public int? LooseModLocation;
+            public int? PriorityLocation;
+            public int? FilterLocation;
+        }
+
+        private LazyPayload<AObjectModificationRecordDataPayload> _payload = null!;
+
+        internal AObjectModificationRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<AObjectModificationRecordDataPayload>(init, new AObjectModificationRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -3345,10 +3356,10 @@ namespace Mutagen.Bethesda.Starfield
 
         partial void CustomCtor();
         protected AObjectModificationBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -3369,7 +3380,7 @@ namespace Mutagen.Bethesda.Starfield
             {
                 case RecordTypeInts.BFCB:
                 {
-                    this.Components = this.ParseRepeatedTypelessSubrecord<IAComponentGetter>(
+                    _payload.Fields.Components = this.ParseRepeatedTypelessSubrecord<IAComponentGetter>(
                         stream: stream,
                         translationParams: translationParams,
                         trigger: AComponent_Registration.TriggerSpecs,
@@ -3378,12 +3389,12 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.FULL:
                 {
-                    _NameLocation = (stream.Position - offset);
+                    _payload.Fields.NameLocation = (stream.Position - offset);
                     return (int)AObjectModification_FieldIndex.Name;
                 }
                 case RecordTypeInts.DESC:
                 {
-                    _DescriptionLocation = (stream.Position - offset);
+                    _payload.Fields.DescriptionLocation = (stream.Position - offset);
                     return (int)AObjectModification_FieldIndex.Description;
                 }
                 case RecordTypeInts.MODL:
@@ -3394,7 +3405,7 @@ namespace Mutagen.Bethesda.Starfield
                 case RecordTypeInts.MODC:
                 case RecordTypeInts.MODF:
                 {
-                    this.Model = ModelBinaryOverlay.ModelFactory(
+                    _payload.Fields.Model = ModelBinaryOverlay.ModelFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());
@@ -3409,7 +3420,7 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.MNAM:
                 {
-                    this.TargetOmodKeywords = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<IKeywordGetter>>(
+                    _payload.Fields.TargetOmodKeywords = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<IKeywordGetter>>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -3419,7 +3430,7 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.FNAM:
                 {
-                    this.FilterKeywords = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<IKeywordGetter>>(
+                    _payload.Fields.FilterKeywords = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<IKeywordGetter>>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -3429,17 +3440,17 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.LNAM:
                 {
-                    _LooseModLocation = (stream.Position - offset);
+                    _payload.Fields.LooseModLocation = (stream.Position - offset);
                     return (int)AObjectModification_FieldIndex.LooseMod;
                 }
                 case RecordTypeInts.NAM1:
                 {
-                    _PriorityLocation = (stream.Position - offset);
+                    _payload.Fields.PriorityLocation = (stream.Position - offset);
                     return (int)AObjectModification_FieldIndex.Priority;
                 }
                 case RecordTypeInts.FLTR:
                 {
-                    _FilterLocation = (stream.Position - offset);
+                    _payload.Fields.FilterLocation = (stream.Position - offset);
                     return (int)AObjectModification_FieldIndex.Filter;
                 }
                 default:

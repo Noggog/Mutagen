@@ -34,6 +34,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -1658,15 +1659,26 @@ namespace Mutagen.Bethesda.Fallout4
                 translationParams: translationParams);
         }
 
-        #region Parent
-        private int? _ParentLocation;
-        public IFormLinkNullableGetter<IAStoryManagerNodeGetter> Parent => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IAStoryManagerNodeGetter>(_package, _recordData, _ParentLocation);
-        #endregion
-        #region PreviousSibling
-        private int? _PreviousSiblingLocation;
-        public IFormLinkNullableGetter<IAStoryManagerNodeGetter> PreviousSibling => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IAStoryManagerNodeGetter>(_package, _recordData, _PreviousSiblingLocation);
-        #endregion
-        public IReadOnlyList<IConditionGetter> Conditions { get; private set; } = [];
+        public IFormLinkNullableGetter<IAStoryManagerNodeGetter> Parent => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IAStoryManagerNodeGetter>(_package, _recordData, Payload.ParentLocation);
+        public IFormLinkNullableGetter<IAStoryManagerNodeGetter> PreviousSibling => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IAStoryManagerNodeGetter>(_package, _recordData, Payload.PreviousSiblingLocation);
+        public IReadOnlyList<IConditionGetter> Conditions => Payload.Conditions ?? [];
+
+        internal partial class AStoryManagerNodeRecordDataPayload
+        {
+            public int? ParentLocation;
+            public int? PreviousSiblingLocation;
+            public IReadOnlyList<IConditionGetter> Conditions = [];
+        }
+
+        private LazyPayload<AStoryManagerNodeRecordDataPayload> _payload = null!;
+
+        internal AStoryManagerNodeRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<AStoryManagerNodeRecordDataPayload>(init, new AStoryManagerNodeRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -1674,10 +1686,10 @@ namespace Mutagen.Bethesda.Fallout4
 
         partial void CustomCtor();
         protected AStoryManagerNodeBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -1698,18 +1710,18 @@ namespace Mutagen.Bethesda.Fallout4
             {
                 case RecordTypeInts.PNAM:
                 {
-                    _ParentLocation = (stream.Position - offset);
+                    _payload.Fields.ParentLocation = (stream.Position - offset);
                     return (int)AStoryManagerNode_FieldIndex.Parent;
                 }
                 case RecordTypeInts.SNAM:
                 {
-                    _PreviousSiblingLocation = (stream.Position - offset);
+                    _payload.Fields.PreviousSiblingLocation = (stream.Position - offset);
                     return (int)AStoryManagerNode_FieldIndex.PreviousSibling;
                 }
                 case RecordTypeInts.CTDA:
                 case RecordTypeInts.CITC:
                 {
-                    this.Conditions = BinaryOverlayList.FactoryByCountPerItem<IConditionGetter>(
+                    _payload.Fields.Conditions = BinaryOverlayList.FactoryByCountPerItem<IConditionGetter>(
                         stream: stream,
                         package: _package,
                         countLength: 4,

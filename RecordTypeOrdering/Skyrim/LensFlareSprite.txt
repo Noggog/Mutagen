@@ -1,0 +1,3 @@
+RecordTypes.DNAM,
+RecordTypes.FNAM,
+RecordTypes.LFSD,

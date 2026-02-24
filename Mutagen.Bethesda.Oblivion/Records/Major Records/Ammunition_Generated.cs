@@ -35,6 +35,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -1873,30 +1874,37 @@ namespace Mutagen.Bethesda.Oblivion
 
 
         #region Name
-        private int? _NameLocation;
-        public String? Name => _NameLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NameLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? Name => Payload.NameLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NameLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
         #region Aspects
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         string INamedRequiredGetter.Name => this.Name ?? string.Empty;
         #endregion
         #endregion
-        public IModelGetter? Model { get; private set; }
-        #region Icon
-        private int? _IconLocation;
-        public String? Icon => _IconLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _IconLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
-        #region Enchantment
-        private int? _EnchantmentLocation;
-        public IFormLinkNullableGetter<IEnchantmentGetter> Enchantment => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IEnchantmentGetter>(_package, _recordData, _EnchantmentLocation);
-        #endregion
-        #region EnchantmentPoints
-        private int? _EnchantmentPointsLocation;
-        public UInt16? EnchantmentPoints => _EnchantmentPointsLocation.HasValue ? BinaryPrimitives.ReadUInt16LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _EnchantmentPointsLocation.Value, _package.MetaData.Constants)) : default(UInt16?);
-        #endregion
-        #region Data
-        private RangeInt32? _DataLocation;
-        public IAmmunitionDataGetter? Data => _DataLocation.HasValue ? AmmunitionDataBinaryOverlay.AmmunitionDataFactory(_recordData.Slice(_DataLocation!.Value.Min), _package) : default;
-        #endregion
+        public IModelGetter? Model => Payload.Model;
+        public String? Icon => Payload.IconLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.IconLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public IFormLinkNullableGetter<IEnchantmentGetter> Enchantment => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IEnchantmentGetter>(_package, _recordData, Payload.EnchantmentLocation);
+        public UInt16? EnchantmentPoints => Payload.EnchantmentPointsLocation.HasValue ? BinaryPrimitives.ReadUInt16LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.EnchantmentPointsLocation.Value, _package.MetaData.Constants)) : default(UInt16?);
+        public IAmmunitionDataGetter? Data => Payload.DataLocation.HasValue ? AmmunitionDataBinaryOverlay.AmmunitionDataFactory(_recordData.Slice(Payload.DataLocation!.Value.Min), _package) : default;
+
+        internal partial class AmmunitionRecordDataPayload
+        {
+            public int? NameLocation;
+            public IModelGetter? Model;
+            public int? IconLocation;
+            public int? EnchantmentLocation;
+            public int? EnchantmentPointsLocation;
+            public RangeInt32? DataLocation;
+        }
+
+        private LazyPayload<AmmunitionRecordDataPayload> _payload = null!;
+
+        internal AmmunitionRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<AmmunitionRecordDataPayload>(init, new AmmunitionRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -1904,10 +1912,10 @@ namespace Mutagen.Bethesda.Oblivion
 
         partial void CustomCtor();
         protected AmmunitionBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -1918,28 +1926,51 @@ namespace Mutagen.Bethesda.Oblivion
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new AmmunitionBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -1968,12 +1999,12 @@ namespace Mutagen.Bethesda.Oblivion
             {
                 case RecordTypeInts.FULL:
                 {
-                    _NameLocation = (stream.Position - offset);
+                    _payload.Fields.NameLocation = (stream.Position - offset);
                     return (int)Ammunition_FieldIndex.Name;
                 }
                 case RecordTypeInts.MODL:
                 {
-                    this.Model = ModelBinaryOverlay.ModelFactory(
+                    _payload.Fields.Model = ModelBinaryOverlay.ModelFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());
@@ -1981,22 +2012,22 @@ namespace Mutagen.Bethesda.Oblivion
                 }
                 case RecordTypeInts.ICON:
                 {
-                    _IconLocation = (stream.Position - offset);
+                    _payload.Fields.IconLocation = (stream.Position - offset);
                     return (int)Ammunition_FieldIndex.Icon;
                 }
                 case RecordTypeInts.ENAM:
                 {
-                    _EnchantmentLocation = (stream.Position - offset);
+                    _payload.Fields.EnchantmentLocation = (stream.Position - offset);
                     return (int)Ammunition_FieldIndex.Enchantment;
                 }
                 case RecordTypeInts.ANAM:
                 {
-                    _EnchantmentPointsLocation = (stream.Position - offset);
+                    _payload.Fields.EnchantmentPointsLocation = (stream.Position - offset);
                     return (int)Ammunition_FieldIndex.EnchantmentPoints;
                 }
                 case RecordTypeInts.DATA:
                 {
-                    _DataLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.DataLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)Ammunition_FieldIndex.Data;
                 }
                 default:

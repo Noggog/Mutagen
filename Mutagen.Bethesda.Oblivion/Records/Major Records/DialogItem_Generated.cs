@@ -34,6 +34,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -2669,31 +2670,43 @@ namespace Mutagen.Bethesda.Oblivion
         protected override Type LinkType => typeof(IDialogItemGetter);
 
 
-        #region Data
-        private RangeInt32? _DataLocation;
-        public IDialogItemDataGetter? Data => _DataLocation.HasValue ? DialogItemDataBinaryOverlay.DialogItemDataFactory(_recordData.Slice(_DataLocation!.Value.Min), _package) : default;
-        #endregion
-        #region Quest
-        private int? _QuestLocation;
-        public IFormLinkNullableGetter<IQuestGetter> Quest => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IQuestGetter>(_package, _recordData, _QuestLocation);
-        #endregion
-        #region Topic
-        private int? _TopicLocation;
-        public IFormLinkNullableGetter<IDialogTopicGetter> Topic => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IDialogTopicGetter>(_package, _recordData, _TopicLocation);
-        #endregion
-        #region PreviousItem
-        private int? _PreviousItemLocation;
-        public IFormLinkNullableGetter<IDialogItemGetter> PreviousItem => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IDialogItemGetter>(_package, _recordData, _PreviousItemLocation);
-        #endregion
-        public IReadOnlyList<IFormLinkGetter<IDialogTopicGetter>> Topics { get; private set; } = [];
-        public IReadOnlyList<IDialogResponseGetter> Responses { get; private set; } = [];
-        public IReadOnlyList<IConditionGetter> Conditions { get; private set; } = [];
-        public IReadOnlyList<IFormLinkGetter<IDialogTopicGetter>> Choices { get; private set; } = [];
-        public IReadOnlyList<IFormLinkGetter<IDialogTopicGetter>> LinkFrom { get; private set; } = [];
+        public IDialogItemDataGetter? Data => Payload.DataLocation.HasValue ? DialogItemDataBinaryOverlay.DialogItemDataFactory(_recordData.Slice(Payload.DataLocation!.Value.Min), _package) : default;
+        public IFormLinkNullableGetter<IQuestGetter> Quest => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IQuestGetter>(_package, _recordData, Payload.QuestLocation);
+        public IFormLinkNullableGetter<IDialogTopicGetter> Topic => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IDialogTopicGetter>(_package, _recordData, Payload.TopicLocation);
+        public IFormLinkNullableGetter<IDialogItemGetter> PreviousItem => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IDialogItemGetter>(_package, _recordData, Payload.PreviousItemLocation);
+        public IReadOnlyList<IFormLinkGetter<IDialogTopicGetter>> Topics => Payload.Topics ?? [];
+        public IReadOnlyList<IDialogResponseGetter> Responses => Payload.Responses ?? [];
+        public IReadOnlyList<IConditionGetter> Conditions => Payload.Conditions ?? [];
+        public IReadOnlyList<IFormLinkGetter<IDialogTopicGetter>> Choices => Payload.Choices ?? [];
+        public IReadOnlyList<IFormLinkGetter<IDialogTopicGetter>> LinkFrom => Payload.LinkFrom ?? [];
         #region Script
-        private IScriptFieldsGetter? _Script;
+        private IScriptFieldsGetter? _Script => Payload.Script;
         public IScriptFieldsGetter Script => _Script ?? new ScriptFields();
         #endregion
+
+        internal partial class DialogItemRecordDataPayload
+        {
+            public RangeInt32? DataLocation;
+            public int? QuestLocation;
+            public int? TopicLocation;
+            public int? PreviousItemLocation;
+            public IReadOnlyList<IFormLinkGetter<IDialogTopicGetter>> Topics = [];
+            public IReadOnlyList<IDialogResponseGetter> Responses = [];
+            public IReadOnlyList<IConditionGetter> Conditions = [];
+            public IReadOnlyList<IFormLinkGetter<IDialogTopicGetter>> Choices = [];
+            public IReadOnlyList<IFormLinkGetter<IDialogTopicGetter>> LinkFrom = [];
+            public IScriptFieldsGetter? Script;
+        }
+
+        private LazyPayload<DialogItemRecordDataPayload> _payload = null!;
+
+        internal DialogItemRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<DialogItemRecordDataPayload>(init, new DialogItemRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -2701,10 +2714,10 @@ namespace Mutagen.Bethesda.Oblivion
 
         partial void CustomCtor();
         protected DialogItemBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -2715,28 +2728,51 @@ namespace Mutagen.Bethesda.Oblivion
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new DialogItemBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -2765,27 +2801,27 @@ namespace Mutagen.Bethesda.Oblivion
             {
                 case RecordTypeInts.DATA:
                 {
-                    _DataLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.DataLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)DialogItem_FieldIndex.Data;
                 }
                 case RecordTypeInts.QSTI:
                 {
-                    _QuestLocation = (stream.Position - offset);
+                    _payload.Fields.QuestLocation = (stream.Position - offset);
                     return (int)DialogItem_FieldIndex.Quest;
                 }
                 case RecordTypeInts.TPIC:
                 {
-                    _TopicLocation = (stream.Position - offset);
+                    _payload.Fields.TopicLocation = (stream.Position - offset);
                     return (int)DialogItem_FieldIndex.Topic;
                 }
                 case RecordTypeInts.PNAM:
                 {
-                    _PreviousItemLocation = (stream.Position - offset);
+                    _payload.Fields.PreviousItemLocation = (stream.Position - offset);
                     return (int)DialogItem_FieldIndex.PreviousItem;
                 }
                 case RecordTypeInts.NAME:
                 {
-                    this.Topics = BinaryOverlayList.FactoryByArray<IFormLinkGetter<IDialogTopicGetter>>(
+                    _payload.Fields.Topics = BinaryOverlayList.FactoryByArray<IFormLinkGetter<IDialogTopicGetter>>(
                         mem: stream.RemainingMemory,
                         package: _package,
                         getter: (s, p) => FormLinkBinaryTranslation.Instance.OverlayFactory<IDialogTopicGetter>(p, s),
@@ -2801,7 +2837,7 @@ namespace Mutagen.Bethesda.Oblivion
                 case RecordTypeInts.NAM1:
                 case RecordTypeInts.NAM2:
                 {
-                    this.Responses = this.ParseRepeatedTypelessSubrecord<IDialogResponseGetter>(
+                    _payload.Fields.Responses = this.ParseRepeatedTypelessSubrecord<IDialogResponseGetter>(
                         stream: stream,
                         translationParams: translationParams,
                         trigger: DialogResponse_Registration.TriggerSpecs,
@@ -2811,7 +2847,7 @@ namespace Mutagen.Bethesda.Oblivion
                 case RecordTypeInts.CTDA:
                 case RecordTypeInts.CTDT:
                 {
-                    this.Conditions = BinaryOverlayList.FactoryByArray<IConditionGetter>(
+                    _payload.Fields.Conditions = BinaryOverlayList.FactoryByArray<IConditionGetter>(
                         mem: stream.RemainingMemory,
                         package: _package,
                         translationParams: translationParams,
@@ -2826,7 +2862,7 @@ namespace Mutagen.Bethesda.Oblivion
                 }
                 case RecordTypeInts.TCLT:
                 {
-                    this.Choices = BinaryOverlayList.FactoryByArray<IFormLinkGetter<IDialogTopicGetter>>(
+                    _payload.Fields.Choices = BinaryOverlayList.FactoryByArray<IFormLinkGetter<IDialogTopicGetter>>(
                         mem: stream.RemainingMemory,
                         package: _package,
                         getter: (s, p) => FormLinkBinaryTranslation.Instance.OverlayFactory<IDialogTopicGetter>(p, s),
@@ -2840,7 +2876,7 @@ namespace Mutagen.Bethesda.Oblivion
                 }
                 case RecordTypeInts.TCLF:
                 {
-                    this.LinkFrom = BinaryOverlayList.FactoryByArray<IFormLinkGetter<IDialogTopicGetter>>(
+                    _payload.Fields.LinkFrom = BinaryOverlayList.FactoryByArray<IFormLinkGetter<IDialogTopicGetter>>(
                         mem: stream.RemainingMemory,
                         package: _package,
                         getter: (s, p) => FormLinkBinaryTranslation.Instance.OverlayFactory<IDialogTopicGetter>(p, s),
@@ -2855,7 +2891,7 @@ namespace Mutagen.Bethesda.Oblivion
                 case RecordTypeInts.SCHD:
                 case RecordTypeInts.SCHR:
                 {
-                    this._Script = ScriptFieldsBinaryOverlay.ScriptFieldsFactory(
+                    _payload.Fields.Script = ScriptFieldsBinaryOverlay.ScriptFieldsFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());

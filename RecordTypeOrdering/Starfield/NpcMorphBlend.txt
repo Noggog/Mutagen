@@ -1,0 +1,2 @@
+RecordTypes.BMPN,
+RecordTypes.BMPV,

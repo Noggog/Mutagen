@@ -38,6 +38,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -2771,94 +2772,108 @@ namespace Mutagen.Bethesda.Starfield
         protected override Type LinkType => typeof(IEffectShaderGetter);
 
 
-        public IReadOnlyList<IAComponentGetter> Components { get; private set; } = [];
-        #region EffectSequence
-        private int? _EffectSequenceLocation;
-        public IFormLinkNullableGetter<IEffectSequenceGetter> EffectSequence => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IEffectSequenceGetter>(_package, _recordData, _EffectSequenceLocation);
-        #endregion
-        private RangeInt32? _DNAMLocation;
+        public IReadOnlyList<IAComponentGetter> Components => Payload.Components ?? [];
+        public IFormLinkNullableGetter<IEffectSequenceGetter> EffectSequence => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IEffectSequenceGetter>(_package, _recordData, Payload.EffectSequenceLocation);
         #region EdgeEffectFallOff
-        private int _EdgeEffectFallOffLocation => _DNAMLocation!.Value.Min;
-        private bool _EdgeEffectFallOff_IsSet => _DNAMLocation.HasValue;
+        private int _EdgeEffectFallOffLocation => Payload.DNAMLocation!.Value.Min;
+        private bool _EdgeEffectFallOff_IsSet => Payload.DNAMLocation.HasValue;
         public Single EdgeEffectFallOff => _EdgeEffectFallOff_IsSet ? _recordData.Slice(_EdgeEffectFallOffLocation, 4).Float() : default(Single);
         #endregion
         #region EdgeEffectColor
-        private int _EdgeEffectColorLocation => _DNAMLocation!.Value.Min + 0x4;
-        private bool _EdgeEffectColor_IsSet => _DNAMLocation.HasValue;
+        private int _EdgeEffectColorLocation => Payload.DNAMLocation!.Value.Min + 0x4;
+        private bool _EdgeEffectColor_IsSet => Payload.DNAMLocation.HasValue;
         public Color EdgeEffectColor => _EdgeEffectColor_IsSet ? _recordData.Slice(_EdgeEffectColorLocation, 4).ReadColor(ColorBinaryType.Alpha) : default(Color);
         #endregion
         #region EdgeEffectAlphaFadeInTime
-        private int _EdgeEffectAlphaFadeInTimeLocation => _DNAMLocation!.Value.Min + 0x8;
-        private bool _EdgeEffectAlphaFadeInTime_IsSet => _DNAMLocation.HasValue;
+        private int _EdgeEffectAlphaFadeInTimeLocation => Payload.DNAMLocation!.Value.Min + 0x8;
+        private bool _EdgeEffectAlphaFadeInTime_IsSet => Payload.DNAMLocation.HasValue;
         public Single EdgeEffectAlphaFadeInTime => _EdgeEffectAlphaFadeInTime_IsSet ? _recordData.Slice(_EdgeEffectAlphaFadeInTimeLocation, 4).Float() : default(Single);
         #endregion
         #region EdgeEffectFullAlphaTime
-        private int _EdgeEffectFullAlphaTimeLocation => _DNAMLocation!.Value.Min + 0xC;
-        private bool _EdgeEffectFullAlphaTime_IsSet => _DNAMLocation.HasValue;
+        private int _EdgeEffectFullAlphaTimeLocation => Payload.DNAMLocation!.Value.Min + 0xC;
+        private bool _EdgeEffectFullAlphaTime_IsSet => Payload.DNAMLocation.HasValue;
         public Single EdgeEffectFullAlphaTime => _EdgeEffectFullAlphaTime_IsSet ? _recordData.Slice(_EdgeEffectFullAlphaTimeLocation, 4).Float() : default(Single);
         #endregion
         #region EdgeEffectAlphaFadeOutTime
-        private int _EdgeEffectAlphaFadeOutTimeLocation => _DNAMLocation!.Value.Min + 0x10;
-        private bool _EdgeEffectAlphaFadeOutTime_IsSet => _DNAMLocation.HasValue;
+        private int _EdgeEffectAlphaFadeOutTimeLocation => Payload.DNAMLocation!.Value.Min + 0x10;
+        private bool _EdgeEffectAlphaFadeOutTime_IsSet => Payload.DNAMLocation.HasValue;
         public Single EdgeEffectAlphaFadeOutTime => _EdgeEffectAlphaFadeOutTime_IsSet ? _recordData.Slice(_EdgeEffectAlphaFadeOutTimeLocation, 4).Float() : default(Single);
         #endregion
         #region EdgeEffectPersistentAlphaRatio
-        private int _EdgeEffectPersistentAlphaRatioLocation => _DNAMLocation!.Value.Min + 0x14;
-        private bool _EdgeEffectPersistentAlphaRatio_IsSet => _DNAMLocation.HasValue;
+        private int _EdgeEffectPersistentAlphaRatioLocation => Payload.DNAMLocation!.Value.Min + 0x14;
+        private bool _EdgeEffectPersistentAlphaRatio_IsSet => Payload.DNAMLocation.HasValue;
         public Percent EdgeEffectPersistentAlphaRatio => _EdgeEffectPersistentAlphaRatio_IsSet ? PercentBinaryTranslation.GetPercent(_recordData.Slice(_EdgeEffectPersistentAlphaRatioLocation, 4), FloatIntegerType.UInt) : default(Percent);
         #endregion
         #region EdgeEffectAlphaPulseAmplitude
-        private int _EdgeEffectAlphaPulseAmplitudeLocation => _DNAMLocation!.Value.Min + 0x18;
-        private bool _EdgeEffectAlphaPulseAmplitude_IsSet => _DNAMLocation.HasValue;
+        private int _EdgeEffectAlphaPulseAmplitudeLocation => Payload.DNAMLocation!.Value.Min + 0x18;
+        private bool _EdgeEffectAlphaPulseAmplitude_IsSet => Payload.DNAMLocation.HasValue;
         public Single EdgeEffectAlphaPulseAmplitude => _EdgeEffectAlphaPulseAmplitude_IsSet ? _recordData.Slice(_EdgeEffectAlphaPulseAmplitudeLocation, 4).Float() : default(Single);
         #endregion
         #region EdgeEffectAlphaPulseFrequency
-        private int _EdgeEffectAlphaPulseFrequencyLocation => _DNAMLocation!.Value.Min + 0x1C;
-        private bool _EdgeEffectAlphaPulseFrequency_IsSet => _DNAMLocation.HasValue;
+        private int _EdgeEffectAlphaPulseFrequencyLocation => Payload.DNAMLocation!.Value.Min + 0x1C;
+        private bool _EdgeEffectAlphaPulseFrequency_IsSet => Payload.DNAMLocation.HasValue;
         public Single EdgeEffectAlphaPulseFrequency => _EdgeEffectAlphaPulseFrequency_IsSet ? _recordData.Slice(_EdgeEffectAlphaPulseFrequencyLocation, 4).Float() : default(Single);
         #endregion
         #region EdgeEffectFullAlphaRatio
-        private int _EdgeEffectFullAlphaRatioLocation => _DNAMLocation!.Value.Min + 0x20;
-        private bool _EdgeEffectFullAlphaRatio_IsSet => _DNAMLocation.HasValue;
+        private int _EdgeEffectFullAlphaRatioLocation => Payload.DNAMLocation!.Value.Min + 0x20;
+        private bool _EdgeEffectFullAlphaRatio_IsSet => Payload.DNAMLocation.HasValue;
         public Percent EdgeEffectFullAlphaRatio => _EdgeEffectFullAlphaRatio_IsSet ? PercentBinaryTranslation.GetPercent(_recordData.Slice(_EdgeEffectFullAlphaRatioLocation, 4), FloatIntegerType.UInt) : default(Percent);
         #endregion
         #region HolesAlphaTestAnimationStartTime
-        private int _HolesAlphaTestAnimationStartTimeLocation => _DNAMLocation!.Value.Min + 0x24;
-        private bool _HolesAlphaTestAnimationStartTime_IsSet => _DNAMLocation.HasValue;
+        private int _HolesAlphaTestAnimationStartTimeLocation => Payload.DNAMLocation!.Value.Min + 0x24;
+        private bool _HolesAlphaTestAnimationStartTime_IsSet => Payload.DNAMLocation.HasValue;
         public Single HolesAlphaTestAnimationStartTime => _HolesAlphaTestAnimationStartTime_IsSet ? _recordData.Slice(_HolesAlphaTestAnimationStartTimeLocation, 4).Float() : default(Single);
         #endregion
         #region HolesAlphaTestAnimationStopTime
-        private int _HolesAlphaTestAnimationStopTimeLocation => _DNAMLocation!.Value.Min + 0x28;
-        private bool _HolesAlphaTestAnimationStopTime_IsSet => _DNAMLocation.HasValue;
+        private int _HolesAlphaTestAnimationStopTimeLocation => Payload.DNAMLocation!.Value.Min + 0x28;
+        private bool _HolesAlphaTestAnimationStopTime_IsSet => Payload.DNAMLocation.HasValue;
         public Single HolesAlphaTestAnimationStopTime => _HolesAlphaTestAnimationStopTime_IsSet ? _recordData.Slice(_HolesAlphaTestAnimationStopTimeLocation, 4).Float() : default(Single);
         #endregion
         #region HolesAlphaTestAnimationStartValue
-        private int _HolesAlphaTestAnimationStartValueLocation => _DNAMLocation!.Value.Min + 0x2C;
-        private bool _HolesAlphaTestAnimationStartValue_IsSet => _DNAMLocation.HasValue;
+        private int _HolesAlphaTestAnimationStartValueLocation => Payload.DNAMLocation!.Value.Min + 0x2C;
+        private bool _HolesAlphaTestAnimationStartValue_IsSet => Payload.DNAMLocation.HasValue;
         public Single HolesAlphaTestAnimationStartValue => _HolesAlphaTestAnimationStartValue_IsSet ? _recordData.Slice(_HolesAlphaTestAnimationStartValueLocation, 4).Float() : default(Single);
         #endregion
         #region HolesAlphaTestAnimationStopValue
-        private int _HolesAlphaTestAnimationStopValueLocation => _DNAMLocation!.Value.Min + 0x30;
-        private bool _HolesAlphaTestAnimationStopValue_IsSet => _DNAMLocation.HasValue;
+        private int _HolesAlphaTestAnimationStopValueLocation => Payload.DNAMLocation!.Value.Min + 0x30;
+        private bool _HolesAlphaTestAnimationStopValue_IsSet => Payload.DNAMLocation.HasValue;
         public Single HolesAlphaTestAnimationStopValue => _HolesAlphaTestAnimationStopValue_IsSet ? _recordData.Slice(_HolesAlphaTestAnimationStopValueLocation, 4).Float() : default(Single);
         #endregion
         #region Sounds
-        private int _SoundsLocation => _DNAMLocation!.Value.Min + 0x34;
-        private bool _Sounds_IsSet => _DNAMLocation.HasValue;
+        private int _SoundsLocation => Payload.DNAMLocation!.Value.Min + 0x34;
+        private bool _Sounds_IsSet => Payload.DNAMLocation.HasValue;
         private ISoundReferenceGetter? _Sounds => _Sounds_IsSet ? SoundReferenceBinaryOverlay.SoundReferenceFactory(_recordData.Slice(_SoundsLocation), _package) : default;
         public ISoundReferenceGetter Sounds => _Sounds ?? new SoundReference();
         #endregion
         #region BoneDepth
-        private int _BoneDepthLocation => _DNAMLocation!.Value.Min + 0x5C;
-        private bool _BoneDepth_IsSet => _DNAMLocation.HasValue;
+        private int _BoneDepthLocation => Payload.DNAMLocation!.Value.Min + 0x5C;
+        private bool _BoneDepth_IsSet => Payload.DNAMLocation.HasValue;
         public SByte BoneDepth => _BoneDepth_IsSet ? (sbyte)_recordData.Slice(_BoneDepthLocation, 1)[0] : default(SByte);
         #endregion
         #region Flags
-        private int _FlagsLocation => _DNAMLocation!.Value.Min + 0x5D;
-        private bool _Flags_IsSet => _DNAMLocation.HasValue;
+        private int _FlagsLocation => Payload.DNAMLocation!.Value.Min + 0x5D;
+        private bool _Flags_IsSet => Payload.DNAMLocation.HasValue;
         public EffectShader.Flag Flags => _Flags_IsSet ? (EffectShader.Flag)BinaryPrimitives.ReadInt32LittleEndian(_recordData.Span.Slice(_FlagsLocation, 0x4)) : default;
         #endregion
-        public IModelGetter? Model { get; private set; }
+        public IModelGetter? Model => Payload.Model;
+
+        internal partial class EffectShaderRecordDataPayload
+        {
+            public IReadOnlyList<IAComponentGetter> Components = [];
+            public int? EffectSequenceLocation;
+            public RangeInt32? DNAMLocation;
+            public IModelGetter? Model;
+        }
+
+        private LazyPayload<EffectShaderRecordDataPayload> _payload = null!;
+
+        internal EffectShaderRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<EffectShaderRecordDataPayload>(init, new EffectShaderRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -2866,10 +2881,10 @@ namespace Mutagen.Bethesda.Starfield
 
         partial void CustomCtor();
         protected EffectShaderBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -2880,28 +2895,51 @@ namespace Mutagen.Bethesda.Starfield
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new EffectShaderBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -2930,7 +2968,7 @@ namespace Mutagen.Bethesda.Starfield
             {
                 case RecordTypeInts.BFCB:
                 {
-                    this.Components = this.ParseRepeatedTypelessSubrecord<IAComponentGetter>(
+                    _payload.Fields.Components = this.ParseRepeatedTypelessSubrecord<IAComponentGetter>(
                         stream: stream,
                         translationParams: translationParams,
                         trigger: AComponent_Registration.TriggerSpecs,
@@ -2939,7 +2977,7 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.ENAM:
                 {
-                    _EffectSequenceLocation = (stream.Position - offset);
+                    _payload.Fields.EffectSequenceLocation = (stream.Position - offset);
                     return (int)EffectShader_FieldIndex.EffectSequence;
                 }
                 case RecordTypeInts.DATA:
@@ -2949,7 +2987,7 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.DNAM:
                 {
-                    _DNAMLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.DNAMLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     return (int)EffectShader_FieldIndex.Flags;
                 }
                 case RecordTypeInts.MODL:
@@ -2960,7 +2998,7 @@ namespace Mutagen.Bethesda.Starfield
                 case RecordTypeInts.MODC:
                 case RecordTypeInts.MODF:
                 {
-                    this.Model = ModelBinaryOverlay.ModelFactory(
+                    _payload.Fields.Model = ModelBinaryOverlay.ModelFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());

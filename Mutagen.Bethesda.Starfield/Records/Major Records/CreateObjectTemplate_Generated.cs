@@ -1146,11 +1146,25 @@ namespace Mutagen.Bethesda.Starfield
 
         #region TemplateAlias
         private int? _TemplateAliasLocation;
-        public Int32? TemplateAlias => _TemplateAliasLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _TemplateAliasLocation.Value, _package.MetaData.Constants)) : default(Int32?);
+        public Int32? TemplateAlias
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _TemplateAliasLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _TemplateAliasLocation.Value, _package.MetaData.Constants)) : default(Int32?);
+            }
+        }
         #endregion
         #region TargetOverrideAlias
         private int? _TargetOverrideAliasLocation;
-        public Int32? TargetOverrideAlias => _TargetOverrideAliasLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _TargetOverrideAliasLocation.Value, _package.MetaData.Constants)) : default(Int32?);
+        public Int32? TargetOverrideAlias
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _TargetOverrideAliasLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _TargetOverrideAliasLocation.Value, _package.MetaData.Constants)) : default(Int32?);
+            }
+        }
         #endregion
         partial void CustomFactoryEnd(
             OverlayStream stream,

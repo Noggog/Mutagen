@@ -1217,7 +1217,14 @@ namespace Mutagen.Bethesda.Skyrim
 
         #region ID
         private int? _IDLocation;
-        public UInt32 ID => _IDLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _IDLocation.Value, _package.MetaData.Constants)) : default(UInt32);
+        public UInt32 ID
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _IDLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _IDLocation.Value, _package.MetaData.Constants)) : default(UInt32);
+            }
+        }
         #endregion
         #region Flags
         private int? _FlagsLocation;

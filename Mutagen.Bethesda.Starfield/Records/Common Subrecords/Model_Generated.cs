@@ -1689,7 +1689,14 @@ namespace Mutagen.Bethesda.Starfield
 
         #region File
         private int? _FileLocation;
-        public AssetLinkGetter<StarfieldModelAssetType>? File => _FileLocation.HasValue ? new AssetLinkGetter<StarfieldModelAssetType>(BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _FileLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated)) : default(AssetLinkGetter<StarfieldModelAssetType>?);
+        public AssetLinkGetter<StarfieldModelAssetType>? File
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _FileLocation.HasValue ? new AssetLinkGetter<StarfieldModelAssetType>(BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_data, _FileLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated)) : default(AssetLinkGetter<StarfieldModelAssetType>?);
+            }
+        }
         #endregion
         #region TextureFileHashes
         private int? _TextureFileHashesLocation;
@@ -1698,7 +1705,14 @@ namespace Mutagen.Bethesda.Starfield
         public IReadOnlyList<IFormLinkGetter<ILayeredMaterialSwapGetter>>? MaterialSwaps { get; private set; }
         #region LightLayer
         private int? _LightLayerLocation;
-        public UInt32? LightLayer => _LightLayerLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _LightLayerLocation.Value, _package.MetaData.Constants)) : default(UInt32?);
+        public UInt32? LightLayer
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _LightLayerLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _LightLayerLocation.Value, _package.MetaData.Constants)) : default(UInt32?);
+            }
+        }
         #endregion
         #region Flags
         private int? _FlagsLocation;
@@ -1706,7 +1720,14 @@ namespace Mutagen.Bethesda.Starfield
         #endregion
         #region ColorRemappingIndex
         private int? _ColorRemappingIndexLocation;
-        public Single? ColorRemappingIndex => _ColorRemappingIndexLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _ColorRemappingIndexLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public Single? ColorRemappingIndex
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _ColorRemappingIndexLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_data, _ColorRemappingIndexLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+            }
+        }
         #endregion
         #region FlagsVestigial
         private int? _FlagsVestigialLocation;

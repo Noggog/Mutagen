@@ -1784,7 +1784,14 @@ namespace Mutagen.Bethesda.Starfield
         #endregion
         #region DialogueTargetActor
         private int? _DialogueTargetActorLocation;
-        public Int32? DialogueTargetActor => _DialogueTargetActorLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _DialogueTargetActorLocation.Value, _package.MetaData.Constants)) : default(Int32?);
+        public Int32? DialogueTargetActor
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _DialogueTargetActorLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _DialogueTargetActorLocation.Value, _package.MetaData.Constants)) : default(Int32?);
+            }
+        }
         #endregion
         public IReadOnlyList<IPlayerDialogueSceneActionItemGetter> DialogueList { get; private set; } = [];
         #region ATTR
@@ -1793,11 +1800,25 @@ namespace Mutagen.Bethesda.Starfield
         #endregion
         #region ACBS
         private int? _ACBSLocation;
-        public Boolean ACBS => _ACBSLocation.HasValue ? true : default(Boolean);
+        public Boolean ACBS
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _ACBSLocation.HasValue ? true : default(Boolean);
+            }
+        }
         #endregion
         #region JAIL
         private int? _JAILLocation;
-        public Boolean JAIL => _JAILLocation.HasValue ? true : default(Boolean);
+        public Boolean JAIL
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _JAILLocation.HasValue ? true : default(Boolean);
+            }
+        }
         #endregion
         partial void CustomFactoryEnd(
             OverlayStream stream,

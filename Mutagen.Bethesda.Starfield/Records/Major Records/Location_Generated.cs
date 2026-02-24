@@ -37,6 +37,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -6333,27 +6334,26 @@ namespace Mutagen.Bethesda.Starfield
 
         public Location.MajorFlag MajorFlags => (Location.MajorFlag)this.MajorRecordFlagsRaw;
 
-        public IReadOnlyList<IObjectPropertyGetter>? Properties { get; private set; }
-        public IReadOnlyList<ILocationReferenceGetter>? AddedPersistLocationReferences { get; private set; }
-        public IReadOnlyList<ILocationReferenceGetter>? MasterPersistLocationReferences { get; private set; }
-        public IReadOnlyList<IFormLinkGetter<IPlacedSimpleGetter>>? RemovedPersistLocationReferences { get; private set; }
-        public IReadOnlyList<ILocationCellUniqueReferenceGetter>? AddedUniqueBaseForms { get; private set; }
-        public IReadOnlyList<ILocationCellUniqueReferenceGetter>? LocationCellUniqueReferences { get; private set; }
-        public IReadOnlyList<IFormLinkGetter<IGenericBaseFormGetter>>? RemovedUniqueBaseForms { get; private set; }
-        public IReadOnlyList<ILocationCellUniqueGetter>? AddedUniqueNpcs { get; private set; }
-        public IReadOnlyList<ILocationCellUniqueGetter>? MasterUniqueNpcs { get; private set; }
-        public IReadOnlyList<IFormLinkGetter<INpcGetter>>? RemovedUniqueNpcs { get; private set; }
-        public IReadOnlyList<ILocationCellStaticReferenceGetter>? AddedSpecialReferences { get; private set; }
-        public IReadOnlyList<ILocationCellStaticReferenceGetter>? MasterSpecialReferences { get; private set; }
-        public IReadOnlyList<IFormLinkGetter<IPlacedSimpleGetter>>? RemovedSpecialReferences { get; private set; }
-        public IReadOnlyList<ILocationCoordinateGetter> MasterWorldspaceCells { get; private set; } = [];
-        public IReadOnlyList<IFormLinkGetter<IPlacedGetter>>? AddedInitiallyDisabledReferences { get; private set; }
-        public IReadOnlyList<IFormLinkGetter<IPlacedGetter>>? MasterInitiallyDisabledReferences { get; private set; }
-        public IReadOnlyList<ILocationCellEnablePointGetter>? AddedEnablePointReferences { get; private set; }
-        public IReadOnlyList<ILocationCellEnablePointGetter>? MasterEnablePointReferences { get; private set; }
+        public IReadOnlyList<IObjectPropertyGetter>? Properties => Payload.Properties;
+        public IReadOnlyList<ILocationReferenceGetter>? AddedPersistLocationReferences => Payload.AddedPersistLocationReferences;
+        public IReadOnlyList<ILocationReferenceGetter>? MasterPersistLocationReferences => Payload.MasterPersistLocationReferences;
+        public IReadOnlyList<IFormLinkGetter<IPlacedSimpleGetter>>? RemovedPersistLocationReferences => Payload.RemovedPersistLocationReferences;
+        public IReadOnlyList<ILocationCellUniqueReferenceGetter>? AddedUniqueBaseForms => Payload.AddedUniqueBaseForms;
+        public IReadOnlyList<ILocationCellUniqueReferenceGetter>? LocationCellUniqueReferences => Payload.LocationCellUniqueReferences;
+        public IReadOnlyList<IFormLinkGetter<IGenericBaseFormGetter>>? RemovedUniqueBaseForms => Payload.RemovedUniqueBaseForms;
+        public IReadOnlyList<ILocationCellUniqueGetter>? AddedUniqueNpcs => Payload.AddedUniqueNpcs;
+        public IReadOnlyList<ILocationCellUniqueGetter>? MasterUniqueNpcs => Payload.MasterUniqueNpcs;
+        public IReadOnlyList<IFormLinkGetter<INpcGetter>>? RemovedUniqueNpcs => Payload.RemovedUniqueNpcs;
+        public IReadOnlyList<ILocationCellStaticReferenceGetter>? AddedSpecialReferences => Payload.AddedSpecialReferences;
+        public IReadOnlyList<ILocationCellStaticReferenceGetter>? MasterSpecialReferences => Payload.MasterSpecialReferences;
+        public IReadOnlyList<IFormLinkGetter<IPlacedSimpleGetter>>? RemovedSpecialReferences => Payload.RemovedSpecialReferences;
+        public IReadOnlyList<ILocationCoordinateGetter> MasterWorldspaceCells => Payload.MasterWorldspaceCells ?? [];
+        public IReadOnlyList<IFormLinkGetter<IPlacedGetter>>? AddedInitiallyDisabledReferences => Payload.AddedInitiallyDisabledReferences;
+        public IReadOnlyList<IFormLinkGetter<IPlacedGetter>>? MasterInitiallyDisabledReferences => Payload.MasterInitiallyDisabledReferences;
+        public IReadOnlyList<ILocationCellEnablePointGetter>? AddedEnablePointReferences => Payload.AddedEnablePointReferences;
+        public IReadOnlyList<ILocationCellEnablePointGetter>? MasterEnablePointReferences => Payload.MasterEnablePointReferences;
         #region Name
-        private int? _NameLocation;
-        public ITranslatedStringGetter? Name => _NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+        public ITranslatedStringGetter? Name => Payload.NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
         #region Aspects
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         string INamedRequiredGetter.Name => this.Name?.String ?? string.Empty;
@@ -6364,54 +6364,67 @@ namespace Mutagen.Bethesda.Starfield
         #endregion
         #endregion
         #region Keywords
-        public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? Keywords { get; private set; }
+        public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? Keywords => Payload.Keywords;
         IReadOnlyList<IFormLinkGetter<IKeywordCommonGetter>>? IKeywordedGetter.Keywords => this.Keywords;
         #endregion
-        public IReadOnlyList<IObjectPropertyGetter>? Properties2 { get; private set; }
-        #region Owner
-        private RangeInt32? _OwnerLocation;
-        public ILocationOwnerDataGetter? Owner => _OwnerLocation.HasValue ? LocationOwnerDataBinaryOverlay.LocationOwnerDataFactory(_recordData.Slice(_OwnerLocation!.Value.Min), _package) : default;
-        #endregion
-        #region ParentLocation
-        private int? _ParentLocationLocation;
-        public IFormLinkNullableGetter<ILocationGetter> ParentLocation => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ILocationGetter>(_package, _recordData, _ParentLocationLocation);
-        #endregion
-        #region MusicType
-        private int? _MusicTypeLocation;
-        public IFormLinkNullableGetter<IMusicTypeGetter> MusicType => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IMusicTypeGetter>(_package, _recordData, _MusicTypeLocation);
-        #endregion
-        #region UnreportedCrimeFaction
-        private int? _UnreportedCrimeFactionLocation;
-        public IFormLinkNullableGetter<IFactionGetter> UnreportedCrimeFaction => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IFactionGetter>(_package, _recordData, _UnreportedCrimeFactionLocation);
-        #endregion
-        #region WorldLocationMarkerRef
-        private int? _WorldLocationMarkerRefLocation;
-        public IFormLinkNullableGetter<IPlacedSimpleGetter> WorldLocationMarkerRef => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IPlacedSimpleGetter>(_package, _recordData, _WorldLocationMarkerRefLocation);
-        #endregion
-        #region WorldLocationRadius
-        private int? _WorldLocationRadiusLocation;
-        public Single? WorldLocationRadius => _WorldLocationRadiusLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _WorldLocationRadiusLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
-        #endregion
-        #region ActorFadeMult
-        private int? _ActorFadeMultLocation;
-        public Single? ActorFadeMult => _ActorFadeMultLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _ActorFadeMultLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
-        #endregion
-        #region RandomConversionTimer
-        private int? _RandomConversionTimerLocation;
-        public Single? RandomConversionTimer => _RandomConversionTimerLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _RandomConversionTimerLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
-        #endregion
-        #region Color
-        private int? _ColorLocation;
-        public Color? Color => _ColorLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _ColorLocation.Value, _package.MetaData.Constants).ReadColor(ColorBinaryType.Alpha) : default(Color?);
-        #endregion
-        #region StarID
-        private int? _StarIDLocation;
-        public Int32? StarID => _StarIDLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _StarIDLocation.Value, _package.MetaData.Constants)) : default(Int32?);
-        #endregion
-        #region PlanetID
-        private int? _PlanetIDLocation;
-        public Int32? PlanetID => _PlanetIDLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _PlanetIDLocation.Value, _package.MetaData.Constants)) : default(Int32?);
-        #endregion
+        public IReadOnlyList<IObjectPropertyGetter>? Properties2 => Payload.Properties2;
+        public ILocationOwnerDataGetter? Owner => Payload.OwnerLocation.HasValue ? LocationOwnerDataBinaryOverlay.LocationOwnerDataFactory(_recordData.Slice(Payload.OwnerLocation!.Value.Min), _package) : default;
+        public IFormLinkNullableGetter<ILocationGetter> ParentLocation => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ILocationGetter>(_package, _recordData, Payload.ParentLocationLocation);
+        public IFormLinkNullableGetter<IMusicTypeGetter> MusicType => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IMusicTypeGetter>(_package, _recordData, Payload.MusicTypeLocation);
+        public IFormLinkNullableGetter<IFactionGetter> UnreportedCrimeFaction => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IFactionGetter>(_package, _recordData, Payload.UnreportedCrimeFactionLocation);
+        public IFormLinkNullableGetter<IPlacedSimpleGetter> WorldLocationMarkerRef => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IPlacedSimpleGetter>(_package, _recordData, Payload.WorldLocationMarkerRefLocation);
+        public Single? WorldLocationRadius => Payload.WorldLocationRadiusLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.WorldLocationRadiusLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public Single? ActorFadeMult => Payload.ActorFadeMultLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.ActorFadeMultLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public Single? RandomConversionTimer => Payload.RandomConversionTimerLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.RandomConversionTimerLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public Color? Color => Payload.ColorLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.ColorLocation.Value, _package.MetaData.Constants).ReadColor(ColorBinaryType.Alpha) : default(Color?);
+        public Int32? StarID => Payload.StarIDLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.StarIDLocation.Value, _package.MetaData.Constants)) : default(Int32?);
+        public Int32? PlanetID => Payload.PlanetIDLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.PlanetIDLocation.Value, _package.MetaData.Constants)) : default(Int32?);
+
+        internal partial class LocationRecordDataPayload
+        {
+            public IReadOnlyList<IObjectPropertyGetter>? Properties;
+            public IReadOnlyList<ILocationReferenceGetter>? AddedPersistLocationReferences;
+            public IReadOnlyList<ILocationReferenceGetter>? MasterPersistLocationReferences;
+            public IReadOnlyList<IFormLinkGetter<IPlacedSimpleGetter>>? RemovedPersistLocationReferences;
+            public IReadOnlyList<ILocationCellUniqueReferenceGetter>? AddedUniqueBaseForms;
+            public IReadOnlyList<ILocationCellUniqueReferenceGetter>? LocationCellUniqueReferences;
+            public IReadOnlyList<IFormLinkGetter<IGenericBaseFormGetter>>? RemovedUniqueBaseForms;
+            public IReadOnlyList<ILocationCellUniqueGetter>? AddedUniqueNpcs;
+            public IReadOnlyList<ILocationCellUniqueGetter>? MasterUniqueNpcs;
+            public IReadOnlyList<IFormLinkGetter<INpcGetter>>? RemovedUniqueNpcs;
+            public IReadOnlyList<ILocationCellStaticReferenceGetter>? AddedSpecialReferences;
+            public IReadOnlyList<ILocationCellStaticReferenceGetter>? MasterSpecialReferences;
+            public IReadOnlyList<IFormLinkGetter<IPlacedSimpleGetter>>? RemovedSpecialReferences;
+            public IReadOnlyList<ILocationCoordinateGetter> MasterWorldspaceCells = [];
+            public IReadOnlyList<IFormLinkGetter<IPlacedGetter>>? AddedInitiallyDisabledReferences;
+            public IReadOnlyList<IFormLinkGetter<IPlacedGetter>>? MasterInitiallyDisabledReferences;
+            public IReadOnlyList<ILocationCellEnablePointGetter>? AddedEnablePointReferences;
+            public IReadOnlyList<ILocationCellEnablePointGetter>? MasterEnablePointReferences;
+            public int? NameLocation;
+            public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? Keywords;
+            public IReadOnlyList<IObjectPropertyGetter>? Properties2;
+            public RangeInt32? OwnerLocation;
+            public int? ParentLocationLocation;
+            public int? MusicTypeLocation;
+            public int? UnreportedCrimeFactionLocation;
+            public int? WorldLocationMarkerRefLocation;
+            public int? WorldLocationRadiusLocation;
+            public int? ActorFadeMultLocation;
+            public int? RandomConversionTimerLocation;
+            public int? ColorLocation;
+            public int? StarIDLocation;
+            public int? PlanetIDLocation;
+        }
+
+        private LazyPayload<LocationRecordDataPayload> _payload = null!;
+
+        internal LocationRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<LocationRecordDataPayload>(init, new LocationRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -6419,10 +6432,10 @@ namespace Mutagen.Bethesda.Starfield
 
         partial void CustomCtor();
         protected LocationBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -6433,28 +6446,51 @@ namespace Mutagen.Bethesda.Starfield
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new LocationBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -6486,7 +6522,7 @@ namespace Mutagen.Bethesda.Starfield
                     if (!lastParsed.ParsedIndex.HasValue
                         || lastParsed.ParsedIndex.Value <= (int)MajorRecord_FieldIndex.EditorID)
                     {
-                        this.Properties = BinaryOverlayList.FactoryByStartIndexWithTrigger<IObjectPropertyGetter>(
+                        _payload.Fields.Properties = BinaryOverlayList.FactoryByStartIndexWithTrigger<IObjectPropertyGetter>(
                             stream: stream,
                             package: _package,
                             finalPos: finalPos,
@@ -6496,7 +6532,7 @@ namespace Mutagen.Bethesda.Starfield
                     }
                     else if (lastParsed.ParsedIndex.Value <= (int)Location_FieldIndex.Keywords)
                     {
-                        this.Properties2 = BinaryOverlayList.FactoryByStartIndexWithTrigger<IObjectPropertyGetter>(
+                        _payload.Fields.Properties2 = BinaryOverlayList.FactoryByStartIndexWithTrigger<IObjectPropertyGetter>(
                             stream: stream,
                             package: _package,
                             finalPos: finalPos,
@@ -6510,7 +6546,7 @@ namespace Mutagen.Bethesda.Starfield
                         {
                             case 0:
                             {
-                                this.Properties = BinaryOverlayList.FactoryByStartIndexWithTrigger<IObjectPropertyGetter>(
+                                _payload.Fields.Properties = BinaryOverlayList.FactoryByStartIndexWithTrigger<IObjectPropertyGetter>(
                                     stream: stream,
                                     package: _package,
                                     finalPos: finalPos,
@@ -6520,7 +6556,7 @@ namespace Mutagen.Bethesda.Starfield
                             }
                             case 1:
                             {
-                                this.Properties2 = BinaryOverlayList.FactoryByStartIndexWithTrigger<IObjectPropertyGetter>(
+                                _payload.Fields.Properties2 = BinaryOverlayList.FactoryByStartIndexWithTrigger<IObjectPropertyGetter>(
                                     stream: stream,
                                     package: _package,
                                     finalPos: finalPos,
@@ -6535,7 +6571,7 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.ACPR:
                 {
-                    this.AddedPersistLocationReferences = BinaryOverlayList.FactoryByStartIndexWithTrigger<ILocationReferenceGetter>(
+                    _payload.Fields.AddedPersistLocationReferences = BinaryOverlayList.FactoryByStartIndexWithTrigger<ILocationReferenceGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -6545,7 +6581,7 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.LCPR:
                 {
-                    this.MasterPersistLocationReferences = BinaryOverlayList.FactoryByStartIndexWithTrigger<ILocationReferenceGetter>(
+                    _payload.Fields.MasterPersistLocationReferences = BinaryOverlayList.FactoryByStartIndexWithTrigger<ILocationReferenceGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -6555,7 +6591,7 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.RCPR:
                 {
-                    this.RemovedPersistLocationReferences = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<IPlacedSimpleGetter>>(
+                    _payload.Fields.RemovedPersistLocationReferences = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<IPlacedSimpleGetter>>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -6565,7 +6601,7 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.ACUR:
                 {
-                    this.AddedUniqueBaseForms = BinaryOverlayList.FactoryByStartIndexWithTrigger<ILocationCellUniqueReferenceGetter>(
+                    _payload.Fields.AddedUniqueBaseForms = BinaryOverlayList.FactoryByStartIndexWithTrigger<ILocationCellUniqueReferenceGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -6575,7 +6611,7 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.LCUR:
                 {
-                    this.LocationCellUniqueReferences = BinaryOverlayList.FactoryByStartIndexWithTrigger<ILocationCellUniqueReferenceGetter>(
+                    _payload.Fields.LocationCellUniqueReferences = BinaryOverlayList.FactoryByStartIndexWithTrigger<ILocationCellUniqueReferenceGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -6588,7 +6624,7 @@ namespace Mutagen.Bethesda.Starfield
                     if (!lastParsed.ParsedIndex.HasValue
                         || lastParsed.ParsedIndex.Value <= (int)Location_FieldIndex.LocationCellUniqueReferences)
                     {
-                        this.RemovedUniqueBaseForms = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<IGenericBaseFormGetter>>(
+                        _payload.Fields.RemovedUniqueBaseForms = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<IGenericBaseFormGetter>>(
                             stream: stream,
                             package: _package,
                             finalPos: finalPos,
@@ -6598,7 +6634,7 @@ namespace Mutagen.Bethesda.Starfield
                     }
                     else if (lastParsed.ParsedIndex.Value <= (int)Location_FieldIndex.MasterUniqueNpcs)
                     {
-                        this.RemovedUniqueNpcs = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<INpcGetter>>(
+                        _payload.Fields.RemovedUniqueNpcs = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<INpcGetter>>(
                             stream: stream,
                             package: _package,
                             finalPos: finalPos,
@@ -6612,7 +6648,7 @@ namespace Mutagen.Bethesda.Starfield
                         {
                             case 0:
                             {
-                                this.RemovedUniqueBaseForms = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<IGenericBaseFormGetter>>(
+                                _payload.Fields.RemovedUniqueBaseForms = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<IGenericBaseFormGetter>>(
                                     stream: stream,
                                     package: _package,
                                     finalPos: finalPos,
@@ -6622,7 +6658,7 @@ namespace Mutagen.Bethesda.Starfield
                             }
                             case 1:
                             {
-                                this.RemovedUniqueNpcs = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<INpcGetter>>(
+                                _payload.Fields.RemovedUniqueNpcs = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<INpcGetter>>(
                                     stream: stream,
                                     package: _package,
                                     finalPos: finalPos,
@@ -6637,7 +6673,7 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.ACUN:
                 {
-                    this.AddedUniqueNpcs = BinaryOverlayList.FactoryByStartIndexWithTrigger<ILocationCellUniqueGetter>(
+                    _payload.Fields.AddedUniqueNpcs = BinaryOverlayList.FactoryByStartIndexWithTrigger<ILocationCellUniqueGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -6647,7 +6683,7 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.LCUN:
                 {
-                    this.MasterUniqueNpcs = BinaryOverlayList.FactoryByStartIndexWithTrigger<ILocationCellUniqueGetter>(
+                    _payload.Fields.MasterUniqueNpcs = BinaryOverlayList.FactoryByStartIndexWithTrigger<ILocationCellUniqueGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -6657,7 +6693,7 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.ACSR:
                 {
-                    this.AddedSpecialReferences = BinaryOverlayList.FactoryByStartIndexWithTrigger<ILocationCellStaticReferenceGetter>(
+                    _payload.Fields.AddedSpecialReferences = BinaryOverlayList.FactoryByStartIndexWithTrigger<ILocationCellStaticReferenceGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -6667,7 +6703,7 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.LCSR:
                 {
-                    this.MasterSpecialReferences = BinaryOverlayList.FactoryByStartIndexWithTrigger<ILocationCellStaticReferenceGetter>(
+                    _payload.Fields.MasterSpecialReferences = BinaryOverlayList.FactoryByStartIndexWithTrigger<ILocationCellStaticReferenceGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -6677,7 +6713,7 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.RCSR:
                 {
-                    this.RemovedSpecialReferences = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<IPlacedSimpleGetter>>(
+                    _payload.Fields.RemovedSpecialReferences = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<IPlacedSimpleGetter>>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -6687,7 +6723,7 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.LCEC:
                 {
-                    this.MasterWorldspaceCells = this.ParseRepeatedTypelessSubrecord<ILocationCoordinateGetter>(
+                    _payload.Fields.MasterWorldspaceCells = this.ParseRepeatedTypelessSubrecord<ILocationCoordinateGetter>(
                         stream: stream,
                         translationParams: translationParams,
                         trigger: RecordTypes.LCEC,
@@ -6697,7 +6733,7 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.ACID:
                 {
-                    this.AddedInitiallyDisabledReferences = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<IPlacedGetter>>(
+                    _payload.Fields.AddedInitiallyDisabledReferences = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<IPlacedGetter>>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -6707,7 +6743,7 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.LCID:
                 {
-                    this.MasterInitiallyDisabledReferences = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<IPlacedGetter>>(
+                    _payload.Fields.MasterInitiallyDisabledReferences = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<IPlacedGetter>>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -6717,7 +6753,7 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.ACEP:
                 {
-                    this.AddedEnablePointReferences = BinaryOverlayList.FactoryByStartIndexWithTrigger<ILocationCellEnablePointGetter>(
+                    _payload.Fields.AddedEnablePointReferences = BinaryOverlayList.FactoryByStartIndexWithTrigger<ILocationCellEnablePointGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -6727,7 +6763,7 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.LCEP:
                 {
-                    this.MasterEnablePointReferences = BinaryOverlayList.FactoryByStartIndexWithTrigger<ILocationCellEnablePointGetter>(
+                    _payload.Fields.MasterEnablePointReferences = BinaryOverlayList.FactoryByStartIndexWithTrigger<ILocationCellEnablePointGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -6737,13 +6773,13 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.FULL:
                 {
-                    _NameLocation = (stream.Position - offset);
+                    _payload.Fields.NameLocation = (stream.Position - offset);
                     return (int)Location_FieldIndex.Name;
                 }
                 case RecordTypeInts.KSIZ:
                 case RecordTypeInts.KWDA:
                 {
-                    this.Keywords = BinaryOverlayList.FactoryByCount<IFormLinkGetter<IKeywordGetter>>(
+                    _payload.Fields.Keywords = BinaryOverlayList.FactoryByCount<IFormLinkGetter<IKeywordGetter>>(
                         stream: stream,
                         package: _package,
                         itemLength: 0x4,
@@ -6755,57 +6791,57 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.DATA:
                 {
-                    _OwnerLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.OwnerLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)Location_FieldIndex.Owner;
                 }
                 case RecordTypeInts.PNAM:
                 {
-                    _ParentLocationLocation = (stream.Position - offset);
+                    _payload.Fields.ParentLocationLocation = (stream.Position - offset);
                     return (int)Location_FieldIndex.ParentLocation;
                 }
                 case RecordTypeInts.NAM1:
                 {
-                    _MusicTypeLocation = (stream.Position - offset);
+                    _payload.Fields.MusicTypeLocation = (stream.Position - offset);
                     return (int)Location_FieldIndex.MusicType;
                 }
                 case RecordTypeInts.FNAM:
                 {
-                    _UnreportedCrimeFactionLocation = (stream.Position - offset);
+                    _payload.Fields.UnreportedCrimeFactionLocation = (stream.Position - offset);
                     return (int)Location_FieldIndex.UnreportedCrimeFaction;
                 }
                 case RecordTypeInts.MNAM:
                 {
-                    _WorldLocationMarkerRefLocation = (stream.Position - offset);
+                    _payload.Fields.WorldLocationMarkerRefLocation = (stream.Position - offset);
                     return (int)Location_FieldIndex.WorldLocationMarkerRef;
                 }
                 case RecordTypeInts.RNAM:
                 {
-                    _WorldLocationRadiusLocation = (stream.Position - offset);
+                    _payload.Fields.WorldLocationRadiusLocation = (stream.Position - offset);
                     return (int)Location_FieldIndex.WorldLocationRadius;
                 }
                 case RecordTypeInts.ANAM:
                 {
-                    _ActorFadeMultLocation = (stream.Position - offset);
+                    _payload.Fields.ActorFadeMultLocation = (stream.Position - offset);
                     return (int)Location_FieldIndex.ActorFadeMult;
                 }
                 case RecordTypeInts.TNAM:
                 {
-                    _RandomConversionTimerLocation = (stream.Position - offset);
+                    _payload.Fields.RandomConversionTimerLocation = (stream.Position - offset);
                     return (int)Location_FieldIndex.RandomConversionTimer;
                 }
                 case RecordTypeInts.CNAM:
                 {
-                    _ColorLocation = (stream.Position - offset);
+                    _payload.Fields.ColorLocation = (stream.Position - offset);
                     return (int)Location_FieldIndex.Color;
                 }
                 case RecordTypeInts.XNAM:
                 {
-                    _StarIDLocation = (stream.Position - offset);
+                    _payload.Fields.StarIDLocation = (stream.Position - offset);
                     return (int)Location_FieldIndex.StarID;
                 }
                 case RecordTypeInts.YNAM:
                 {
-                    _PlanetIDLocation = (stream.Position - offset);
+                    _payload.Fields.PlanetIDLocation = (stream.Position - offset);
                     return (int)Location_FieldIndex.PlanetID;
                 }
                 default:

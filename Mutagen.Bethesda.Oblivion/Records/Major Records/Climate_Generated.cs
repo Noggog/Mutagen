@@ -35,6 +35,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -1903,20 +1904,30 @@ namespace Mutagen.Bethesda.Oblivion
         protected override Type LinkType => typeof(IClimateGetter);
 
 
-        public IReadOnlyList<IWeatherTypeGetter>? Weathers { get; private set; }
-        #region SunTexture
-        private int? _SunTextureLocation;
-        public String? SunTexture => _SunTextureLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _SunTextureLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
-        #region SunGlareTexture
-        private int? _SunGlareTextureLocation;
-        public String? SunGlareTexture => _SunGlareTextureLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _SunGlareTextureLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
-        public IModelGetter? Model { get; private set; }
-        #region Data
-        private RangeInt32? _DataLocation;
-        public IClimateDataGetter? Data => _DataLocation.HasValue ? ClimateDataBinaryOverlay.ClimateDataFactory(_recordData.Slice(_DataLocation!.Value.Min), _package) : default;
-        #endregion
+        public IReadOnlyList<IWeatherTypeGetter>? Weathers => Payload.Weathers;
+        public String? SunTexture => Payload.SunTextureLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.SunTextureLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? SunGlareTexture => Payload.SunGlareTextureLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.SunGlareTextureLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public IModelGetter? Model => Payload.Model;
+        public IClimateDataGetter? Data => Payload.DataLocation.HasValue ? ClimateDataBinaryOverlay.ClimateDataFactory(_recordData.Slice(Payload.DataLocation!.Value.Min), _package) : default;
+
+        internal partial class ClimateRecordDataPayload
+        {
+            public IReadOnlyList<IWeatherTypeGetter>? Weathers;
+            public int? SunTextureLocation;
+            public int? SunGlareTextureLocation;
+            public IModelGetter? Model;
+            public RangeInt32? DataLocation;
+        }
+
+        private LazyPayload<ClimateRecordDataPayload> _payload = null!;
+
+        internal ClimateRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<ClimateRecordDataPayload>(init, new ClimateRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -1924,10 +1935,10 @@ namespace Mutagen.Bethesda.Oblivion
 
         partial void CustomCtor();
         protected ClimateBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -1938,28 +1949,51 @@ namespace Mutagen.Bethesda.Oblivion
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new ClimateBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -1988,7 +2022,7 @@ namespace Mutagen.Bethesda.Oblivion
             {
                 case RecordTypeInts.WLST:
                 {
-                    this.Weathers = BinaryOverlayList.FactoryByStartIndexWithTrigger<IWeatherTypeGetter>(
+                    _payload.Fields.Weathers = BinaryOverlayList.FactoryByStartIndexWithTrigger<IWeatherTypeGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -1998,17 +2032,17 @@ namespace Mutagen.Bethesda.Oblivion
                 }
                 case RecordTypeInts.FNAM:
                 {
-                    _SunTextureLocation = (stream.Position - offset);
+                    _payload.Fields.SunTextureLocation = (stream.Position - offset);
                     return (int)Climate_FieldIndex.SunTexture;
                 }
                 case RecordTypeInts.GNAM:
                 {
-                    _SunGlareTextureLocation = (stream.Position - offset);
+                    _payload.Fields.SunGlareTextureLocation = (stream.Position - offset);
                     return (int)Climate_FieldIndex.SunGlareTexture;
                 }
                 case RecordTypeInts.MODL:
                 {
-                    this.Model = ModelBinaryOverlay.ModelFactory(
+                    _payload.Fields.Model = ModelBinaryOverlay.ModelFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());
@@ -2016,7 +2050,7 @@ namespace Mutagen.Bethesda.Oblivion
                 }
                 case RecordTypeInts.TNAM:
                 {
-                    _DataLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.DataLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)Climate_FieldIndex.Data;
                 }
                 default:

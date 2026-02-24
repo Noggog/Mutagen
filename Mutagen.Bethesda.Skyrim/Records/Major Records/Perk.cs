@@ -530,7 +530,12 @@ partial class PerkBinaryWriteTranslation
 
 partial class PerkBinaryOverlay
 {
-    public IReadOnlyList<IAPerkEffectGetter> Effects { get; private set; } = [];
+    internal partial class PerkRecordDataPayload
+    {
+        public IReadOnlyList<IAPerkEffectGetter> Effects = [];
+    }
+
+    public IReadOnlyList<IAPerkEffectGetter> Effects => Payload.Effects;
 
     private static RecordTriggerSpecs _effectSpecs = new(
         new RecordCollection()
@@ -560,7 +565,7 @@ partial class PerkBinaryOverlay
         RecordType type,
         PreviousParse lastParsed)
     {
-        Effects = BinaryOverlayList.FactoryByArray(
+        _payload.Fields.Effects = BinaryOverlayList.FactoryByArray(
             stream.RemainingMemory,
             _package,
             getter: (s, p) =>

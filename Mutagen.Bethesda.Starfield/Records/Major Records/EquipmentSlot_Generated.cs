@@ -1169,7 +1169,14 @@ namespace Mutagen.Bethesda.Starfield
         #endregion
         #region Node
         private int? _NodeLocation;
-        public String? Node => _NodeLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NodeLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? Node
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _NodeLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_data, _NodeLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+            }
+        }
         #endregion
         partial void CustomFactoryEnd(
             OverlayStream stream,

@@ -1189,7 +1189,14 @@ namespace Mutagen.Bethesda.Starfield
 
         #region Tag
         private int? _TagLocation;
-        public String Tag => _TagLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _TagLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : string.Empty;
+        public String Tag
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _TagLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_data, _TagLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : string.Empty;
+            }
+        }
         #endregion
         #region Sound
         private ISoundReferenceGetter? _Sound;

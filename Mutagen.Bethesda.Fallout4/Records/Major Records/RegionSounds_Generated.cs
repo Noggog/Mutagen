@@ -1492,11 +1492,25 @@ namespace Mutagen.Bethesda.Fallout4
         public IReadOnlyList<IRegionSoundGetter>? Sounds { get; private set; }
         #region LodDisplayDistanceMultiplier
         private int? _LodDisplayDistanceMultiplierLocation;
-        public override Single? LodDisplayDistanceMultiplier => _LodDisplayDistanceMultiplierLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _LodDisplayDistanceMultiplierLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public override Single? LodDisplayDistanceMultiplier
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _LodDisplayDistanceMultiplierLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_data, _LodDisplayDistanceMultiplierLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+            }
+        }
         #endregion
         #region OcclusionAccuracyDist
         private int? _OcclusionAccuracyDistLocation;
-        public override Single? OcclusionAccuracyDist => _OcclusionAccuracyDistLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _OcclusionAccuracyDistLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public override Single? OcclusionAccuracyDist
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _OcclusionAccuracyDistLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_data, _OcclusionAccuracyDistLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+            }
+        }
         #endregion
         partial void CustomFactoryEnd(
             OverlayStream stream,

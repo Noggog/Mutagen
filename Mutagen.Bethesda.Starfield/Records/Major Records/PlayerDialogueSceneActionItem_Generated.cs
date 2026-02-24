@@ -1547,11 +1547,25 @@ namespace Mutagen.Bethesda.Starfield
         #endregion
         #region PhaseIndex
         private int? _PhaseIndexLocation;
-        public UInt32? PhaseIndex => _PhaseIndexLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _PhaseIndexLocation.Value, _package.MetaData.Constants)) : default(UInt32?);
+        public UInt32? PhaseIndex
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _PhaseIndexLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _PhaseIndexLocation.Value, _package.MetaData.Constants)) : default(UInt32?);
+            }
+        }
         #endregion
         #region PAPN
         private int? _PAPNLocation;
-        public String? PAPN => _PAPNLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _PAPNLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? PAPN
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _PAPNLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_data, _PAPNLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+            }
+        }
         #endregion
         #region NpcResponse
         private int? _NpcResponseLocation;

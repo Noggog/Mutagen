@@ -34,6 +34,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -3482,79 +3483,25 @@ namespace Mutagen.Bethesda.Oblivion
         protected override Type LinkType => typeof(IPlacedObjectGetter);
 
 
-        #region Base
-        private int? _BaseLocation;
-        public IFormLinkNullableGetter<IOblivionMajorRecordGetter> Base => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IOblivionMajorRecordGetter>(_package, _recordData, _BaseLocation);
-        #endregion
-        #region XPCIFluff
-        private int? _XPCIFluffLocation;
-        public ReadOnlyMemorySlice<Byte>? XPCIFluff => _XPCIFluffLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _XPCIFluffLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
-        #endregion
-        #region FULLFluff
-        private int? _FULLFluffLocation;
-        public ReadOnlyMemorySlice<Byte>? FULLFluff => _FULLFluffLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _FULLFluffLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
-        #endregion
-        #region TeleportDestination
-        private RangeInt32? _TeleportDestinationLocation;
-        public ITeleportDestinationGetter? TeleportDestination => _TeleportDestinationLocation.HasValue ? TeleportDestinationBinaryOverlay.TeleportDestinationFactory(_recordData.Slice(_TeleportDestinationLocation!.Value.Min), _package) : default;
-        #endregion
-        #region Lock
-        private RangeInt32? _LockLocation;
-        public ILockInformationGetter? Lock => _LockLocation.HasValue ? LockInformationBinaryOverlay.LockInformationFactory(_recordData.Slice(_LockLocation!.Value.Min), _package) : default;
-        #endregion
-        #region Owner
-        private int? _OwnerLocation;
-        public IFormLinkNullableGetter<IOwnerGetter> Owner => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IOwnerGetter>(_package, _recordData, _OwnerLocation);
-        #endregion
-        #region FactionRank
-        private int? _FactionRankLocation;
-        public Int32? FactionRank => _FactionRankLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _FactionRankLocation.Value, _package.MetaData.Constants)) : default(Int32?);
-        #endregion
-        #region GlobalVariable
-        private int? _GlobalVariableLocation;
-        public IFormLinkNullableGetter<IGlobalGetter> GlobalVariable => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IGlobalGetter>(_package, _recordData, _GlobalVariableLocation);
-        #endregion
-        #region EnableParent
-        private RangeInt32? _EnableParentLocation;
-        public IEnableParentGetter? EnableParent => _EnableParentLocation.HasValue ? EnableParentBinaryOverlay.EnableParentFactory(_recordData.Slice(_EnableParentLocation!.Value.Min), _package) : default;
-        #endregion
-        #region Target
-        private int? _TargetLocation;
-        public IFormLinkNullableGetter<IPlacedGetter> Target => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IPlacedGetter>(_package, _recordData, _TargetLocation);
-        #endregion
-        #region SpeedTreeSeed
-        private int? _SpeedTreeSeedLocation;
-        public Byte? SpeedTreeSeed => _SpeedTreeSeedLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _SpeedTreeSeedLocation.Value, _package.MetaData.Constants)[0] : default(Byte?);
-        #endregion
-        #region DistantLODData
-        private RangeInt32? _DistantLODDataLocation;
-        public IDistantLODDataGetter? DistantLODData => _DistantLODDataLocation.HasValue ? DistantLODDataBinaryOverlay.DistantLODDataFactory(_recordData.Slice(_DistantLODDataLocation!.Value.Min), _package) : default;
-        #endregion
-        #region Charge
-        private int? _ChargeLocation;
-        public Single? Charge => _ChargeLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _ChargeLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
-        #endregion
-        #region Health
-        private int? _HealthLocation;
-        public Int32? Health => _HealthLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _HealthLocation.Value, _package.MetaData.Constants)) : default(Int32?);
-        #endregion
-        #region LevelModifier
-        private int? _LevelModifierLocation;
-        public Int32? LevelModifier => _LevelModifierLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _LevelModifierLocation.Value, _package.MetaData.Constants)) : default(Int32?);
-        #endregion
-        #region XRTM
-        private int? _XRTMLocation;
-        public IFormLinkNullableGetter<IOblivionMajorRecordGetter> XRTM => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IOblivionMajorRecordGetter>(_package, _recordData, _XRTMLocation);
-        #endregion
-        #region ActionFlags
-        private int? _ActionFlagsLocation;
-        public PlacedObject.ActionFlag? ActionFlags => EnumBinaryTranslation<PlacedObject.ActionFlag, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(_ActionFlagsLocation, _recordData, _package, 4);
-        #endregion
-        #region Count
-        private int? _CountLocation;
-        public Int32? Count => _CountLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _CountLocation.Value, _package.MetaData.Constants)) : default(Int32?);
-        #endregion
-        public IMapMarkerGetter? MapMarker { get; private set; }
+        public IFormLinkNullableGetter<IOblivionMajorRecordGetter> Base => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IOblivionMajorRecordGetter>(_package, _recordData, Payload.BaseLocation);
+        public ReadOnlyMemorySlice<Byte>? XPCIFluff => Payload.XPCIFluffLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.XPCIFluffLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
+        public ReadOnlyMemorySlice<Byte>? FULLFluff => Payload.FULLFluffLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.FULLFluffLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
+        public ITeleportDestinationGetter? TeleportDestination => Payload.TeleportDestinationLocation.HasValue ? TeleportDestinationBinaryOverlay.TeleportDestinationFactory(_recordData.Slice(Payload.TeleportDestinationLocation!.Value.Min), _package) : default;
+        public ILockInformationGetter? Lock => Payload.LockLocation.HasValue ? LockInformationBinaryOverlay.LockInformationFactory(_recordData.Slice(Payload.LockLocation!.Value.Min), _package) : default;
+        public IFormLinkNullableGetter<IOwnerGetter> Owner => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IOwnerGetter>(_package, _recordData, Payload.OwnerLocation);
+        public Int32? FactionRank => Payload.FactionRankLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.FactionRankLocation.Value, _package.MetaData.Constants)) : default(Int32?);
+        public IFormLinkNullableGetter<IGlobalGetter> GlobalVariable => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IGlobalGetter>(_package, _recordData, Payload.GlobalVariableLocation);
+        public IEnableParentGetter? EnableParent => Payload.EnableParentLocation.HasValue ? EnableParentBinaryOverlay.EnableParentFactory(_recordData.Slice(Payload.EnableParentLocation!.Value.Min), _package) : default;
+        public IFormLinkNullableGetter<IPlacedGetter> Target => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IPlacedGetter>(_package, _recordData, Payload.TargetLocation);
+        public Byte? SpeedTreeSeed => Payload.SpeedTreeSeedLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.SpeedTreeSeedLocation.Value, _package.MetaData.Constants)[0] : default(Byte?);
+        public IDistantLODDataGetter? DistantLODData => Payload.DistantLODDataLocation.HasValue ? DistantLODDataBinaryOverlay.DistantLODDataFactory(_recordData.Slice(Payload.DistantLODDataLocation!.Value.Min), _package) : default;
+        public Single? Charge => Payload.ChargeLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.ChargeLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public Int32? Health => Payload.HealthLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.HealthLocation.Value, _package.MetaData.Constants)) : default(Int32?);
+        public Int32? LevelModifier => Payload.LevelModifierLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.LevelModifierLocation.Value, _package.MetaData.Constants)) : default(Int32?);
+        public IFormLinkNullableGetter<IOblivionMajorRecordGetter> XRTM => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IOblivionMajorRecordGetter>(_package, _recordData, Payload.XRTMLocation);
+        public PlacedObject.ActionFlag? ActionFlags => EnumBinaryTranslation<PlacedObject.ActionFlag, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(Payload.ActionFlagsLocation, _recordData, _package, 4);
+        public Int32? Count => Payload.CountLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.CountLocation.Value, _package.MetaData.Constants)) : default(Int32?);
+        public IMapMarkerGetter? MapMarker => Payload.MapMarker;
         #region OpenByDefault
         partial void OpenByDefaultCustomParse(
             OverlayStream stream,
@@ -3563,27 +3510,51 @@ namespace Mutagen.Bethesda.Oblivion
         public partial Boolean GetOpenByDefaultCustom();
         public Boolean OpenByDefault => GetOpenByDefaultCustom();
         #endregion
-        #region RagdollData
-        private int? _RagdollDataLocation;
-        public ReadOnlyMemorySlice<Byte>? RagdollData => _RagdollDataLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _RagdollDataLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
-        #endregion
-        #region Scale
-        private int? _ScaleLocation;
-        public Single? Scale => _ScaleLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _ScaleLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
-        #endregion
-        #region ContainedSoul
-        private int? _ContainedSoulLocation;
-        public SoulLevel? ContainedSoul => EnumBinaryTranslation<SoulLevel, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(_ContainedSoulLocation, _recordData, _package, 4);
-        #endregion
-        public ILocationGetter? Location { get; private set; }
-        #region XAAG
-        private int? _XAAGLocation;
-        public ReadOnlyMemorySlice<Byte>? XAAG => _XAAGLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _XAAGLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
-        #endregion
-        #region XACN
-        private int? _XACNLocation;
-        public String? XACN => _XACNLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _XACNLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
+        public ReadOnlyMemorySlice<Byte>? RagdollData => Payload.RagdollDataLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.RagdollDataLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
+        public Single? Scale => Payload.ScaleLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.ScaleLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public SoulLevel? ContainedSoul => EnumBinaryTranslation<SoulLevel, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(Payload.ContainedSoulLocation, _recordData, _package, 4);
+        public ILocationGetter? Location => Payload.Location;
+        public ReadOnlyMemorySlice<Byte>? XAAG => Payload.XAAGLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.XAAGLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
+        public String? XACN => Payload.XACNLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.XACNLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+
+        internal partial class PlacedObjectRecordDataPayload
+        {
+            public int? BaseLocation;
+            public int? XPCIFluffLocation;
+            public int? FULLFluffLocation;
+            public RangeInt32? TeleportDestinationLocation;
+            public RangeInt32? LockLocation;
+            public int? OwnerLocation;
+            public int? FactionRankLocation;
+            public int? GlobalVariableLocation;
+            public RangeInt32? EnableParentLocation;
+            public int? TargetLocation;
+            public int? SpeedTreeSeedLocation;
+            public RangeInt32? DistantLODDataLocation;
+            public int? ChargeLocation;
+            public int? HealthLocation;
+            public int? LevelModifierLocation;
+            public int? XRTMLocation;
+            public int? ActionFlagsLocation;
+            public int? CountLocation;
+            public IMapMarkerGetter? MapMarker;
+            public int? RagdollDataLocation;
+            public int? ScaleLocation;
+            public int? ContainedSoulLocation;
+            public ILocationGetter? Location;
+            public int? XAAGLocation;
+            public int? XACNLocation;
+        }
+
+        private LazyPayload<PlacedObjectRecordDataPayload> _payload = null!;
+
+        internal PlacedObjectRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<PlacedObjectRecordDataPayload>(init, new PlacedObjectRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -3591,10 +3562,10 @@ namespace Mutagen.Bethesda.Oblivion
 
         partial void CustomCtor();
         protected PlacedObjectBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -3605,28 +3576,51 @@ namespace Mutagen.Bethesda.Oblivion
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new PlacedObjectBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -3655,98 +3649,98 @@ namespace Mutagen.Bethesda.Oblivion
             {
                 case RecordTypeInts.NAME:
                 {
-                    _BaseLocation = (stream.Position - offset);
+                    _payload.Fields.BaseLocation = (stream.Position - offset);
                     return (int)PlacedObject_FieldIndex.Base;
                 }
                 case RecordTypeInts.XPCI:
                 {
-                    _XPCIFluffLocation = (stream.Position - offset);
+                    _payload.Fields.XPCIFluffLocation = (stream.Position - offset);
                     return (int)PlacedObject_FieldIndex.XPCIFluff;
                 }
                 case RecordTypeInts.FULL:
                 {
-                    _FULLFluffLocation = (stream.Position - offset);
+                    _payload.Fields.FULLFluffLocation = (stream.Position - offset);
                     return (int)PlacedObject_FieldIndex.FULLFluff;
                 }
                 case RecordTypeInts.XTEL:
                 {
-                    _TeleportDestinationLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.TeleportDestinationLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)PlacedObject_FieldIndex.TeleportDestination;
                 }
                 case RecordTypeInts.XLOC:
                 {
-                    _LockLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.LockLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)PlacedObject_FieldIndex.Lock;
                 }
                 case RecordTypeInts.XOWN:
                 {
-                    _OwnerLocation = (stream.Position - offset);
+                    _payload.Fields.OwnerLocation = (stream.Position - offset);
                     return (int)PlacedObject_FieldIndex.Owner;
                 }
                 case RecordTypeInts.XRNK:
                 {
-                    _FactionRankLocation = (stream.Position - offset);
+                    _payload.Fields.FactionRankLocation = (stream.Position - offset);
                     return (int)PlacedObject_FieldIndex.FactionRank;
                 }
                 case RecordTypeInts.XGLB:
                 {
-                    _GlobalVariableLocation = (stream.Position - offset);
+                    _payload.Fields.GlobalVariableLocation = (stream.Position - offset);
                     return (int)PlacedObject_FieldIndex.GlobalVariable;
                 }
                 case RecordTypeInts.XESP:
                 {
-                    _EnableParentLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.EnableParentLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)PlacedObject_FieldIndex.EnableParent;
                 }
                 case RecordTypeInts.XTRG:
                 {
-                    _TargetLocation = (stream.Position - offset);
+                    _payload.Fields.TargetLocation = (stream.Position - offset);
                     return (int)PlacedObject_FieldIndex.Target;
                 }
                 case RecordTypeInts.XSED:
                 {
-                    _SpeedTreeSeedLocation = (stream.Position - offset);
+                    _payload.Fields.SpeedTreeSeedLocation = (stream.Position - offset);
                     return (int)PlacedObject_FieldIndex.SpeedTreeSeed;
                 }
                 case RecordTypeInts.XLOD:
                 {
-                    _DistantLODDataLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.DistantLODDataLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)PlacedObject_FieldIndex.DistantLODData;
                 }
                 case RecordTypeInts.XCHG:
                 {
-                    _ChargeLocation = (stream.Position - offset);
+                    _payload.Fields.ChargeLocation = (stream.Position - offset);
                     return (int)PlacedObject_FieldIndex.Charge;
                 }
                 case RecordTypeInts.XHLT:
                 {
-                    _HealthLocation = (stream.Position - offset);
+                    _payload.Fields.HealthLocation = (stream.Position - offset);
                     return (int)PlacedObject_FieldIndex.Health;
                 }
                 case RecordTypeInts.XLCM:
                 {
-                    _LevelModifierLocation = (stream.Position - offset);
+                    _payload.Fields.LevelModifierLocation = (stream.Position - offset);
                     return (int)PlacedObject_FieldIndex.LevelModifier;
                 }
                 case RecordTypeInts.XRTM:
                 {
-                    _XRTMLocation = (stream.Position - offset);
+                    _payload.Fields.XRTMLocation = (stream.Position - offset);
                     return (int)PlacedObject_FieldIndex.XRTM;
                 }
                 case RecordTypeInts.XACT:
                 {
-                    _ActionFlagsLocation = (stream.Position - offset);
+                    _payload.Fields.ActionFlagsLocation = (stream.Position - offset);
                     return (int)PlacedObject_FieldIndex.ActionFlags;
                 }
                 case RecordTypeInts.XCNT:
                 {
-                    _CountLocation = (stream.Position - offset);
+                    _payload.Fields.CountLocation = (stream.Position - offset);
                     return (int)PlacedObject_FieldIndex.Count;
                 }
                 case RecordTypeInts.XMRK:
                 {
                     stream.Position += _package.MetaData.Constants.SubConstants.HeaderLength; // Skip marker
-                    this.MapMarker = MapMarkerBinaryOverlay.MapMarkerFactory(
+                    _payload.Fields.MapMarker = MapMarkerBinaryOverlay.MapMarkerFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());
@@ -3762,23 +3756,23 @@ namespace Mutagen.Bethesda.Oblivion
                 }
                 case RecordTypeInts.XRGD:
                 {
-                    _RagdollDataLocation = (stream.Position - offset);
+                    _payload.Fields.RagdollDataLocation = (stream.Position - offset);
                     return (int)PlacedObject_FieldIndex.RagdollData;
                 }
                 case RecordTypeInts.XSCL:
                 {
-                    _ScaleLocation = (stream.Position - offset);
+                    _payload.Fields.ScaleLocation = (stream.Position - offset);
                     return (int)PlacedObject_FieldIndex.Scale;
                 }
                 case RecordTypeInts.XSOL:
                 {
-                    _ContainedSoulLocation = (stream.Position - offset);
+                    _payload.Fields.ContainedSoulLocation = (stream.Position - offset);
                     return (int)PlacedObject_FieldIndex.ContainedSoul;
                 }
                 case RecordTypeInts.DATA:
                 {
                     stream.Position += _package.MetaData.Constants.SubConstants.HeaderLength;
-                    this.Location = LocationBinaryOverlay.LocationFactory(
+                    _payload.Fields.Location = LocationBinaryOverlay.LocationFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());
@@ -3786,12 +3780,12 @@ namespace Mutagen.Bethesda.Oblivion
                 }
                 case RecordTypeInts.XAAG:
                 {
-                    _XAAGLocation = (stream.Position - offset);
+                    _payload.Fields.XAAGLocation = (stream.Position - offset);
                     return (int)PlacedObject_FieldIndex.XAAG;
                 }
                 case RecordTypeInts.XACN:
                 {
-                    _XACNLocation = (stream.Position - offset);
+                    _payload.Fields.XACNLocation = (stream.Position - offset);
                     return (int)PlacedObject_FieldIndex.XACN;
                 }
                 default:

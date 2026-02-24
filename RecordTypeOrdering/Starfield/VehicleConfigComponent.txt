@@ -1,0 +1,6 @@
+RecordTypes.VCSB,
+RecordTypes.VCCD,
+RecordTypes.VCMT,
+RecordTypes.VCTT,
+RecordTypes.VWWD,
+RecordTypes.VMRT,

@@ -39,6 +39,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -4633,32 +4634,19 @@ namespace Mutagen.Bethesda.Starfield
 
 
         #region VirtualMachineAdapter
-        private int? _VirtualMachineAdapterLengthOverride;
-        private RangeInt32? _VirtualMachineAdapterLocation;
-        public IVirtualMachineAdapterGetter? VirtualMachineAdapter => _VirtualMachineAdapterLocation.HasValue ? VirtualMachineAdapterBinaryOverlay.VirtualMachineAdapterFactory(_recordData.Slice(_VirtualMachineAdapterLocation!.Value.Min), _package, TypedParseParams.FromLengthOverride(_VirtualMachineAdapterLengthOverride)) : default;
+        public IVirtualMachineAdapterGetter? VirtualMachineAdapter => Payload.VirtualMachineAdapterLocation.HasValue ? VirtualMachineAdapterBinaryOverlay.VirtualMachineAdapterFactory(_recordData.Slice(Payload.VirtualMachineAdapterLocation!.Value.Min), _package, TypedParseParams.FromLengthOverride(Payload.VirtualMachineAdapterLengthOverride)) : default;
         IAVirtualMachineAdapterGetter? IHaveVirtualMachineAdapterGetter.VirtualMachineAdapter => this.VirtualMachineAdapter;
         #endregion
         #region ObjectBounds
-        private RangeInt32? _ObjectBoundsLocation;
-        private IObjectBoundsGetter? _ObjectBounds => _ObjectBoundsLocation.HasValue ? ObjectBoundsBinaryOverlay.ObjectBoundsFactory(_recordData.Slice(_ObjectBoundsLocation!.Value.Min), _package) : default;
+        private IObjectBoundsGetter? _ObjectBounds => Payload.ObjectBoundsLocation.HasValue ? ObjectBoundsBinaryOverlay.ObjectBoundsFactory(_recordData.Slice(Payload.ObjectBoundsLocation!.Value.Min), _package) : default;
         public IObjectBoundsGetter ObjectBounds => _ObjectBounds ?? new ObjectBounds();
         #endregion
-        #region DirtinessScale
-        private int? _DirtinessScaleLocation;
-        public Percent DirtinessScale => _DirtinessScaleLocation.HasValue ? PercentBinaryTranslation.GetPercent(HeaderTranslation.ExtractSubrecordMemory(_recordData, _DirtinessScaleLocation.Value, _package.MetaData.Constants), FloatIntegerType.UInt) : default(Percent);
-        #endregion
-        #region ObjectPaletteDefaults
-        private RangeInt32? _ObjectPaletteDefaultsLocation;
-        public IObjectPaletteDefaultsGetter? ObjectPaletteDefaults => _ObjectPaletteDefaultsLocation.HasValue ? ObjectPaletteDefaultsBinaryOverlay.ObjectPaletteDefaultsFactory(_recordData.Slice(_ObjectPaletteDefaultsLocation!.Value.Min), _package) : default;
-        #endregion
-        #region Transforms
-        private RangeInt32? _TransformsLocation;
-        public ITransformsGetter? Transforms => _TransformsLocation.HasValue ? TransformsBinaryOverlay.TransformsFactory(_recordData.Slice(_TransformsLocation!.Value.Min), _package) : default;
-        #endregion
-        public IReadOnlyList<IAComponentGetter> Components { get; private set; } = [];
+        public Percent DirtinessScale => Payload.DirtinessScaleLocation.HasValue ? PercentBinaryTranslation.GetPercent(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.DirtinessScaleLocation.Value, _package.MetaData.Constants), FloatIntegerType.UInt) : default(Percent);
+        public IObjectPaletteDefaultsGetter? ObjectPaletteDefaults => Payload.ObjectPaletteDefaultsLocation.HasValue ? ObjectPaletteDefaultsBinaryOverlay.ObjectPaletteDefaultsFactory(_recordData.Slice(Payload.ObjectPaletteDefaultsLocation!.Value.Min), _package) : default;
+        public ITransformsGetter? Transforms => Payload.TransformsLocation.HasValue ? TransformsBinaryOverlay.TransformsFactory(_recordData.Slice(Payload.TransformsLocation!.Value.Min), _package) : default;
+        public IReadOnlyList<IAComponentGetter> Components => Payload.Components ?? [];
         #region Name
-        private int? _NameLocation;
-        public ITranslatedStringGetter? Name => _NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+        public ITranslatedStringGetter? Name => Payload.NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
         #region Aspects
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         string INamedRequiredGetter.Name => this.Name?.String ?? string.Empty;
@@ -4668,69 +4656,73 @@ namespace Mutagen.Bethesda.Starfield
         ITranslatedStringGetter ITranslatedNamedRequiredGetter.Name => this.Name ?? TranslatedString.Empty;
         #endregion
         #endregion
-        public IModelGetter? Model { get; private set; }
-        public IDestructibleGetter? Destructible { get; private set; }
+        public IModelGetter? Model => Payload.Model;
+        public IDestructibleGetter? Destructible => Payload.Destructible;
         #region Keywords
-        public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? Keywords { get; private set; }
+        public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? Keywords => Payload.Keywords;
         IReadOnlyList<IFormLinkGetter<IKeywordCommonGetter>>? IKeywordedGetter.Keywords => this.Keywords;
         #endregion
-        public IReadOnlyList<IObjectPropertyGetter>? Properties { get; private set; }
-        #region MarkerColor
-        private int? _MarkerColorLocation;
-        public Color? MarkerColor => _MarkerColorLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _MarkerColorLocation.Value, _package.MetaData.Constants).ReadColor(ColorBinaryType.Alpha) : default(Color?);
-        #endregion
-        #region ActivateTextOverride
-        private int? _ActivateTextOverrideLocation;
-        public ITranslatedStringGetter? ActivateTextOverride => _ActivateTextOverrideLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _ActivateTextOverrideLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
-        #endregion
-        #region FNAM
-        private int? _FNAMLocation;
-        public ReadOnlyMemorySlice<Byte>? FNAM => _FNAMLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _FNAMLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
-        #endregion
-        #region JNAM
-        private int? _JNAMLocation;
-        public ReadOnlyMemorySlice<Byte>? JNAM => _JNAMLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _JNAMLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
-        #endregion
-        #region Ingredient
-        private int? _IngredientLocation;
-        public IFormLinkNullableGetter<IHarvestTargetGetter> Ingredient => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IHarvestTargetGetter>(_package, _recordData, _IngredientLocation);
-        #endregion
-        public ISoundReferenceGetter? HarvestSound { get; private set; }
-        #region Production
-        private RangeInt32? _ProductionLocation;
-        public ISeasonalIngredientProductionGetter? Production => _ProductionLocation.HasValue ? SeasonalIngredientProductionBinaryOverlay.SeasonalIngredientProductionFactory(_recordData.Slice(_ProductionLocation!.Value.Min), _package) : default;
-        #endregion
-        public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? AttachParentSlots { get; private set; }
-        public IReadOnlyList<IObjectTemplateGetter<AObjectModification.NoneProperty>>? ObjectTemplates { get; private set; }
-        #region ActionKeyword
-        private int? _ActionKeywordLocation;
-        public IFormLinkNullableGetter<IKeywordGetter> ActionKeyword => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IKeywordGetter>(_package, _recordData, _ActionKeywordLocation);
-        #endregion
-        #region DamageRequiredToHarvest
-        private int? _DamageRequiredToHarvestLocation;
-        public Single DamageRequiredToHarvest => _DamageRequiredToHarvestLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _DamageRequiredToHarvestLocation.Value, _package.MetaData.Constants).Float() : default(Single);
-        #endregion
-        #region MaxHarvestCount
-        private int? _MaxHarvestCountLocation;
-        public Single MaxHarvestCount => _MaxHarvestCountLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _MaxHarvestCountLocation.Value, _package.MetaData.Constants).Float() : default(Single);
-        #endregion
-        #region MinHarvestCount
-        private int? _MinHarvestCountLocation;
-        public Single MinHarvestCount => _MinHarvestCountLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _MinHarvestCountLocation.Value, _package.MetaData.Constants).Float() : default(Single);
-        #endregion
-        #region MaxGlobal
-        private int? _MaxGlobalLocation;
-        public IFormLinkNullableGetter<IGlobalGetter> MaxGlobal => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IGlobalGetter>(_package, _recordData, _MaxGlobalLocation);
-        #endregion
-        #region MinGlobal
-        private int? _MinGlobalLocation;
-        public IFormLinkNullableGetter<IGlobalGetter> MinGlobal => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IGlobalGetter>(_package, _recordData, _MinGlobalLocation);
-        #endregion
-        #region Explosion
-        private int? _ExplosionLocation;
-        public IFormLinkNullableGetter<IExplosionGetter> Explosion => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IExplosionGetter>(_package, _recordData, _ExplosionLocation);
-        #endregion
-        public ISoundReferenceGetter? HarvestLoopingSound { get; private set; }
+        public IReadOnlyList<IObjectPropertyGetter>? Properties => Payload.Properties;
+        public Color? MarkerColor => Payload.MarkerColorLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.MarkerColorLocation.Value, _package.MetaData.Constants).ReadColor(ColorBinaryType.Alpha) : default(Color?);
+        public ITranslatedStringGetter? ActivateTextOverride => Payload.ActivateTextOverrideLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.ActivateTextOverrideLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+        public ReadOnlyMemorySlice<Byte>? FNAM => Payload.FNAMLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.FNAMLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
+        public ReadOnlyMemorySlice<Byte>? JNAM => Payload.JNAMLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.JNAMLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
+        public IFormLinkNullableGetter<IHarvestTargetGetter> Ingredient => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IHarvestTargetGetter>(_package, _recordData, Payload.IngredientLocation);
+        public ISoundReferenceGetter? HarvestSound => Payload.HarvestSound;
+        public ISeasonalIngredientProductionGetter? Production => Payload.ProductionLocation.HasValue ? SeasonalIngredientProductionBinaryOverlay.SeasonalIngredientProductionFactory(_recordData.Slice(Payload.ProductionLocation!.Value.Min), _package) : default;
+        public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? AttachParentSlots => Payload.AttachParentSlots;
+        public IReadOnlyList<IObjectTemplateGetter<AObjectModification.NoneProperty>>? ObjectTemplates => Payload.ObjectTemplates;
+        public IFormLinkNullableGetter<IKeywordGetter> ActionKeyword => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IKeywordGetter>(_package, _recordData, Payload.ActionKeywordLocation);
+        public Single DamageRequiredToHarvest => Payload.DamageRequiredToHarvestLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.DamageRequiredToHarvestLocation.Value, _package.MetaData.Constants).Float() : default(Single);
+        public Single MaxHarvestCount => Payload.MaxHarvestCountLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.MaxHarvestCountLocation.Value, _package.MetaData.Constants).Float() : default(Single);
+        public Single MinHarvestCount => Payload.MinHarvestCountLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.MinHarvestCountLocation.Value, _package.MetaData.Constants).Float() : default(Single);
+        public IFormLinkNullableGetter<IGlobalGetter> MaxGlobal => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IGlobalGetter>(_package, _recordData, Payload.MaxGlobalLocation);
+        public IFormLinkNullableGetter<IGlobalGetter> MinGlobal => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IGlobalGetter>(_package, _recordData, Payload.MinGlobalLocation);
+        public IFormLinkNullableGetter<IExplosionGetter> Explosion => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IExplosionGetter>(_package, _recordData, Payload.ExplosionLocation);
+        public ISoundReferenceGetter? HarvestLoopingSound => Payload.HarvestLoopingSound;
+
+        internal partial class FloraRecordDataPayload
+        {
+            public int? VirtualMachineAdapterLengthOverride;
+            public RangeInt32? VirtualMachineAdapterLocation;
+            public RangeInt32? ObjectBoundsLocation;
+            public int? DirtinessScaleLocation;
+            public RangeInt32? ObjectPaletteDefaultsLocation;
+            public RangeInt32? TransformsLocation;
+            public IReadOnlyList<IAComponentGetter> Components = [];
+            public int? NameLocation;
+            public IModelGetter? Model;
+            public IDestructibleGetter? Destructible;
+            public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? Keywords;
+            public IReadOnlyList<IObjectPropertyGetter>? Properties;
+            public int? MarkerColorLocation;
+            public int? ActivateTextOverrideLocation;
+            public int? FNAMLocation;
+            public int? JNAMLocation;
+            public int? IngredientLocation;
+            public ISoundReferenceGetter? HarvestSound;
+            public RangeInt32? ProductionLocation;
+            public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? AttachParentSlots;
+            public IReadOnlyList<IObjectTemplateGetter<AObjectModification.NoneProperty>>? ObjectTemplates;
+            public int? ActionKeywordLocation;
+            public int? DamageRequiredToHarvestLocation;
+            public int? MaxHarvestCountLocation;
+            public int? MinHarvestCountLocation;
+            public int? MaxGlobalLocation;
+            public int? MinGlobalLocation;
+            public int? ExplosionLocation;
+            public ISoundReferenceGetter? HarvestLoopingSound;
+        }
+
+        private LazyPayload<FloraRecordDataPayload> _payload = null!;
+
+        internal FloraRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<FloraRecordDataPayload>(init, new FloraRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -4738,10 +4730,10 @@ namespace Mutagen.Bethesda.Starfield
 
         partial void CustomCtor();
         protected FloraBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -4752,28 +4744,51 @@ namespace Mutagen.Bethesda.Starfield
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new FloraBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -4802,8 +4817,8 @@ namespace Mutagen.Bethesda.Starfield
             {
                 case RecordTypeInts.VMAD:
                 {
-                    _VirtualMachineAdapterLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
-                    _VirtualMachineAdapterLengthOverride = lastParsed.LengthOverride;
+                    _payload.Fields.VirtualMachineAdapterLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.VirtualMachineAdapterLengthOverride = lastParsed.LengthOverride;
                     if (lastParsed.LengthOverride.HasValue)
                     {
                         stream.Position += lastParsed.LengthOverride.Value;
@@ -4812,27 +4827,27 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.OBND:
                 {
-                    _ObjectBoundsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.ObjectBoundsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)Flora_FieldIndex.ObjectBounds;
                 }
                 case RecordTypeInts.ODTY:
                 {
-                    _DirtinessScaleLocation = (stream.Position - offset);
+                    _payload.Fields.DirtinessScaleLocation = (stream.Position - offset);
                     return (int)Flora_FieldIndex.DirtinessScale;
                 }
                 case RecordTypeInts.OPDS:
                 {
-                    _ObjectPaletteDefaultsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.ObjectPaletteDefaultsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)Flora_FieldIndex.ObjectPaletteDefaults;
                 }
                 case RecordTypeInts.PTT2:
                 {
-                    _TransformsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.TransformsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)Flora_FieldIndex.Transforms;
                 }
                 case RecordTypeInts.BFCB:
                 {
-                    this.Components = this.ParseRepeatedTypelessSubrecord<IAComponentGetter>(
+                    _payload.Fields.Components = this.ParseRepeatedTypelessSubrecord<IAComponentGetter>(
                         stream: stream,
                         translationParams: translationParams,
                         trigger: AComponent_Registration.TriggerSpecs,
@@ -4841,7 +4856,7 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.FULL:
                 {
-                    _NameLocation = (stream.Position - offset);
+                    _payload.Fields.NameLocation = (stream.Position - offset);
                     return (int)Flora_FieldIndex.Name;
                 }
                 case RecordTypeInts.MODL:
@@ -4852,7 +4867,7 @@ namespace Mutagen.Bethesda.Starfield
                 case RecordTypeInts.MODC:
                 case RecordTypeInts.MODF:
                 {
-                    this.Model = ModelBinaryOverlay.ModelFactory(
+                    _payload.Fields.Model = ModelBinaryOverlay.ModelFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());
@@ -4863,7 +4878,7 @@ namespace Mutagen.Bethesda.Starfield
                 case RecordTypeInts.DSDL:
                 case RecordTypeInts.DSTD:
                 {
-                    this.Destructible = DestructibleBinaryOverlay.DestructibleFactory(
+                    _payload.Fields.Destructible = DestructibleBinaryOverlay.DestructibleFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());
@@ -4872,7 +4887,7 @@ namespace Mutagen.Bethesda.Starfield
                 case RecordTypeInts.KSIZ:
                 case RecordTypeInts.KWDA:
                 {
-                    this.Keywords = BinaryOverlayList.FactoryByCount<IFormLinkGetter<IKeywordGetter>>(
+                    _payload.Fields.Keywords = BinaryOverlayList.FactoryByCount<IFormLinkGetter<IKeywordGetter>>(
                         stream: stream,
                         package: _package,
                         itemLength: 0x4,
@@ -4884,7 +4899,7 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.PRPS:
                 {
-                    this.Properties = BinaryOverlayList.FactoryByStartIndexWithTrigger<IObjectPropertyGetter>(
+                    _payload.Fields.Properties = BinaryOverlayList.FactoryByStartIndexWithTrigger<IObjectPropertyGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -4894,33 +4909,33 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.PNAM:
                 {
-                    _MarkerColorLocation = (stream.Position - offset);
+                    _payload.Fields.MarkerColorLocation = (stream.Position - offset);
                     return (int)Flora_FieldIndex.MarkerColor;
                 }
                 case RecordTypeInts.ATTX:
                 {
-                    _ActivateTextOverrideLocation = (stream.Position - offset);
+                    _payload.Fields.ActivateTextOverrideLocation = (stream.Position - offset);
                     return (int)Flora_FieldIndex.ActivateTextOverride;
                 }
                 case RecordTypeInts.FNAM:
                 {
-                    _FNAMLocation = (stream.Position - offset);
+                    _payload.Fields.FNAMLocation = (stream.Position - offset);
                     return (int)Flora_FieldIndex.FNAM;
                 }
                 case RecordTypeInts.JNAM:
                 {
-                    _JNAMLocation = (stream.Position - offset);
+                    _payload.Fields.JNAMLocation = (stream.Position - offset);
                     return (int)Flora_FieldIndex.JNAM;
                 }
                 case RecordTypeInts.PFIG:
                 {
-                    _IngredientLocation = (stream.Position - offset);
+                    _payload.Fields.IngredientLocation = (stream.Position - offset);
                     return (int)Flora_FieldIndex.Ingredient;
                 }
                 case RecordTypeInts.PFHS:
                 {
                     stream.Position += _package.MetaData.Constants.SubConstants.HeaderLength;
-                    this.HarvestSound = SoundReferenceBinaryOverlay.SoundReferenceFactory(
+                    _payload.Fields.HarvestSound = SoundReferenceBinaryOverlay.SoundReferenceFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());
@@ -4928,12 +4943,12 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.PFPC:
                 {
-                    _ProductionLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.ProductionLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)Flora_FieldIndex.Production;
                 }
                 case RecordTypeInts.APPR:
                 {
-                    this.AttachParentSlots = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<IKeywordGetter>>(
+                    _payload.Fields.AttachParentSlots = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<IKeywordGetter>>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -4943,7 +4958,7 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.OBTE:
                 {
-                    this.ObjectTemplates = BinaryOverlayList.FactoryByCountPerItem<IObjectTemplateGetter<AObjectModification.NoneProperty>>(
+                    _payload.Fields.ObjectTemplates = BinaryOverlayList.FactoryByCountPerItem<IObjectTemplateGetter<AObjectModification.NoneProperty>>(
                         stream: stream,
                         package: _package,
                         countLength: 4,
@@ -4961,43 +4976,43 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.ANAM:
                 {
-                    _ActionKeywordLocation = (stream.Position - offset);
+                    _payload.Fields.ActionKeywordLocation = (stream.Position - offset);
                     return (int)Flora_FieldIndex.ActionKeyword;
                 }
                 case RecordTypeInts.BNAM:
                 {
-                    _DamageRequiredToHarvestLocation = (stream.Position - offset);
+                    _payload.Fields.DamageRequiredToHarvestLocation = (stream.Position - offset);
                     return (int)Flora_FieldIndex.DamageRequiredToHarvest;
                 }
                 case RecordTypeInts.FMAH:
                 {
-                    _MaxHarvestCountLocation = (stream.Position - offset);
+                    _payload.Fields.MaxHarvestCountLocation = (stream.Position - offset);
                     return (int)Flora_FieldIndex.MaxHarvestCount;
                 }
                 case RecordTypeInts.FMIH:
                 {
-                    _MinHarvestCountLocation = (stream.Position - offset);
+                    _payload.Fields.MinHarvestCountLocation = (stream.Position - offset);
                     return (int)Flora_FieldIndex.MinHarvestCount;
                 }
                 case RecordTypeInts.FMAG:
                 {
-                    _MaxGlobalLocation = (stream.Position - offset);
+                    _payload.Fields.MaxGlobalLocation = (stream.Position - offset);
                     return (int)Flora_FieldIndex.MaxGlobal;
                 }
                 case RecordTypeInts.FMIG:
                 {
-                    _MinGlobalLocation = (stream.Position - offset);
+                    _payload.Fields.MinGlobalLocation = (stream.Position - offset);
                     return (int)Flora_FieldIndex.MinGlobal;
                 }
                 case RecordTypeInts.FLXP:
                 {
-                    _ExplosionLocation = (stream.Position - offset);
+                    _payload.Fields.ExplosionLocation = (stream.Position - offset);
                     return (int)Flora_FieldIndex.Explosion;
                 }
                 case RecordTypeInts.FHLS:
                 {
                     stream.Position += _package.MetaData.Constants.SubConstants.HeaderLength;
-                    this.HarvestLoopingSound = SoundReferenceBinaryOverlay.SoundReferenceFactory(
+                    _payload.Fields.HarvestLoopingSound = SoundReferenceBinaryOverlay.SoundReferenceFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());

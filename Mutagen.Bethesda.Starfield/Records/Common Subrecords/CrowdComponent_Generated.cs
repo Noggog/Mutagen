@@ -1402,7 +1402,14 @@ namespace Mutagen.Bethesda.Starfield
 
         #region CDND
         private int? _CDNDLocation;
-        public Single? CDND => _CDNDLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _CDNDLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public Single? CDND
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _CDNDLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_data, _CDNDLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+            }
+        }
         #endregion
         #region CDNS
         private int? _CDNSLocation;

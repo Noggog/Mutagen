@@ -1,0 +1,8 @@
+RecordTypes.EDID,
+RecordTypes.OBND,
+RecordTypes.LVLD,
+RecordTypes.LVLF,
+RecordTypes.LVLG,
+RecordTypes.LVLO,
+RecordTypes.COED,
+RecordTypes.LLCT,

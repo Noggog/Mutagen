@@ -1,0 +1,7 @@
+RecordTypes.DSTA,
+RecordTypes.DMDL,
+RecordTypes.DMDC,
+RecordTypes.DMDT,
+RecordTypes.DMDS,
+RecordTypes.MODF,
+RecordTypes.DSTF,

@@ -36,19 +36,22 @@ partial class GlobalUnknownBinaryWriteTranslation
 
 partial class GlobalUnknownBinaryOverlay
 {
+    internal partial class GlobalUnknownRecordDataPayload
+    {
+        public int? TypeCharLocation;
+    }
+
     char IGlobalGetter.TypeChar => TypeChar;
     public override float? RawFloat => this.Data;
 
-    private int? _TypeCharLocation;
-
     partial void TypeCharCustomParse(OverlayStream stream, int finalPos, int offset)
     {
-        _TypeCharLocation = (stream.Position - offset);
+        _payload.Fields.TypeCharLocation = (stream.Position - offset);
     }
 
     public partial char GetTypeCharCustom()
     {
-        if (!_TypeCharLocation.HasValue) throw new MalformedDataException("Global had no FNAM record");
-        return (char)HeaderTranslation.ExtractSubrecordMemory(_recordData, _TypeCharLocation.Value, _package.MetaData.Constants)[0];
+        if (!Payload.TypeCharLocation.HasValue) throw new MalformedDataException("Global had no FNAM record");
+        return (char)HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.TypeCharLocation.Value, _package.MetaData.Constants)[0];
     }
 }

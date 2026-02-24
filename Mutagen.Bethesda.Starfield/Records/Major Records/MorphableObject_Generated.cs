@@ -37,6 +37,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -1765,19 +1766,28 @@ namespace Mutagen.Bethesda.Starfield
         protected override Type LinkType => typeof(IMorphableObjectGetter);
 
 
-        public IModelGetter? Model { get; private set; }
-        #region TMPP
-        private int? _TMPPLocation;
-        public String? TMPP => _TMPPLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _TMPPLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
-        #region TCMP
-        private int? _TCMPLocation;
-        public String? TCMP => _TCMPLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _TCMPLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
-        #region MOBC
-        private int? _MOBCLocation;
-        public ReadOnlyMemorySlice<Byte>? MOBC => _MOBCLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _MOBCLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
-        #endregion
+        public IModelGetter? Model => Payload.Model;
+        public String? TMPP => Payload.TMPPLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.TMPPLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? TCMP => Payload.TCMPLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.TCMPLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public ReadOnlyMemorySlice<Byte>? MOBC => Payload.MOBCLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.MOBCLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
+
+        internal partial class MorphableObjectRecordDataPayload
+        {
+            public IModelGetter? Model;
+            public int? TMPPLocation;
+            public int? TCMPLocation;
+            public int? MOBCLocation;
+        }
+
+        private LazyPayload<MorphableObjectRecordDataPayload> _payload = null!;
+
+        internal MorphableObjectRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<MorphableObjectRecordDataPayload>(init, new MorphableObjectRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -1785,10 +1795,10 @@ namespace Mutagen.Bethesda.Starfield
 
         partial void CustomCtor();
         protected MorphableObjectBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -1799,28 +1809,51 @@ namespace Mutagen.Bethesda.Starfield
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new MorphableObjectBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -1855,7 +1888,7 @@ namespace Mutagen.Bethesda.Starfield
                 case RecordTypeInts.MODC:
                 case RecordTypeInts.MODF:
                 {
-                    this.Model = ModelBinaryOverlay.ModelFactory(
+                    _payload.Fields.Model = ModelBinaryOverlay.ModelFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());
@@ -1863,17 +1896,17 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.TMPP:
                 {
-                    _TMPPLocation = (stream.Position - offset);
+                    _payload.Fields.TMPPLocation = (stream.Position - offset);
                     return (int)MorphableObject_FieldIndex.TMPP;
                 }
                 case RecordTypeInts.TCMP:
                 {
-                    _TCMPLocation = (stream.Position - offset);
+                    _payload.Fields.TCMPLocation = (stream.Position - offset);
                     return (int)MorphableObject_FieldIndex.TCMP;
                 }
                 case RecordTypeInts.MOBC:
                 {
-                    _MOBCLocation = (stream.Position - offset);
+                    _payload.Fields.MOBCLocation = (stream.Position - offset);
                     return (int)MorphableObject_FieldIndex.MOBC;
                 }
                 default:

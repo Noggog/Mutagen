@@ -34,6 +34,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -1560,18 +1561,26 @@ namespace Mutagen.Bethesda.Starfield
         protected override Type LinkType => typeof(IVoiceTypeGetter);
 
 
-        #region Flags
-        private int? _FlagsLocation;
-        public VoiceType.Flag Flags => EnumBinaryTranslation<VoiceType.Flag, MutagenFrame, MutagenWriter>.Instance.ParseRecord(_FlagsLocation, _recordData, _package, 1);
-        #endregion
-        #region AnimationFaceArchetype
-        private int? _AnimationFaceArchetypeLocation;
-        public IFormLinkNullableGetter<IKeywordGetter> AnimationFaceArchetype => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IKeywordGetter>(_package, _recordData, _AnimationFaceArchetypeLocation);
-        #endregion
-        #region PNAM
-        private int? _PNAMLocation;
-        public ReadOnlyMemorySlice<Byte>? PNAM => _PNAMLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _PNAMLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
-        #endregion
+        public VoiceType.Flag Flags => EnumBinaryTranslation<VoiceType.Flag, MutagenFrame, MutagenWriter>.Instance.ParseRecord(Payload.FlagsLocation, _recordData, _package, 1);
+        public IFormLinkNullableGetter<IKeywordGetter> AnimationFaceArchetype => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IKeywordGetter>(_package, _recordData, Payload.AnimationFaceArchetypeLocation);
+        public ReadOnlyMemorySlice<Byte>? PNAM => Payload.PNAMLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.PNAMLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
+
+        internal partial class VoiceTypeRecordDataPayload
+        {
+            public int? FlagsLocation;
+            public int? AnimationFaceArchetypeLocation;
+            public int? PNAMLocation;
+        }
+
+        private LazyPayload<VoiceTypeRecordDataPayload> _payload = null!;
+
+        internal VoiceTypeRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<VoiceTypeRecordDataPayload>(init, new VoiceTypeRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -1579,10 +1588,10 @@ namespace Mutagen.Bethesda.Starfield
 
         partial void CustomCtor();
         protected VoiceTypeBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -1593,28 +1602,51 @@ namespace Mutagen.Bethesda.Starfield
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new VoiceTypeBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -1643,17 +1675,17 @@ namespace Mutagen.Bethesda.Starfield
             {
                 case RecordTypeInts.DNAM:
                 {
-                    _FlagsLocation = (stream.Position - offset);
+                    _payload.Fields.FlagsLocation = (stream.Position - offset);
                     return (int)VoiceType_FieldIndex.Flags;
                 }
                 case RecordTypeInts.ANAM:
                 {
-                    _AnimationFaceArchetypeLocation = (stream.Position - offset);
+                    _payload.Fields.AnimationFaceArchetypeLocation = (stream.Position - offset);
                     return (int)VoiceType_FieldIndex.AnimationFaceArchetype;
                 }
                 case RecordTypeInts.PNAM:
                 {
-                    _PNAMLocation = (stream.Position - offset);
+                    _payload.Fields.PNAMLocation = (stream.Position - offset);
                     return (int)VoiceType_FieldIndex.PNAM;
                 }
                 default:

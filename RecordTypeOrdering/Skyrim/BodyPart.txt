@@ -1,0 +1,8 @@
+RecordTypes.BPTN,
+RecordTypes.PNAM,
+RecordTypes.BPNN,
+RecordTypes.BPNT,
+RecordTypes.BPNI,
+RecordTypes.NAM1,
+RecordTypes.NAM4,
+RecordTypes.NAM5,

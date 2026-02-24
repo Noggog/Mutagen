@@ -34,6 +34,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -2579,108 +2580,123 @@ namespace Mutagen.Bethesda.Starfield
         protected override Type LinkType => typeof(ILightingTemplateGetter);
 
 
-        private RangeInt32? _DATALocation;
         #region AmbientColor
-        private int _AmbientColorLocation => _DATALocation!.Value.Min;
-        private bool _AmbientColor_IsSet => _DATALocation.HasValue;
+        private int _AmbientColorLocation => Payload.DATALocation!.Value.Min;
+        private bool _AmbientColor_IsSet => Payload.DATALocation.HasValue;
         public Color AmbientColor => _AmbientColor_IsSet ? _recordData.Slice(_AmbientColorLocation, 4).ReadColor(ColorBinaryType.Alpha) : default(Color);
         #endregion
         #region DirectionalColor
-        private int _DirectionalColorLocation => _DATALocation!.Value.Min + 0x4;
-        private bool _DirectionalColor_IsSet => _DATALocation.HasValue;
+        private int _DirectionalColorLocation => Payload.DATALocation!.Value.Min + 0x4;
+        private bool _DirectionalColor_IsSet => Payload.DATALocation.HasValue;
         public Color DirectionalColor => _DirectionalColor_IsSet ? _recordData.Slice(_DirectionalColorLocation, 4).ReadColor(ColorBinaryType.Alpha) : default(Color);
         #endregion
         #region FogNearColor
-        private int _FogNearColorLocation => _DATALocation!.Value.Min + 0x8;
-        private bool _FogNearColor_IsSet => _DATALocation.HasValue;
+        private int _FogNearColorLocation => Payload.DATALocation!.Value.Min + 0x8;
+        private bool _FogNearColor_IsSet => Payload.DATALocation.HasValue;
         public Color FogNearColor => _FogNearColor_IsSet ? _recordData.Slice(_FogNearColorLocation, 4).ReadColor(ColorBinaryType.Alpha) : default(Color);
         #endregion
         #region FogNear
-        private int _FogNearLocation => _DATALocation!.Value.Min + 0xC;
-        private bool _FogNear_IsSet => _DATALocation.HasValue;
+        private int _FogNearLocation => Payload.DATALocation!.Value.Min + 0xC;
+        private bool _FogNear_IsSet => Payload.DATALocation.HasValue;
         public Single FogNear => _FogNear_IsSet ? _recordData.Slice(_FogNearLocation, 4).Float() : default(Single);
         #endregion
         #region FogFar
-        private int _FogFarLocation => _DATALocation!.Value.Min + 0x10;
-        private bool _FogFar_IsSet => _DATALocation.HasValue;
+        private int _FogFarLocation => Payload.DATALocation!.Value.Min + 0x10;
+        private bool _FogFar_IsSet => Payload.DATALocation.HasValue;
         public Single FogFar => _FogFar_IsSet ? _recordData.Slice(_FogFarLocation, 4).Float() : default(Single);
         #endregion
         #region DirectionalRotationXY
-        private int _DirectionalRotationXYLocation => _DATALocation!.Value.Min + 0x14;
-        private bool _DirectionalRotationXY_IsSet => _DATALocation.HasValue;
+        private int _DirectionalRotationXYLocation => Payload.DATALocation!.Value.Min + 0x14;
+        private bool _DirectionalRotationXY_IsSet => Payload.DATALocation.HasValue;
         public Int32 DirectionalRotationXY => _DirectionalRotationXY_IsSet ? BinaryPrimitives.ReadInt32LittleEndian(_recordData.Slice(_DirectionalRotationXYLocation, 4)) : default(Int32);
         #endregion
         #region DirectionalRotationZ
-        private int _DirectionalRotationZLocation => _DATALocation!.Value.Min + 0x18;
-        private bool _DirectionalRotationZ_IsSet => _DATALocation.HasValue;
+        private int _DirectionalRotationZLocation => Payload.DATALocation!.Value.Min + 0x18;
+        private bool _DirectionalRotationZ_IsSet => Payload.DATALocation.HasValue;
         public Int32 DirectionalRotationZ => _DirectionalRotationZ_IsSet ? BinaryPrimitives.ReadInt32LittleEndian(_recordData.Slice(_DirectionalRotationZLocation, 4)) : default(Int32);
         #endregion
         #region DirectionalFade
-        private int _DirectionalFadeLocation => _DATALocation!.Value.Min + 0x1C;
-        private bool _DirectionalFade_IsSet => _DATALocation.HasValue;
+        private int _DirectionalFadeLocation => Payload.DATALocation!.Value.Min + 0x1C;
+        private bool _DirectionalFade_IsSet => Payload.DATALocation.HasValue;
         public Single DirectionalFade => _DirectionalFade_IsSet ? _recordData.Slice(_DirectionalFadeLocation, 4).Float() : default(Single);
         #endregion
         #region FogClipDistance
-        private int _FogClipDistanceLocation => _DATALocation!.Value.Min + 0x20;
-        private bool _FogClipDistance_IsSet => _DATALocation.HasValue;
+        private int _FogClipDistanceLocation => Payload.DATALocation!.Value.Min + 0x20;
+        private bool _FogClipDistance_IsSet => Payload.DATALocation.HasValue;
         public Single FogClipDistance => _FogClipDistance_IsSet ? _recordData.Slice(_FogClipDistanceLocation, 4).Float() : default(Single);
         #endregion
         #region FogPower
-        private int _FogPowerLocation => _DATALocation!.Value.Min + 0x24;
-        private bool _FogPower_IsSet => _DATALocation.HasValue;
+        private int _FogPowerLocation => Payload.DATALocation!.Value.Min + 0x24;
+        private bool _FogPower_IsSet => Payload.DATALocation.HasValue;
         public Single FogPower => _FogPower_IsSet ? _recordData.Slice(_FogPowerLocation, 4).Float() : default(Single);
         #endregion
         #region Unused
-        private int _UnusedLocation => _DATALocation!.Value.Min + 0x28;
-        private bool _Unused_IsSet => _DATALocation.HasValue;
+        private int _UnusedLocation => Payload.DATALocation!.Value.Min + 0x28;
+        private bool _Unused_IsSet => Payload.DATALocation.HasValue;
         public ReadOnlyMemorySlice<Byte> Unused => _Unused_IsSet ? _recordData.Span.Slice(_UnusedLocation, 32).ToArray() : ReadOnlyMemorySlice<byte>.Empty;
         #endregion
         #region FogFarColor
-        private int _FogFarColorLocation => _DATALocation!.Value.Min + 0x48;
-        private bool _FogFarColor_IsSet => _DATALocation.HasValue;
+        private int _FogFarColorLocation => Payload.DATALocation!.Value.Min + 0x48;
+        private bool _FogFarColor_IsSet => Payload.DATALocation.HasValue;
         public Color FogFarColor => _FogFarColor_IsSet ? _recordData.Slice(_FogFarColorLocation, 4).ReadColor(ColorBinaryType.Alpha) : default(Color);
         #endregion
         #region FogMax
-        private int _FogMaxLocation => _DATALocation!.Value.Min + 0x4C;
-        private bool _FogMax_IsSet => _DATALocation.HasValue;
+        private int _FogMaxLocation => Payload.DATALocation!.Value.Min + 0x4C;
+        private bool _FogMax_IsSet => Payload.DATALocation.HasValue;
         public Single FogMax => _FogMax_IsSet ? _recordData.Slice(_FogMaxLocation, 4).Float() : default(Single);
         #endregion
         #region LightFadeStartDistance
-        private int _LightFadeStartDistanceLocation => _DATALocation!.Value.Min + 0x50;
-        private bool _LightFadeStartDistance_IsSet => _DATALocation.HasValue;
+        private int _LightFadeStartDistanceLocation => Payload.DATALocation!.Value.Min + 0x50;
+        private bool _LightFadeStartDistance_IsSet => Payload.DATALocation.HasValue;
         public Single LightFadeStartDistance => _LightFadeStartDistance_IsSet ? _recordData.Slice(_LightFadeStartDistanceLocation, 4).Float() : default(Single);
         #endregion
         #region LightFadeEndDistance
-        private int _LightFadeEndDistanceLocation => _DATALocation!.Value.Min + 0x54;
-        private bool _LightFadeEndDistance_IsSet => _DATALocation.HasValue;
+        private int _LightFadeEndDistanceLocation => Payload.DATALocation!.Value.Min + 0x54;
+        private bool _LightFadeEndDistance_IsSet => Payload.DATALocation.HasValue;
         public Single LightFadeEndDistance => _LightFadeEndDistance_IsSet ? _recordData.Slice(_LightFadeEndDistanceLocation, 4).Float() : default(Single);
         #endregion
         #region Unknown
-        private int _UnknownLocation => _DATALocation!.Value.Min + 0x58;
-        private bool _Unknown_IsSet => _DATALocation.HasValue;
+        private int _UnknownLocation => Payload.DATALocation!.Value.Min + 0x58;
+        private bool _Unknown_IsSet => Payload.DATALocation.HasValue;
         public Int32 Unknown => _Unknown_IsSet ? BinaryPrimitives.ReadInt32LittleEndian(_recordData.Slice(_UnknownLocation, 4)) : default(Int32);
         #endregion
         #region NearHeightMid
-        private int _NearHeightMidLocation => _DATALocation!.Value.Min + 0x5C;
-        private bool _NearHeightMid_IsSet => _DATALocation.HasValue;
+        private int _NearHeightMidLocation => Payload.DATALocation!.Value.Min + 0x5C;
+        private bool _NearHeightMid_IsSet => Payload.DATALocation.HasValue;
         public Single NearHeightMid => _NearHeightMid_IsSet ? _recordData.Slice(_NearHeightMidLocation, 4).Float() : default(Single);
         #endregion
         #region NearHeightRange
-        private int _NearHeightRangeLocation => _DATALocation!.Value.Min + 0x60;
-        private bool _NearHeightRange_IsSet => _DATALocation.HasValue;
+        private int _NearHeightRangeLocation => Payload.DATALocation!.Value.Min + 0x60;
+        private bool _NearHeightRange_IsSet => Payload.DATALocation.HasValue;
         public Single NearHeightRange => _NearHeightRange_IsSet ? _recordData.Slice(_NearHeightRangeLocation, 4).Float() : default(Single);
         #endregion
         #region FogColorHighNear
-        private int _FogColorHighNearLocation => _DATALocation!.Value.Min + 0x64;
-        private bool _FogColorHighNear_IsSet => _DATALocation.HasValue;
+        private int _FogColorHighNearLocation => Payload.DATALocation!.Value.Min + 0x64;
+        private bool _FogColorHighNear_IsSet => Payload.DATALocation.HasValue;
         public Color FogColorHighNear => _FogColorHighNear_IsSet ? _recordData.Slice(_FogColorHighNearLocation, 4).ReadColor(ColorBinaryType.Alpha) : default(Color);
         #endregion
         #region FogColorHighFar
-        private int _FogColorHighFarLocation => _DATALocation!.Value.Min + 0x68;
-        private bool _FogColorHighFar_IsSet => _DATALocation.HasValue;
+        private int _FogColorHighFarLocation => Payload.DATALocation!.Value.Min + 0x68;
+        private bool _FogColorHighFar_IsSet => Payload.DATALocation.HasValue;
         public Color FogColorHighFar => _FogColorHighFar_IsSet ? _recordData.Slice(_FogColorHighFarLocation, 4).ReadColor(ColorBinaryType.Alpha) : default(Color);
         #endregion
-        public IAmbientColorsGetter? DirectionalAmbientColors { get; private set; }
+        public IAmbientColorsGetter? DirectionalAmbientColors => Payload.DirectionalAmbientColors;
+
+        internal partial class LightingTemplateRecordDataPayload
+        {
+            public RangeInt32? DATALocation;
+            public IAmbientColorsGetter? DirectionalAmbientColors;
+        }
+
+        private LazyPayload<LightingTemplateRecordDataPayload> _payload = null!;
+
+        internal LightingTemplateRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<LightingTemplateRecordDataPayload>(init, new LightingTemplateRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -2688,10 +2704,10 @@ namespace Mutagen.Bethesda.Starfield
 
         partial void CustomCtor();
         protected LightingTemplateBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -2702,28 +2718,51 @@ namespace Mutagen.Bethesda.Starfield
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new LightingTemplateBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -2752,13 +2791,13 @@ namespace Mutagen.Bethesda.Starfield
             {
                 case RecordTypeInts.DATA:
                 {
-                    _DATALocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.DATALocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     return (int)LightingTemplate_FieldIndex.FogColorHighFar;
                 }
                 case RecordTypeInts.DALC:
                 {
                     stream.Position += _package.MetaData.Constants.SubConstants.HeaderLength;
-                    this.DirectionalAmbientColors = AmbientColorsBinaryOverlay.AmbientColorsFactory(
+                    _payload.Fields.DirectionalAmbientColors = AmbientColorsBinaryOverlay.AmbientColorsFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());

@@ -252,15 +252,42 @@ public class PrimitiveBinaryTranslationGeneration<T> : BinaryTranslationGenerati
             default:
                 throw new NotImplementedException();
         }
+        var payloadSb = (this.Module as PluginTranslationModule)?.CurrentPayloadFieldsSb;
         if (data.HasTrigger)
         {
-            sb.AppendLine($"private int? _{typeGen.Name}Location;");
+            if (payloadSb != null)
+            {
+                payloadSb.AppendLine($"public int? {typeGen.Name}Location;");
+            }
+            else
+            {
+                sb.AppendLine($"private int? _{typeGen.Name}Location;");
+            }
         }
         if (data.RecordType.HasValue)
         {
             if (dataType != null) throw new ArgumentException();
-            recordDataAccessor = $"{nameof(HeaderTranslation)}.{nameof(HeaderTranslation.ExtractSubrecordMemory)}({recordDataAccessor}, _{typeGen.Name}Location.Value, _package.{nameof(BinaryOverlayFactoryPackage.MetaData)}.{nameof(ParsingMeta.Constants)})";
-            sb.AppendLine($"public {typeGen.OverrideStr}{typeGen.TypeName(getter: true)}{typeGen.NullChar} {typeGen.Name} => _{typeGen.Name}Location.HasValue ? {GenerateForTypicalWrapper(objGen, typeGen, recordDataAccessor, "_package")} : {typeGen.GetDefault(getter: true)};");
+            if (payloadSb != null)
+            {
+                // Major record: use Payload to access location and record data
+                var pDataAccessor = $"{nameof(HeaderTranslation)}.{nameof(HeaderTranslation.ExtractSubrecordMemory)}(_recordData, Payload.{typeGen.Name}Location.Value, _package.{nameof(BinaryOverlayFactoryPackage.MetaData)}.{nameof(ParsingMeta.Constants)})";
+                sb.AppendLine($"public {typeGen.OverrideStr}{typeGen.TypeName(getter: true)}{typeGen.NullChar} {typeGen.Name} => Payload.{typeGen.Name}Location.HasValue ? {GenerateForTypicalWrapper(objGen, typeGen, pDataAccessor, "_package")} : {typeGen.GetDefault(getter: true)};");
+            }
+            else
+            {
+                // Non-major record: use _recordData with lazy init trigger
+                var extractedDataAccessor = $"{nameof(HeaderTranslation)}.{nameof(HeaderTranslation.ExtractSubrecordMemory)}(_data, _{typeGen.Name}Location.Value, _package.{nameof(BinaryOverlayFactoryPackage.MetaData)}.{nameof(ParsingMeta.Constants)})";
+                sb.AppendLine($"public {typeGen.OverrideStr}{typeGen.TypeName(getter: true)}{typeGen.NullChar} {typeGen.Name}");
+                using (sb.CurlyBrace())
+                {
+                    sb.AppendLine("get");
+                    using (sb.CurlyBrace())
+                    {
+                        sb.AppendLine("var _data = _recordData; // Trigger lazy initialization if needed");
+                        sb.AppendLine($"return _{typeGen.Name}Location.HasValue ? {GenerateForTypicalWrapper(objGen, typeGen, extractedDataAccessor, "_package")} : {typeGen.GetDefault(getter: true)};");
+                    }
+                }
+            }
         }
         else
         {
@@ -296,7 +323,7 @@ public class PrimitiveBinaryTranslationGeneration<T> : BinaryTranslationGenerati
             }
             else
             {
-                DataBinaryTranslationGeneration.GenerateWrapperExtraMembers(sb, dataType, objGen, typeGen, passedLengthAccessor);
+                DataBinaryTranslationGeneration.GenerateWrapperExtraMembers(sb, dataType, objGen, typeGen, passedLengthAccessor, isMajorRecord: payloadSb != null);
                 sb.AppendLine($"public {typeGen.TypeName(getter: true)} {typeGen.Name} => _{typeGen.Name}_IsSet ? {GenerateForTypicalWrapper(objGen, typeGen, $"{recordDataAccessor}.Slice(_{typeGen.Name}Location{(expectedLen.HasValue ? $", {expectedLen.Value}" : null)})", "_package")} : {typeGen.GetDefault(getter: true)};");
             }
         }

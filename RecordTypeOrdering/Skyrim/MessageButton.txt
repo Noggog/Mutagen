@@ -1,0 +1,2 @@
+RecordTypes.ITXT,
+RecordTypes.CTDA,

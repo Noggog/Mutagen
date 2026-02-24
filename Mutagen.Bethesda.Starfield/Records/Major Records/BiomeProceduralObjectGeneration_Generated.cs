@@ -1440,11 +1440,25 @@ namespace Mutagen.Bethesda.Starfield
 
         #region ProceduralObjectGenerationMaskName
         private int? _ProceduralObjectGenerationMaskNameLocation;
-        public String? ProceduralObjectGenerationMaskName => _ProceduralObjectGenerationMaskNameLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _ProceduralObjectGenerationMaskNameLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? ProceduralObjectGenerationMaskName
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _ProceduralObjectGenerationMaskNameLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_data, _ProceduralObjectGenerationMaskNameLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+            }
+        }
         #endregion
         #region BNAM
         private int? _BNAMLocation;
-        public Int32? BNAM => _BNAMLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _BNAMLocation.Value, _package.MetaData.Constants)) : default(Int32?);
+        public Int32? BNAM
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _BNAMLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _BNAMLocation.Value, _package.MetaData.Constants)) : default(Int32?);
+            }
+        }
         #endregion
         public IReadOnlyList<IBiomeObjectGetter> Objects { get; private set; } = [];
         #region Footprints

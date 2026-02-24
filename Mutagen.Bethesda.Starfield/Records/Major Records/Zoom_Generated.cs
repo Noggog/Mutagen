@@ -34,6 +34,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -1860,52 +1861,66 @@ namespace Mutagen.Bethesda.Starfield
         protected override Type LinkType => typeof(IZoomGetter);
 
 
-        private RangeInt32? _ZNAMLocation;
         #region ImagespaceModifier
-        private int _ImagespaceModifierLocation => _ZNAMLocation!.Value.Min;
-        private bool _ImagespaceModifier_IsSet => _ZNAMLocation.HasValue;
+        private int _ImagespaceModifierLocation => Payload.ZNAMLocation!.Value.Min;
+        private bool _ImagespaceModifier_IsSet => Payload.ZNAMLocation.HasValue;
         public IFormLinkGetter<IImageSpaceAdapterGetter> ImagespaceModifier => _ImagespaceModifier_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IImageSpaceAdapterGetter>(_package, _recordData.Span.Slice(_ImagespaceModifierLocation, 0x4), isSet: _ImagespaceModifier_IsSet) : FormLink<IImageSpaceAdapterGetter>.Null;
         #endregion
         #region CameraOffset
-        private int _CameraOffsetLocation => _ZNAMLocation!.Value.Min + 0x4;
-        private bool _CameraOffset_IsSet => _ZNAMLocation.HasValue;
+        private int _CameraOffsetLocation => Payload.ZNAMLocation!.Value.Min + 0x4;
+        private bool _CameraOffset_IsSet => Payload.ZNAMLocation.HasValue;
         public P3Float CameraOffset => _CameraOffset_IsSet ? P3FloatBinaryTranslation<MutagenFrame, MutagenWriter>.Instance.Read(_recordData.Slice(_CameraOffsetLocation, 12)) : default(P3Float);
         #endregion
         #region FovMult
-        private int _FovMultLocation => _ZNAMLocation!.Value.Min + 0x10;
-        private bool _FovMult_IsSet => _ZNAMLocation.HasValue;
+        private int _FovMultLocation => Payload.ZNAMLocation!.Value.Min + 0x10;
+        private bool _FovMult_IsSet => Payload.ZNAMLocation.HasValue;
         public Single FovMult => _FovMult_IsSet ? _recordData.Slice(_FovMultLocation, 4).Float() : default(Single);
         #endregion
         #region Overlay
-        private int _OverlayLocation => _ZNAMLocation!.Value.Min + 0x14;
-        private bool _Overlay_IsSet => _ZNAMLocation.HasValue;
+        private int _OverlayLocation => Payload.ZNAMLocation!.Value.Min + 0x14;
+        private bool _Overlay_IsSet => Payload.ZNAMLocation.HasValue;
         public Zoom.OverlayType Overlay => _Overlay_IsSet ? (Zoom.OverlayType)_recordData.Span.Slice(_OverlayLocation, 0x1)[0] : default;
         #endregion
         #region AdsDistanceFromCameraOffset
-        private int _AdsDistanceFromCameraOffsetLocation => _ZNAMLocation!.Value.Min + 0x15;
-        private bool _AdsDistanceFromCameraOffset_IsSet => _ZNAMLocation.HasValue;
+        private int _AdsDistanceFromCameraOffsetLocation => Payload.ZNAMLocation!.Value.Min + 0x15;
+        private bool _AdsDistanceFromCameraOffset_IsSet => Payload.ZNAMLocation.HasValue;
         public Single AdsDistanceFromCameraOffset => _AdsDistanceFromCameraOffset_IsSet ? _recordData.Slice(_AdsDistanceFromCameraOffsetLocation, 4).Float() : default(Single);
         #endregion
         #region AdsHeightDelayEnabled
-        private int _AdsHeightDelayEnabledLocation => _ZNAMLocation!.Value.Min + 0x19;
-        private bool _AdsHeightDelayEnabled_IsSet => _ZNAMLocation.HasValue;
+        private int _AdsHeightDelayEnabledLocation => Payload.ZNAMLocation!.Value.Min + 0x19;
+        private bool _AdsHeightDelayEnabled_IsSet => Payload.ZNAMLocation.HasValue;
         public Boolean AdsHeightDelayEnabled => _AdsHeightDelayEnabled_IsSet ? _recordData.Slice(_AdsHeightDelayEnabledLocation, 1)[0] >= 1 : default(Boolean);
         #endregion
         #region AdsHeightDelaySeconds
-        private int _AdsHeightDelaySecondsLocation => _ZNAMLocation!.Value.Min + 0x1A;
-        private bool _AdsHeightDelaySeconds_IsSet => _ZNAMLocation.HasValue;
+        private int _AdsHeightDelaySecondsLocation => Payload.ZNAMLocation!.Value.Min + 0x1A;
+        private bool _AdsHeightDelaySeconds_IsSet => Payload.ZNAMLocation.HasValue;
         public Single AdsHeightDelaySeconds => _AdsHeightDelaySeconds_IsSet ? _recordData.Slice(_AdsHeightDelaySecondsLocation, 4).Float() : default(Single);
         #endregion
         #region AdsDepthEnabled
-        private int _AdsDepthEnabledLocation => _ZNAMLocation!.Value.Min + 0x1E;
-        private bool _AdsDepthEnabled_IsSet => _ZNAMLocation.HasValue;
+        private int _AdsDepthEnabledLocation => Payload.ZNAMLocation!.Value.Min + 0x1E;
+        private bool _AdsDepthEnabled_IsSet => Payload.ZNAMLocation.HasValue;
         public Boolean AdsDepthEnabled => _AdsDepthEnabled_IsSet ? _recordData.Slice(_AdsDepthEnabledLocation, 1)[0] >= 1 : default(Boolean);
         #endregion
         #region AdsDepthDelaySeconds
-        private int _AdsDepthDelaySecondsLocation => _ZNAMLocation!.Value.Min + 0x1F;
-        private bool _AdsDepthDelaySeconds_IsSet => _ZNAMLocation.HasValue;
+        private int _AdsDepthDelaySecondsLocation => Payload.ZNAMLocation!.Value.Min + 0x1F;
+        private bool _AdsDepthDelaySeconds_IsSet => Payload.ZNAMLocation.HasValue;
         public Single AdsDepthDelaySeconds => _AdsDepthDelaySeconds_IsSet ? _recordData.Slice(_AdsDepthDelaySecondsLocation, 4).Float() : default(Single);
         #endregion
+
+        internal partial class ZoomRecordDataPayload
+        {
+            public RangeInt32? ZNAMLocation;
+        }
+
+        private LazyPayload<ZoomRecordDataPayload> _payload = null!;
+
+        internal ZoomRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<ZoomRecordDataPayload>(init, new ZoomRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -1913,10 +1928,10 @@ namespace Mutagen.Bethesda.Starfield
 
         partial void CustomCtor();
         protected ZoomBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -1927,28 +1942,51 @@ namespace Mutagen.Bethesda.Starfield
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new ZoomBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -1977,7 +2015,7 @@ namespace Mutagen.Bethesda.Starfield
             {
                 case RecordTypeInts.ZNAM:
                 {
-                    _ZNAMLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.ZNAMLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     return (int)Zoom_FieldIndex.AdsDepthDelaySeconds;
                 }
                 default:

@@ -1,0 +1,5 @@
+RecordTypes.EDID,
+RecordTypes.FULL,
+RecordTypes.MDOB,
+RecordTypes.DESC,
+RecordTypes.SNAM,

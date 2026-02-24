@@ -1457,11 +1457,25 @@ namespace Mutagen.Bethesda.Fallout4
         #endregion
         #region PhaseIndex
         private int? _PhaseIndexLocation;
-        public UInt16? PhaseIndex => _PhaseIndexLocation.HasValue ? BinaryPrimitives.ReadUInt16LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _PhaseIndexLocation.Value, _package.MetaData.Constants)) : default(UInt16?);
+        public UInt16? PhaseIndex
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _PhaseIndexLocation.HasValue ? BinaryPrimitives.ReadUInt16LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _PhaseIndexLocation.Value, _package.MetaData.Constants)) : default(UInt16?);
+            }
+        }
         #endregion
         #region StartPhaseForScene
         private int? _StartPhaseForSceneLocation;
-        public String? StartPhaseForScene => _StartPhaseForSceneLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _StartPhaseForSceneLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? StartPhaseForScene
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _StartPhaseForSceneLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_data, _StartPhaseForSceneLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+            }
+        }
         #endregion
         public IReadOnlyList<IConditionGetter>? Conditions { get; private set; }
         partial void CustomFactoryEnd(

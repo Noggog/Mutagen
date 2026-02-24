@@ -36,6 +36,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -4409,23 +4410,16 @@ namespace Mutagen.Bethesda.Fallout4
         public Armor.MajorFlag MajorFlags => (Armor.MajorFlag)this.MajorRecordFlagsRaw;
 
         #region VirtualMachineAdapter
-        private int? _VirtualMachineAdapterLengthOverride;
-        private RangeInt32? _VirtualMachineAdapterLocation;
-        public IVirtualMachineAdapterGetter? VirtualMachineAdapter => _VirtualMachineAdapterLocation.HasValue ? VirtualMachineAdapterBinaryOverlay.VirtualMachineAdapterFactory(_recordData.Slice(_VirtualMachineAdapterLocation!.Value.Min), _package, TypedParseParams.FromLengthOverride(_VirtualMachineAdapterLengthOverride)) : default;
+        public IVirtualMachineAdapterGetter? VirtualMachineAdapter => Payload.VirtualMachineAdapterLocation.HasValue ? VirtualMachineAdapterBinaryOverlay.VirtualMachineAdapterFactory(_recordData.Slice(Payload.VirtualMachineAdapterLocation!.Value.Min), _package, TypedParseParams.FromLengthOverride(Payload.VirtualMachineAdapterLengthOverride)) : default;
         IAVirtualMachineAdapterGetter? IHaveVirtualMachineAdapterGetter.VirtualMachineAdapter => this.VirtualMachineAdapter;
         #endregion
         #region ObjectBounds
-        private RangeInt32? _ObjectBoundsLocation;
-        private IObjectBoundsGetter? _ObjectBounds => _ObjectBoundsLocation.HasValue ? ObjectBoundsBinaryOverlay.ObjectBoundsFactory(_recordData.Slice(_ObjectBoundsLocation!.Value.Min), _package) : default;
+        private IObjectBoundsGetter? _ObjectBounds => Payload.ObjectBoundsLocation.HasValue ? ObjectBoundsBinaryOverlay.ObjectBoundsFactory(_recordData.Slice(Payload.ObjectBoundsLocation!.Value.Min), _package) : default;
         public IObjectBoundsGetter ObjectBounds => _ObjectBounds ?? new ObjectBounds();
         #endregion
-        #region PreviewTransform
-        private int? _PreviewTransformLocation;
-        public IFormLinkNullableGetter<ITransformGetter> PreviewTransform => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ITransformGetter>(_package, _recordData, _PreviewTransformLocation);
-        #endregion
+        public IFormLinkNullableGetter<ITransformGetter> PreviewTransform => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ITransformGetter>(_package, _recordData, Payload.PreviewTransformLocation);
         #region Name
-        private int? _NameLocation;
-        public ITranslatedStringGetter? Name => _NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+        public ITranslatedStringGetter? Name => Payload.NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
         #region Aspects
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         string INamedRequiredGetter.Name => this.Name?.String ?? string.Empty;
@@ -4435,100 +4429,101 @@ namespace Mutagen.Bethesda.Fallout4
         ITranslatedStringGetter ITranslatedNamedRequiredGetter.Name => this.Name ?? TranslatedString.Empty;
         #endregion
         #endregion
-        #region ObjectEffect
-        private int? _ObjectEffectLocation;
-        public IFormLinkNullableGetter<IObjectEffectGetter> ObjectEffect => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IObjectEffectGetter>(_package, _recordData, _ObjectEffectLocation);
-        #endregion
-        #region WorldModel
-        private IGenderedItemGetter<IArmorModelGetter?>? _WorldModelOverlay;
-        public IGenderedItemGetter<IArmorModelGetter?>? WorldModel => _WorldModelOverlay;
-        #endregion
-        #region BipedBodyTemplate
-        private RangeInt32? _BipedBodyTemplateLocation;
-        public IBipedBodyTemplateGetter? BipedBodyTemplate => _BipedBodyTemplateLocation.HasValue ? BipedBodyTemplateBinaryOverlay.BipedBodyTemplateFactory(_recordData.Slice(_BipedBodyTemplateLocation!.Value.Min), _package) : default;
-        #endregion
-        public IDestructibleGetter? Destructible { get; private set; }
-        #region PickUpSound
-        private int? _PickUpSoundLocation;
-        public IFormLinkNullableGetter<ISoundDescriptorGetter> PickUpSound => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ISoundDescriptorGetter>(_package, _recordData, _PickUpSoundLocation);
-        #endregion
-        #region PutDownSound
-        private int? _PutDownSoundLocation;
-        public IFormLinkNullableGetter<ISoundDescriptorGetter> PutDownSound => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ISoundDescriptorGetter>(_package, _recordData, _PutDownSoundLocation);
-        #endregion
-        #region EquipmentType
-        private int? _EquipmentTypeLocation;
-        public IFormLinkNullableGetter<IEquipTypeGetter> EquipmentType => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IEquipTypeGetter>(_package, _recordData, _EquipmentTypeLocation);
-        #endregion
-        #region BlockBashImpactDataSet
-        private int? _BlockBashImpactDataSetLocation;
-        public IFormLinkNullableGetter<IImpactDataSetGetter> BlockBashImpactDataSet => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IImpactDataSetGetter>(_package, _recordData, _BlockBashImpactDataSetLocation);
-        #endregion
-        #region AlternateBlockMaterial
-        private int? _AlternateBlockMaterialLocation;
-        public IFormLinkNullableGetter<IMaterialTypeGetter> AlternateBlockMaterial => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IMaterialTypeGetter>(_package, _recordData, _AlternateBlockMaterialLocation);
-        #endregion
-        #region Race
-        private int? _RaceLocation;
-        public IFormLinkNullableGetter<IRaceGetter> Race => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IRaceGetter>(_package, _recordData, _RaceLocation);
-        #endregion
+        public IFormLinkNullableGetter<IObjectEffectGetter> ObjectEffect => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IObjectEffectGetter>(_package, _recordData, Payload.ObjectEffectLocation);
+        public IGenderedItemGetter<IArmorModelGetter?>? WorldModel => Payload.WorldModelOverlay;
+        public IBipedBodyTemplateGetter? BipedBodyTemplate => Payload.BipedBodyTemplateLocation.HasValue ? BipedBodyTemplateBinaryOverlay.BipedBodyTemplateFactory(_recordData.Slice(Payload.BipedBodyTemplateLocation!.Value.Min), _package) : default;
+        public IDestructibleGetter? Destructible => Payload.Destructible;
+        public IFormLinkNullableGetter<ISoundDescriptorGetter> PickUpSound => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ISoundDescriptorGetter>(_package, _recordData, Payload.PickUpSoundLocation);
+        public IFormLinkNullableGetter<ISoundDescriptorGetter> PutDownSound => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ISoundDescriptorGetter>(_package, _recordData, Payload.PutDownSoundLocation);
+        public IFormLinkNullableGetter<IEquipTypeGetter> EquipmentType => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IEquipTypeGetter>(_package, _recordData, Payload.EquipmentTypeLocation);
+        public IFormLinkNullableGetter<IImpactDataSetGetter> BlockBashImpactDataSet => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IImpactDataSetGetter>(_package, _recordData, Payload.BlockBashImpactDataSetLocation);
+        public IFormLinkNullableGetter<IMaterialTypeGetter> AlternateBlockMaterial => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IMaterialTypeGetter>(_package, _recordData, Payload.AlternateBlockMaterialLocation);
+        public IFormLinkNullableGetter<IRaceGetter> Race => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IRaceGetter>(_package, _recordData, Payload.RaceLocation);
         #region Keywords
-        public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? Keywords { get; private set; }
+        public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? Keywords => Payload.Keywords;
         IReadOnlyList<IFormLinkGetter<IKeywordCommonGetter>>? IKeywordedGetter.Keywords => this.Keywords;
         #endregion
-        #region Description
-        private int? _DescriptionLocation;
-        public ITranslatedStringGetter? Description => _DescriptionLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _DescriptionLocation.Value, _package.MetaData.Constants), StringsSource.DL, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
-        #endregion
-        #region InstanceNaming
-        private int? _InstanceNamingLocation;
-        public IFormLinkNullableGetter<IInstanceNamingRulesGetter> InstanceNaming => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IInstanceNamingRulesGetter>(_package, _recordData, _InstanceNamingLocation);
-        #endregion
-        public IReadOnlyList<IArmorAddonModelGetter> Armatures { get; private set; } = [];
-        private RangeInt32? _DATALocation;
+        public ITranslatedStringGetter? Description => Payload.DescriptionLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.DescriptionLocation.Value, _package.MetaData.Constants), StringsSource.DL, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+        public IFormLinkNullableGetter<IInstanceNamingRulesGetter> InstanceNaming => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IInstanceNamingRulesGetter>(_package, _recordData, Payload.InstanceNamingLocation);
+        public IReadOnlyList<IArmorAddonModelGetter> Armatures => Payload.Armatures ?? [];
         #region Value
-        private int _ValueLocation => _DATALocation!.Value.Min;
-        private bool _Value_IsSet => _DATALocation.HasValue;
+        private int _ValueLocation => Payload.DATALocation!.Value.Min;
+        private bool _Value_IsSet => Payload.DATALocation.HasValue;
         public Int32 Value => _Value_IsSet ? BinaryPrimitives.ReadInt32LittleEndian(_recordData.Slice(_ValueLocation, 4)) : default(Int32);
         #endregion
         #region Weight
-        private int _WeightLocation => _DATALocation!.Value.Min + 0x4;
-        private bool _Weight_IsSet => _DATALocation.HasValue;
+        private int _WeightLocation => Payload.DATALocation!.Value.Min + 0x4;
+        private bool _Weight_IsSet => Payload.DATALocation.HasValue;
         public Single Weight => _Weight_IsSet ? _recordData.Slice(_WeightLocation, 4).Float() : default(Single);
         #endregion
         #region Health
-        private int _HealthLocation => _DATALocation!.Value.Min + 0x8;
-        private bool _Health_IsSet => _DATALocation.HasValue;
+        private int _HealthLocation => Payload.DATALocation!.Value.Min + 0x8;
+        private bool _Health_IsSet => Payload.DATALocation.HasValue;
         public UInt32 Health => _Health_IsSet ? BinaryPrimitives.ReadUInt32LittleEndian(_recordData.Slice(_HealthLocation, 4)) : default(UInt32);
         #endregion
-        private RangeInt32? _FNAMLocation;
         #region ArmorRating
-        private int _ArmorRatingLocation => _FNAMLocation!.Value.Min;
-        private bool _ArmorRating_IsSet => _FNAMLocation.HasValue;
+        private int _ArmorRatingLocation => Payload.FNAMLocation!.Value.Min;
+        private bool _ArmorRating_IsSet => Payload.FNAMLocation.HasValue;
         public UInt16 ArmorRating => _ArmorRating_IsSet ? BinaryPrimitives.ReadUInt16LittleEndian(_recordData.Slice(_ArmorRatingLocation, 2)) : default(UInt16);
         #endregion
         #region BaseAddonIndex
-        private int _BaseAddonIndexLocation => _FNAMLocation!.Value.Min + 0x2;
-        private bool _BaseAddonIndex_IsSet => _FNAMLocation.HasValue;
+        private int _BaseAddonIndexLocation => Payload.FNAMLocation!.Value.Min + 0x2;
+        private bool _BaseAddonIndex_IsSet => Payload.FNAMLocation.HasValue;
         public UInt16 BaseAddonIndex => _BaseAddonIndex_IsSet ? BinaryPrimitives.ReadUInt16LittleEndian(_recordData.Slice(_BaseAddonIndexLocation, 2)) : default(UInt16);
         #endregion
         #region StaggerRating
-        private int _StaggerRatingLocation => _FNAMLocation!.Value.Min + 0x4;
-        private bool _StaggerRating_IsSet => _FNAMLocation.HasValue;
+        private int _StaggerRatingLocation => Payload.FNAMLocation!.Value.Min + 0x4;
+        private bool _StaggerRating_IsSet => Payload.FNAMLocation.HasValue;
         public Byte StaggerRating => _StaggerRating_IsSet ? _recordData.Span[_StaggerRatingLocation] : default;
         #endregion
         #region Unused
-        private int _UnusedLocation => _FNAMLocation!.Value.Min + 0x5;
-        private bool _Unused_IsSet => _FNAMLocation.HasValue;
+        private int _UnusedLocation => Payload.FNAMLocation!.Value.Min + 0x5;
+        private bool _Unused_IsSet => Payload.FNAMLocation.HasValue;
         public ReadOnlyMemorySlice<Byte> Unused => _Unused_IsSet ? _recordData.Span.Slice(_UnusedLocation, 3).ToArray() : ReadOnlyMemorySlice<byte>.Empty;
         #endregion
-        public IReadOnlyList<IArmorResistanceGetter>? Resistances { get; private set; }
-        #region TemplateArmor
-        private int? _TemplateArmorLocation;
-        public IFormLinkNullableGetter<IArmorGetter> TemplateArmor => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IArmorGetter>(_package, _recordData, _TemplateArmorLocation);
-        #endregion
-        public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? AttachParentSlots { get; private set; }
-        public IReadOnlyList<IObjectTemplateGetter<Armor.Property>>? ObjectTemplates { get; private set; }
+        public IReadOnlyList<IArmorResistanceGetter>? Resistances => Payload.Resistances;
+        public IFormLinkNullableGetter<IArmorGetter> TemplateArmor => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IArmorGetter>(_package, _recordData, Payload.TemplateArmorLocation);
+        public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? AttachParentSlots => Payload.AttachParentSlots;
+        public IReadOnlyList<IObjectTemplateGetter<Armor.Property>>? ObjectTemplates => Payload.ObjectTemplates;
+
+        internal partial class ArmorRecordDataPayload
+        {
+            public int? VirtualMachineAdapterLengthOverride;
+            public RangeInt32? VirtualMachineAdapterLocation;
+            public RangeInt32? ObjectBoundsLocation;
+            public int? PreviewTransformLocation;
+            public int? NameLocation;
+            public int? ObjectEffectLocation;
+            public IGenderedItemGetter<IArmorModelGetter?>? WorldModelOverlay;
+            public RangeInt32? BipedBodyTemplateLocation;
+            public IDestructibleGetter? Destructible;
+            public int? PickUpSoundLocation;
+            public int? PutDownSoundLocation;
+            public int? EquipmentTypeLocation;
+            public int? BlockBashImpactDataSetLocation;
+            public int? AlternateBlockMaterialLocation;
+            public int? RaceLocation;
+            public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? Keywords;
+            public int? DescriptionLocation;
+            public int? InstanceNamingLocation;
+            public IReadOnlyList<IArmorAddonModelGetter> Armatures = [];
+            public RangeInt32? DATALocation;
+            public RangeInt32? FNAMLocation;
+            public IReadOnlyList<IArmorResistanceGetter>? Resistances;
+            public int? TemplateArmorLocation;
+            public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? AttachParentSlots;
+            public IReadOnlyList<IObjectTemplateGetter<Armor.Property>>? ObjectTemplates;
+        }
+
+        private LazyPayload<ArmorRecordDataPayload> _payload = null!;
+
+        internal ArmorRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<ArmorRecordDataPayload>(init, new ArmorRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -4536,10 +4531,10 @@ namespace Mutagen.Bethesda.Fallout4
 
         partial void CustomCtor();
         protected ArmorBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -4550,28 +4545,51 @@ namespace Mutagen.Bethesda.Fallout4
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new ArmorBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -4600,8 +4618,8 @@ namespace Mutagen.Bethesda.Fallout4
             {
                 case RecordTypeInts.VMAD:
                 {
-                    _VirtualMachineAdapterLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
-                    _VirtualMachineAdapterLengthOverride = lastParsed.LengthOverride;
+                    _payload.Fields.VirtualMachineAdapterLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.VirtualMachineAdapterLengthOverride = lastParsed.LengthOverride;
                     if (lastParsed.LengthOverride.HasValue)
                     {
                         stream.Position += lastParsed.LengthOverride.Value;
@@ -4610,22 +4628,22 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.OBND:
                 {
-                    _ObjectBoundsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.ObjectBoundsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)Armor_FieldIndex.ObjectBounds;
                 }
                 case RecordTypeInts.PTRN:
                 {
-                    _PreviewTransformLocation = (stream.Position - offset);
+                    _payload.Fields.PreviewTransformLocation = (stream.Position - offset);
                     return (int)Armor_FieldIndex.PreviewTransform;
                 }
                 case RecordTypeInts.FULL:
                 {
-                    _NameLocation = (stream.Position - offset);
+                    _payload.Fields.NameLocation = (stream.Position - offset);
                     return (int)Armor_FieldIndex.Name;
                 }
                 case RecordTypeInts.EITM:
                 {
-                    _ObjectEffectLocation = (stream.Position - offset);
+                    _payload.Fields.ObjectEffectLocation = (stream.Position - offset);
                     return (int)Armor_FieldIndex.ObjectEffect;
                 }
                 case RecordTypeInts.MOD2:
@@ -4640,7 +4658,7 @@ namespace Mutagen.Bethesda.Fallout4
                 case RecordTypeInts.MIC2:
                 case RecordTypeInts.MICO:
                 {
-                    _WorldModelOverlay = GenderedItemBinaryOverlay.Factory<IArmorModelGetter>(
+                    _payload.Fields.WorldModelOverlay = GenderedItemBinaryOverlay.Factory<IArmorModelGetter>(
                         package: _package,
                         stream: stream,
                         creator: static (s, p, r) => ArmorModelBinaryOverlay.ArmorModelFactory(s, p, r),
@@ -4650,14 +4668,14 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.BOD2:
                 {
-                    _BipedBodyTemplateLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.BipedBodyTemplateLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)Armor_FieldIndex.BipedBodyTemplate;
                 }
                 case RecordTypeInts.DEST:
                 case RecordTypeInts.DAMC:
                 case RecordTypeInts.DSTD:
                 {
-                    this.Destructible = DestructibleBinaryOverlay.DestructibleFactory(
+                    _payload.Fields.Destructible = DestructibleBinaryOverlay.DestructibleFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());
@@ -4665,38 +4683,38 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.YNAM:
                 {
-                    _PickUpSoundLocation = (stream.Position - offset);
+                    _payload.Fields.PickUpSoundLocation = (stream.Position - offset);
                     return (int)Armor_FieldIndex.PickUpSound;
                 }
                 case RecordTypeInts.ZNAM:
                 {
-                    _PutDownSoundLocation = (stream.Position - offset);
+                    _payload.Fields.PutDownSoundLocation = (stream.Position - offset);
                     return (int)Armor_FieldIndex.PutDownSound;
                 }
                 case RecordTypeInts.ETYP:
                 {
-                    _EquipmentTypeLocation = (stream.Position - offset);
+                    _payload.Fields.EquipmentTypeLocation = (stream.Position - offset);
                     return (int)Armor_FieldIndex.EquipmentType;
                 }
                 case RecordTypeInts.BIDS:
                 {
-                    _BlockBashImpactDataSetLocation = (stream.Position - offset);
+                    _payload.Fields.BlockBashImpactDataSetLocation = (stream.Position - offset);
                     return (int)Armor_FieldIndex.BlockBashImpactDataSet;
                 }
                 case RecordTypeInts.BAMT:
                 {
-                    _AlternateBlockMaterialLocation = (stream.Position - offset);
+                    _payload.Fields.AlternateBlockMaterialLocation = (stream.Position - offset);
                     return (int)Armor_FieldIndex.AlternateBlockMaterial;
                 }
                 case RecordTypeInts.RNAM:
                 {
-                    _RaceLocation = (stream.Position - offset);
+                    _payload.Fields.RaceLocation = (stream.Position - offset);
                     return (int)Armor_FieldIndex.Race;
                 }
                 case RecordTypeInts.KSIZ:
                 case RecordTypeInts.KWDA:
                 {
-                    this.Keywords = BinaryOverlayList.FactoryByCount<IFormLinkGetter<IKeywordGetter>>(
+                    _payload.Fields.Keywords = BinaryOverlayList.FactoryByCount<IFormLinkGetter<IKeywordGetter>>(
                         stream: stream,
                         package: _package,
                         itemLength: 0x4,
@@ -4708,18 +4726,18 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.DESC:
                 {
-                    _DescriptionLocation = (stream.Position - offset);
+                    _payload.Fields.DescriptionLocation = (stream.Position - offset);
                     return (int)Armor_FieldIndex.Description;
                 }
                 case RecordTypeInts.INRD:
                 {
-                    _InstanceNamingLocation = (stream.Position - offset);
+                    _payload.Fields.InstanceNamingLocation = (stream.Position - offset);
                     return (int)Armor_FieldIndex.InstanceNaming;
                 }
                 case RecordTypeInts.INDX:
                 case RecordTypeInts.MODL:
                 {
-                    this.Armatures = this.ParseRepeatedTypelessSubrecord<IArmorAddonModelGetter>(
+                    _payload.Fields.Armatures = this.ParseRepeatedTypelessSubrecord<IArmorAddonModelGetter>(
                         stream: stream,
                         translationParams: translationParams,
                         trigger: ArmorAddonModel_Registration.TriggerSpecs,
@@ -4728,17 +4746,17 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.DATA:
                 {
-                    _DATALocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.DATALocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     return (int)Armor_FieldIndex.Health;
                 }
                 case RecordTypeInts.FNAM:
                 {
-                    _FNAMLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.FNAMLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     return (int)Armor_FieldIndex.Unused;
                 }
                 case RecordTypeInts.DAMA:
                 {
-                    this.Resistances = BinaryOverlayList.FactoryByStartIndexWithTrigger<IArmorResistanceGetter>(
+                    _payload.Fields.Resistances = BinaryOverlayList.FactoryByStartIndexWithTrigger<IArmorResistanceGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -4748,12 +4766,12 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.TNAM:
                 {
-                    _TemplateArmorLocation = (stream.Position - offset);
+                    _payload.Fields.TemplateArmorLocation = (stream.Position - offset);
                     return (int)Armor_FieldIndex.TemplateArmor;
                 }
                 case RecordTypeInts.APPR:
                 {
-                    this.AttachParentSlots = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<IKeywordGetter>>(
+                    _payload.Fields.AttachParentSlots = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<IKeywordGetter>>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -4763,7 +4781,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.OBTE:
                 {
-                    this.ObjectTemplates = BinaryOverlayList.FactoryByCountPerItem<IObjectTemplateGetter<Armor.Property>>(
+                    _payload.Fields.ObjectTemplates = BinaryOverlayList.FactoryByCountPerItem<IObjectTemplateGetter<Armor.Property>>(
                         stream: stream,
                         package: _package,
                         countLength: 4,

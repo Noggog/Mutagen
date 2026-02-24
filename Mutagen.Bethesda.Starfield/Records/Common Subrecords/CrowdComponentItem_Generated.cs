@@ -1580,11 +1580,25 @@ namespace Mutagen.Bethesda.Starfield
         public IReadOnlyList<IConditionGetter>? Conditions { get; private set; }
         #region STRV
         private int? _STRVLocation;
-        public String? STRV => _STRVLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _STRVLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? STRV
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _STRVLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_data, _STRVLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+            }
+        }
         #endregion
         #region FLTV
         private int? _FLTVLocation;
-        public Single? FLTV => _FLTVLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _FLTVLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public Single? FLTV
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _FLTVLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_data, _FLTVLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+            }
+        }
         #endregion
         partial void CustomFactoryEnd(
             OverlayStream stream,

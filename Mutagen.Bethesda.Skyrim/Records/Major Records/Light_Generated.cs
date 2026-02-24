@@ -39,6 +39,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -3155,21 +3156,17 @@ namespace Mutagen.Bethesda.Skyrim
         public Light.MajorFlag MajorFlags => (Light.MajorFlag)this.MajorRecordFlagsRaw;
 
         #region VirtualMachineAdapter
-        private int? _VirtualMachineAdapterLengthOverride;
-        private RangeInt32? _VirtualMachineAdapterLocation;
-        public IVirtualMachineAdapterGetter? VirtualMachineAdapter => _VirtualMachineAdapterLocation.HasValue ? VirtualMachineAdapterBinaryOverlay.VirtualMachineAdapterFactory(_recordData.Slice(_VirtualMachineAdapterLocation!.Value.Min), _package, TypedParseParams.FromLengthOverride(_VirtualMachineAdapterLengthOverride)) : default;
+        public IVirtualMachineAdapterGetter? VirtualMachineAdapter => Payload.VirtualMachineAdapterLocation.HasValue ? VirtualMachineAdapterBinaryOverlay.VirtualMachineAdapterFactory(_recordData.Slice(Payload.VirtualMachineAdapterLocation!.Value.Min), _package, TypedParseParams.FromLengthOverride(Payload.VirtualMachineAdapterLengthOverride)) : default;
         IAVirtualMachineAdapterGetter? IHaveVirtualMachineAdapterGetter.VirtualMachineAdapter => this.VirtualMachineAdapter;
         #endregion
         #region ObjectBounds
-        private RangeInt32? _ObjectBoundsLocation;
-        private IObjectBoundsGetter? _ObjectBounds => _ObjectBoundsLocation.HasValue ? ObjectBoundsBinaryOverlay.ObjectBoundsFactory(_recordData.Slice(_ObjectBoundsLocation!.Value.Min), _package) : default;
+        private IObjectBoundsGetter? _ObjectBounds => Payload.ObjectBoundsLocation.HasValue ? ObjectBoundsBinaryOverlay.ObjectBoundsFactory(_recordData.Slice(Payload.ObjectBoundsLocation!.Value.Min), _package) : default;
         public IObjectBoundsGetter ObjectBounds => _ObjectBounds ?? new ObjectBounds();
         #endregion
-        public IModelGetter? Model { get; private set; }
-        public IDestructibleGetter? Destructible { get; private set; }
+        public IModelGetter? Model => Payload.Model;
+        public IDestructibleGetter? Destructible => Payload.Destructible;
         #region Name
-        private int? _NameLocation;
-        public ITranslatedStringGetter? Name => _NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+        public ITranslatedStringGetter? Name => Payload.NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
         #region Aspects
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         string INamedRequiredGetter.Name => this.Name?.String ?? string.Empty;
@@ -3179,80 +3176,95 @@ namespace Mutagen.Bethesda.Skyrim
         ITranslatedStringGetter ITranslatedNamedRequiredGetter.Name => this.Name ?? TranslatedString.Empty;
         #endregion
         #endregion
-        public IIconsGetter? Icons { get; private set; }
-        private RangeInt32? _DATALocation;
+        public IIconsGetter? Icons => Payload.Icons;
         #region Time
-        private int _TimeLocation => _DATALocation!.Value.Min;
-        private bool _Time_IsSet => _DATALocation.HasValue;
+        private int _TimeLocation => Payload.DATALocation!.Value.Min;
+        private bool _Time_IsSet => Payload.DATALocation.HasValue;
         public Int32 Time => _Time_IsSet ? BinaryPrimitives.ReadInt32LittleEndian(_recordData.Slice(_TimeLocation, 4)) : default(Int32);
         #endregion
         #region Radius
-        private int _RadiusLocation => _DATALocation!.Value.Min + 0x4;
-        private bool _Radius_IsSet => _DATALocation.HasValue;
+        private int _RadiusLocation => Payload.DATALocation!.Value.Min + 0x4;
+        private bool _Radius_IsSet => Payload.DATALocation.HasValue;
         public UInt32 Radius => _Radius_IsSet ? BinaryPrimitives.ReadUInt32LittleEndian(_recordData.Slice(_RadiusLocation, 4)) : default(UInt32);
         #endregion
         #region Color
-        private int _ColorLocation => _DATALocation!.Value.Min + 0x8;
-        private bool _Color_IsSet => _DATALocation.HasValue;
+        private int _ColorLocation => Payload.DATALocation!.Value.Min + 0x8;
+        private bool _Color_IsSet => Payload.DATALocation.HasValue;
         public Color Color => _Color_IsSet ? _recordData.Slice(_ColorLocation, 4).ReadColor(ColorBinaryType.Alpha) : default(Color);
         #endregion
         #region Flags
-        private int _FlagsLocation => _DATALocation!.Value.Min + 0xC;
-        private bool _Flags_IsSet => _DATALocation.HasValue;
+        private int _FlagsLocation => Payload.DATALocation!.Value.Min + 0xC;
+        private bool _Flags_IsSet => Payload.DATALocation.HasValue;
         public Light.Flag Flags => _Flags_IsSet ? (Light.Flag)BinaryPrimitives.ReadInt32LittleEndian(_recordData.Span.Slice(_FlagsLocation, 0x4)) : default;
         #endregion
         #region FalloffExponent
-        private int _FalloffExponentLocation => _DATALocation!.Value.Min + 0x10;
-        private bool _FalloffExponent_IsSet => _DATALocation.HasValue;
+        private int _FalloffExponentLocation => Payload.DATALocation!.Value.Min + 0x10;
+        private bool _FalloffExponent_IsSet => Payload.DATALocation.HasValue;
         public Single FalloffExponent => _FalloffExponent_IsSet ? _recordData.Slice(_FalloffExponentLocation, 4).Float() : default(Single);
         #endregion
         #region FOV
-        private int _FOVLocation => _DATALocation!.Value.Min + 0x14;
-        private bool _FOV_IsSet => _DATALocation.HasValue;
+        private int _FOVLocation => Payload.DATALocation!.Value.Min + 0x14;
+        private bool _FOV_IsSet => Payload.DATALocation.HasValue;
         public Single FOV => _FOV_IsSet ? _recordData.Slice(_FOVLocation, 4).Float() : default(Single);
         #endregion
         #region NearClip
-        private int _NearClipLocation => _DATALocation!.Value.Min + 0x18;
-        private bool _NearClip_IsSet => _DATALocation.HasValue;
+        private int _NearClipLocation => Payload.DATALocation!.Value.Min + 0x18;
+        private bool _NearClip_IsSet => Payload.DATALocation.HasValue;
         public Single NearClip => _NearClip_IsSet ? _recordData.Slice(_NearClipLocation, 4).Float() : default(Single);
         #endregion
         #region FlickerPeriod
-        private int _FlickerPeriodLocation => _DATALocation!.Value.Min + 0x1C;
-        private bool _FlickerPeriod_IsSet => _DATALocation.HasValue;
+        private int _FlickerPeriodLocation => Payload.DATALocation!.Value.Min + 0x1C;
+        private bool _FlickerPeriod_IsSet => Payload.DATALocation.HasValue;
         public Single FlickerPeriod => _FlickerPeriod_IsSet ? _recordData.Slice(_FlickerPeriodLocation, 4).Float() : default(Single);
         #endregion
         #region FlickerIntensityAmplitude
-        private int _FlickerIntensityAmplitudeLocation => _DATALocation!.Value.Min + 0x20;
-        private bool _FlickerIntensityAmplitude_IsSet => _DATALocation.HasValue;
+        private int _FlickerIntensityAmplitudeLocation => Payload.DATALocation!.Value.Min + 0x20;
+        private bool _FlickerIntensityAmplitude_IsSet => Payload.DATALocation.HasValue;
         public Single FlickerIntensityAmplitude => _FlickerIntensityAmplitude_IsSet ? _recordData.Slice(_FlickerIntensityAmplitudeLocation, 4).Float() : default(Single);
         #endregion
         #region FlickerMovementAmplitude
-        private int _FlickerMovementAmplitudeLocation => _DATALocation!.Value.Min + 0x24;
-        private bool _FlickerMovementAmplitude_IsSet => _DATALocation.HasValue;
+        private int _FlickerMovementAmplitudeLocation => Payload.DATALocation!.Value.Min + 0x24;
+        private bool _FlickerMovementAmplitude_IsSet => Payload.DATALocation.HasValue;
         public Single FlickerMovementAmplitude => _FlickerMovementAmplitude_IsSet ? _recordData.Slice(_FlickerMovementAmplitudeLocation, 4).Float() : default(Single);
         #endregion
         #region Value
-        private int _ValueLocation => _DATALocation!.Value.Min + 0x28;
-        private bool _Value_IsSet => _DATALocation.HasValue;
+        private int _ValueLocation => Payload.DATALocation!.Value.Min + 0x28;
+        private bool _Value_IsSet => Payload.DATALocation.HasValue;
         public UInt32 Value => _Value_IsSet ? BinaryPrimitives.ReadUInt32LittleEndian(_recordData.Slice(_ValueLocation, 4)) : default(UInt32);
         #endregion
         #region Weight
-        private int _WeightLocation => _DATALocation!.Value.Min + 0x2C;
-        private bool _Weight_IsSet => _DATALocation.HasValue;
+        private int _WeightLocation => Payload.DATALocation!.Value.Min + 0x2C;
+        private bool _Weight_IsSet => Payload.DATALocation.HasValue;
         public Single Weight => _Weight_IsSet ? _recordData.Slice(_WeightLocation, 4).Float() : default(Single);
         #endregion
-        #region FadeValue
-        private int? _FadeValueLocation;
-        public Single FadeValue => _FadeValueLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _FadeValueLocation.Value, _package.MetaData.Constants).Float() : default(Single);
-        #endregion
-        #region Sound
-        private int? _SoundLocation;
-        public IFormLinkNullableGetter<ISoundDescriptorGetter> Sound => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ISoundDescriptorGetter>(_package, _recordData, _SoundLocation);
-        #endregion
-        #region Lens
-        private int? _LensLocation;
-        public IFormLinkNullableGetter<ILensFlareGetter> Lens => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ILensFlareGetter>(_package, _recordData, _LensLocation);
-        #endregion
+        public Single FadeValue => Payload.FadeValueLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.FadeValueLocation.Value, _package.MetaData.Constants).Float() : default(Single);
+        public IFormLinkNullableGetter<ISoundDescriptorGetter> Sound => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ISoundDescriptorGetter>(_package, _recordData, Payload.SoundLocation);
+        public IFormLinkNullableGetter<ILensFlareGetter> Lens => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ILensFlareGetter>(_package, _recordData, Payload.LensLocation);
+
+        internal partial class LightRecordDataPayload
+        {
+            public int? VirtualMachineAdapterLengthOverride;
+            public RangeInt32? VirtualMachineAdapterLocation;
+            public RangeInt32? ObjectBoundsLocation;
+            public IModelGetter? Model;
+            public IDestructibleGetter? Destructible;
+            public int? NameLocation;
+            public IIconsGetter? Icons;
+            public RangeInt32? DATALocation;
+            public int? FadeValueLocation;
+            public int? SoundLocation;
+            public int? LensLocation;
+        }
+
+        private LazyPayload<LightRecordDataPayload> _payload = null!;
+
+        internal LightRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<LightRecordDataPayload>(init, new LightRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -3260,10 +3272,10 @@ namespace Mutagen.Bethesda.Skyrim
 
         partial void CustomCtor();
         protected LightBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -3274,28 +3286,51 @@ namespace Mutagen.Bethesda.Skyrim
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new LightBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -3324,8 +3359,8 @@ namespace Mutagen.Bethesda.Skyrim
             {
                 case RecordTypeInts.VMAD:
                 {
-                    _VirtualMachineAdapterLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
-                    _VirtualMachineAdapterLengthOverride = lastParsed.LengthOverride;
+                    _payload.Fields.VirtualMachineAdapterLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.VirtualMachineAdapterLengthOverride = lastParsed.LengthOverride;
                     if (lastParsed.LengthOverride.HasValue)
                     {
                         stream.Position += lastParsed.LengthOverride.Value;
@@ -3334,12 +3369,12 @@ namespace Mutagen.Bethesda.Skyrim
                 }
                 case RecordTypeInts.OBND:
                 {
-                    _ObjectBoundsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.ObjectBoundsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)Light_FieldIndex.ObjectBounds;
                 }
                 case RecordTypeInts.MODL:
                 {
-                    this.Model = ModelBinaryOverlay.ModelFactory(
+                    _payload.Fields.Model = ModelBinaryOverlay.ModelFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());
@@ -3349,7 +3384,7 @@ namespace Mutagen.Bethesda.Skyrim
                 case RecordTypeInts.DSTD:
                 case RecordTypeInts.DMDL:
                 {
-                    this.Destructible = DestructibleBinaryOverlay.DestructibleFactory(
+                    _payload.Fields.Destructible = DestructibleBinaryOverlay.DestructibleFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());
@@ -3357,12 +3392,12 @@ namespace Mutagen.Bethesda.Skyrim
                 }
                 case RecordTypeInts.FULL:
                 {
-                    _NameLocation = (stream.Position - offset);
+                    _payload.Fields.NameLocation = (stream.Position - offset);
                     return (int)Light_FieldIndex.Name;
                 }
                 case RecordTypeInts.ICON:
                 {
-                    this.Icons = IconsBinaryOverlay.IconsFactory(
+                    _payload.Fields.Icons = IconsBinaryOverlay.IconsFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());
@@ -3370,22 +3405,22 @@ namespace Mutagen.Bethesda.Skyrim
                 }
                 case RecordTypeInts.DATA:
                 {
-                    _DATALocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.DATALocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     return (int)Light_FieldIndex.Weight;
                 }
                 case RecordTypeInts.FNAM:
                 {
-                    _FadeValueLocation = (stream.Position - offset);
+                    _payload.Fields.FadeValueLocation = (stream.Position - offset);
                     return (int)Light_FieldIndex.FadeValue;
                 }
                 case RecordTypeInts.SNAM:
                 {
-                    _SoundLocation = (stream.Position - offset);
+                    _payload.Fields.SoundLocation = (stream.Position - offset);
                     return (int)Light_FieldIndex.Sound;
                 }
                 case RecordTypeInts.LNAM:
                 {
-                    _LensLocation = (stream.Position - offset);
+                    _payload.Fields.LensLocation = (stream.Position - offset);
                     return (int)Light_FieldIndex.Lens;
                 }
                 case RecordTypeInts.XXXX:

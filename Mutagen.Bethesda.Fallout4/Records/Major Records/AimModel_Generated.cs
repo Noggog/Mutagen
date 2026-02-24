@@ -33,6 +33,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -2234,87 +2235,101 @@ namespace Mutagen.Bethesda.Fallout4
         protected override Type LinkType => typeof(IAimModelGetter);
 
 
-        private RangeInt32? _DNAMLocation;
         #region ConeOfFireMinAngle
-        private int _ConeOfFireMinAngleLocation => _DNAMLocation!.Value.Min;
-        private bool _ConeOfFireMinAngle_IsSet => _DNAMLocation.HasValue;
+        private int _ConeOfFireMinAngleLocation => Payload.DNAMLocation!.Value.Min;
+        private bool _ConeOfFireMinAngle_IsSet => Payload.DNAMLocation.HasValue;
         public Single ConeOfFireMinAngle => _ConeOfFireMinAngle_IsSet ? _recordData.Slice(_ConeOfFireMinAngleLocation, 4).Float() : default(Single);
         #endregion
         #region ConeOfFireMaxAngle
-        private int _ConeOfFireMaxAngleLocation => _DNAMLocation!.Value.Min + 0x4;
-        private bool _ConeOfFireMaxAngle_IsSet => _DNAMLocation.HasValue;
+        private int _ConeOfFireMaxAngleLocation => Payload.DNAMLocation!.Value.Min + 0x4;
+        private bool _ConeOfFireMaxAngle_IsSet => Payload.DNAMLocation.HasValue;
         public Single ConeOfFireMaxAngle => _ConeOfFireMaxAngle_IsSet ? _recordData.Slice(_ConeOfFireMaxAngleLocation, 4).Float() : default(Single);
         #endregion
         #region ConeOfFireIncreasePerShot
-        private int _ConeOfFireIncreasePerShotLocation => _DNAMLocation!.Value.Min + 0x8;
-        private bool _ConeOfFireIncreasePerShot_IsSet => _DNAMLocation.HasValue;
+        private int _ConeOfFireIncreasePerShotLocation => Payload.DNAMLocation!.Value.Min + 0x8;
+        private bool _ConeOfFireIncreasePerShot_IsSet => Payload.DNAMLocation.HasValue;
         public Single ConeOfFireIncreasePerShot => _ConeOfFireIncreasePerShot_IsSet ? _recordData.Slice(_ConeOfFireIncreasePerShotLocation, 4).Float() : default(Single);
         #endregion
         #region ConeOfFireIncreasePerSec
-        private int _ConeOfFireIncreasePerSecLocation => _DNAMLocation!.Value.Min + 0xC;
-        private bool _ConeOfFireIncreasePerSec_IsSet => _DNAMLocation.HasValue;
+        private int _ConeOfFireIncreasePerSecLocation => Payload.DNAMLocation!.Value.Min + 0xC;
+        private bool _ConeOfFireIncreasePerSec_IsSet => Payload.DNAMLocation.HasValue;
         public Single ConeOfFireIncreasePerSec => _ConeOfFireIncreasePerSec_IsSet ? _recordData.Slice(_ConeOfFireIncreasePerSecLocation, 4).Float() : default(Single);
         #endregion
         #region ConeOfFireDecreaseDelayMilliseconds
-        private int _ConeOfFireDecreaseDelayMillisecondsLocation => _DNAMLocation!.Value.Min + 0x10;
-        private bool _ConeOfFireDecreaseDelayMilliseconds_IsSet => _DNAMLocation.HasValue;
+        private int _ConeOfFireDecreaseDelayMillisecondsLocation => Payload.DNAMLocation!.Value.Min + 0x10;
+        private bool _ConeOfFireDecreaseDelayMilliseconds_IsSet => Payload.DNAMLocation.HasValue;
         public UInt32 ConeOfFireDecreaseDelayMilliseconds => _ConeOfFireDecreaseDelayMilliseconds_IsSet ? BinaryPrimitives.ReadUInt32LittleEndian(_recordData.Slice(_ConeOfFireDecreaseDelayMillisecondsLocation, 4)) : default(UInt32);
         #endregion
         #region ConeOfFireSneakMult
-        private int _ConeOfFireSneakMultLocation => _DNAMLocation!.Value.Min + 0x14;
-        private bool _ConeOfFireSneakMult_IsSet => _DNAMLocation.HasValue;
+        private int _ConeOfFireSneakMultLocation => Payload.DNAMLocation!.Value.Min + 0x14;
+        private bool _ConeOfFireSneakMult_IsSet => Payload.DNAMLocation.HasValue;
         public Single ConeOfFireSneakMult => _ConeOfFireSneakMult_IsSet ? _recordData.Slice(_ConeOfFireSneakMultLocation, 4).Float() : default(Single);
         #endregion
         #region RecoilDiminishSpringForce
-        private int _RecoilDiminishSpringForceLocation => _DNAMLocation!.Value.Min + 0x18;
-        private bool _RecoilDiminishSpringForce_IsSet => _DNAMLocation.HasValue;
+        private int _RecoilDiminishSpringForceLocation => Payload.DNAMLocation!.Value.Min + 0x18;
+        private bool _RecoilDiminishSpringForce_IsSet => Payload.DNAMLocation.HasValue;
         public Single RecoilDiminishSpringForce => _RecoilDiminishSpringForce_IsSet ? _recordData.Slice(_RecoilDiminishSpringForceLocation, 4).Float() : default(Single);
         #endregion
         #region RecoilDiminishSightsMult
-        private int _RecoilDiminishSightsMultLocation => _DNAMLocation!.Value.Min + 0x1C;
-        private bool _RecoilDiminishSightsMult_IsSet => _DNAMLocation.HasValue;
+        private int _RecoilDiminishSightsMultLocation => Payload.DNAMLocation!.Value.Min + 0x1C;
+        private bool _RecoilDiminishSightsMult_IsSet => Payload.DNAMLocation.HasValue;
         public Single RecoilDiminishSightsMult => _RecoilDiminishSightsMult_IsSet ? _recordData.Slice(_RecoilDiminishSightsMultLocation, 4).Float() : default(Single);
         #endregion
         #region RecoilMaxPerShot
-        private int _RecoilMaxPerShotLocation => _DNAMLocation!.Value.Min + 0x20;
-        private bool _RecoilMaxPerShot_IsSet => _DNAMLocation.HasValue;
+        private int _RecoilMaxPerShotLocation => Payload.DNAMLocation!.Value.Min + 0x20;
+        private bool _RecoilMaxPerShot_IsSet => Payload.DNAMLocation.HasValue;
         public Single RecoilMaxPerShot => _RecoilMaxPerShot_IsSet ? _recordData.Slice(_RecoilMaxPerShotLocation, 4).Float() : default(Single);
         #endregion
         #region RecoilMinPerShot
-        private int _RecoilMinPerShotLocation => _DNAMLocation!.Value.Min + 0x24;
-        private bool _RecoilMinPerShot_IsSet => _DNAMLocation.HasValue;
+        private int _RecoilMinPerShotLocation => Payload.DNAMLocation!.Value.Min + 0x24;
+        private bool _RecoilMinPerShot_IsSet => Payload.DNAMLocation.HasValue;
         public Single RecoilMinPerShot => _RecoilMinPerShot_IsSet ? _recordData.Slice(_RecoilMinPerShotLocation, 4).Float() : default(Single);
         #endregion
         #region RecoilHipMult
-        private int _RecoilHipMultLocation => _DNAMLocation!.Value.Min + 0x28;
-        private bool _RecoilHipMult_IsSet => _DNAMLocation.HasValue;
+        private int _RecoilHipMultLocation => Payload.DNAMLocation!.Value.Min + 0x28;
+        private bool _RecoilHipMult_IsSet => Payload.DNAMLocation.HasValue;
         public Single RecoilHipMult => _RecoilHipMult_IsSet ? _recordData.Slice(_RecoilHipMultLocation, 4).Float() : default(Single);
         #endregion
         #region RunawayRecoilShots
-        private int _RunawayRecoilShotsLocation => _DNAMLocation!.Value.Min + 0x2C;
-        private bool _RunawayRecoilShots_IsSet => _DNAMLocation.HasValue;
+        private int _RunawayRecoilShotsLocation => Payload.DNAMLocation!.Value.Min + 0x2C;
+        private bool _RunawayRecoilShots_IsSet => Payload.DNAMLocation.HasValue;
         public UInt32 RunawayRecoilShots => _RunawayRecoilShots_IsSet ? BinaryPrimitives.ReadUInt32LittleEndian(_recordData.Slice(_RunawayRecoilShotsLocation, 4)) : default(UInt32);
         #endregion
         #region RecoilArc
-        private int _RecoilArcLocation => _DNAMLocation!.Value.Min + 0x30;
-        private bool _RecoilArc_IsSet => _DNAMLocation.HasValue;
+        private int _RecoilArcLocation => Payload.DNAMLocation!.Value.Min + 0x30;
+        private bool _RecoilArc_IsSet => Payload.DNAMLocation.HasValue;
         public Single RecoilArc => _RecoilArc_IsSet ? _recordData.Slice(_RecoilArcLocation, 4).Float() : default(Single);
         #endregion
         #region RecoilArcRotate
-        private int _RecoilArcRotateLocation => _DNAMLocation!.Value.Min + 0x34;
-        private bool _RecoilArcRotate_IsSet => _DNAMLocation.HasValue;
+        private int _RecoilArcRotateLocation => Payload.DNAMLocation!.Value.Min + 0x34;
+        private bool _RecoilArcRotate_IsSet => Payload.DNAMLocation.HasValue;
         public Single RecoilArcRotate => _RecoilArcRotate_IsSet ? _recordData.Slice(_RecoilArcRotateLocation, 4).Float() : default(Single);
         #endregion
         #region ConeOfFireIronSightsMult
-        private int _ConeOfFireIronSightsMultLocation => _DNAMLocation!.Value.Min + 0x38;
-        private bool _ConeOfFireIronSightsMult_IsSet => _DNAMLocation.HasValue;
+        private int _ConeOfFireIronSightsMultLocation => Payload.DNAMLocation!.Value.Min + 0x38;
+        private bool _ConeOfFireIronSightsMult_IsSet => Payload.DNAMLocation.HasValue;
         public Single ConeOfFireIronSightsMult => _ConeOfFireIronSightsMult_IsSet ? _recordData.Slice(_ConeOfFireIronSightsMultLocation, 4).Float() : default(Single);
         #endregion
         #region BaseStability
-        private int _BaseStabilityLocation => _DNAMLocation!.Value.Min + 0x3C;
-        private bool _BaseStability_IsSet => _DNAMLocation.HasValue;
+        private int _BaseStabilityLocation => Payload.DNAMLocation!.Value.Min + 0x3C;
+        private bool _BaseStability_IsSet => Payload.DNAMLocation.HasValue;
         public Single BaseStability => _BaseStability_IsSet ? _recordData.Slice(_BaseStabilityLocation, 4).Float() : default(Single);
         #endregion
+
+        internal partial class AimModelRecordDataPayload
+        {
+            public RangeInt32? DNAMLocation;
+        }
+
+        private LazyPayload<AimModelRecordDataPayload> _payload = null!;
+
+        internal AimModelRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<AimModelRecordDataPayload>(init, new AimModelRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -2322,10 +2337,10 @@ namespace Mutagen.Bethesda.Fallout4
 
         partial void CustomCtor();
         protected AimModelBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -2336,28 +2351,51 @@ namespace Mutagen.Bethesda.Fallout4
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new AimModelBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -2386,7 +2424,7 @@ namespace Mutagen.Bethesda.Fallout4
             {
                 case RecordTypeInts.DNAM:
                 {
-                    _DNAMLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.DNAMLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     return (int)AimModel_FieldIndex.BaseStability;
                 }
                 default:

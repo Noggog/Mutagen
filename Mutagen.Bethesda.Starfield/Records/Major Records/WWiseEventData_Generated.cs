@@ -34,6 +34,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -1548,18 +1549,26 @@ namespace Mutagen.Bethesda.Starfield
         protected override Type LinkType => typeof(IWWiseEventDataGetter);
 
 
-        #region Start
-        private int? _StartLocation;
-        public Guid? Start => _StartLocation.HasValue ? new Guid(HeaderTranslation.ExtractSubrecordMemory(_recordData, _StartLocation.Value, _package.MetaData.Constants).Slice(0, 16)) : default(Guid?);
-        #endregion
-        #region Condition
-        private int? _ConditionLocation;
-        public IFormLinkNullableGetter<IConditionRecordGetter> Condition => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IConditionRecordGetter>(_package, _recordData, _ConditionLocation);
-        #endregion
-        #region End
-        private int? _EndLocation;
-        public Guid? End => _EndLocation.HasValue ? new Guid(HeaderTranslation.ExtractSubrecordMemory(_recordData, _EndLocation.Value, _package.MetaData.Constants).Slice(0, 16)) : default(Guid?);
-        #endregion
+        public Guid? Start => Payload.StartLocation.HasValue ? new Guid(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.StartLocation.Value, _package.MetaData.Constants).Slice(0, 16)) : default(Guid?);
+        public IFormLinkNullableGetter<IConditionRecordGetter> Condition => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IConditionRecordGetter>(_package, _recordData, Payload.ConditionLocation);
+        public Guid? End => Payload.EndLocation.HasValue ? new Guid(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.EndLocation.Value, _package.MetaData.Constants).Slice(0, 16)) : default(Guid?);
+
+        internal partial class WWiseEventDataRecordDataPayload
+        {
+            public int? StartLocation;
+            public int? ConditionLocation;
+            public int? EndLocation;
+        }
+
+        private LazyPayload<WWiseEventDataRecordDataPayload> _payload = null!;
+
+        internal WWiseEventDataRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<WWiseEventDataRecordDataPayload>(init, new WWiseEventDataRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -1567,10 +1576,10 @@ namespace Mutagen.Bethesda.Starfield
 
         partial void CustomCtor();
         protected WWiseEventDataBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -1581,28 +1590,51 @@ namespace Mutagen.Bethesda.Starfield
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new WWiseEventDataBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -1631,17 +1663,17 @@ namespace Mutagen.Bethesda.Starfield
             {
                 case RecordTypeInts.WSED:
                 {
-                    _StartLocation = (stream.Position - offset);
+                    _payload.Fields.StartLocation = (stream.Position - offset);
                     return (int)WWiseEventData_FieldIndex.Start;
                 }
                 case RecordTypeInts.CNAM:
                 {
-                    _ConditionLocation = (stream.Position - offset);
+                    _payload.Fields.ConditionLocation = (stream.Position - offset);
                     return (int)WWiseEventData_FieldIndex.Condition;
                 }
                 case RecordTypeInts.WTED:
                 {
-                    _EndLocation = (stream.Position - offset);
+                    _payload.Fields.EndLocation = (stream.Position - offset);
                     return (int)WWiseEventData_FieldIndex.End;
                 }
                 default:

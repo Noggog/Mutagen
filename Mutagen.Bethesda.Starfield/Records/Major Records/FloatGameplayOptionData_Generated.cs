@@ -1342,11 +1342,25 @@ namespace Mutagen.Bethesda.Starfield
 
         #region Value1
         private int? _Value1Location;
-        public Single? Value1 => _Value1Location.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _Value1Location.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public Single? Value1
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _Value1Location.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_data, _Value1Location.Value, _package.MetaData.Constants).Float() : default(Single?);
+            }
+        }
         #endregion
         #region Value2
         private int? _Value2Location;
-        public Single? Value2 => _Value2Location.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _Value2Location.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public Single? Value2
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _Value2Location.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_data, _Value2Location.Value, _package.MetaData.Constants).Float() : default(Single?);
+            }
+        }
         #endregion
         private RangeInt32? _GPODLocation;
         #region Min

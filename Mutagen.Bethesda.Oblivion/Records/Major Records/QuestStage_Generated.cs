@@ -1283,7 +1283,14 @@ namespace Mutagen.Bethesda.Oblivion
 
         #region Stage
         private int? _StageLocation;
-        public UInt16 Stage => _StageLocation.HasValue ? BinaryPrimitives.ReadUInt16LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _StageLocation.Value, _package.MetaData.Constants)) : default(UInt16);
+        public UInt16 Stage
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _StageLocation.HasValue ? BinaryPrimitives.ReadUInt16LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _StageLocation.Value, _package.MetaData.Constants)) : default(UInt16);
+            }
+        }
         #endregion
         public IReadOnlyList<ILogEntryGetter> LogEntries { get; private set; } = [];
         partial void CustomFactoryEnd(

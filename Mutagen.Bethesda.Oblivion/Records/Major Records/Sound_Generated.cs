@@ -33,6 +33,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -1500,30 +1501,42 @@ namespace Mutagen.Bethesda.Oblivion
         protected override Type LinkType => typeof(ISoundGetter);
 
 
-        #region File
-        private int? _FileLocation;
-        public String? File => _FileLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _FileLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
+        public String? File => Payload.FileLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.FileLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
         #region Data
-        private RecordType _DataType;
-        private RangeInt32? _DataLocation;
         public ISoundDataInternalGetter? Data
         {
             get
             {
-                if (!_DataLocation.HasValue) return default;
-                switch (_DataType.TypeInt)
+                if (!Payload.DataLocation.HasValue) return default;
+                switch (Payload.DataType.TypeInt)
                 {
                     case RecordTypeInts.SNDD:
-                        return SoundDataBinaryOverlay.SoundDataFactory(_recordData.Slice(_DataLocation!.Value.Min), _package, default(TypedParseParams));
+                        return SoundDataBinaryOverlay.SoundDataFactory(_recordData.Slice(Payload.DataLocation!.Value.Min), _package, default(TypedParseParams));
                     case RecordTypeInts.SNDX:
-                        return SoundDataExtendedBinaryOverlay.SoundDataExtendedFactory(_recordData.Slice(_DataLocation!.Value.Min), _package, default(TypedParseParams));
+                        return SoundDataExtendedBinaryOverlay.SoundDataExtendedFactory(_recordData.Slice(Payload.DataLocation!.Value.Min), _package, default(TypedParseParams));
                     default:
                         throw new ArgumentException();
                 }
             }
         }
         #endregion
+
+        internal partial class SoundRecordDataPayload
+        {
+            public int? FileLocation;
+            public RecordType DataType;
+            public RangeInt32? DataLocation;
+        }
+
+        private LazyPayload<SoundRecordDataPayload> _payload = null!;
+
+        internal SoundRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<SoundRecordDataPayload>(init, new SoundRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -1531,10 +1544,10 @@ namespace Mutagen.Bethesda.Oblivion
 
         partial void CustomCtor();
         protected SoundBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -1545,28 +1558,51 @@ namespace Mutagen.Bethesda.Oblivion
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new SoundBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -1595,19 +1631,19 @@ namespace Mutagen.Bethesda.Oblivion
             {
                 case RecordTypeInts.FNAM:
                 {
-                    _FileLocation = (stream.Position - offset);
+                    _payload.Fields.FileLocation = (stream.Position - offset);
                     return (int)Sound_FieldIndex.File;
                 }
                 case RecordTypeInts.SNDD:
                 {
-                    _DataLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
-                    _DataType = type;
+                    _payload.Fields.DataLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.DataType = type;
                     return (int)Sound_FieldIndex.Data;
                 }
                 case RecordTypeInts.SNDX:
                 {
-                    _DataLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
-                    _DataType = type;
+                    _payload.Fields.DataLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.DataType = type;
                     return (int)Sound_FieldIndex.Data;
                 }
                 default:

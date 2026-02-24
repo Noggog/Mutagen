@@ -36,6 +36,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -2006,8 +2007,7 @@ namespace Mutagen.Bethesda.Starfield
 
 
         #region Name
-        private int? _NameLocation;
-        public ITranslatedStringGetter? Name => _NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+        public ITranslatedStringGetter? Name => Payload.NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
         #region Aspects
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         string INamedRequiredGetter.Name => this.Name?.String ?? string.Empty;
@@ -2017,50 +2017,61 @@ namespace Mutagen.Bethesda.Starfield
         ITranslatedStringGetter ITranslatedNamedRequiredGetter.Name => this.Name ?? TranslatedString.Empty;
         #endregion
         #endregion
-        private RangeInt32? _FNAMLocation;
         #region FeatureType
-        private int _FeatureTypeLocation => _FNAMLocation!.Value.Min;
-        private bool _FeatureType_IsSet => _FNAMLocation.HasValue;
+        private int _FeatureTypeLocation => Payload.FNAMLocation!.Value.Min;
+        private bool _FeatureType_IsSet => Payload.FNAMLocation.HasValue;
         public PhotoModeFeature.Mode FeatureType => _FeatureType_IsSet ? (PhotoModeFeature.Mode)_recordData.Span.Slice(_FeatureTypeLocation, 0x1)[0] : default;
         #endregion
         #region XOffset
-        private int _XOffsetLocation => _FNAMLocation!.Value.Min + 0x1;
-        private bool _XOffset_IsSet => _FNAMLocation.HasValue;
+        private int _XOffsetLocation => Payload.FNAMLocation!.Value.Min + 0x1;
+        private bool _XOffset_IsSet => Payload.FNAMLocation.HasValue;
         public Single XOffset => _XOffset_IsSet ? _recordData.Slice(_XOffsetLocation, 4).Float() : default(Single);
         #endregion
         #region YOffset
-        private int _YOffsetLocation => _FNAMLocation!.Value.Min + 0x5;
-        private bool _YOffset_IsSet => _FNAMLocation.HasValue;
+        private int _YOffsetLocation => Payload.FNAMLocation!.Value.Min + 0x5;
+        private bool _YOffset_IsSet => Payload.FNAMLocation.HasValue;
         public Single YOffset => _YOffset_IsSet ? _recordData.Slice(_YOffsetLocation, 4).Float() : default(Single);
         #endregion
         #region UnknownFNAM1
-        private int _UnknownFNAM1Location => _FNAMLocation!.Value.Min + 0x9;
-        private bool _UnknownFNAM1_IsSet => _FNAMLocation.HasValue;
+        private int _UnknownFNAM1Location => Payload.FNAMLocation!.Value.Min + 0x9;
+        private bool _UnknownFNAM1_IsSet => Payload.FNAMLocation.HasValue;
         public Int64 UnknownFNAM1 => _UnknownFNAM1_IsSet ? BinaryPrimitives.ReadInt64LittleEndian(_recordData.Slice(_UnknownFNAM1Location, 8)) : default(Int64);
         #endregion
         #region Width
-        private int _WidthLocation => _FNAMLocation!.Value.Min + 0x11;
-        private bool _Width_IsSet => _FNAMLocation.HasValue;
+        private int _WidthLocation => Payload.FNAMLocation!.Value.Min + 0x11;
+        private bool _Width_IsSet => Payload.FNAMLocation.HasValue;
         public UInt32 Width => _Width_IsSet ? BinaryPrimitives.ReadUInt32LittleEndian(_recordData.Slice(_WidthLocation, 4)) : default(UInt32);
         #endregion
         #region Height
-        private int _HeightLocation => _FNAMLocation!.Value.Min + 0x15;
-        private bool _Height_IsSet => _FNAMLocation.HasValue;
+        private int _HeightLocation => Payload.FNAMLocation!.Value.Min + 0x15;
+        private bool _Height_IsSet => Payload.FNAMLocation.HasValue;
         public UInt32 Height => _Height_IsSet ? BinaryPrimitives.ReadUInt32LittleEndian(_recordData.Slice(_HeightLocation, 4)) : default(UInt32);
         #endregion
         #region UnknownFNAM2
-        private int _UnknownFNAM2Location => _FNAMLocation!.Value.Min + 0x19;
-        private bool _UnknownFNAM2_IsSet => _FNAMLocation.HasValue;
+        private int _UnknownFNAM2Location => Payload.FNAMLocation!.Value.Min + 0x19;
+        private bool _UnknownFNAM2_IsSet => Payload.FNAMLocation.HasValue;
         public UInt32 UnknownFNAM2 => _UnknownFNAM2_IsSet ? BinaryPrimitives.ReadUInt32LittleEndian(_recordData.Slice(_UnknownFNAM2Location, 4)) : default(UInt32);
         #endregion
-        #region Texture
-        private int? _TextureLocation;
-        public String? Texture => _TextureLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _TextureLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
-        #region ImageSpace
-        private int? _ImageSpaceLocation;
-        public IFormLinkNullableGetter<IImageSpaceGetter> ImageSpace => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IImageSpaceGetter>(_package, _recordData, _ImageSpaceLocation);
-        #endregion
+        public String? Texture => Payload.TextureLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.TextureLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public IFormLinkNullableGetter<IImageSpaceGetter> ImageSpace => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IImageSpaceGetter>(_package, _recordData, Payload.ImageSpaceLocation);
+
+        internal partial class PhotoModeFeatureRecordDataPayload
+        {
+            public int? NameLocation;
+            public RangeInt32? FNAMLocation;
+            public int? TextureLocation;
+            public int? ImageSpaceLocation;
+        }
+
+        private LazyPayload<PhotoModeFeatureRecordDataPayload> _payload = null!;
+
+        internal PhotoModeFeatureRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<PhotoModeFeatureRecordDataPayload>(init, new PhotoModeFeatureRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -2068,10 +2079,10 @@ namespace Mutagen.Bethesda.Starfield
 
         partial void CustomCtor();
         protected PhotoModeFeatureBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -2082,28 +2093,51 @@ namespace Mutagen.Bethesda.Starfield
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new PhotoModeFeatureBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -2132,22 +2166,22 @@ namespace Mutagen.Bethesda.Starfield
             {
                 case RecordTypeInts.FULL:
                 {
-                    _NameLocation = (stream.Position - offset);
+                    _payload.Fields.NameLocation = (stream.Position - offset);
                     return (int)PhotoModeFeature_FieldIndex.Name;
                 }
                 case RecordTypeInts.FNAM:
                 {
-                    _FNAMLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.FNAMLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     return (int)PhotoModeFeature_FieldIndex.UnknownFNAM2;
                 }
                 case RecordTypeInts.HNAM:
                 {
-                    _TextureLocation = (stream.Position - offset);
+                    _payload.Fields.TextureLocation = (stream.Position - offset);
                     return (int)PhotoModeFeature_FieldIndex.Texture;
                 }
                 case RecordTypeInts.INAM:
                 {
-                    _ImageSpaceLocation = (stream.Position - offset);
+                    _payload.Fields.ImageSpaceLocation = (stream.Position - offset);
                     return (int)PhotoModeFeature_FieldIndex.ImageSpace;
                 }
                 default:

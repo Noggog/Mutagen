@@ -1,0 +1,4 @@
+RecordTypes.HTID,
+RecordTypes.FNAM,
+RecordTypes.PNAM,
+RecordTypes.HNAM,

@@ -1234,7 +1234,14 @@ namespace Mutagen.Bethesda.Starfield
 
         #region HasWater
         private int? _HasWaterLocation;
-        public Boolean? HasWater => _HasWaterLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _HasWaterLocation.Value, _package.MetaData.Constants)[0] >= 1 : default(Boolean?);
+        public Boolean? HasWater
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _HasWaterLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_data, _HasWaterLocation.Value, _package.MetaData.Constants)[0] >= 1 : default(Boolean?);
+            }
+        }
         #endregion
         #region Water
         private int? _WaterLocation;
@@ -1242,7 +1249,14 @@ namespace Mutagen.Bethesda.Starfield
         #endregion
         #region WaterMaterial
         private int? _WaterMaterialLocation;
-        public String? WaterMaterial => _WaterMaterialLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _WaterMaterialLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? WaterMaterial
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _WaterMaterialLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_data, _WaterMaterialLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+            }
+        }
         #endregion
         partial void CustomFactoryEnd(
             OverlayStream stream,

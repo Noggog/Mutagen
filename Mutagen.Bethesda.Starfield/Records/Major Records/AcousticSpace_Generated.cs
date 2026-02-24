@@ -35,6 +35,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -2510,53 +2511,50 @@ namespace Mutagen.Bethesda.Starfield
 
 
         #region ObjectBounds
-        private RangeInt32? _ObjectBoundsLocation;
-        private IObjectBoundsGetter? _ObjectBounds => _ObjectBoundsLocation.HasValue ? ObjectBoundsBinaryOverlay.ObjectBoundsFactory(_recordData.Slice(_ObjectBoundsLocation!.Value.Min), _package) : default;
+        private IObjectBoundsGetter? _ObjectBounds => Payload.ObjectBoundsLocation.HasValue ? ObjectBoundsBinaryOverlay.ObjectBoundsFactory(_recordData.Slice(Payload.ObjectBoundsLocation!.Value.Min), _package) : default;
         public IObjectBoundsGetter ObjectBounds => _ObjectBounds ?? new ObjectBounds();
         #endregion
-        #region DirtinessScale
-        private int? _DirtinessScaleLocation;
-        public Percent DirtinessScale => _DirtinessScaleLocation.HasValue ? PercentBinaryTranslation.GetPercent(HeaderTranslation.ExtractSubrecordMemory(_recordData, _DirtinessScaleLocation.Value, _package.MetaData.Constants), FloatIntegerType.UInt) : default(Percent);
-        #endregion
-        public ISoundReferenceGetter? LoopingSound { get; private set; }
-        public ISoundReferenceGetter? InteriorSound { get; private set; }
-        public ISoundReferenceGetter? ExteriorSound { get; private set; }
-        #region AmbientSet
-        private int? _AmbientSetLocation;
-        public IFormLinkNullableGetter<IAmbienceSetGetter> AmbientSet => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IAmbienceSetGetter>(_package, _recordData, _AmbientSetLocation);
-        #endregion
-        #region MusicType
-        private int? _MusicTypeLocation;
-        public IFormLinkNullableGetter<IMusicTypeGetter> MusicType => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IMusicTypeGetter>(_package, _recordData, _MusicTypeLocation);
-        #endregion
-        #region EnvironmentType
-        private int? _EnvironmentTypeLocation;
-        public IFormLinkNullableGetter<IReverbParametersGetter> EnvironmentType => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IReverbParametersGetter>(_package, _recordData, _EnvironmentTypeLocation);
-        #endregion
-        #region ExteriorWeatherAttenuation
-        private int? _ExteriorWeatherAttenuationLocation;
-        public Single ExteriorWeatherAttenuation => _ExteriorWeatherAttenuationLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _ExteriorWeatherAttenuationLocation.Value, _package.MetaData.Constants).Float() : default(Single);
-        #endregion
-        #region InteriorExteriorRatio
-        private int? _InteriorExteriorRatioLocation;
-        public Single? InteriorExteriorRatio => _InteriorExteriorRatioLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _InteriorExteriorRatioLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
-        #endregion
-        #region IsInterior
-        private int? _IsInteriorLocation;
-        public Boolean IsInterior => _IsInteriorLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _IsInteriorLocation.Value, _package.MetaData.Constants)[0] >= 1 : default(Boolean);
-        #endregion
-        #region AllowExterior
-        private int? _AllowExteriorLocation;
-        public Boolean AllowExterior => _AllowExteriorLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _AllowExteriorLocation.Value, _package.MetaData.Constants)[0] >= 1 : default(Boolean);
-        #endregion
-        #region SoundDetectionLevel
-        private int? _SoundDetectionLevelLocation;
-        public SoundLevel? SoundDetectionLevel => EnumBinaryTranslation<SoundLevel, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(_SoundDetectionLevelLocation, _recordData, _package, 4);
-        #endregion
-        #region DisableFlags
-        private int? _DisableFlagsLocation;
-        public SoundLevel? DisableFlags => EnumBinaryTranslation<SoundLevel, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(_DisableFlagsLocation, _recordData, _package, 8);
-        #endregion
+        public Percent DirtinessScale => Payload.DirtinessScaleLocation.HasValue ? PercentBinaryTranslation.GetPercent(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.DirtinessScaleLocation.Value, _package.MetaData.Constants), FloatIntegerType.UInt) : default(Percent);
+        public ISoundReferenceGetter? LoopingSound => Payload.LoopingSound;
+        public ISoundReferenceGetter? InteriorSound => Payload.InteriorSound;
+        public ISoundReferenceGetter? ExteriorSound => Payload.ExteriorSound;
+        public IFormLinkNullableGetter<IAmbienceSetGetter> AmbientSet => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IAmbienceSetGetter>(_package, _recordData, Payload.AmbientSetLocation);
+        public IFormLinkNullableGetter<IMusicTypeGetter> MusicType => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IMusicTypeGetter>(_package, _recordData, Payload.MusicTypeLocation);
+        public IFormLinkNullableGetter<IReverbParametersGetter> EnvironmentType => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IReverbParametersGetter>(_package, _recordData, Payload.EnvironmentTypeLocation);
+        public Single ExteriorWeatherAttenuation => Payload.ExteriorWeatherAttenuationLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.ExteriorWeatherAttenuationLocation.Value, _package.MetaData.Constants).Float() : default(Single);
+        public Single? InteriorExteriorRatio => Payload.InteriorExteriorRatioLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.InteriorExteriorRatioLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public Boolean IsInterior => Payload.IsInteriorLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.IsInteriorLocation.Value, _package.MetaData.Constants)[0] >= 1 : default(Boolean);
+        public Boolean AllowExterior => Payload.AllowExteriorLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.AllowExteriorLocation.Value, _package.MetaData.Constants)[0] >= 1 : default(Boolean);
+        public SoundLevel? SoundDetectionLevel => EnumBinaryTranslation<SoundLevel, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(Payload.SoundDetectionLevelLocation, _recordData, _package, 4);
+        public SoundLevel? DisableFlags => EnumBinaryTranslation<SoundLevel, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(Payload.DisableFlagsLocation, _recordData, _package, 8);
+
+        internal partial class AcousticSpaceRecordDataPayload
+        {
+            public RangeInt32? ObjectBoundsLocation;
+            public int? DirtinessScaleLocation;
+            public ISoundReferenceGetter? LoopingSound;
+            public ISoundReferenceGetter? InteriorSound;
+            public ISoundReferenceGetter? ExteriorSound;
+            public int? AmbientSetLocation;
+            public int? MusicTypeLocation;
+            public int? EnvironmentTypeLocation;
+            public int? ExteriorWeatherAttenuationLocation;
+            public int? InteriorExteriorRatioLocation;
+            public int? IsInteriorLocation;
+            public int? AllowExteriorLocation;
+            public int? SoundDetectionLevelLocation;
+            public int? DisableFlagsLocation;
+        }
+
+        private LazyPayload<AcousticSpaceRecordDataPayload> _payload = null!;
+
+        internal AcousticSpaceRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<AcousticSpaceRecordDataPayload>(init, new AcousticSpaceRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -2564,10 +2562,10 @@ namespace Mutagen.Bethesda.Starfield
 
         partial void CustomCtor();
         protected AcousticSpaceBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -2578,28 +2576,51 @@ namespace Mutagen.Bethesda.Starfield
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new AcousticSpaceBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -2628,18 +2649,18 @@ namespace Mutagen.Bethesda.Starfield
             {
                 case RecordTypeInts.OBND:
                 {
-                    _ObjectBoundsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.ObjectBoundsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)AcousticSpace_FieldIndex.ObjectBounds;
                 }
                 case RecordTypeInts.ODTY:
                 {
-                    _DirtinessScaleLocation = (stream.Position - offset);
+                    _payload.Fields.DirtinessScaleLocation = (stream.Position - offset);
                     return (int)AcousticSpace_FieldIndex.DirtinessScale;
                 }
                 case RecordTypeInts.ASLS:
                 {
                     stream.Position += _package.MetaData.Constants.SubConstants.HeaderLength;
-                    this.LoopingSound = SoundReferenceBinaryOverlay.SoundReferenceFactory(
+                    _payload.Fields.LoopingSound = SoundReferenceBinaryOverlay.SoundReferenceFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());
@@ -2648,7 +2669,7 @@ namespace Mutagen.Bethesda.Starfield
                 case RecordTypeInts.WED0:
                 {
                     stream.Position += _package.MetaData.Constants.SubConstants.HeaderLength;
-                    this.InteriorSound = SoundReferenceBinaryOverlay.SoundReferenceFactory(
+                    _payload.Fields.InteriorSound = SoundReferenceBinaryOverlay.SoundReferenceFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());
@@ -2657,7 +2678,7 @@ namespace Mutagen.Bethesda.Starfield
                 case RecordTypeInts.WED1:
                 {
                     stream.Position += _package.MetaData.Constants.SubConstants.HeaderLength;
-                    this.ExteriorSound = SoundReferenceBinaryOverlay.SoundReferenceFactory(
+                    _payload.Fields.ExteriorSound = SoundReferenceBinaryOverlay.SoundReferenceFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());
@@ -2665,47 +2686,47 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.AAMB:
                 {
-                    _AmbientSetLocation = (stream.Position - offset);
+                    _payload.Fields.AmbientSetLocation = (stream.Position - offset);
                     return (int)AcousticSpace_FieldIndex.AmbientSet;
                 }
                 case RecordTypeInts.AMUS:
                 {
-                    _MusicTypeLocation = (stream.Position - offset);
+                    _payload.Fields.MusicTypeLocation = (stream.Position - offset);
                     return (int)AcousticSpace_FieldIndex.MusicType;
                 }
                 case RecordTypeInts.BNAM:
                 {
-                    _EnvironmentTypeLocation = (stream.Position - offset);
+                    _payload.Fields.EnvironmentTypeLocation = (stream.Position - offset);
                     return (int)AcousticSpace_FieldIndex.EnvironmentType;
                 }
                 case RecordTypeInts.AEAR:
                 {
-                    _ExteriorWeatherAttenuationLocation = (stream.Position - offset);
+                    _payload.Fields.ExteriorWeatherAttenuationLocation = (stream.Position - offset);
                     return (int)AcousticSpace_FieldIndex.ExteriorWeatherAttenuation;
                 }
                 case RecordTypeInts.FLTV:
                 {
-                    _InteriorExteriorRatioLocation = (stream.Position - offset);
+                    _payload.Fields.InteriorExteriorRatioLocation = (stream.Position - offset);
                     return (int)AcousticSpace_FieldIndex.InteriorExteriorRatio;
                 }
                 case RecordTypeInts.XTRI:
                 {
-                    _IsInteriorLocation = (stream.Position - offset);
+                    _payload.Fields.IsInteriorLocation = (stream.Position - offset);
                     return (int)AcousticSpace_FieldIndex.IsInterior;
                 }
                 case RecordTypeInts.BOLV:
                 {
-                    _AllowExteriorLocation = (stream.Position - offset);
+                    _payload.Fields.AllowExteriorLocation = (stream.Position - offset);
                     return (int)AcousticSpace_FieldIndex.AllowExterior;
                 }
                 case RecordTypeInts.DEVT:
                 {
-                    _SoundDetectionLevelLocation = (stream.Position - offset);
+                    _payload.Fields.SoundDetectionLevelLocation = (stream.Position - offset);
                     return (int)AcousticSpace_FieldIndex.SoundDetectionLevel;
                 }
                 case RecordTypeInts.ASDF:
                 {
-                    _DisableFlagsLocation = (stream.Position - offset);
+                    _payload.Fields.DisableFlagsLocation = (stream.Position - offset);
                     return (int)AcousticSpace_FieldIndex.DisableFlags;
                 }
                 default:

@@ -1772,7 +1772,14 @@ namespace Mutagen.Bethesda.Fallout4
         #endregion
         #region SequenceName
         private int? _SequenceNameLocation;
-        public String? SequenceName => _SequenceNameLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _SequenceNameLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? SequenceName
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _SequenceNameLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_data, _SequenceNameLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+            }
+        }
         #endregion
         public IModelGetter? Model { get; private set; }
         partial void CustomFactoryEnd(

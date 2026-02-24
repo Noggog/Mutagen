@@ -37,6 +37,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -2072,27 +2073,35 @@ namespace Mutagen.Bethesda.Starfield
         protected override Type LinkType => typeof(IPlanetContentManagerContentNodeGetter);
 
 
-        public IReadOnlyList<IAComponentGetter> Components { get; private set; } = [];
-        #region Content
-        private int? _ContentLocation;
-        public IFormLinkNullableGetter<IPlanetContentTargetGetter> Content => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IPlanetContentTargetGetter>(_package, _recordData, _ContentLocation);
-        #endregion
-        #region OverrideContentPlacementPropertiesAndConditions
-        private int? _OverrideContentPlacementPropertiesAndConditionsLocation;
-        public Boolean OverrideContentPlacementPropertiesAndConditions => _OverrideContentPlacementPropertiesAndConditionsLocation.HasValue ? true : default(Boolean);
-        #endregion
+        public IReadOnlyList<IAComponentGetter> Components => Payload.Components ?? [];
+        public IFormLinkNullableGetter<IPlanetContentTargetGetter> Content => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IPlanetContentTargetGetter>(_package, _recordData, Payload.ContentLocation);
+        public Boolean OverrideContentPlacementPropertiesAndConditions => Payload.OverrideContentPlacementPropertiesAndConditionsLocation.HasValue ? true : default(Boolean);
         #region Keywords
-        public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? Keywords { get; private set; }
+        public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? Keywords => Payload.Keywords;
         IReadOnlyList<IFormLinkGetter<IKeywordCommonGetter>>? IKeywordedGetter.Keywords => this.Keywords;
         #endregion
-        #region ParentNode
-        private int? _ParentNodeLocation;
-        public IFormLinkNullableGetter<IPlanetContentManagerBranchNodeGetter> ParentNode => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IPlanetContentManagerBranchNodeGetter>(_package, _recordData, _ParentNodeLocation);
-        #endregion
-        #region PreviousNode
-        private int? _PreviousNodeLocation;
-        public IFormLinkNullableGetter<IPlanetContentManagerContentNodeGetter> PreviousNode => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IPlanetContentManagerContentNodeGetter>(_package, _recordData, _PreviousNodeLocation);
-        #endregion
+        public IFormLinkNullableGetter<IPlanetContentManagerBranchNodeGetter> ParentNode => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IPlanetContentManagerBranchNodeGetter>(_package, _recordData, Payload.ParentNodeLocation);
+        public IFormLinkNullableGetter<IPlanetContentManagerContentNodeGetter> PreviousNode => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IPlanetContentManagerContentNodeGetter>(_package, _recordData, Payload.PreviousNodeLocation);
+
+        internal partial class PlanetContentManagerContentNodeRecordDataPayload
+        {
+            public IReadOnlyList<IAComponentGetter> Components = [];
+            public int? ContentLocation;
+            public int? OverrideContentPlacementPropertiesAndConditionsLocation;
+            public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? Keywords;
+            public int? ParentNodeLocation;
+            public int? PreviousNodeLocation;
+        }
+
+        private LazyPayload<PlanetContentManagerContentNodeRecordDataPayload> _payload = null!;
+
+        internal PlanetContentManagerContentNodeRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<PlanetContentManagerContentNodeRecordDataPayload>(init, new PlanetContentManagerContentNodeRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -2100,10 +2109,10 @@ namespace Mutagen.Bethesda.Starfield
 
         partial void CustomCtor();
         protected PlanetContentManagerContentNodeBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -2114,28 +2123,51 @@ namespace Mutagen.Bethesda.Starfield
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new PlanetContentManagerContentNodeBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -2164,7 +2196,7 @@ namespace Mutagen.Bethesda.Starfield
             {
                 case RecordTypeInts.BFCB:
                 {
-                    this.Components = this.ParseRepeatedTypelessSubrecord<IAComponentGetter>(
+                    _payload.Fields.Components = this.ParseRepeatedTypelessSubrecord<IAComponentGetter>(
                         stream: stream,
                         translationParams: translationParams,
                         trigger: AComponent_Registration.TriggerSpecs,
@@ -2173,17 +2205,17 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.PCCC:
                 {
-                    _ContentLocation = (stream.Position - offset);
+                    _payload.Fields.ContentLocation = (stream.Position - offset);
                     return (int)PlanetContentManagerContentNode_FieldIndex.Content;
                 }
                 case RecordTypeInts.IOVR:
                 {
-                    _OverrideContentPlacementPropertiesAndConditionsLocation = (stream.Position - offset);
+                    _payload.Fields.OverrideContentPlacementPropertiesAndConditionsLocation = (stream.Position - offset);
                     return (int)PlanetContentManagerContentNode_FieldIndex.OverrideContentPlacementPropertiesAndConditions;
                 }
                 case RecordTypeInts.KWDA:
                 {
-                    this.Keywords = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<IKeywordGetter>>(
+                    _payload.Fields.Keywords = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<IKeywordGetter>>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -2193,12 +2225,12 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.PRTN:
                 {
-                    _ParentNodeLocation = (stream.Position - offset);
+                    _payload.Fields.ParentNodeLocation = (stream.Position - offset);
                     return (int)PlanetContentManagerContentNode_FieldIndex.ParentNode;
                 }
                 case RecordTypeInts.PRVN:
                 {
-                    _PreviousNodeLocation = (stream.Position - offset);
+                    _payload.Fields.PreviousNodeLocation = (stream.Position - offset);
                     return (int)PlanetContentManagerContentNode_FieldIndex.PreviousNode;
                 }
                 default:

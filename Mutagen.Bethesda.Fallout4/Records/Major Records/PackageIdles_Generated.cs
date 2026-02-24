@@ -1468,7 +1468,14 @@ namespace Mutagen.Bethesda.Fallout4
         #endregion
         #region IDLB
         private int? _IDLBLocation;
-        public Int32? IDLB => _IDLBLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _IDLBLocation.Value, _package.MetaData.Constants)) : default(Int32?);
+        public Int32? IDLB
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _IDLBLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _IDLBLocation.Value, _package.MetaData.Constants)) : default(Int32?);
+            }
+        }
         #endregion
         partial void CustomFactoryEnd(
             OverlayStream stream,

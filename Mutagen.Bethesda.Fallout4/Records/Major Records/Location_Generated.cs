@@ -37,6 +37,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -5351,25 +5352,24 @@ namespace Mutagen.Bethesda.Fallout4
 
         public Location.MajorFlag MajorFlags => (Location.MajorFlag)this.MajorRecordFlagsRaw;
 
-        public IReadOnlyList<IPersistentActorReferenceGetter>? PersistentActorReferencesAdded { get; private set; }
-        public IReadOnlyList<IPersistentActorReferenceGetter>? PersistentActorReferencesStatic { get; private set; }
-        public IReadOnlyList<IFormLinkGetter<IPlacedSimpleGetter>>? PersistentActorReferencesRemoved { get; private set; }
-        public IReadOnlyList<IUniqueActorReferenceGetter>? UniqueActorReferencesAdded { get; private set; }
-        public IReadOnlyList<IUniqueActorReferenceGetter>? UniqueActorReferencesStatic { get; private set; }
-        public IReadOnlyList<IFormLinkGetter<INpcGetter>>? UniqueActorReferencesRemoved { get; private set; }
-        public IReadOnlyList<ILocationRefTypeReferenceGetter>? LocationRefTypeReferencesAdded { get; private set; }
-        public IReadOnlyList<ILocationRefTypeReferenceGetter>? LocationRefTypeReferencesStatic { get; private set; }
-        public IReadOnlyList<IFormLinkGetter<IPlacedSimpleGetter>>? LocationRefTypeReferencesRemoved { get; private set; }
-        public IReadOnlyList<ILocationCoordinateGetter> WorldspaceCellsAdded { get; private set; } = [];
-        public IReadOnlyList<ILocationCoordinateGetter> WorldspaceCellsStatic { get; private set; } = [];
-        public IReadOnlyList<ILocationCoordinateGetter> WorldspaceCellsRemoved { get; private set; } = [];
-        public IReadOnlyList<IFormLinkGetter<IPlacedGetter>>? InitiallyDisabledReferencesAdded { get; private set; }
-        public IReadOnlyList<IFormLinkGetter<IPlacedGetter>>? InitiallyDisabledReferencesStatic { get; private set; }
-        public IReadOnlyList<IEnableParentReferenceGetter>? EnableParentReferencesAdded { get; private set; }
-        public IReadOnlyList<IEnableParentReferenceGetter>? EnableParentReferencesStatic { get; private set; }
+        public IReadOnlyList<IPersistentActorReferenceGetter>? PersistentActorReferencesAdded => Payload.PersistentActorReferencesAdded;
+        public IReadOnlyList<IPersistentActorReferenceGetter>? PersistentActorReferencesStatic => Payload.PersistentActorReferencesStatic;
+        public IReadOnlyList<IFormLinkGetter<IPlacedSimpleGetter>>? PersistentActorReferencesRemoved => Payload.PersistentActorReferencesRemoved;
+        public IReadOnlyList<IUniqueActorReferenceGetter>? UniqueActorReferencesAdded => Payload.UniqueActorReferencesAdded;
+        public IReadOnlyList<IUniqueActorReferenceGetter>? UniqueActorReferencesStatic => Payload.UniqueActorReferencesStatic;
+        public IReadOnlyList<IFormLinkGetter<INpcGetter>>? UniqueActorReferencesRemoved => Payload.UniqueActorReferencesRemoved;
+        public IReadOnlyList<ILocationRefTypeReferenceGetter>? LocationRefTypeReferencesAdded => Payload.LocationRefTypeReferencesAdded;
+        public IReadOnlyList<ILocationRefTypeReferenceGetter>? LocationRefTypeReferencesStatic => Payload.LocationRefTypeReferencesStatic;
+        public IReadOnlyList<IFormLinkGetter<IPlacedSimpleGetter>>? LocationRefTypeReferencesRemoved => Payload.LocationRefTypeReferencesRemoved;
+        public IReadOnlyList<ILocationCoordinateGetter> WorldspaceCellsAdded => Payload.WorldspaceCellsAdded ?? [];
+        public IReadOnlyList<ILocationCoordinateGetter> WorldspaceCellsStatic => Payload.WorldspaceCellsStatic ?? [];
+        public IReadOnlyList<ILocationCoordinateGetter> WorldspaceCellsRemoved => Payload.WorldspaceCellsRemoved ?? [];
+        public IReadOnlyList<IFormLinkGetter<IPlacedGetter>>? InitiallyDisabledReferencesAdded => Payload.InitiallyDisabledReferencesAdded;
+        public IReadOnlyList<IFormLinkGetter<IPlacedGetter>>? InitiallyDisabledReferencesStatic => Payload.InitiallyDisabledReferencesStatic;
+        public IReadOnlyList<IEnableParentReferenceGetter>? EnableParentReferencesAdded => Payload.EnableParentReferencesAdded;
+        public IReadOnlyList<IEnableParentReferenceGetter>? EnableParentReferencesStatic => Payload.EnableParentReferencesStatic;
         #region Name
-        private int? _NameLocation;
-        public ITranslatedStringGetter? Name => _NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+        public ITranslatedStringGetter? Name => Payload.NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
         #region Aspects
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         string INamedRequiredGetter.Name => this.Name?.String ?? string.Empty;
@@ -5380,37 +5380,55 @@ namespace Mutagen.Bethesda.Fallout4
         #endregion
         #endregion
         #region Keywords
-        public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? Keywords { get; private set; }
+        public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? Keywords => Payload.Keywords;
         IReadOnlyList<IFormLinkGetter<IKeywordCommonGetter>>? IKeywordedGetter.Keywords => this.Keywords;
         #endregion
-        #region ParentLocation
-        private int? _ParentLocationLocation;
-        public IFormLinkNullableGetter<ILocationGetter> ParentLocation => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ILocationGetter>(_package, _recordData, _ParentLocationLocation);
-        #endregion
-        #region Music
-        private int? _MusicLocation;
-        public IFormLinkNullableGetter<IMusicTypeGetter> Music => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IMusicTypeGetter>(_package, _recordData, _MusicLocation);
-        #endregion
-        #region UnreportedCrimeFaction
-        private int? _UnreportedCrimeFactionLocation;
-        public IFormLinkNullableGetter<IFactionGetter> UnreportedCrimeFaction => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IFactionGetter>(_package, _recordData, _UnreportedCrimeFactionLocation);
-        #endregion
-        #region WorldLocationMarkerRef
-        private int? _WorldLocationMarkerRefLocation;
-        public IFormLinkNullableGetter<IPlacedSimpleGetter> WorldLocationMarkerRef => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IPlacedSimpleGetter>(_package, _recordData, _WorldLocationMarkerRefLocation);
-        #endregion
-        #region WorldLocationRadius
-        private int? _WorldLocationRadiusLocation;
-        public Single? WorldLocationRadius => _WorldLocationRadiusLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _WorldLocationRadiusLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
-        #endregion
-        #region ActorFadeMult
-        private int? _ActorFadeMultLocation;
-        public Single? ActorFadeMult => _ActorFadeMultLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _ActorFadeMultLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
-        #endregion
-        #region Color
-        private int? _ColorLocation;
-        public Color? Color => _ColorLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _ColorLocation.Value, _package.MetaData.Constants).ReadColor(ColorBinaryType.Alpha) : default(Color?);
-        #endregion
+        public IFormLinkNullableGetter<ILocationGetter> ParentLocation => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ILocationGetter>(_package, _recordData, Payload.ParentLocationLocation);
+        public IFormLinkNullableGetter<IMusicTypeGetter> Music => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IMusicTypeGetter>(_package, _recordData, Payload.MusicLocation);
+        public IFormLinkNullableGetter<IFactionGetter> UnreportedCrimeFaction => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IFactionGetter>(_package, _recordData, Payload.UnreportedCrimeFactionLocation);
+        public IFormLinkNullableGetter<IPlacedSimpleGetter> WorldLocationMarkerRef => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IPlacedSimpleGetter>(_package, _recordData, Payload.WorldLocationMarkerRefLocation);
+        public Single? WorldLocationRadius => Payload.WorldLocationRadiusLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.WorldLocationRadiusLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public Single? ActorFadeMult => Payload.ActorFadeMultLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.ActorFadeMultLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public Color? Color => Payload.ColorLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.ColorLocation.Value, _package.MetaData.Constants).ReadColor(ColorBinaryType.Alpha) : default(Color?);
+
+        internal partial class LocationRecordDataPayload
+        {
+            public IReadOnlyList<IPersistentActorReferenceGetter>? PersistentActorReferencesAdded;
+            public IReadOnlyList<IPersistentActorReferenceGetter>? PersistentActorReferencesStatic;
+            public IReadOnlyList<IFormLinkGetter<IPlacedSimpleGetter>>? PersistentActorReferencesRemoved;
+            public IReadOnlyList<IUniqueActorReferenceGetter>? UniqueActorReferencesAdded;
+            public IReadOnlyList<IUniqueActorReferenceGetter>? UniqueActorReferencesStatic;
+            public IReadOnlyList<IFormLinkGetter<INpcGetter>>? UniqueActorReferencesRemoved;
+            public IReadOnlyList<ILocationRefTypeReferenceGetter>? LocationRefTypeReferencesAdded;
+            public IReadOnlyList<ILocationRefTypeReferenceGetter>? LocationRefTypeReferencesStatic;
+            public IReadOnlyList<IFormLinkGetter<IPlacedSimpleGetter>>? LocationRefTypeReferencesRemoved;
+            public IReadOnlyList<ILocationCoordinateGetter> WorldspaceCellsAdded = [];
+            public IReadOnlyList<ILocationCoordinateGetter> WorldspaceCellsStatic = [];
+            public IReadOnlyList<ILocationCoordinateGetter> WorldspaceCellsRemoved = [];
+            public IReadOnlyList<IFormLinkGetter<IPlacedGetter>>? InitiallyDisabledReferencesAdded;
+            public IReadOnlyList<IFormLinkGetter<IPlacedGetter>>? InitiallyDisabledReferencesStatic;
+            public IReadOnlyList<IEnableParentReferenceGetter>? EnableParentReferencesAdded;
+            public IReadOnlyList<IEnableParentReferenceGetter>? EnableParentReferencesStatic;
+            public int? NameLocation;
+            public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? Keywords;
+            public int? ParentLocationLocation;
+            public int? MusicLocation;
+            public int? UnreportedCrimeFactionLocation;
+            public int? WorldLocationMarkerRefLocation;
+            public int? WorldLocationRadiusLocation;
+            public int? ActorFadeMultLocation;
+            public int? ColorLocation;
+        }
+
+        private LazyPayload<LocationRecordDataPayload> _payload = null!;
+
+        internal LocationRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<LocationRecordDataPayload>(init, new LocationRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -5418,10 +5436,10 @@ namespace Mutagen.Bethesda.Fallout4
 
         partial void CustomCtor();
         protected LocationBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -5432,28 +5450,51 @@ namespace Mutagen.Bethesda.Fallout4
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new LocationBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -5482,7 +5523,7 @@ namespace Mutagen.Bethesda.Fallout4
             {
                 case RecordTypeInts.ACPR:
                 {
-                    this.PersistentActorReferencesAdded = BinaryOverlayList.FactoryByStartIndexWithTrigger<IPersistentActorReferenceGetter>(
+                    _payload.Fields.PersistentActorReferencesAdded = BinaryOverlayList.FactoryByStartIndexWithTrigger<IPersistentActorReferenceGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -5492,7 +5533,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.LCPR:
                 {
-                    this.PersistentActorReferencesStatic = BinaryOverlayList.FactoryByStartIndexWithTrigger<IPersistentActorReferenceGetter>(
+                    _payload.Fields.PersistentActorReferencesStatic = BinaryOverlayList.FactoryByStartIndexWithTrigger<IPersistentActorReferenceGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -5502,7 +5543,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.RCPR:
                 {
-                    this.PersistentActorReferencesRemoved = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<IPlacedSimpleGetter>>(
+                    _payload.Fields.PersistentActorReferencesRemoved = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<IPlacedSimpleGetter>>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -5512,7 +5553,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.ACUN:
                 {
-                    this.UniqueActorReferencesAdded = BinaryOverlayList.FactoryByStartIndexWithTrigger<IUniqueActorReferenceGetter>(
+                    _payload.Fields.UniqueActorReferencesAdded = BinaryOverlayList.FactoryByStartIndexWithTrigger<IUniqueActorReferenceGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -5522,7 +5563,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.LCUN:
                 {
-                    this.UniqueActorReferencesStatic = BinaryOverlayList.FactoryByStartIndexWithTrigger<IUniqueActorReferenceGetter>(
+                    _payload.Fields.UniqueActorReferencesStatic = BinaryOverlayList.FactoryByStartIndexWithTrigger<IUniqueActorReferenceGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -5532,7 +5573,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.RCUN:
                 {
-                    this.UniqueActorReferencesRemoved = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<INpcGetter>>(
+                    _payload.Fields.UniqueActorReferencesRemoved = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<INpcGetter>>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -5542,7 +5583,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.ACSR:
                 {
-                    this.LocationRefTypeReferencesAdded = BinaryOverlayList.FactoryByStartIndexWithTrigger<ILocationRefTypeReferenceGetter>(
+                    _payload.Fields.LocationRefTypeReferencesAdded = BinaryOverlayList.FactoryByStartIndexWithTrigger<ILocationRefTypeReferenceGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -5552,7 +5593,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.LCSR:
                 {
-                    this.LocationRefTypeReferencesStatic = BinaryOverlayList.FactoryByStartIndexWithTrigger<ILocationRefTypeReferenceGetter>(
+                    _payload.Fields.LocationRefTypeReferencesStatic = BinaryOverlayList.FactoryByStartIndexWithTrigger<ILocationRefTypeReferenceGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -5562,7 +5603,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.RCSR:
                 {
-                    this.LocationRefTypeReferencesRemoved = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<IPlacedSimpleGetter>>(
+                    _payload.Fields.LocationRefTypeReferencesRemoved = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<IPlacedSimpleGetter>>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -5572,7 +5613,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.ACEC:
                 {
-                    this.WorldspaceCellsAdded = this.ParseRepeatedTypelessSubrecord<ILocationCoordinateGetter>(
+                    _payload.Fields.WorldspaceCellsAdded = this.ParseRepeatedTypelessSubrecord<ILocationCoordinateGetter>(
                         stream: stream,
                         translationParams: translationParams,
                         trigger: RecordTypes.ACEC,
@@ -5582,7 +5623,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.LCEC:
                 {
-                    this.WorldspaceCellsStatic = this.ParseRepeatedTypelessSubrecord<ILocationCoordinateGetter>(
+                    _payload.Fields.WorldspaceCellsStatic = this.ParseRepeatedTypelessSubrecord<ILocationCoordinateGetter>(
                         stream: stream,
                         translationParams: translationParams,
                         trigger: RecordTypes.LCEC,
@@ -5592,7 +5633,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.RCEC:
                 {
-                    this.WorldspaceCellsRemoved = this.ParseRepeatedTypelessSubrecord<ILocationCoordinateGetter>(
+                    _payload.Fields.WorldspaceCellsRemoved = this.ParseRepeatedTypelessSubrecord<ILocationCoordinateGetter>(
                         stream: stream,
                         translationParams: translationParams,
                         trigger: RecordTypes.RCEC,
@@ -5602,7 +5643,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.ACID:
                 {
-                    this.InitiallyDisabledReferencesAdded = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<IPlacedGetter>>(
+                    _payload.Fields.InitiallyDisabledReferencesAdded = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<IPlacedGetter>>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -5612,7 +5653,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.LCID:
                 {
-                    this.InitiallyDisabledReferencesStatic = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<IPlacedGetter>>(
+                    _payload.Fields.InitiallyDisabledReferencesStatic = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<IPlacedGetter>>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -5622,7 +5663,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.ACEP:
                 {
-                    this.EnableParentReferencesAdded = BinaryOverlayList.FactoryByStartIndexWithTrigger<IEnableParentReferenceGetter>(
+                    _payload.Fields.EnableParentReferencesAdded = BinaryOverlayList.FactoryByStartIndexWithTrigger<IEnableParentReferenceGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -5632,7 +5673,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.LCEP:
                 {
-                    this.EnableParentReferencesStatic = BinaryOverlayList.FactoryByStartIndexWithTrigger<IEnableParentReferenceGetter>(
+                    _payload.Fields.EnableParentReferencesStatic = BinaryOverlayList.FactoryByStartIndexWithTrigger<IEnableParentReferenceGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -5642,13 +5683,13 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.FULL:
                 {
-                    _NameLocation = (stream.Position - offset);
+                    _payload.Fields.NameLocation = (stream.Position - offset);
                     return (int)Location_FieldIndex.Name;
                 }
                 case RecordTypeInts.KSIZ:
                 case RecordTypeInts.KWDA:
                 {
-                    this.Keywords = BinaryOverlayList.FactoryByCount<IFormLinkGetter<IKeywordGetter>>(
+                    _payload.Fields.Keywords = BinaryOverlayList.FactoryByCount<IFormLinkGetter<IKeywordGetter>>(
                         stream: stream,
                         package: _package,
                         itemLength: 0x4,
@@ -5660,37 +5701,37 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.PNAM:
                 {
-                    _ParentLocationLocation = (stream.Position - offset);
+                    _payload.Fields.ParentLocationLocation = (stream.Position - offset);
                     return (int)Location_FieldIndex.ParentLocation;
                 }
                 case RecordTypeInts.NAM1:
                 {
-                    _MusicLocation = (stream.Position - offset);
+                    _payload.Fields.MusicLocation = (stream.Position - offset);
                     return (int)Location_FieldIndex.Music;
                 }
                 case RecordTypeInts.FNAM:
                 {
-                    _UnreportedCrimeFactionLocation = (stream.Position - offset);
+                    _payload.Fields.UnreportedCrimeFactionLocation = (stream.Position - offset);
                     return (int)Location_FieldIndex.UnreportedCrimeFaction;
                 }
                 case RecordTypeInts.MNAM:
                 {
-                    _WorldLocationMarkerRefLocation = (stream.Position - offset);
+                    _payload.Fields.WorldLocationMarkerRefLocation = (stream.Position - offset);
                     return (int)Location_FieldIndex.WorldLocationMarkerRef;
                 }
                 case RecordTypeInts.RNAM:
                 {
-                    _WorldLocationRadiusLocation = (stream.Position - offset);
+                    _payload.Fields.WorldLocationRadiusLocation = (stream.Position - offset);
                     return (int)Location_FieldIndex.WorldLocationRadius;
                 }
                 case RecordTypeInts.ANAM:
                 {
-                    _ActorFadeMultLocation = (stream.Position - offset);
+                    _payload.Fields.ActorFadeMultLocation = (stream.Position - offset);
                     return (int)Location_FieldIndex.ActorFadeMult;
                 }
                 case RecordTypeInts.CNAM:
                 {
-                    _ColorLocation = (stream.Position - offset);
+                    _payload.Fields.ColorLocation = (stream.Position - offset);
                     return (int)Location_FieldIndex.Color;
                 }
                 case RecordTypeInts.XXXX:

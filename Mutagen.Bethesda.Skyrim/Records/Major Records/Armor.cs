@@ -38,12 +38,19 @@ partial class ArmorBinaryWriteTranslation
 
 partial class ArmorBinaryOverlay
 {
-    private int? _BodyTemplateLocation;
-    public partial IBodyTemplateGetter? GetBodyTemplateCustom() => _BodyTemplateLocation.HasValue ? BodyTemplateBinaryOverlay.CustomFactory(new OverlayStream(_recordData.Slice(_BodyTemplateLocation!.Value), _package), _package) : default;
-    public bool BodyTemplate_IsSet => _BodyTemplateLocation.HasValue;
+    internal partial class ArmorRecordDataPayload
+    {
+        public int? BodyTemplateLocation;
+    }
+
+    public partial IBodyTemplateGetter? GetBodyTemplateCustom()
+    {
+        return Payload.BodyTemplateLocation.HasValue ? BodyTemplateBinaryOverlay.CustomFactory(new OverlayStream(_recordData.Slice(Payload.BodyTemplateLocation!.Value), _package), _package) : default;
+    }
+    public bool BodyTemplate_IsSet => Payload.BodyTemplateLocation.HasValue;
 
     partial void BodyTemplateCustomParse(OverlayStream stream, int finalPos, int offset)
     {
-        _BodyTemplateLocation = (stream.Position - offset);
+        _payload.Fields.BodyTemplateLocation = (stream.Position - offset);
     }
 }

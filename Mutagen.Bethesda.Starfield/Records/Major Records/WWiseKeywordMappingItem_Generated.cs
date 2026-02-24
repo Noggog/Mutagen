@@ -1207,7 +1207,14 @@ namespace Mutagen.Bethesda.Starfield
 
         #region WMSI
         private int? _WMSILocation;
-        public UInt16? WMSI => _WMSILocation.HasValue ? BinaryPrimitives.ReadUInt16LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _WMSILocation.Value, _package.MetaData.Constants)) : default(UInt16?);
+        public UInt16? WMSI
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _WMSILocation.HasValue ? BinaryPrimitives.ReadUInt16LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _WMSILocation.Value, _package.MetaData.Constants)) : default(UInt16?);
+            }
+        }
         #endregion
         #region Sound
         private RangeInt32? _SoundLocation;

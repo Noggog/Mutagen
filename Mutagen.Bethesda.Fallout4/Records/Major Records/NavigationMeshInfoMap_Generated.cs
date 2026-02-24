@@ -34,6 +34,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -1793,19 +1794,28 @@ namespace Mutagen.Bethesda.Fallout4
         protected override Type LinkType => typeof(INavigationMeshInfoMapGetter);
 
 
-        #region NavMeshVersion
-        private int? _NavMeshVersionLocation;
-        public UInt32? NavMeshVersion => _NavMeshVersionLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NavMeshVersionLocation.Value, _package.MetaData.Constants)) : default(UInt32?);
-        #endregion
-        public IReadOnlyList<INavigationMapInfoGetter> MapInfos { get; private set; } = [];
-        #region PreferredPathing
-        private RangeInt32? _PreferredPathingLocation;
-        public IPreferredPathingGetter? PreferredPathing => _PreferredPathingLocation.HasValue ? PreferredPathingBinaryOverlay.PreferredPathingFactory(_recordData.Slice(_PreferredPathingLocation!.Value.Min), _package) : default;
-        #endregion
-        #region NVSI
-        private int? _NVSILocation;
-        public ReadOnlyMemorySlice<Byte>? NVSI => _NVSILocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _NVSILocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
-        #endregion
+        public UInt32? NavMeshVersion => Payload.NavMeshVersionLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NavMeshVersionLocation.Value, _package.MetaData.Constants)) : default(UInt32?);
+        public IReadOnlyList<INavigationMapInfoGetter> MapInfos => Payload.MapInfos ?? [];
+        public IPreferredPathingGetter? PreferredPathing => Payload.PreferredPathingLocation.HasValue ? PreferredPathingBinaryOverlay.PreferredPathingFactory(_recordData.Slice(Payload.PreferredPathingLocation!.Value.Min), _package) : default;
+        public ReadOnlyMemorySlice<Byte>? NVSI => Payload.NVSILocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NVSILocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
+
+        internal partial class NavigationMeshInfoMapRecordDataPayload
+        {
+            public int? NavMeshVersionLocation;
+            public IReadOnlyList<INavigationMapInfoGetter> MapInfos = [];
+            public RangeInt32? PreferredPathingLocation;
+            public int? NVSILocation;
+        }
+
+        private LazyPayload<NavigationMeshInfoMapRecordDataPayload> _payload = null!;
+
+        internal NavigationMeshInfoMapRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<NavigationMeshInfoMapRecordDataPayload>(init, new NavigationMeshInfoMapRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -1813,10 +1823,10 @@ namespace Mutagen.Bethesda.Fallout4
 
         partial void CustomCtor();
         protected NavigationMeshInfoMapBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -1827,28 +1837,51 @@ namespace Mutagen.Bethesda.Fallout4
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new NavigationMeshInfoMapBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -1877,12 +1910,12 @@ namespace Mutagen.Bethesda.Fallout4
             {
                 case RecordTypeInts.NVER:
                 {
-                    _NavMeshVersionLocation = (stream.Position - offset);
+                    _payload.Fields.NavMeshVersionLocation = (stream.Position - offset);
                     return (int)NavigationMeshInfoMap_FieldIndex.NavMeshVersion;
                 }
                 case RecordTypeInts.NVMI:
                 {
-                    this.MapInfos = BinaryOverlayList.FactoryByArray<INavigationMapInfoGetter>(
+                    _payload.Fields.MapInfos = BinaryOverlayList.FactoryByArray<INavigationMapInfoGetter>(
                         mem: stream.RemainingMemory,
                         package: _package,
                         translationParams: translationParams,
@@ -1897,12 +1930,12 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.NVPP:
                 {
-                    _PreferredPathingLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.PreferredPathingLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)NavigationMeshInfoMap_FieldIndex.PreferredPathing;
                 }
                 case RecordTypeInts.NVSI:
                 {
-                    _NVSILocation = (stream.Position - offset);
+                    _payload.Fields.NVSILocation = (stream.Position - offset);
                     return (int)NavigationMeshInfoMap_FieldIndex.NVSI;
                 }
                 default:

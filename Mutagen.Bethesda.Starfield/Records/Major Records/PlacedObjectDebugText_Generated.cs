@@ -1194,7 +1194,14 @@ namespace Mutagen.Bethesda.Starfield
 
         #region String
         private int? _StringLocation;
-        public String? String => _StringLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _StringLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? String
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _StringLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_data, _StringLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+            }
+        }
         #endregion
         #region Format
         private RangeInt32? _FormatLocation;

@@ -1,0 +1,7 @@
+RecordTypes.EDID,
+RecordTypes.FULL,
+RecordTypes.DESC,
+RecordTypes.ANAM,
+RecordTypes.NAM0,
+RecordTypes.AVFL,
+RecordTypes.NAM1,

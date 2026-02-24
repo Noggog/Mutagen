@@ -1587,7 +1587,14 @@ namespace Mutagen.Bethesda.Starfield
         #endregion
         #region NextPartID
         private int? _NextPartIDLocation;
-        public UInt32? NextPartID => _NextPartIDLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NextPartIDLocation.Value, _package.MetaData.Constants)) : default(UInt32?);
+        public UInt32? NextPartID
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _NextPartIDLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _NextPartIDLocation.Value, _package.MetaData.Constants)) : default(UInt32?);
+            }
+        }
         #endregion
         partial void CustomFactoryEnd(
             OverlayStream stream,

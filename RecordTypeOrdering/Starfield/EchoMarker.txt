@@ -1,0 +1,8 @@
+RecordTypes.ECTE,
+RecordTypes.ECSH,
+RecordTypes.ANAM,
+RecordTypes.BNAM,
+RecordTypes.CNAM,
+RecordTypes.DNAM,
+RecordTypes.ENAM,
+RecordTypes.NNAM,

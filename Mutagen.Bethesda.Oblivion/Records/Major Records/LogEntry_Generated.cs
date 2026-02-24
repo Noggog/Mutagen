@@ -1477,7 +1477,14 @@ namespace Mutagen.Bethesda.Oblivion
         public IReadOnlyList<IConditionGetter> Conditions { get; private set; } = [];
         #region Entry
         private int? _EntryLocation;
-        public String? Entry => _EntryLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _EntryLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? Entry
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _EntryLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_data, _EntryLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+            }
+        }
         #endregion
         public IScriptFieldsGetter? ResultScript { get; private set; }
         partial void CustomFactoryEnd(

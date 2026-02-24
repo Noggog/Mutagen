@@ -36,6 +36,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -2404,13 +2405,11 @@ namespace Mutagen.Bethesda.Skyrim
 
 
         #region ObjectBounds
-        private RangeInt32? _ObjectBoundsLocation;
-        private IObjectBoundsGetter? _ObjectBounds => _ObjectBoundsLocation.HasValue ? ObjectBoundsBinaryOverlay.ObjectBoundsFactory(_recordData.Slice(_ObjectBoundsLocation!.Value.Min), _package) : default;
+        private IObjectBoundsGetter? _ObjectBounds => Payload.ObjectBoundsLocation.HasValue ? ObjectBoundsBinaryOverlay.ObjectBoundsFactory(_recordData.Slice(Payload.ObjectBoundsLocation!.Value.Min), _package) : default;
         public IObjectBoundsGetter ObjectBounds => _ObjectBounds ?? new ObjectBounds();
         #endregion
         #region Name
-        private int? _NameLocation;
-        public ITranslatedStringGetter? Name => _NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+        public ITranslatedStringGetter? Name => Payload.NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
         #region Aspects
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         string INamedRequiredGetter.Name => this.Name?.String ?? string.Empty;
@@ -2420,54 +2419,72 @@ namespace Mutagen.Bethesda.Skyrim
         ITranslatedStringGetter ITranslatedNamedRequiredGetter.Name => this.Name ?? TranslatedString.Empty;
         #endregion
         #endregion
-        private RangeInt32? _ENITLocation;
-        public ObjectEffect.ENITDataType ENITDataTypeState { get; private set; }
+        public ObjectEffect.ENITDataType ENITDataTypeState => Payload.ENITDataTypeState;
         #region EnchantmentCost
-        private int _EnchantmentCostLocation => _ENITLocation!.Value.Min;
-        private bool _EnchantmentCost_IsSet => _ENITLocation.HasValue;
+        private int _EnchantmentCostLocation => Payload.ENITLocation!.Value.Min;
+        private bool _EnchantmentCost_IsSet => Payload.ENITLocation.HasValue;
         public UInt32 EnchantmentCost => _EnchantmentCost_IsSet ? BinaryPrimitives.ReadUInt32LittleEndian(_recordData.Slice(_EnchantmentCostLocation, 4)) : default(UInt32);
         #endregion
         #region Flags
-        private int _FlagsLocation => _ENITLocation!.Value.Min + 0x4;
-        private bool _Flags_IsSet => _ENITLocation.HasValue;
+        private int _FlagsLocation => Payload.ENITLocation!.Value.Min + 0x4;
+        private bool _Flags_IsSet => Payload.ENITLocation.HasValue;
         public ObjectEffect.Flag Flags => _Flags_IsSet ? (ObjectEffect.Flag)BinaryPrimitives.ReadInt32LittleEndian(_recordData.Span.Slice(_FlagsLocation, 0x4)) : default;
         #endregion
         #region CastType
-        private int _CastTypeLocation => _ENITLocation!.Value.Min + 0x8;
-        private bool _CastType_IsSet => _ENITLocation.HasValue;
+        private int _CastTypeLocation => Payload.ENITLocation!.Value.Min + 0x8;
+        private bool _CastType_IsSet => Payload.ENITLocation.HasValue;
         public CastType CastType => _CastType_IsSet ? (CastType)BinaryPrimitives.ReadInt32LittleEndian(_recordData.Span.Slice(_CastTypeLocation, 0x4)) : default;
         #endregion
         #region EnchantmentAmount
-        private int _EnchantmentAmountLocation => _ENITLocation!.Value.Min + 0xC;
-        private bool _EnchantmentAmount_IsSet => _ENITLocation.HasValue;
+        private int _EnchantmentAmountLocation => Payload.ENITLocation!.Value.Min + 0xC;
+        private bool _EnchantmentAmount_IsSet => Payload.ENITLocation.HasValue;
         public Int32 EnchantmentAmount => _EnchantmentAmount_IsSet ? BinaryPrimitives.ReadInt32LittleEndian(_recordData.Slice(_EnchantmentAmountLocation, 4)) : default(Int32);
         #endregion
         #region TargetType
-        private int _TargetTypeLocation => _ENITLocation!.Value.Min + 0x10;
-        private bool _TargetType_IsSet => _ENITLocation.HasValue;
+        private int _TargetTypeLocation => Payload.ENITLocation!.Value.Min + 0x10;
+        private bool _TargetType_IsSet => Payload.ENITLocation.HasValue;
         public TargetType TargetType => _TargetType_IsSet ? (TargetType)BinaryPrimitives.ReadInt32LittleEndian(_recordData.Span.Slice(_TargetTypeLocation, 0x4)) : default;
         #endregion
         #region EnchantType
-        private int _EnchantTypeLocation => _ENITLocation!.Value.Min + 0x14;
-        private bool _EnchantType_IsSet => _ENITLocation.HasValue;
+        private int _EnchantTypeLocation => Payload.ENITLocation!.Value.Min + 0x14;
+        private bool _EnchantType_IsSet => Payload.ENITLocation.HasValue;
         public ObjectEffect.EnchantTypeEnum EnchantType => _EnchantType_IsSet ? (ObjectEffect.EnchantTypeEnum)BinaryPrimitives.ReadInt32LittleEndian(_recordData.Span.Slice(_EnchantTypeLocation, 0x4)) : default;
         #endregion
         #region ChargeTime
-        private int _ChargeTimeLocation => _ENITLocation!.Value.Min + 0x18;
-        private bool _ChargeTime_IsSet => _ENITLocation.HasValue;
+        private int _ChargeTimeLocation => Payload.ENITLocation!.Value.Min + 0x18;
+        private bool _ChargeTime_IsSet => Payload.ENITLocation.HasValue;
         public Single ChargeTime => _ChargeTime_IsSet ? _recordData.Slice(_ChargeTimeLocation, 4).Float() : default(Single);
         #endregion
         #region BaseEnchantment
-        private int _BaseEnchantmentLocation => _ENITLocation!.Value.Min + 0x1C;
-        private bool _BaseEnchantment_IsSet => _ENITLocation.HasValue;
+        private int _BaseEnchantmentLocation => Payload.ENITLocation!.Value.Min + 0x1C;
+        private bool _BaseEnchantment_IsSet => Payload.ENITLocation.HasValue;
         public IFormLinkGetter<IObjectEffectGetter> BaseEnchantment => _BaseEnchantment_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IObjectEffectGetter>(_package, _recordData.Span.Slice(_BaseEnchantmentLocation, 0x4), isSet: _BaseEnchantment_IsSet) : FormLink<IObjectEffectGetter>.Null;
         #endregion
         #region WornRestrictions
-        private int _WornRestrictionsLocation => _ENITLocation!.Value.Min + 0x20;
-        private bool _WornRestrictions_IsSet => _ENITLocation.HasValue && !ENITDataTypeState.HasFlag(ObjectEffect.ENITDataType.Break0);
+        private int _WornRestrictionsLocation => Payload.ENITLocation!.Value.Min + 0x20;
+        private bool _WornRestrictions_IsSet => Payload.ENITLocation.HasValue && !ENITDataTypeState.HasFlag(ObjectEffect.ENITDataType.Break0);
         public IFormLinkGetter<IFormListGetter> WornRestrictions => _WornRestrictions_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IFormListGetter>(_package, _recordData.Span.Slice(_WornRestrictionsLocation, 0x4), isSet: _WornRestrictions_IsSet) : FormLink<IFormListGetter>.Null;
         #endregion
-        public IReadOnlyList<IEffectGetter> Effects { get; private set; } = [];
+        public IReadOnlyList<IEffectGetter> Effects => Payload.Effects ?? [];
+
+        internal partial class ObjectEffectRecordDataPayload
+        {
+            public RangeInt32? ObjectBoundsLocation;
+            public int? NameLocation;
+            public RangeInt32? ENITLocation;
+            public ObjectEffect.ENITDataType ENITDataTypeState;
+            public IReadOnlyList<IEffectGetter> Effects = [];
+        }
+
+        private LazyPayload<ObjectEffectRecordDataPayload> _payload = null!;
+
+        internal ObjectEffectRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<ObjectEffectRecordDataPayload>(init, new ObjectEffectRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -2475,10 +2492,10 @@ namespace Mutagen.Bethesda.Skyrim
 
         partial void CustomCtor();
         protected ObjectEffectBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -2489,28 +2506,51 @@ namespace Mutagen.Bethesda.Skyrim
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new ObjectEffectBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -2539,21 +2579,21 @@ namespace Mutagen.Bethesda.Skyrim
             {
                 case RecordTypeInts.OBND:
                 {
-                    _ObjectBoundsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.ObjectBoundsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)ObjectEffect_FieldIndex.ObjectBounds;
                 }
                 case RecordTypeInts.FULL:
                 {
-                    _NameLocation = (stream.Position - offset);
+                    _payload.Fields.NameLocation = (stream.Position - offset);
                     return (int)ObjectEffect_FieldIndex.Name;
                 }
                 case RecordTypeInts.ENIT:
                 {
-                    _ENITLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.ENITLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     var subLen = _package.MetaData.Constants.SubrecordHeader(_recordData.Slice((stream.Position - offset))).ContentLength;
                     if (subLen <= 0x20)
                     {
-                        this.ENITDataTypeState |= ObjectEffect.ENITDataType.Break0;
+                        _payload.Fields.ENITDataTypeState |= ObjectEffect.ENITDataType.Break0;
                     }
                     return (int)ObjectEffect_FieldIndex.WornRestrictions;
                 }
@@ -2561,7 +2601,7 @@ namespace Mutagen.Bethesda.Skyrim
                 case RecordTypeInts.EFIT:
                 case RecordTypeInts.CTDA:
                 {
-                    this.Effects = this.ParseRepeatedTypelessSubrecord<IEffectGetter>(
+                    _payload.Fields.Effects = this.ParseRepeatedTypelessSubrecord<IEffectGetter>(
                         stream: stream,
                         translationParams: translationParams,
                         trigger: Effect_Registration.TriggerSpecs,

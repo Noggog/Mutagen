@@ -1,0 +1,4 @@
+RecordTypes.EDID,
+RecordTypes.OBND,
+RecordTypes.SDSC,
+RecordTypes.REPT,

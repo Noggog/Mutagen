@@ -123,7 +123,15 @@ public abstract class BinaryTranslationGeneration : TranslationGeneration
                 {
                     sb.AppendLine($"stream.ReadSubrecord(); // Skip marker");
                 }
-                sb.AppendLine($"_{typeGen.Name}Location = {locationAccessor};");
+                var isMajor = await objGen.IsMajorRecord();
+                if (isMajor)
+                {
+                    sb.AppendLine($"_payload.Fields.{typeGen.Name}Location = {locationAccessor};");
+                }
+                else
+                {
+                    sb.AppendLine($"_{typeGen.Name}Location = {locationAccessor};");
+                }
                 if (data.MarkerType.HasValue)
                 {
                     sb.AppendLine($"stream.ReadSubrecord(); // Skip record");

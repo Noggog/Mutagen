@@ -34,6 +34,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -1750,19 +1751,28 @@ namespace Mutagen.Bethesda.Oblivion
         protected override Type LinkType => typeof(ILandTextureGetter);
 
 
-        #region Icon
-        private int? _IconLocation;
-        public String? Icon => _IconLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _IconLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
-        #region Havok
-        private RangeInt32? _HavokLocation;
-        public IHavokDataGetter? Havok => _HavokLocation.HasValue ? HavokDataBinaryOverlay.HavokDataFactory(_recordData.Slice(_HavokLocation!.Value.Min), _package) : default;
-        #endregion
-        #region TextureSpecularExponent
-        private int? _TextureSpecularExponentLocation;
-        public Byte? TextureSpecularExponent => _TextureSpecularExponentLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _TextureSpecularExponentLocation.Value, _package.MetaData.Constants)[0] : default(Byte?);
-        #endregion
-        public IReadOnlyList<IFormLinkGetter<IGrassGetter>> PotentialGrass { get; private set; } = [];
+        public String? Icon => Payload.IconLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.IconLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public IHavokDataGetter? Havok => Payload.HavokLocation.HasValue ? HavokDataBinaryOverlay.HavokDataFactory(_recordData.Slice(Payload.HavokLocation!.Value.Min), _package) : default;
+        public Byte? TextureSpecularExponent => Payload.TextureSpecularExponentLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.TextureSpecularExponentLocation.Value, _package.MetaData.Constants)[0] : default(Byte?);
+        public IReadOnlyList<IFormLinkGetter<IGrassGetter>> PotentialGrass => Payload.PotentialGrass ?? [];
+
+        internal partial class LandTextureRecordDataPayload
+        {
+            public int? IconLocation;
+            public RangeInt32? HavokLocation;
+            public int? TextureSpecularExponentLocation;
+            public IReadOnlyList<IFormLinkGetter<IGrassGetter>> PotentialGrass = [];
+        }
+
+        private LazyPayload<LandTextureRecordDataPayload> _payload = null!;
+
+        internal LandTextureRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<LandTextureRecordDataPayload>(init, new LandTextureRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -1770,10 +1780,10 @@ namespace Mutagen.Bethesda.Oblivion
 
         partial void CustomCtor();
         protected LandTextureBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -1784,28 +1794,51 @@ namespace Mutagen.Bethesda.Oblivion
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new LandTextureBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -1834,22 +1867,22 @@ namespace Mutagen.Bethesda.Oblivion
             {
                 case RecordTypeInts.ICON:
                 {
-                    _IconLocation = (stream.Position - offset);
+                    _payload.Fields.IconLocation = (stream.Position - offset);
                     return (int)LandTexture_FieldIndex.Icon;
                 }
                 case RecordTypeInts.HNAM:
                 {
-                    _HavokLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.HavokLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)LandTexture_FieldIndex.Havok;
                 }
                 case RecordTypeInts.SNAM:
                 {
-                    _TextureSpecularExponentLocation = (stream.Position - offset);
+                    _payload.Fields.TextureSpecularExponentLocation = (stream.Position - offset);
                     return (int)LandTexture_FieldIndex.TextureSpecularExponent;
                 }
                 case RecordTypeInts.GNAM:
                 {
-                    this.PotentialGrass = BinaryOverlayList.FactoryByArray<IFormLinkGetter<IGrassGetter>>(
+                    _payload.Fields.PotentialGrass = BinaryOverlayList.FactoryByArray<IFormLinkGetter<IGrassGetter>>(
                         mem: stream.RemainingMemory,
                         package: _package,
                         getter: (s, p) => FormLinkBinaryTranslation.Instance.OverlayFactory<IGrassGetter>(p, s),

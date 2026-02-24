@@ -151,11 +151,15 @@ partial class PathGridBinaryWriteTranslation
     
 internal partial class PathGridBinaryOverlay
 {
-    public IReadOnlyList<IPathGridPointGetter>? PointToPointConnections { get; private set; }
+    internal partial class PathGridRecordDataPayload
+    {
+        public IReadOnlyList<IPathGridPointGetter>? PointToPointConnections;
+        public int? PGAGLocation;
+    }
 
-    private int? _PGAGLocation;
-    public bool PGAG_IsSet => _PGAGLocation.HasValue;
-    public ReadOnlyMemorySlice<byte>? PGAG => _PGAGLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _PGAGLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
+    public IReadOnlyList<IPathGridPointGetter>? PointToPointConnections => Payload.PointToPointConnections;
+    public bool PGAG_IsSet => Payload.PGAGLocation.HasValue;
+    public ReadOnlyMemorySlice<byte>? PGAG => Payload.PGAGLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.PGAGLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
 
     partial void PointToPointConnectionsCustomParse(OverlayStream stream, int finalPos, int offset, RecordType type, PreviousParse lastParsed)
     {
@@ -180,13 +184,13 @@ internal partial class PathGridBinaryOverlay
             switch (subMeta.RecordType.TypeInt)
             {
                 case RecordTypeInts.PGAG:
-                    this._PGAGLocation = stream.Position - offset;
+                    _payload.Fields.PGAGLocation = stream.Position - offset;
                     stream.Position += subMeta.TotalLength;
                     break;
                 case RecordTypeInts.PGRR:
                     stream.Position += subMeta.HeaderLength;
                     var connectionPtData = stream.ReadMemory(subMeta.ContentLength);
-                    this.PointToPointConnections = BinaryOverlayList.FactoryByLazyParse<IPathGridPointGetter>(
+                    _payload.Fields.PointToPointConnections = BinaryOverlayList.FactoryByLazyParse<IPathGridPointGetter>(
                         pointData,
                         _package,
                         getter: (s, p) =>
@@ -212,7 +216,7 @@ internal partial class PathGridBinaryOverlay
 
         if (!readPGRR)
         {
-            this.PointToPointConnections = BinaryOverlayList.FactoryByStartIndex<IPathGridPointGetter>(
+            _payload.Fields.PointToPointConnections = BinaryOverlayList.FactoryByStartIndex<IPathGridPointGetter>(
                 pointData,
                 this._package,
                 itemLength: 16,

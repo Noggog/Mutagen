@@ -38,6 +38,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -6576,8 +6577,7 @@ namespace Mutagen.Bethesda.Fallout4
         public Cell.MajorFlag MajorFlags => (Cell.MajorFlag)this.MajorRecordFlagsRaw;
 
         #region Name
-        private int? _NameLocation;
-        public ITranslatedStringGetter? Name => _NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+        public ITranslatedStringGetter? Name => Payload.NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
         #region Aspects
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         string INamedRequiredGetter.Name => this.Name?.String ?? string.Empty;
@@ -6587,119 +6587,85 @@ namespace Mutagen.Bethesda.Fallout4
         ITranslatedStringGetter ITranslatedNamedRequiredGetter.Name => this.Name ?? TranslatedString.Empty;
         #endregion
         #endregion
-        #region Flags
-        private int? _FlagsLocation;
-        public Cell.Flag Flags => EnumBinaryTranslation<Cell.Flag, MutagenFrame, MutagenWriter>.Instance.ParseRecord(_FlagsLocation, _recordData, _package, 2);
-        #endregion
-        #region PreVisFilesTimestamp
-        private int? _PreVisFilesTimestampLocation;
-        public UInt16? PreVisFilesTimestamp => _PreVisFilesTimestampLocation.HasValue ? BinaryPrimitives.ReadUInt16LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _PreVisFilesTimestampLocation.Value, _package.MetaData.Constants)) : default(UInt16?);
-        #endregion
-        #region InPreVisFileOf
-        private int? _InPreVisFileOfLocation;
-        public IFormLinkNullableGetter<ICellGetter> InPreVisFileOf => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ICellGetter>(_package, _recordData, _InPreVisFileOfLocation);
-        #endregion
-        #region PreCombinedFilesTimestamp
-        private int? _PreCombinedFilesTimestampLocation;
-        public UInt16? PreCombinedFilesTimestamp => _PreCombinedFilesTimestampLocation.HasValue ? BinaryPrimitives.ReadUInt16LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _PreCombinedFilesTimestampLocation.Value, _package.MetaData.Constants)) : default(UInt16?);
-        #endregion
-        #region Grid
-        private RangeInt32? _GridLocation;
-        public ICellGridGetter? Grid => _GridLocation.HasValue ? CellGridBinaryOverlay.CellGridFactory(_recordData.Slice(_GridLocation!.Value.Min), _package) : default;
-        #endregion
-        #region Lighting
-        private RangeInt32? _LightingLocation;
-        public ICellLightingGetter? Lighting => _LightingLocation.HasValue ? CellLightingBinaryOverlay.CellLightingFactory(_recordData.Slice(_LightingLocation!.Value.Min), _package) : default;
-        #endregion
-        #region PrecombinedObjectLevelXY
-        private int? _PrecombinedObjectLevelXYLocation;
-        public Byte? PrecombinedObjectLevelXY => _PrecombinedObjectLevelXYLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _PrecombinedObjectLevelXYLocation.Value, _package.MetaData.Constants)[0] : default(Byte?);
-        #endregion
-        #region PrecombinedObjectLevelZ
-        private int? _PrecombinedObjectLevelZLocation;
-        public Byte? PrecombinedObjectLevelZ => _PrecombinedObjectLevelZLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _PrecombinedObjectLevelZLocation.Value, _package.MetaData.Constants)[0] : default(Byte?);
-        #endregion
-        #region TVDT
-        private int? _TVDTLocation;
-        public ReadOnlyMemorySlice<Byte>? TVDT => _TVDTLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _TVDTLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
-        #endregion
-        #region MaxHeightData
-        private RangeInt32? _MaxHeightDataLocation;
-        public ICellMaxHeightDataGetter? MaxHeightData => _MaxHeightDataLocation.HasValue ? CellMaxHeightDataBinaryOverlay.CellMaxHeightDataFactory(_recordData.Slice(_MaxHeightDataLocation!.Value.Min), _package) : default;
-        #endregion
-        #region LightingTemplate
-        private int? _LightingTemplateLocation;
-        public IFormLinkGetter<ILightingTemplateGetter> LightingTemplate => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ILightingTemplateGetter>(_package, _recordData, _LightingTemplateLocation);
-        #endregion
-        #region WaterHeight
-        private int? _WaterHeightLocation;
-        public Single? WaterHeight => _WaterHeightLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _WaterHeightLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
-        #endregion
-        public IReadOnlyList<IFormLinkGetter<IRegionGetter>>? Regions { get; private set; }
-        #region Location
-        private int? _LocationLocation;
-        public IFormLinkNullableGetter<ILocationGetter> Location => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ILocationGetter>(_package, _recordData, _LocationLocation);
-        #endregion
-        #region XWCN
-        private int? _XWCNLocation;
-        public ReadOnlyMemorySlice<Byte>? XWCN => _XWCNLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _XWCNLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
-        #endregion
-        #region WaterVelocity
-        private RangeInt32? _WaterVelocityLocation;
-        public ICellWaterVelocityGetter? WaterVelocity => _WaterVelocityLocation.HasValue ? CellWaterVelocityBinaryOverlay.CellWaterVelocityFactory(_recordData.Slice(_WaterVelocityLocation!.Value.Min), _package) : default;
-        #endregion
-        #region Water
-        private int? _WaterLocation;
-        public IFormLinkNullableGetter<IWaterGetter> Water => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IWaterGetter>(_package, _recordData, _WaterLocation);
-        #endregion
-        public IOwnershipGetter? Ownership { get; private set; }
-        #region FactionRank
-        private int? _FactionRankLocation;
-        public Int32? FactionRank => _FactionRankLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _FactionRankLocation.Value, _package.MetaData.Constants)) : default(Int32?);
-        #endregion
-        #region LockList
-        private int? _LockListLocation;
-        public IFormLinkNullableGetter<ILockListGetter> LockList => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ILockListGetter>(_package, _recordData, _LockListLocation);
-        #endregion
-        #region ExteriorLod
-        private RangeInt32? _ExteriorLodLocation;
-        public ICellExteriorLodGetter? ExteriorLod => _ExteriorLodLocation.HasValue ? CellExteriorLodBinaryOverlay.CellExteriorLodFactory(_recordData.Slice(_ExteriorLodLocation!.Value.Min), _package) : default;
-        #endregion
-        #region WaterEnvironmentMap
-        private int? _WaterEnvironmentMapLocation;
-        public String? WaterEnvironmentMap => _WaterEnvironmentMapLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _WaterEnvironmentMapLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
-        #region SkyAndWeatherFromRegion
-        private int? _SkyAndWeatherFromRegionLocation;
-        public IFormLinkNullableGetter<IRegionGetter> SkyAndWeatherFromRegion => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IRegionGetter>(_package, _recordData, _SkyAndWeatherFromRegionLocation);
-        #endregion
-        #region AcousticSpace
-        private int? _AcousticSpaceLocation;
-        public IFormLinkNullableGetter<IAcousticSpaceGetter> AcousticSpace => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IAcousticSpaceGetter>(_package, _recordData, _AcousticSpaceLocation);
-        #endregion
-        #region EncounterZone
-        private int? _EncounterZoneLocation;
-        public IFormLinkNullableGetter<IEncounterZoneGetter> EncounterZone => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IEncounterZoneGetter>(_package, _recordData, _EncounterZoneLocation);
-        #endregion
-        #region Music
-        private int? _MusicLocation;
-        public IFormLinkNullableGetter<IMusicTypeGetter> Music => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IMusicTypeGetter>(_package, _recordData, _MusicLocation);
-        #endregion
-        #region ImageSpace
-        private int? _ImageSpaceLocation;
-        public IFormLinkNullableGetter<IImageSpaceGetter> ImageSpace => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IImageSpaceGetter>(_package, _recordData, _ImageSpaceLocation);
-        #endregion
-        #region GodRays
-        private int? _GodRaysLocation;
-        public IFormLinkNullableGetter<IGodRaysGetter> GodRays => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IGodRaysGetter>(_package, _recordData, _GodRaysLocation);
-        #endregion
-        public IReadOnlyList<IFormLinkGetter<IPlacedThingGetter>>? PhysicsReferences { get; private set; }
+        public Cell.Flag Flags => EnumBinaryTranslation<Cell.Flag, MutagenFrame, MutagenWriter>.Instance.ParseRecord(Payload.FlagsLocation, _recordData, _package, 2);
+        public UInt16? PreVisFilesTimestamp => Payload.PreVisFilesTimestampLocation.HasValue ? BinaryPrimitives.ReadUInt16LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.PreVisFilesTimestampLocation.Value, _package.MetaData.Constants)) : default(UInt16?);
+        public IFormLinkNullableGetter<ICellGetter> InPreVisFileOf => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ICellGetter>(_package, _recordData, Payload.InPreVisFileOfLocation);
+        public UInt16? PreCombinedFilesTimestamp => Payload.PreCombinedFilesTimestampLocation.HasValue ? BinaryPrimitives.ReadUInt16LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.PreCombinedFilesTimestampLocation.Value, _package.MetaData.Constants)) : default(UInt16?);
+        public ICellGridGetter? Grid => Payload.GridLocation.HasValue ? CellGridBinaryOverlay.CellGridFactory(_recordData.Slice(Payload.GridLocation!.Value.Min), _package) : default;
+        public ICellLightingGetter? Lighting => Payload.LightingLocation.HasValue ? CellLightingBinaryOverlay.CellLightingFactory(_recordData.Slice(Payload.LightingLocation!.Value.Min), _package) : default;
+        public Byte? PrecombinedObjectLevelXY => Payload.PrecombinedObjectLevelXYLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.PrecombinedObjectLevelXYLocation.Value, _package.MetaData.Constants)[0] : default(Byte?);
+        public Byte? PrecombinedObjectLevelZ => Payload.PrecombinedObjectLevelZLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.PrecombinedObjectLevelZLocation.Value, _package.MetaData.Constants)[0] : default(Byte?);
+        public ReadOnlyMemorySlice<Byte>? TVDT => Payload.TVDTLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.TVDTLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
+        public ICellMaxHeightDataGetter? MaxHeightData => Payload.MaxHeightDataLocation.HasValue ? CellMaxHeightDataBinaryOverlay.CellMaxHeightDataFactory(_recordData.Slice(Payload.MaxHeightDataLocation!.Value.Min), _package) : default;
+        public IFormLinkGetter<ILightingTemplateGetter> LightingTemplate => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ILightingTemplateGetter>(_package, _recordData, Payload.LightingTemplateLocation);
+        public Single? WaterHeight => Payload.WaterHeightLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.WaterHeightLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public IReadOnlyList<IFormLinkGetter<IRegionGetter>>? Regions => Payload.Regions;
+        public IFormLinkNullableGetter<ILocationGetter> Location => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ILocationGetter>(_package, _recordData, Payload.LocationLocation);
+        public ReadOnlyMemorySlice<Byte>? XWCN => Payload.XWCNLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.XWCNLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
+        public ICellWaterVelocityGetter? WaterVelocity => Payload.WaterVelocityLocation.HasValue ? CellWaterVelocityBinaryOverlay.CellWaterVelocityFactory(_recordData.Slice(Payload.WaterVelocityLocation!.Value.Min), _package) : default;
+        public IFormLinkNullableGetter<IWaterGetter> Water => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IWaterGetter>(_package, _recordData, Payload.WaterLocation);
+        public IOwnershipGetter? Ownership => Payload.Ownership;
+        public Int32? FactionRank => Payload.FactionRankLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.FactionRankLocation.Value, _package.MetaData.Constants)) : default(Int32?);
+        public IFormLinkNullableGetter<ILockListGetter> LockList => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ILockListGetter>(_package, _recordData, Payload.LockListLocation);
+        public ICellExteriorLodGetter? ExteriorLod => Payload.ExteriorLodLocation.HasValue ? CellExteriorLodBinaryOverlay.CellExteriorLodFactory(_recordData.Slice(Payload.ExteriorLodLocation!.Value.Min), _package) : default;
+        public String? WaterEnvironmentMap => Payload.WaterEnvironmentMapLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.WaterEnvironmentMapLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public IFormLinkNullableGetter<IRegionGetter> SkyAndWeatherFromRegion => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IRegionGetter>(_package, _recordData, Payload.SkyAndWeatherFromRegionLocation);
+        public IFormLinkNullableGetter<IAcousticSpaceGetter> AcousticSpace => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IAcousticSpaceGetter>(_package, _recordData, Payload.AcousticSpaceLocation);
+        public IFormLinkNullableGetter<IEncounterZoneGetter> EncounterZone => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IEncounterZoneGetter>(_package, _recordData, Payload.EncounterZoneLocation);
+        public IFormLinkNullableGetter<IMusicTypeGetter> Music => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IMusicTypeGetter>(_package, _recordData, Payload.MusicLocation);
+        public IFormLinkNullableGetter<IImageSpaceGetter> ImageSpace => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IImageSpaceGetter>(_package, _recordData, Payload.ImageSpaceLocation);
+        public IFormLinkNullableGetter<IGodRaysGetter> GodRays => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IGodRaysGetter>(_package, _recordData, Payload.GodRaysLocation);
+        public IReadOnlyList<IFormLinkGetter<IPlacedThingGetter>>? PhysicsReferences => Payload.PhysicsReferences;
         #region CombinedMeshLogic
         public partial ParseResult CombinedMeshLogicCustomParse(
             OverlayStream stream,
             int offset,
             PreviousParse lastParsed);
         #endregion
+
+        internal partial class CellRecordDataPayload
+        {
+            public int? NameLocation;
+            public int? FlagsLocation;
+            public int? PreVisFilesTimestampLocation;
+            public int? InPreVisFileOfLocation;
+            public int? PreCombinedFilesTimestampLocation;
+            public RangeInt32? GridLocation;
+            public RangeInt32? LightingLocation;
+            public int? PrecombinedObjectLevelXYLocation;
+            public int? PrecombinedObjectLevelZLocation;
+            public int? TVDTLocation;
+            public RangeInt32? MaxHeightDataLocation;
+            public int? LightingTemplateLocation;
+            public int? WaterHeightLocation;
+            public IReadOnlyList<IFormLinkGetter<IRegionGetter>>? Regions;
+            public int? LocationLocation;
+            public int? XWCNLocation;
+            public RangeInt32? WaterVelocityLocation;
+            public int? WaterLocation;
+            public IOwnershipGetter? Ownership;
+            public int? FactionRankLocation;
+            public int? LockListLocation;
+            public RangeInt32? ExteriorLodLocation;
+            public int? WaterEnvironmentMapLocation;
+            public int? SkyAndWeatherFromRegionLocation;
+            public int? AcousticSpaceLocation;
+            public int? EncounterZoneLocation;
+            public int? MusicLocation;
+            public int? ImageSpaceLocation;
+            public int? GodRaysLocation;
+            public IReadOnlyList<IFormLinkGetter<IPlacedThingGetter>>? PhysicsReferences;
+        }
+
+        private LazyPayload<CellRecordDataPayload> _payload = null!;
+
+        internal CellRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<CellRecordDataPayload>(init, new CellRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -6711,10 +6677,10 @@ namespace Mutagen.Bethesda.Fallout4
 
         partial void CustomCtor();
         protected CellBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -6726,28 +6692,51 @@ namespace Mutagen.Bethesda.Fallout4
             TypedParseParams translationParams = default)
         {
             var origStream = stream;
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new CellBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             ret.CustomEnd(
                 stream: origStream,
                 finalPos: stream.Length,
@@ -6780,72 +6769,72 @@ namespace Mutagen.Bethesda.Fallout4
             {
                 case RecordTypeInts.FULL:
                 {
-                    _NameLocation = (stream.Position - offset);
+                    _payload.Fields.NameLocation = (stream.Position - offset);
                     return (int)Cell_FieldIndex.Name;
                 }
                 case RecordTypeInts.DATA:
                 {
-                    _FlagsLocation = (stream.Position - offset);
+                    _payload.Fields.FlagsLocation = (stream.Position - offset);
                     return (int)Cell_FieldIndex.Flags;
                 }
                 case RecordTypeInts.VISI:
                 {
-                    _PreVisFilesTimestampLocation = (stream.Position - offset);
+                    _payload.Fields.PreVisFilesTimestampLocation = (stream.Position - offset);
                     return (int)Cell_FieldIndex.PreVisFilesTimestamp;
                 }
                 case RecordTypeInts.RVIS:
                 {
-                    _InPreVisFileOfLocation = (stream.Position - offset);
+                    _payload.Fields.InPreVisFileOfLocation = (stream.Position - offset);
                     return (int)Cell_FieldIndex.InPreVisFileOf;
                 }
                 case RecordTypeInts.PCMB:
                 {
-                    _PreCombinedFilesTimestampLocation = (stream.Position - offset);
+                    _payload.Fields.PreCombinedFilesTimestampLocation = (stream.Position - offset);
                     return (int)Cell_FieldIndex.PreCombinedFilesTimestamp;
                 }
                 case RecordTypeInts.XCLC:
                 {
-                    _GridLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.GridLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)Cell_FieldIndex.Grid;
                 }
                 case RecordTypeInts.XCLL:
                 {
-                    _LightingLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.LightingLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)Cell_FieldIndex.Lighting;
                 }
                 case RecordTypeInts.CNAM:
                 {
-                    _PrecombinedObjectLevelXYLocation = (stream.Position - offset);
+                    _payload.Fields.PrecombinedObjectLevelXYLocation = (stream.Position - offset);
                     return (int)Cell_FieldIndex.PrecombinedObjectLevelXY;
                 }
                 case RecordTypeInts.ZNAM:
                 {
-                    _PrecombinedObjectLevelZLocation = (stream.Position - offset);
+                    _payload.Fields.PrecombinedObjectLevelZLocation = (stream.Position - offset);
                     return (int)Cell_FieldIndex.PrecombinedObjectLevelZ;
                 }
                 case RecordTypeInts.TVDT:
                 {
-                    _TVDTLocation = (stream.Position - offset);
+                    _payload.Fields.TVDTLocation = (stream.Position - offset);
                     return (int)Cell_FieldIndex.TVDT;
                 }
                 case RecordTypeInts.MHDT:
                 {
-                    _MaxHeightDataLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.MaxHeightDataLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)Cell_FieldIndex.MaxHeightData;
                 }
                 case RecordTypeInts.LTMP:
                 {
-                    _LightingTemplateLocation = (stream.Position - offset);
+                    _payload.Fields.LightingTemplateLocation = (stream.Position - offset);
                     return (int)Cell_FieldIndex.LightingTemplate;
                 }
                 case RecordTypeInts.XCLW:
                 {
-                    _WaterHeightLocation = (stream.Position - offset);
+                    _payload.Fields.WaterHeightLocation = (stream.Position - offset);
                     return (int)Cell_FieldIndex.WaterHeight;
                 }
                 case RecordTypeInts.XCLR:
                 {
-                    this.Regions = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<IRegionGetter>>(
+                    _payload.Fields.Regions = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<IRegionGetter>>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -6855,27 +6844,27 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.XLCN:
                 {
-                    _LocationLocation = (stream.Position - offset);
+                    _payload.Fields.LocationLocation = (stream.Position - offset);
                     return (int)Cell_FieldIndex.Location;
                 }
                 case RecordTypeInts.XWCN:
                 {
-                    _XWCNLocation = (stream.Position - offset);
+                    _payload.Fields.XWCNLocation = (stream.Position - offset);
                     return (int)Cell_FieldIndex.XWCN;
                 }
                 case RecordTypeInts.XWCU:
                 {
-                    _WaterVelocityLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.WaterVelocityLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)Cell_FieldIndex.WaterVelocity;
                 }
                 case RecordTypeInts.XCWT:
                 {
-                    _WaterLocation = (stream.Position - offset);
+                    _payload.Fields.WaterLocation = (stream.Position - offset);
                     return (int)Cell_FieldIndex.Water;
                 }
                 case RecordTypeInts.XOWN:
                 {
-                    this.Ownership = OwnershipBinaryOverlay.OwnershipFactory(
+                    _payload.Fields.Ownership = OwnershipBinaryOverlay.OwnershipFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());
@@ -6883,57 +6872,57 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.XRNK:
                 {
-                    _FactionRankLocation = (stream.Position - offset);
+                    _payload.Fields.FactionRankLocation = (stream.Position - offset);
                     return (int)Cell_FieldIndex.FactionRank;
                 }
                 case RecordTypeInts.XILL:
                 {
-                    _LockListLocation = (stream.Position - offset);
+                    _payload.Fields.LockListLocation = (stream.Position - offset);
                     return (int)Cell_FieldIndex.LockList;
                 }
                 case RecordTypeInts.XILW:
                 {
-                    _ExteriorLodLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.ExteriorLodLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)Cell_FieldIndex.ExteriorLod;
                 }
                 case RecordTypeInts.XWEM:
                 {
-                    _WaterEnvironmentMapLocation = (stream.Position - offset);
+                    _payload.Fields.WaterEnvironmentMapLocation = (stream.Position - offset);
                     return (int)Cell_FieldIndex.WaterEnvironmentMap;
                 }
                 case RecordTypeInts.XCCM:
                 {
-                    _SkyAndWeatherFromRegionLocation = (stream.Position - offset);
+                    _payload.Fields.SkyAndWeatherFromRegionLocation = (stream.Position - offset);
                     return (int)Cell_FieldIndex.SkyAndWeatherFromRegion;
                 }
                 case RecordTypeInts.XCAS:
                 {
-                    _AcousticSpaceLocation = (stream.Position - offset);
+                    _payload.Fields.AcousticSpaceLocation = (stream.Position - offset);
                     return (int)Cell_FieldIndex.AcousticSpace;
                 }
                 case RecordTypeInts.XEZN:
                 {
-                    _EncounterZoneLocation = (stream.Position - offset);
+                    _payload.Fields.EncounterZoneLocation = (stream.Position - offset);
                     return (int)Cell_FieldIndex.EncounterZone;
                 }
                 case RecordTypeInts.XCMO:
                 {
-                    _MusicLocation = (stream.Position - offset);
+                    _payload.Fields.MusicLocation = (stream.Position - offset);
                     return (int)Cell_FieldIndex.Music;
                 }
                 case RecordTypeInts.XCIM:
                 {
-                    _ImageSpaceLocation = (stream.Position - offset);
+                    _payload.Fields.ImageSpaceLocation = (stream.Position - offset);
                     return (int)Cell_FieldIndex.ImageSpace;
                 }
                 case RecordTypeInts.XGDR:
                 {
-                    _GodRaysLocation = (stream.Position - offset);
+                    _payload.Fields.GodRaysLocation = (stream.Position - offset);
                     return (int)Cell_FieldIndex.GodRays;
                 }
                 case RecordTypeInts.XPRI:
                 {
-                    this.PhysicsReferences = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<IPlacedThingGetter>>(
+                    _payload.Fields.PhysicsReferences = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<IPlacedThingGetter>>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,

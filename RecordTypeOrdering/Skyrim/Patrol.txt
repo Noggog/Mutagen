@@ -1,0 +1,5 @@
+RecordTypes.XPRD,
+RecordTypes.INAM,
+RecordTypes.SCHR,
+RecordTypes.SCTX,
+RecordTypes.PDTO,

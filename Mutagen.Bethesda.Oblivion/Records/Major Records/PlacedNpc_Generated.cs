@@ -34,6 +34,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -2197,43 +2198,40 @@ namespace Mutagen.Bethesda.Oblivion
         protected override Type LinkType => typeof(IPlacedNpcGetter);
 
 
-        #region Base
-        private int? _BaseLocation;
-        public IFormLinkNullableGetter<INpcGetter> Base => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<INpcGetter>(_package, _recordData, _BaseLocation);
-        #endregion
-        #region XPCIFluff
-        private int? _XPCIFluffLocation;
-        public ReadOnlyMemorySlice<Byte>? XPCIFluff => _XPCIFluffLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _XPCIFluffLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
-        #endregion
-        #region FULLFluff
-        private int? _FULLFluffLocation;
-        public ReadOnlyMemorySlice<Byte>? FULLFluff => _FULLFluffLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _FULLFluffLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
-        #endregion
-        #region DistantLODData
-        private RangeInt32? _DistantLODDataLocation;
-        public IDistantLODDataGetter? DistantLODData => _DistantLODDataLocation.HasValue ? DistantLODDataBinaryOverlay.DistantLODDataFactory(_recordData.Slice(_DistantLODDataLocation!.Value.Min), _package) : default;
-        #endregion
-        #region EnableParent
-        private RangeInt32? _EnableParentLocation;
-        public IEnableParentGetter? EnableParent => _EnableParentLocation.HasValue ? EnableParentBinaryOverlay.EnableParentFactory(_recordData.Slice(_EnableParentLocation!.Value.Min), _package) : default;
-        #endregion
-        #region MerchantContainer
-        private int? _MerchantContainerLocation;
-        public IFormLinkNullableGetter<IPlacedObjectGetter> MerchantContainer => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IPlacedObjectGetter>(_package, _recordData, _MerchantContainerLocation);
-        #endregion
-        #region Horse
-        private int? _HorseLocation;
-        public IFormLinkNullableGetter<IPlacedCreatureGetter> Horse => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IPlacedCreatureGetter>(_package, _recordData, _HorseLocation);
-        #endregion
-        #region RagdollData
-        private int? _RagdollDataLocation;
-        public ReadOnlyMemorySlice<Byte>? RagdollData => _RagdollDataLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _RagdollDataLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
-        #endregion
-        #region Scale
-        private int? _ScaleLocation;
-        public Single? Scale => _ScaleLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _ScaleLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
-        #endregion
-        public ILocationGetter? Location { get; private set; }
+        public IFormLinkNullableGetter<INpcGetter> Base => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<INpcGetter>(_package, _recordData, Payload.BaseLocation);
+        public ReadOnlyMemorySlice<Byte>? XPCIFluff => Payload.XPCIFluffLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.XPCIFluffLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
+        public ReadOnlyMemorySlice<Byte>? FULLFluff => Payload.FULLFluffLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.FULLFluffLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
+        public IDistantLODDataGetter? DistantLODData => Payload.DistantLODDataLocation.HasValue ? DistantLODDataBinaryOverlay.DistantLODDataFactory(_recordData.Slice(Payload.DistantLODDataLocation!.Value.Min), _package) : default;
+        public IEnableParentGetter? EnableParent => Payload.EnableParentLocation.HasValue ? EnableParentBinaryOverlay.EnableParentFactory(_recordData.Slice(Payload.EnableParentLocation!.Value.Min), _package) : default;
+        public IFormLinkNullableGetter<IPlacedObjectGetter> MerchantContainer => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IPlacedObjectGetter>(_package, _recordData, Payload.MerchantContainerLocation);
+        public IFormLinkNullableGetter<IPlacedCreatureGetter> Horse => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IPlacedCreatureGetter>(_package, _recordData, Payload.HorseLocation);
+        public ReadOnlyMemorySlice<Byte>? RagdollData => Payload.RagdollDataLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.RagdollDataLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
+        public Single? Scale => Payload.ScaleLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.ScaleLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public ILocationGetter? Location => Payload.Location;
+
+        internal partial class PlacedNpcRecordDataPayload
+        {
+            public int? BaseLocation;
+            public int? XPCIFluffLocation;
+            public int? FULLFluffLocation;
+            public RangeInt32? DistantLODDataLocation;
+            public RangeInt32? EnableParentLocation;
+            public int? MerchantContainerLocation;
+            public int? HorseLocation;
+            public int? RagdollDataLocation;
+            public int? ScaleLocation;
+            public ILocationGetter? Location;
+        }
+
+        private LazyPayload<PlacedNpcRecordDataPayload> _payload = null!;
+
+        internal PlacedNpcRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<PlacedNpcRecordDataPayload>(init, new PlacedNpcRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -2241,10 +2239,10 @@ namespace Mutagen.Bethesda.Oblivion
 
         partial void CustomCtor();
         protected PlacedNpcBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -2255,28 +2253,51 @@ namespace Mutagen.Bethesda.Oblivion
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new PlacedNpcBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -2305,53 +2326,53 @@ namespace Mutagen.Bethesda.Oblivion
             {
                 case RecordTypeInts.NAME:
                 {
-                    _BaseLocation = (stream.Position - offset);
+                    _payload.Fields.BaseLocation = (stream.Position - offset);
                     return (int)PlacedNpc_FieldIndex.Base;
                 }
                 case RecordTypeInts.XPCI:
                 {
-                    _XPCIFluffLocation = (stream.Position - offset);
+                    _payload.Fields.XPCIFluffLocation = (stream.Position - offset);
                     return (int)PlacedNpc_FieldIndex.XPCIFluff;
                 }
                 case RecordTypeInts.FULL:
                 {
-                    _FULLFluffLocation = (stream.Position - offset);
+                    _payload.Fields.FULLFluffLocation = (stream.Position - offset);
                     return (int)PlacedNpc_FieldIndex.FULLFluff;
                 }
                 case RecordTypeInts.XLOD:
                 {
-                    _DistantLODDataLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.DistantLODDataLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)PlacedNpc_FieldIndex.DistantLODData;
                 }
                 case RecordTypeInts.XESP:
                 {
-                    _EnableParentLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.EnableParentLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)PlacedNpc_FieldIndex.EnableParent;
                 }
                 case RecordTypeInts.XMRC:
                 {
-                    _MerchantContainerLocation = (stream.Position - offset);
+                    _payload.Fields.MerchantContainerLocation = (stream.Position - offset);
                     return (int)PlacedNpc_FieldIndex.MerchantContainer;
                 }
                 case RecordTypeInts.XHRS:
                 {
-                    _HorseLocation = (stream.Position - offset);
+                    _payload.Fields.HorseLocation = (stream.Position - offset);
                     return (int)PlacedNpc_FieldIndex.Horse;
                 }
                 case RecordTypeInts.XRGD:
                 {
-                    _RagdollDataLocation = (stream.Position - offset);
+                    _payload.Fields.RagdollDataLocation = (stream.Position - offset);
                     return (int)PlacedNpc_FieldIndex.RagdollData;
                 }
                 case RecordTypeInts.XSCL:
                 {
-                    _ScaleLocation = (stream.Position - offset);
+                    _payload.Fields.ScaleLocation = (stream.Position - offset);
                     return (int)PlacedNpc_FieldIndex.Scale;
                 }
                 case RecordTypeInts.DATA:
                 {
                     stream.Position += _package.MetaData.Constants.SubConstants.HeaderLength;
-                    this.Location = LocationBinaryOverlay.LocationFactory(
+                    _payload.Fields.Location = LocationBinaryOverlay.LocationFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());

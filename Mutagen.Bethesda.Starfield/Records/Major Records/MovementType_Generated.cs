@@ -34,6 +34,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -1777,33 +1778,37 @@ namespace Mutagen.Bethesda.Starfield
 
 
         #region Name
-        private int? _NameLocation;
-        public String? Name => _NameLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NameLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? Name => Payload.NameLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NameLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
         #region Aspects
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         string INamedRequiredGetter.Name => this.Name ?? string.Empty;
         #endregion
         #endregion
-        #region SPED
-        private int? _SPEDLocation;
-        public ReadOnlyMemorySlice<Byte>? SPED => _SPEDLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _SPEDLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
-        #endregion
-        #region FlightAngleGain
-        private int? _FlightAngleGainLocation;
-        public Single? FlightAngleGain => _FlightAngleGainLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _FlightAngleGainLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
-        #endregion
-        #region KNAM
-        private int? _KNAMLocation;
-        public Single? KNAM => _KNAMLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _KNAMLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
-        #endregion
-        #region INTV
-        private int? _INTVLocation;
-        public UInt32? INTV => _INTVLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _INTVLocation.Value, _package.MetaData.Constants)) : default(UInt32?);
-        #endregion
-        #region BOLV
-        private int? _BOLVLocation;
-        public Boolean BOLV => _BOLVLocation.HasValue ? true : default(Boolean);
-        #endregion
+        public ReadOnlyMemorySlice<Byte>? SPED => Payload.SPEDLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.SPEDLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
+        public Single? FlightAngleGain => Payload.FlightAngleGainLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.FlightAngleGainLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public Single? KNAM => Payload.KNAMLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.KNAMLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public UInt32? INTV => Payload.INTVLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.INTVLocation.Value, _package.MetaData.Constants)) : default(UInt32?);
+        public Boolean BOLV => Payload.BOLVLocation.HasValue ? true : default(Boolean);
+
+        internal partial class MovementTypeRecordDataPayload
+        {
+            public int? NameLocation;
+            public int? SPEDLocation;
+            public int? FlightAngleGainLocation;
+            public int? KNAMLocation;
+            public int? INTVLocation;
+            public int? BOLVLocation;
+        }
+
+        private LazyPayload<MovementTypeRecordDataPayload> _payload = null!;
+
+        internal MovementTypeRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<MovementTypeRecordDataPayload>(init, new MovementTypeRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -1811,10 +1816,10 @@ namespace Mutagen.Bethesda.Starfield
 
         partial void CustomCtor();
         protected MovementTypeBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -1825,28 +1830,51 @@ namespace Mutagen.Bethesda.Starfield
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new MovementTypeBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -1875,32 +1903,32 @@ namespace Mutagen.Bethesda.Starfield
             {
                 case RecordTypeInts.MNAM:
                 {
-                    _NameLocation = (stream.Position - offset);
+                    _payload.Fields.NameLocation = (stream.Position - offset);
                     return (int)MovementType_FieldIndex.Name;
                 }
                 case RecordTypeInts.SPED:
                 {
-                    _SPEDLocation = (stream.Position - offset);
+                    _payload.Fields.SPEDLocation = (stream.Position - offset);
                     return (int)MovementType_FieldIndex.SPED;
                 }
                 case RecordTypeInts.LNAM:
                 {
-                    _FlightAngleGainLocation = (stream.Position - offset);
+                    _payload.Fields.FlightAngleGainLocation = (stream.Position - offset);
                     return (int)MovementType_FieldIndex.FlightAngleGain;
                 }
                 case RecordTypeInts.KNAM:
                 {
-                    _KNAMLocation = (stream.Position - offset);
+                    _payload.Fields.KNAMLocation = (stream.Position - offset);
                     return (int)MovementType_FieldIndex.KNAM;
                 }
                 case RecordTypeInts.INTV:
                 {
-                    _INTVLocation = (stream.Position - offset);
+                    _payload.Fields.INTVLocation = (stream.Position - offset);
                     return (int)MovementType_FieldIndex.INTV;
                 }
                 case RecordTypeInts.BOLV:
                 {
-                    _BOLVLocation = (stream.Position - offset);
+                    _payload.Fields.BOLVLocation = (stream.Position - offset);
                     return (int)MovementType_FieldIndex.BOLV;
                 }
                 default:

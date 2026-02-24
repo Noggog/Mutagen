@@ -269,21 +269,25 @@ partial class PlacedObjectBinaryWriteTranslation
     
 partial class PlacedObjectBinaryOverlay
 {
-    int? _boundDataLoc;
+    internal partial class PlacedObjectRecordDataPayload
+    {
+        public int? BoundDataLoc;
+        public IReadOnlyList<IFormLinkGetter<IPlacedObjectGetter>> LinkedRooms = Array.Empty<IFormLinkGetter<IPlacedObjectGetter>>();
+        public int? LightingTemplateLoc;
+        public int? ImageSpaceLoc;
+    }
 
-    public short Unknown => _boundDataLoc.HasValue ? BinaryPrimitives.ReadInt16LittleEndian(_recordData.Slice(_boundDataLoc.Value + 8)) : default(short);
+    public short Unknown { get { return Payload.BoundDataLoc.HasValue ? BinaryPrimitives.ReadInt16LittleEndian(_recordData.Slice(Payload.BoundDataLoc.Value + 8)) : default(short); } }
 
-    public IReadOnlyList<IFormLinkGetter<IPlacedObjectGetter>> LinkedRooms { get; private set; } = Array.Empty<IFormLinkGetter<IPlacedObjectGetter>>();
+    public IReadOnlyList<IFormLinkGetter<IPlacedObjectGetter>> LinkedRooms { get { return Payload.LinkedRooms; } }
 
-    int? _lightingTemplateLoc;
-    public IFormLinkNullableGetter<ILightingTemplateGetter> LightingTemplate => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ILightingTemplateGetter>(_package, _recordData, _lightingTemplateLoc);
+    public IFormLinkNullableGetter<ILightingTemplateGetter> LightingTemplate { get { return FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ILightingTemplateGetter>(_package, _recordData, Payload.LightingTemplateLoc); } }
 
-    int? _imageSpaceLoc;
-    public IFormLinkNullableGetter<IImageSpaceGetter> ImageSpace => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IImageSpaceGetter>(_package, _recordData, _imageSpaceLoc);
+    public IFormLinkNullableGetter<IImageSpaceGetter> ImageSpace { get { return FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IImageSpaceGetter>(_package, _recordData, Payload.ImageSpaceLoc); } }
 
     public partial ParseResult BoundDataCustomParse(OverlayStream stream, int offset, PreviousParse lastParsed)
     {
-        _boundDataLoc = stream.Position - offset;
+        _payload.Fields.BoundDataLoc = stream.Position - offset;
         var header = stream.ReadSubrecord();
         if (header.Content.Length != 4)
         {
@@ -296,15 +300,15 @@ partial class PlacedObjectBinaryOverlay
             switch (subHeader.RecordTypeInt)
             {
                 case RecordTypeInts.LNAM:
-                    _lightingTemplateLoc = stream.Position - offset;
+                    _payload.Fields.LightingTemplateLoc = stream.Position - offset;
                     stream.Position += subHeader.TotalLength;
                     break;
                 case RecordTypeInts.INAM:
-                    _imageSpaceLoc = stream.Position - offset;
+                    _payload.Fields.ImageSpaceLoc = stream.Position - offset;
                     stream.Position += subHeader.TotalLength;
                     break;
                 case RecordTypeInts.XLRM:
-                    LinkedRooms = BinaryOverlayList.FactoryByArray<IFormLinkGetter<IPlacedObjectGetter>>(
+                    _payload.Fields.LinkedRooms = BinaryOverlayList.FactoryByArray<IFormLinkGetter<IPlacedObjectGetter>>(
                         stream.RemainingMemory,
                         _package,
                         (s, p) => FormLinkBinaryTranslation.Instance.OverlayFactory<IPlacedObjectGetter>(p, s),

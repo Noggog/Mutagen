@@ -38,6 +38,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -6646,10 +6647,9 @@ namespace Mutagen.Bethesda.Starfield
 
         public Cell.MajorFlag MajorFlags => (Cell.MajorFlag)this.MajorRecordFlagsRaw;
 
-        public IReadOnlyList<IAComponentGetter> Components { get; private set; } = [];
+        public IReadOnlyList<IAComponentGetter> Components => Payload.Components ?? [];
         #region Name
-        private int? _NameLocation;
-        public ITranslatedStringGetter? Name => _NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+        public ITranslatedStringGetter? Name => Payload.NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
         #region Aspects
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         string INamedRequiredGetter.Name => this.Name?.String ?? string.Empty;
@@ -6659,102 +6659,33 @@ namespace Mutagen.Bethesda.Starfield
         ITranslatedStringGetter ITranslatedNamedRequiredGetter.Name => this.Name ?? TranslatedString.Empty;
         #endregion
         #endregion
-        #region Flags
-        private int? _FlagsLocation;
-        public Cell.Flag? Flags => EnumBinaryTranslation<Cell.Flag, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(_FlagsLocation, _recordData, _package, 4);
-        #endregion
-        #region Grid
-        private RangeInt32? _GridLocation;
-        public ICellGridGetter? Grid => _GridLocation.HasValue ? CellGridBinaryOverlay.CellGridFactory(_recordData.Slice(_GridLocation!.Value.Min), _package) : default;
-        #endregion
-        #region Lighting
-        private RangeInt32? _LightingLocation;
-        public ICellLightingGetter? Lighting => _LightingLocation.HasValue ? CellLightingBinaryOverlay.CellLightingFactory(_recordData.Slice(_LightingLocation!.Value.Min), _package) : default;
-        #endregion
-        #region MaxHeightData
-        private RangeInt32? _MaxHeightDataLocation;
-        public ICellMaxHeightDataGetter? MaxHeightData => _MaxHeightDataLocation.HasValue ? CellMaxHeightDataBinaryOverlay.CellMaxHeightDataFactory(_recordData.Slice(_MaxHeightDataLocation!.Value.Min), _package) : default;
-        #endregion
-        #region LightingTemplate
-        private int? _LightingTemplateLocation;
-        public IFormLinkNullableGetter<ILightingTemplateGetter> LightingTemplate => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ILightingTemplateGetter>(_package, _recordData, _LightingTemplateLocation);
-        #endregion
-        #region WaterHeight
-        private int? _WaterHeightLocation;
-        public Single? WaterHeight => _WaterHeightLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _WaterHeightLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
-        #endregion
-        #region XILS
-        private int? _XILSLocation;
-        public Single? XILS => _XILSLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _XILSLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
-        #endregion
-        public IReadOnlyList<ICellXCLAItemGetter> XCLAs { get; private set; } = [];
-        #region WaterData
-        private int? _WaterDataLocation;
-        public ReadOnlyMemorySlice<Byte>? WaterData => _WaterDataLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _WaterDataLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
-        #endregion
-        #region CellSkyRegion
-        private int? _CellSkyRegionLocation;
-        public IFormLinkNullableGetter<IRegionGetter> CellSkyRegion => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IRegionGetter>(_package, _recordData, _CellSkyRegionLocation);
-        #endregion
-        public IOwnershipGetter? Ownership { get; private set; }
-        #region Location
-        private int? _LocationLocation;
-        public IFormLinkNullableGetter<ILocationGetter> Location => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ILocationGetter>(_package, _recordData, _LocationLocation);
-        #endregion
-        #region Water
-        private int? _WaterLocation;
-        public IFormLinkNullableGetter<IWaterGetter> Water => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IWaterGetter>(_package, _recordData, _WaterLocation);
-        #endregion
-        #region WaterType
-        private int? _WaterTypeLocation;
-        public String? WaterType => _WaterTypeLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _WaterTypeLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
-        public IReadOnlyList<ICellShipBlueprintSnapLinkGetter>? ShipBlueprintSnapLinks { get; private set; }
-        #region WaterVelocity
-        private RangeInt32? _WaterVelocityLocation;
-        public ICellWaterVelocityGetter? WaterVelocity => _WaterVelocityLocation.HasValue ? CellWaterVelocityBinaryOverlay.CellWaterVelocityFactory(_recordData.Slice(_WaterVelocityLocation!.Value.Min), _package) : default;
-        #endregion
-        #region AcousticSpace
-        private int? _AcousticSpaceLocation;
-        public IFormLinkNullableGetter<IAcousticSpaceGetter> AcousticSpace => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IAcousticSpaceGetter>(_package, _recordData, _AcousticSpaceLocation);
-        #endregion
-        #region ImageSpace
-        private int? _ImageSpaceLocation;
-        public IFormLinkNullableGetter<IImageSpaceGetter> ImageSpace => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IImageSpaceGetter>(_package, _recordData, _ImageSpaceLocation);
-        #endregion
-        #region WaterEnvironmentMap
-        private int? _WaterEnvironmentMapLocation;
-        public String? WaterEnvironmentMap => _WaterEnvironmentMapLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _WaterEnvironmentMapLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
-        #region LockList
-        private int? _LockListLocation;
-        public IFormLinkNullableGetter<IFormListGetter> LockList => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IFormListGetter>(_package, _recordData, _LockListLocation);
-        #endregion
-        #region Music
-        private int? _MusicLocation;
-        public IFormLinkNullableGetter<IMusicTypeGetter> Music => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IMusicTypeGetter>(_package, _recordData, _MusicLocation);
-        #endregion
-        #region GlobalDirtLayerMaterial
-        private int? _GlobalDirtLayerMaterialLocation;
-        public String? GlobalDirtLayerMaterial => _GlobalDirtLayerMaterialLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _GlobalDirtLayerMaterialLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
-        #region GlobalDirtLayerInheritBiomeLayer
-        private int? _GlobalDirtLayerInheritBiomeLayerLocation;
-        public Boolean? GlobalDirtLayerInheritBiomeLayer => _GlobalDirtLayerInheritBiomeLayerLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _GlobalDirtLayerInheritBiomeLayerLocation.Value, _package.MetaData.Constants)[0] >= 1 : default(Boolean?);
-        #endregion
-        #region TimeOfDay
-        private int? _TimeOfDayLocation;
-        public IFormLinkNullableGetter<ITimeOfDayRecordGetter> TimeOfDay => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ITimeOfDayRecordGetter>(_package, _recordData, _TimeOfDayLocation);
-        #endregion
-        public IReadOnlyList<ILinkedReferencesGetter> LinkedReferences { get; private set; } = [];
-        #region IsLinkedRefTransient
-        private int? _IsLinkedRefTransientLocation;
-        public Boolean IsLinkedRefTransient => _IsLinkedRefTransientLocation.HasValue ? true : default(Boolean);
-        #endregion
-        #region EnvironmentMap
-        private int? _EnvironmentMapLocation;
-        public String? EnvironmentMap => _EnvironmentMapLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _EnvironmentMapLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
+        public Cell.Flag? Flags => EnumBinaryTranslation<Cell.Flag, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(Payload.FlagsLocation, _recordData, _package, 4);
+        public ICellGridGetter? Grid => Payload.GridLocation.HasValue ? CellGridBinaryOverlay.CellGridFactory(_recordData.Slice(Payload.GridLocation!.Value.Min), _package) : default;
+        public ICellLightingGetter? Lighting => Payload.LightingLocation.HasValue ? CellLightingBinaryOverlay.CellLightingFactory(_recordData.Slice(Payload.LightingLocation!.Value.Min), _package) : default;
+        public ICellMaxHeightDataGetter? MaxHeightData => Payload.MaxHeightDataLocation.HasValue ? CellMaxHeightDataBinaryOverlay.CellMaxHeightDataFactory(_recordData.Slice(Payload.MaxHeightDataLocation!.Value.Min), _package) : default;
+        public IFormLinkNullableGetter<ILightingTemplateGetter> LightingTemplate => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ILightingTemplateGetter>(_package, _recordData, Payload.LightingTemplateLocation);
+        public Single? WaterHeight => Payload.WaterHeightLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.WaterHeightLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public Single? XILS => Payload.XILSLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.XILSLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public IReadOnlyList<ICellXCLAItemGetter> XCLAs => Payload.XCLAs ?? [];
+        public ReadOnlyMemorySlice<Byte>? WaterData => Payload.WaterDataLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.WaterDataLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
+        public IFormLinkNullableGetter<IRegionGetter> CellSkyRegion => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IRegionGetter>(_package, _recordData, Payload.CellSkyRegionLocation);
+        public IOwnershipGetter? Ownership => Payload.Ownership;
+        public IFormLinkNullableGetter<ILocationGetter> Location => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ILocationGetter>(_package, _recordData, Payload.LocationLocation);
+        public IFormLinkNullableGetter<IWaterGetter> Water => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IWaterGetter>(_package, _recordData, Payload.WaterLocation);
+        public String? WaterType => Payload.WaterTypeLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.WaterTypeLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public IReadOnlyList<ICellShipBlueprintSnapLinkGetter>? ShipBlueprintSnapLinks => Payload.ShipBlueprintSnapLinks;
+        public ICellWaterVelocityGetter? WaterVelocity => Payload.WaterVelocityLocation.HasValue ? CellWaterVelocityBinaryOverlay.CellWaterVelocityFactory(_recordData.Slice(Payload.WaterVelocityLocation!.Value.Min), _package) : default;
+        public IFormLinkNullableGetter<IAcousticSpaceGetter> AcousticSpace => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IAcousticSpaceGetter>(_package, _recordData, Payload.AcousticSpaceLocation);
+        public IFormLinkNullableGetter<IImageSpaceGetter> ImageSpace => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IImageSpaceGetter>(_package, _recordData, Payload.ImageSpaceLocation);
+        public String? WaterEnvironmentMap => Payload.WaterEnvironmentMapLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.WaterEnvironmentMapLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public IFormLinkNullableGetter<IFormListGetter> LockList => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IFormListGetter>(_package, _recordData, Payload.LockListLocation);
+        public IFormLinkNullableGetter<IMusicTypeGetter> Music => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IMusicTypeGetter>(_package, _recordData, Payload.MusicLocation);
+        public String? GlobalDirtLayerMaterial => Payload.GlobalDirtLayerMaterialLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.GlobalDirtLayerMaterialLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public Boolean? GlobalDirtLayerInheritBiomeLayer => Payload.GlobalDirtLayerInheritBiomeLayerLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.GlobalDirtLayerInheritBiomeLayerLocation.Value, _package.MetaData.Constants)[0] >= 1 : default(Boolean?);
+        public IFormLinkNullableGetter<ITimeOfDayRecordGetter> TimeOfDay => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ITimeOfDayRecordGetter>(_package, _recordData, Payload.TimeOfDayLocation);
+        public IReadOnlyList<ILinkedReferencesGetter> LinkedReferences => Payload.LinkedReferences ?? [];
+        public Boolean IsLinkedRefTransient => Payload.IsLinkedRefTransientLocation.HasValue ? true : default(Boolean);
+        public String? EnvironmentMap => Payload.EnvironmentMapLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.EnvironmentMapLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
         #region Traversals
         partial void TraversalsCustomParse(
             OverlayStream stream,
@@ -6763,6 +6694,49 @@ namespace Mutagen.Bethesda.Starfield
             RecordType type,
             PreviousParse lastParsed);
         #endregion
+
+        internal partial class CellRecordDataPayload
+        {
+            public IReadOnlyList<IAComponentGetter> Components = [];
+            public int? NameLocation;
+            public int? FlagsLocation;
+            public RangeInt32? GridLocation;
+            public RangeInt32? LightingLocation;
+            public RangeInt32? MaxHeightDataLocation;
+            public int? LightingTemplateLocation;
+            public int? WaterHeightLocation;
+            public int? XILSLocation;
+            public IReadOnlyList<ICellXCLAItemGetter> XCLAs = [];
+            public int? WaterDataLocation;
+            public int? CellSkyRegionLocation;
+            public IOwnershipGetter? Ownership;
+            public int? LocationLocation;
+            public int? WaterLocation;
+            public int? WaterTypeLocation;
+            public IReadOnlyList<ICellShipBlueprintSnapLinkGetter>? ShipBlueprintSnapLinks;
+            public RangeInt32? WaterVelocityLocation;
+            public int? AcousticSpaceLocation;
+            public int? ImageSpaceLocation;
+            public int? WaterEnvironmentMapLocation;
+            public int? LockListLocation;
+            public int? MusicLocation;
+            public int? GlobalDirtLayerMaterialLocation;
+            public int? GlobalDirtLayerInheritBiomeLayerLocation;
+            public int? TimeOfDayLocation;
+            public IReadOnlyList<ILinkedReferencesGetter> LinkedReferences = [];
+            public int? IsLinkedRefTransientLocation;
+            public int? EnvironmentMapLocation;
+        }
+
+        private LazyPayload<CellRecordDataPayload> _payload = null!;
+
+        internal CellRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<CellRecordDataPayload>(init, new CellRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -6774,10 +6748,10 @@ namespace Mutagen.Bethesda.Starfield
 
         partial void CustomCtor();
         protected CellBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -6789,28 +6763,51 @@ namespace Mutagen.Bethesda.Starfield
             TypedParseParams translationParams = default)
         {
             var origStream = stream;
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new CellBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             ret.CustomEnd(
                 stream: origStream,
                 finalPos: stream.Length,
@@ -6843,7 +6840,7 @@ namespace Mutagen.Bethesda.Starfield
             {
                 case RecordTypeInts.BFCB:
                 {
-                    this.Components = this.ParseRepeatedTypelessSubrecord<IAComponentGetter>(
+                    _payload.Fields.Components = this.ParseRepeatedTypelessSubrecord<IAComponentGetter>(
                         stream: stream,
                         translationParams: translationParams,
                         trigger: AComponent_Registration.TriggerSpecs,
@@ -6852,48 +6849,48 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.FULL:
                 {
-                    _NameLocation = (stream.Position - offset);
+                    _payload.Fields.NameLocation = (stream.Position - offset);
                     return (int)Cell_FieldIndex.Name;
                 }
                 case RecordTypeInts.DATA:
                 {
-                    _FlagsLocation = (stream.Position - offset);
+                    _payload.Fields.FlagsLocation = (stream.Position - offset);
                     return (int)Cell_FieldIndex.Flags;
                 }
                 case RecordTypeInts.XCLC:
                 {
-                    _GridLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.GridLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)Cell_FieldIndex.Grid;
                 }
                 case RecordTypeInts.XCLL:
                 {
-                    _LightingLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.LightingLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)Cell_FieldIndex.Lighting;
                 }
                 case RecordTypeInts.MHDT:
                 {
-                    _MaxHeightDataLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.MaxHeightDataLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)Cell_FieldIndex.MaxHeightData;
                 }
                 case RecordTypeInts.LTMP:
                 {
-                    _LightingTemplateLocation = (stream.Position - offset);
+                    _payload.Fields.LightingTemplateLocation = (stream.Position - offset);
                     return (int)Cell_FieldIndex.LightingTemplate;
                 }
                 case RecordTypeInts.XCLW:
                 {
-                    _WaterHeightLocation = (stream.Position - offset);
+                    _payload.Fields.WaterHeightLocation = (stream.Position - offset);
                     return (int)Cell_FieldIndex.WaterHeight;
                 }
                 case RecordTypeInts.XILS:
                 {
-                    _XILSLocation = (stream.Position - offset);
+                    _payload.Fields.XILSLocation = (stream.Position - offset);
                     return (int)Cell_FieldIndex.XILS;
                 }
                 case RecordTypeInts.XCLA:
                 case RecordTypeInts.XCLD:
                 {
-                    this.XCLAs = this.ParseRepeatedTypelessSubrecord<ICellXCLAItemGetter>(
+                    _payload.Fields.XCLAs = this.ParseRepeatedTypelessSubrecord<ICellXCLAItemGetter>(
                         stream: stream,
                         translationParams: translationParams,
                         trigger: CellXCLAItem_Registration.TriggerSpecs,
@@ -6902,17 +6899,17 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.XWCN:
                 {
-                    _WaterDataLocation = (stream.Position - offset);
+                    _payload.Fields.WaterDataLocation = (stream.Position - offset);
                     return (int)Cell_FieldIndex.WaterData;
                 }
                 case RecordTypeInts.XCCM:
                 {
-                    _CellSkyRegionLocation = (stream.Position - offset);
+                    _payload.Fields.CellSkyRegionLocation = (stream.Position - offset);
                     return (int)Cell_FieldIndex.CellSkyRegion;
                 }
                 case RecordTypeInts.XOWN:
                 {
-                    this.Ownership = OwnershipBinaryOverlay.OwnershipFactory(
+                    _payload.Fields.Ownership = OwnershipBinaryOverlay.OwnershipFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());
@@ -6920,22 +6917,22 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.XLCN:
                 {
-                    _LocationLocation = (stream.Position - offset);
+                    _payload.Fields.LocationLocation = (stream.Position - offset);
                     return (int)Cell_FieldIndex.Location;
                 }
                 case RecordTypeInts.XCWT:
                 {
-                    _WaterLocation = (stream.Position - offset);
+                    _payload.Fields.WaterLocation = (stream.Position - offset);
                     return (int)Cell_FieldIndex.Water;
                 }
                 case RecordTypeInts.XCWM:
                 {
-                    _WaterTypeLocation = (stream.Position - offset);
+                    _payload.Fields.WaterTypeLocation = (stream.Position - offset);
                     return (int)Cell_FieldIndex.WaterType;
                 }
                 case RecordTypeInts.XBPS:
                 {
-                    this.ShipBlueprintSnapLinks = BinaryOverlayList.FactoryByStartIndexWithTrigger<ICellShipBlueprintSnapLinkGetter>(
+                    _payload.Fields.ShipBlueprintSnapLinks = BinaryOverlayList.FactoryByStartIndexWithTrigger<ICellShipBlueprintSnapLinkGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -6945,52 +6942,52 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.XWCU:
                 {
-                    _WaterVelocityLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.WaterVelocityLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)Cell_FieldIndex.WaterVelocity;
                 }
                 case RecordTypeInts.XCAS:
                 {
-                    _AcousticSpaceLocation = (stream.Position - offset);
+                    _payload.Fields.AcousticSpaceLocation = (stream.Position - offset);
                     return (int)Cell_FieldIndex.AcousticSpace;
                 }
                 case RecordTypeInts.XCIM:
                 {
-                    _ImageSpaceLocation = (stream.Position - offset);
+                    _payload.Fields.ImageSpaceLocation = (stream.Position - offset);
                     return (int)Cell_FieldIndex.ImageSpace;
                 }
                 case RecordTypeInts.XWEM:
                 {
-                    _WaterEnvironmentMapLocation = (stream.Position - offset);
+                    _payload.Fields.WaterEnvironmentMapLocation = (stream.Position - offset);
                     return (int)Cell_FieldIndex.WaterEnvironmentMap;
                 }
                 case RecordTypeInts.XILL:
                 {
-                    _LockListLocation = (stream.Position - offset);
+                    _payload.Fields.LockListLocation = (stream.Position - offset);
                     return (int)Cell_FieldIndex.LockList;
                 }
                 case RecordTypeInts.XCMO:
                 {
-                    _MusicLocation = (stream.Position - offset);
+                    _payload.Fields.MusicLocation = (stream.Position - offset);
                     return (int)Cell_FieldIndex.Music;
                 }
                 case RecordTypeInts.XCGD:
                 {
-                    _GlobalDirtLayerMaterialLocation = (stream.Position - offset);
+                    _payload.Fields.GlobalDirtLayerMaterialLocation = (stream.Position - offset);
                     return (int)Cell_FieldIndex.GlobalDirtLayerMaterial;
                 }
                 case RecordTypeInts.XCIB:
                 {
-                    _GlobalDirtLayerInheritBiomeLayerLocation = (stream.Position - offset);
+                    _payload.Fields.GlobalDirtLayerInheritBiomeLayerLocation = (stream.Position - offset);
                     return (int)Cell_FieldIndex.GlobalDirtLayerInheritBiomeLayer;
                 }
                 case RecordTypeInts.TODD:
                 {
-                    _TimeOfDayLocation = (stream.Position - offset);
+                    _payload.Fields.TimeOfDayLocation = (stream.Position - offset);
                     return (int)Cell_FieldIndex.TimeOfDay;
                 }
                 case RecordTypeInts.XLKR:
                 {
-                    this.LinkedReferences = BinaryOverlayList.FactoryByArray<ILinkedReferencesGetter>(
+                    _payload.Fields.LinkedReferences = BinaryOverlayList.FactoryByArray<ILinkedReferencesGetter>(
                         mem: stream.RemainingMemory,
                         package: _package,
                         translationParams: translationParams,
@@ -7005,12 +7002,12 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.XLKT:
                 {
-                    _IsLinkedRefTransientLocation = (stream.Position - offset);
+                    _payload.Fields.IsLinkedRefTransientLocation = (stream.Position - offset);
                     return (int)Cell_FieldIndex.IsLinkedRefTransient;
                 }
                 case RecordTypeInts.XEMP:
                 {
-                    _EnvironmentMapLocation = (stream.Position - offset);
+                    _payload.Fields.EnvironmentMapLocation = (stream.Position - offset);
                     return (int)Cell_FieldIndex.EnvironmentMap;
                 }
                 case RecordTypeInts.XTV2:

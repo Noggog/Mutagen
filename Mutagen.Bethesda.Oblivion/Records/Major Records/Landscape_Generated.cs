@@ -34,6 +34,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -2046,24 +2047,32 @@ namespace Mutagen.Bethesda.Oblivion
         protected override Type LinkType => typeof(ILandscapeGetter);
 
 
-        #region DATA
-        private int? _DATALocation;
-        public ReadOnlyMemorySlice<Byte>? DATA => _DATALocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _DATALocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
-        #endregion
-        #region VertexNormals
-        private int? _VertexNormalsLocation;
-        public ReadOnlyMemorySlice<Byte>? VertexNormals => _VertexNormalsLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _VertexNormalsLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
-        #endregion
-        #region VertexHeightMap
-        private int? _VertexHeightMapLocation;
-        public ReadOnlyMemorySlice<Byte>? VertexHeightMap => _VertexHeightMapLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _VertexHeightMapLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
-        #endregion
-        #region VertexColors
-        private int? _VertexColorsLocation;
-        public ReadOnlyMemorySlice<Byte>? VertexColors => _VertexColorsLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _VertexColorsLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
-        #endregion
-        public IReadOnlyList<IBaseLayerGetter> Layers { get; private set; } = [];
-        public IReadOnlyList<IFormLinkGetter<ILandTextureGetter>>? Textures { get; private set; }
+        public ReadOnlyMemorySlice<Byte>? DATA => Payload.DATALocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.DATALocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
+        public ReadOnlyMemorySlice<Byte>? VertexNormals => Payload.VertexNormalsLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.VertexNormalsLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
+        public ReadOnlyMemorySlice<Byte>? VertexHeightMap => Payload.VertexHeightMapLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.VertexHeightMapLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
+        public ReadOnlyMemorySlice<Byte>? VertexColors => Payload.VertexColorsLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.VertexColorsLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
+        public IReadOnlyList<IBaseLayerGetter> Layers => Payload.Layers ?? [];
+        public IReadOnlyList<IFormLinkGetter<ILandTextureGetter>>? Textures => Payload.Textures;
+
+        internal partial class LandscapeRecordDataPayload
+        {
+            public int? DATALocation;
+            public int? VertexNormalsLocation;
+            public int? VertexHeightMapLocation;
+            public int? VertexColorsLocation;
+            public IReadOnlyList<IBaseLayerGetter> Layers = [];
+            public IReadOnlyList<IFormLinkGetter<ILandTextureGetter>>? Textures;
+        }
+
+        private LazyPayload<LandscapeRecordDataPayload> _payload = null!;
+
+        internal LandscapeRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<LandscapeRecordDataPayload>(init, new LandscapeRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -2071,10 +2080,10 @@ namespace Mutagen.Bethesda.Oblivion
 
         partial void CustomCtor();
         protected LandscapeBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -2085,28 +2094,51 @@ namespace Mutagen.Bethesda.Oblivion
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new LandscapeBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -2135,28 +2167,28 @@ namespace Mutagen.Bethesda.Oblivion
             {
                 case RecordTypeInts.DATA:
                 {
-                    _DATALocation = (stream.Position - offset);
+                    _payload.Fields.DATALocation = (stream.Position - offset);
                     return (int)Landscape_FieldIndex.DATA;
                 }
                 case RecordTypeInts.VNML:
                 {
-                    _VertexNormalsLocation = (stream.Position - offset);
+                    _payload.Fields.VertexNormalsLocation = (stream.Position - offset);
                     return (int)Landscape_FieldIndex.VertexNormals;
                 }
                 case RecordTypeInts.VHGT:
                 {
-                    _VertexHeightMapLocation = (stream.Position - offset);
+                    _payload.Fields.VertexHeightMapLocation = (stream.Position - offset);
                     return (int)Landscape_FieldIndex.VertexHeightMap;
                 }
                 case RecordTypeInts.VCLR:
                 {
-                    _VertexColorsLocation = (stream.Position - offset);
+                    _payload.Fields.VertexColorsLocation = (stream.Position - offset);
                     return (int)Landscape_FieldIndex.VertexColors;
                 }
                 case RecordTypeInts.BTXT:
                 case RecordTypeInts.ATXT:
                 {
-                    this.Layers = this.ParseRepeatedTypelessSubrecord<IBaseLayerGetter>(
+                    _payload.Fields.Layers = this.ParseRepeatedTypelessSubrecord<IBaseLayerGetter>(
                         stream: stream,
                         translationParams: translationParams,
                         trigger: BaseLayer_Registration.TriggerSpecs,
@@ -2176,7 +2208,7 @@ namespace Mutagen.Bethesda.Oblivion
                 }
                 case RecordTypeInts.VTEX:
                 {
-                    this.Textures = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<ILandTextureGetter>>(
+                    _payload.Fields.Textures = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<ILandTextureGetter>>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,

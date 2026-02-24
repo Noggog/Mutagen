@@ -1165,7 +1165,14 @@ namespace Mutagen.Bethesda.Starfield
         #endregion
         #region XNAM
         private int? _XNAMLocation;
-        public UInt64? XNAM => _XNAMLocation.HasValue ? BinaryPrimitives.ReadUInt64LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _XNAMLocation.Value, _package.MetaData.Constants)) : default(UInt64?);
+        public UInt64? XNAM
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _XNAMLocation.HasValue ? BinaryPrimitives.ReadUInt64LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _XNAMLocation.Value, _package.MetaData.Constants)) : default(UInt64?);
+            }
+        }
         #endregion
         partial void CustomFactoryEnd(
             OverlayStream stream,

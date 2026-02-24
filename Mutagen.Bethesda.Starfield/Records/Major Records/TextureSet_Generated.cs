@@ -34,6 +34,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -2263,54 +2264,46 @@ namespace Mutagen.Bethesda.Starfield
 
 
         #region ObjectBounds
-        private RangeInt32? _ObjectBoundsLocation;
-        private IObjectBoundsGetter? _ObjectBounds => _ObjectBoundsLocation.HasValue ? ObjectBoundsBinaryOverlay.ObjectBoundsFactory(_recordData.Slice(_ObjectBoundsLocation!.Value.Min), _package) : default;
+        private IObjectBoundsGetter? _ObjectBounds => Payload.ObjectBoundsLocation.HasValue ? ObjectBoundsBinaryOverlay.ObjectBoundsFactory(_recordData.Slice(Payload.ObjectBoundsLocation!.Value.Min), _package) : default;
         public IObjectBoundsGetter ObjectBounds => _ObjectBounds ?? new ObjectBounds();
         #endregion
-        #region ODTY
-        private int? _ODTYLocation;
-        public ReadOnlyMemorySlice<Byte>? ODTY => _ODTYLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _ODTYLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
-        #endregion
-        #region TX00
-        private int? _TX00Location;
-        public String? TX00 => _TX00Location.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _TX00Location.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
-        #region TX01
-        private int? _TX01Location;
-        public String? TX01 => _TX01Location.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _TX01Location.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
-        #region TX08
-        private int? _TX08Location;
-        public String? TX08 => _TX08Location.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _TX08Location.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
-        #region TX09
-        private int? _TX09Location;
-        public String? TX09 => _TX09Location.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _TX09Location.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
-        #region TX15
-        private int? _TX15Location;
-        public String? TX15 => _TX15Location.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _TX15Location.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
-        #region TX17
-        private int? _TX17Location;
-        public String? TX17 => _TX17Location.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _TX17Location.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
-        #region TX19
-        private int? _TX19Location;
-        public String? TX19 => _TX19Location.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _TX19Location.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
-        #region DODT
-        private int? _DODTLocation;
-        public ReadOnlyMemorySlice<Byte>? DODT => _DODTLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _DODTLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
-        #endregion
-        #region Flags
-        private int? _FlagsLocation;
-        public TextureSet.Flag Flags => EnumBinaryTranslation<TextureSet.Flag, MutagenFrame, MutagenWriter>.Instance.ParseRecord(_FlagsLocation, _recordData, _package, 2);
-        #endregion
-        #region Material
-        private int? _MaterialLocation;
-        public String? Material => _MaterialLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _MaterialLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
+        public ReadOnlyMemorySlice<Byte>? ODTY => Payload.ODTYLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.ODTYLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
+        public String? TX00 => Payload.TX00Location.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.TX00Location.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? TX01 => Payload.TX01Location.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.TX01Location.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? TX08 => Payload.TX08Location.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.TX08Location.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? TX09 => Payload.TX09Location.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.TX09Location.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? TX15 => Payload.TX15Location.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.TX15Location.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? TX17 => Payload.TX17Location.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.TX17Location.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? TX19 => Payload.TX19Location.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.TX19Location.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public ReadOnlyMemorySlice<Byte>? DODT => Payload.DODTLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.DODTLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
+        public TextureSet.Flag Flags => EnumBinaryTranslation<TextureSet.Flag, MutagenFrame, MutagenWriter>.Instance.ParseRecord(Payload.FlagsLocation, _recordData, _package, 2);
+        public String? Material => Payload.MaterialLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.MaterialLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+
+        internal partial class TextureSetRecordDataPayload
+        {
+            public RangeInt32? ObjectBoundsLocation;
+            public int? ODTYLocation;
+            public int? TX00Location;
+            public int? TX01Location;
+            public int? TX08Location;
+            public int? TX09Location;
+            public int? TX15Location;
+            public int? TX17Location;
+            public int? TX19Location;
+            public int? DODTLocation;
+            public int? FlagsLocation;
+            public int? MaterialLocation;
+        }
+
+        private LazyPayload<TextureSetRecordDataPayload> _payload = null!;
+
+        internal TextureSetRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<TextureSetRecordDataPayload>(init, new TextureSetRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -2318,10 +2311,10 @@ namespace Mutagen.Bethesda.Starfield
 
         partial void CustomCtor();
         protected TextureSetBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -2332,28 +2325,51 @@ namespace Mutagen.Bethesda.Starfield
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new TextureSetBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -2382,62 +2398,62 @@ namespace Mutagen.Bethesda.Starfield
             {
                 case RecordTypeInts.OBND:
                 {
-                    _ObjectBoundsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.ObjectBoundsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)TextureSet_FieldIndex.ObjectBounds;
                 }
                 case RecordTypeInts.ODTY:
                 {
-                    _ODTYLocation = (stream.Position - offset);
+                    _payload.Fields.ODTYLocation = (stream.Position - offset);
                     return (int)TextureSet_FieldIndex.ODTY;
                 }
                 case RecordTypeInts.TX00:
                 {
-                    _TX00Location = (stream.Position - offset);
+                    _payload.Fields.TX00Location = (stream.Position - offset);
                     return (int)TextureSet_FieldIndex.TX00;
                 }
                 case RecordTypeInts.TX01:
                 {
-                    _TX01Location = (stream.Position - offset);
+                    _payload.Fields.TX01Location = (stream.Position - offset);
                     return (int)TextureSet_FieldIndex.TX01;
                 }
                 case RecordTypeInts.TX08:
                 {
-                    _TX08Location = (stream.Position - offset);
+                    _payload.Fields.TX08Location = (stream.Position - offset);
                     return (int)TextureSet_FieldIndex.TX08;
                 }
                 case RecordTypeInts.TX09:
                 {
-                    _TX09Location = (stream.Position - offset);
+                    _payload.Fields.TX09Location = (stream.Position - offset);
                     return (int)TextureSet_FieldIndex.TX09;
                 }
                 case RecordTypeInts.TX15:
                 {
-                    _TX15Location = (stream.Position - offset);
+                    _payload.Fields.TX15Location = (stream.Position - offset);
                     return (int)TextureSet_FieldIndex.TX15;
                 }
                 case RecordTypeInts.TX17:
                 {
-                    _TX17Location = (stream.Position - offset);
+                    _payload.Fields.TX17Location = (stream.Position - offset);
                     return (int)TextureSet_FieldIndex.TX17;
                 }
                 case RecordTypeInts.TX19:
                 {
-                    _TX19Location = (stream.Position - offset);
+                    _payload.Fields.TX19Location = (stream.Position - offset);
                     return (int)TextureSet_FieldIndex.TX19;
                 }
                 case RecordTypeInts.DODT:
                 {
-                    _DODTLocation = (stream.Position - offset);
+                    _payload.Fields.DODTLocation = (stream.Position - offset);
                     return (int)TextureSet_FieldIndex.DODT;
                 }
                 case RecordTypeInts.DNAM:
                 {
-                    _FlagsLocation = (stream.Position - offset);
+                    _payload.Fields.FlagsLocation = (stream.Position - offset);
                     return (int)TextureSet_FieldIndex.Flags;
                 }
                 case RecordTypeInts.MNAM:
                 {
-                    _MaterialLocation = (stream.Position - offset);
+                    _payload.Fields.MaterialLocation = (stream.Position - offset);
                     return (int)TextureSet_FieldIndex.Material;
                 }
                 default:

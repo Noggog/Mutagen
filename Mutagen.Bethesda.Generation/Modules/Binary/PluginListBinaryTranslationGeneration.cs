@@ -653,6 +653,7 @@ public class PluginListBinaryTranslationGeneration : BinaryTranslationGeneration
         string passedLengthAccessor,
         DataType? dataType = null)
     {
+        var payloadSb = (this.Module as PluginTranslationModule)?.CurrentPayloadFieldsSb;
         ListType list = typeGen as ListType;
         var data = list.GetFieldData();
         switch (data.BinaryOverlayFallback)
@@ -685,6 +686,9 @@ public class PluginListBinaryTranslationGeneration : BinaryTranslationGeneration
 
         var accessor = dataType == null ? structDataAccessor : recordDataAccessor;
 
+        var listTypeName = $"{list.ListTypeName(getter: true, internalInterface: true)}{typeGen.NullChar}";
+        var defaultSuffix = typeGen.Nullable ? null : $" = [];";
+
         if (list.SubTypeGeneration is LoquiType loqui)
         {
             var typeName = loqui.TypeName(getter: true, needsCovariance: true);
@@ -701,15 +705,23 @@ public class PluginListBinaryTranslationGeneration : BinaryTranslationGeneration
                             expectedLengthLengthAccessor = $", expectedLengthLength: {expectedLenLen}";
                         }
 
-                        sb.AppendLine($"public {list.ListTypeName(getter: true, internalInterface: true)}{typeGen.NullChar} {typeGen.Name} => BinaryOverlayList.FactoryByCountLength<{typeName}>({accessor}{(passedLengthAccessor == null ? null : $".Slice({passedLengthAccessor})")}, _package, {expLen}, countLength: {(byte)list.CustomData[CounterByteLength]}{expectedLengthLengthAccessor}, (s, p) => {subGen.GenerateForTypicalWrapper(objGen, list.SubTypeGeneration, "s", "p")});");
+                        sb.AppendLine($"public {listTypeName} {typeGen.Name} => BinaryOverlayList.FactoryByCountLength<{typeName}>({accessor}{(passedLengthAccessor == null ? null : $".Slice({passedLengthAccessor})")}, _package, {expLen}, countLength: {(byte)list.CustomData[CounterByteLength]}{expectedLengthLengthAccessor}, (s, p) => {subGen.GenerateForTypicalWrapper(objGen, list.SubTypeGeneration, "s", "p")});");
                     }
                     else
                     {
                         if (dataType != null)
                         {
-                            DataBinaryTranslationGeneration.GenerateWrapperExtraMembers(sb, dataType, objGen, typeGen, passedLengthAccessor);
+                            DataBinaryTranslationGeneration.GenerateWrapperExtraMembers(sb, dataType, objGen, typeGen, passedLengthAccessor, isMajorRecord: payloadSb != null);
                         }
-                        sb.AppendLine($"public {list.ListTypeName(getter: true, internalInterface: true)}{typeGen.NullChar} {typeGen.Name} {{ get; private set; }} = null!;");
+                        if (payloadSb != null)
+                        {
+                            payloadSb.AppendLine($"public {listTypeName} {typeGen.Name} = null!;");
+                            sb.AppendLine($"public {listTypeName} {typeGen.Name} => Payload.{typeGen.Name};");
+                        }
+                        else
+                        {
+                            sb.AppendLine($"public {listTypeName} {typeGen.Name} {{ get; private set; }} = null!;");
+                        }
                     }
                     break;
                 default:
@@ -717,24 +729,48 @@ public class PluginListBinaryTranslationGeneration : BinaryTranslationGeneration
                     {
                         if ((bool)(list.CustomData?.GetOrDefault(Additive) ?? false))
                         {
-                            sb.AppendLine($"private ImmutableManyListWrapper<{list.ItemTypeName(getter: true)}>? _additive{typeGen.Name};");
-                            sb.AppendLine($"public {list.ListTypeName(getter: true, internalInterface: true)}{typeGen.NullChar} {typeGen.Name} => _additive{typeGen.Name}{(list.Nullable ? null : $" ?? ImmutableManyListWrapper<{list.ItemTypeName(getter: true)}>.Empty")};");
+                            if (payloadSb != null)
+                            {
+                                payloadSb.AppendLine($"public ImmutableManyListWrapper<{list.ItemTypeName(getter: true)}>? Additive{typeGen.Name};");
+                                sb.AppendLine($"public {listTypeName} {typeGen.Name} => Payload.Additive{typeGen.Name}{(list.Nullable ? null : $" ?? ImmutableManyListWrapper<{list.ItemTypeName(getter: true)}>.Empty")};");
+                            }
+                            else
+                            {
+                                sb.AppendLine($"private ImmutableManyListWrapper<{list.ItemTypeName(getter: true)}>? _additive{typeGen.Name};");
+                                sb.AppendLine($"public {listTypeName} {typeGen.Name} => _additive{typeGen.Name}{(list.Nullable ? null : $" ?? ImmutableManyListWrapper<{list.ItemTypeName(getter: true)}>.Empty")};");
+                            }
                         }
                         else
                         {
-                            sb.AppendLine($"public {list.ListTypeName(getter: true, internalInterface: true)}{typeGen.NullChar} {typeGen.Name} {{ get; private set; }}{(typeGen.Nullable ? null : $" = [];")}");
+                            if (payloadSb != null)
+                            {
+                                payloadSb.AppendLine($"public {listTypeName} {typeGen.Name}{(typeGen.Nullable ? null : " = []")};");
+                                sb.AppendLine($"public {listTypeName} {typeGen.Name} => Payload.{typeGen.Name}{(typeGen.Nullable ? null : " ?? []")};");
+                            }
+                            else
+                            {
+                                sb.AppendLine($"public {listTypeName} {typeGen.Name} {{ get; private set; }}{(typeGen.Nullable ? null : $" = [];")}");
+                            }
                         }
                     }
                     else
                     {
-                        sb.AppendLine($"public {list.ListTypeName(getter: true, internalInterface: true)}{typeGen.NullChar} {typeGen.Name} => BinaryOverlayList.FactoryByLazyParse<{typeName}>({accessor}{(passedLengthAccessor == null ? null : $".Slice({passedLengthAccessor})")}, _package, (s, p) => {subGen.GenerateForTypicalWrapper(objGen, list.SubTypeGeneration, "s", "p")});");
+                        sb.AppendLine($"public {listTypeName} {typeGen.Name} => BinaryOverlayList.FactoryByLazyParse<{typeName}>({accessor}{(passedLengthAccessor == null ? null : $".Slice({passedLengthAccessor})")}, _package, (s, p) => {subGen.GenerateForTypicalWrapper(objGen, list.SubTypeGeneration, "s", "p")});");
                     }
                     break;
             }
         }
         else if (data.HasTrigger)
         {
-            sb.AppendLine($"public {list.ListTypeName(getter: true, internalInterface: true)}{typeGen.NullChar} {typeGen.Name} {{ get; private set; }}{(typeGen.Nullable ? null : $" = [];")}");
+            if (payloadSb != null)
+            {
+                payloadSb.AppendLine($"public {listTypeName} {typeGen.Name}{(typeGen.Nullable ? null : " = []")};");
+                sb.AppendLine($"public {listTypeName} {typeGen.Name} => Payload.{typeGen.Name}{(typeGen.Nullable ? null : " ?? []")};");
+            }
+            else
+            {
+                sb.AppendLine($"public {listTypeName} {typeGen.Name} {{ get; private set; }}{(typeGen.Nullable ? null : $" = [];")}");
+            }
         }
         else
         {
@@ -746,17 +782,17 @@ public class PluginListBinaryTranslationGeneration : BinaryTranslationGeneration
                 case ListBinaryType.PrependCount:
                     if (expLen.HasValue)
                     {
-                        sb.AppendLine($"public {list.ListTypeName(getter: true, internalInterface: true)}{typeGen.NullChar} {typeGen.Name} => BinaryOverlayList.FactoryByCountLength<{typeName}>({accessor}{(passedLengthAccessor == null ? null : $".Slice({passedLengthAccessor})")}, _package, {expLen}, countLength: {(byte)list.CustomData[CounterByteLength]}, (s, p) => {subGen.GenerateForTypicalWrapper(objGen, list.SubTypeGeneration, "s", "p")});");
+                        sb.AppendLine($"public {listTypeName} {typeGen.Name} => BinaryOverlayList.FactoryByCountLength<{typeName}>({accessor}{(passedLengthAccessor == null ? null : $".Slice({passedLengthAccessor})")}, _package, {expLen}, countLength: {(byte)list.CustomData[CounterByteLength]}, (s, p) => {subGen.GenerateForTypicalWrapper(objGen, list.SubTypeGeneration, "s", "p")});");
                     }
                     else if (list.SubTypeGeneration is StringType str
                              && (str.BinaryType == StringBinaryType.PrependLength
                                  || str.BinaryType == StringBinaryType.PrependLengthUShort))
                     {
-                        sb.AppendLine($"public {list.ListTypeName(getter: true, internalInterface: true)}{typeGen.NullChar} {typeGen.Name} => BinaryOverlayList.FactoryByCountLengthWithItemLength<{typeName}>({accessor}{(passedLengthAccessor == null ? null : $".Slice({passedLengthAccessor})")}, _package, countLength: {(byte)list.CustomData[CounterByteLength]}, itemLengthLength: {(str.BinaryType == StringBinaryType.PrependLength ? 4 : 2)}, (s, p) => {subGen.GenerateForTypicalWrapper(objGen, list.SubTypeGeneration, "s", "p")});");
+                        sb.AppendLine($"public {listTypeName} {typeGen.Name} => BinaryOverlayList.FactoryByCountLengthWithItemLength<{typeName}>({accessor}{(passedLengthAccessor == null ? null : $".Slice({passedLengthAccessor})")}, _package, countLength: {(byte)list.CustomData[CounterByteLength]}, itemLengthLength: {(str.BinaryType == StringBinaryType.PrependLength ? 4 : 2)}, (s, p) => {subGen.GenerateForTypicalWrapper(objGen, list.SubTypeGeneration, "s", "p")});");
                     }
                     break;
                 default:
-                    sb.AppendLine($"public {list.ListTypeName(getter: true, internalInterface: true)}{typeGen.NullChar} {typeGen.Name} => BinaryOverlayList.FactoryByStartIndex<{list.SubTypeGeneration.TypeName(getter: true, needsCovariance: true)}>({accessor}{(passedLengthAccessor == null ? null : $".Slice({passedLengthAccessor})")}, _package, {expLen}, (s, p) => {subGen.GenerateForTypicalWrapper(objGen, list.SubTypeGeneration, "s", "p")});");
+                    sb.AppendLine($"public {listTypeName} {typeGen.Name} => BinaryOverlayList.FactoryByStartIndex<{list.SubTypeGeneration.TypeName(getter: true, needsCovariance: true)}>({accessor}{(passedLengthAccessor == null ? null : $".Slice({passedLengthAccessor})")}, _package, {expLen}, (s, p) => {subGen.GenerateForTypicalWrapper(objGen, list.SubTypeGeneration, "s", "p")});");
                     break;
             }
         }
@@ -793,29 +829,44 @@ public class PluginListBinaryTranslationGeneration : BinaryTranslationGeneration
                 throw new NotImplementedException();
         }
         
+        var isMajor = await objGen.IsMajorRecord();
         var additive = (bool)list.CustomData[Additive];
         string target;
         if (additive)
         {
-            sb.AppendLine($"_additive{typeGen.Name} ??= new();");
+            if (isMajor)
+            {
+                sb.AppendLine($"_payload.Fields.Additive{typeGen.Name} ??= new();");
+            }
+            else
+            {
+                sb.AppendLine($"_additive{typeGen.Name} ??= new();");
+            }
             target = $"var {typeGen.Name}Tmp = ";
         }
         else
         {
-            target = $"this.{typeGen.Name} = ";
+            target = isMajor ? $"_payload.Fields.{typeGen.Name} = " : $"this.{typeGen.Name} = ";
         }
 
         await GenerateWrapperRecordTypeParseGeneral(
             sb, objGen, typeGen,
             "stream",
-            locationAccessor, 
-            packageAccessor, 
+            locationAccessor,
+            packageAccessor,
             target,
             converterAccessor);
-        
+
         if (additive)
         {
-            sb.AppendLine($"_additive{typeGen.Name}.AddList({typeGen.Name}Tmp);");
+            if (isMajor)
+            {
+                sb.AppendLine($"_payload.Fields.Additive{typeGen.Name}.AddList({typeGen.Name}Tmp);");
+            }
+            else
+            {
+                sb.AppendLine($"_additive{typeGen.Name}.AddList({typeGen.Name}Tmp);");
+            }
         }
     }
 

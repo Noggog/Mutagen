@@ -36,6 +36,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -3112,8 +3113,7 @@ namespace Mutagen.Bethesda.Starfield
 
 
         #region Name
-        private int? _NameLocation;
-        public ITranslatedStringGetter? Name => _NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+        public ITranslatedStringGetter? Name => Payload.NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
         #region Aspects
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         string INamedRequiredGetter.Name => this.Name?.String ?? string.Empty;
@@ -3123,91 +3123,65 @@ namespace Mutagen.Bethesda.Starfield
         ITranslatedStringGetter ITranslatedNamedRequiredGetter.Name => this.Name ?? TranslatedString.Empty;
         #endregion
         #endregion
-        #region Opacity
-        private int? _OpacityLocation;
-        public Byte Opacity => _OpacityLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _OpacityLocation.Value, _package.MetaData.Constants)[0] : default(Byte);
-        #endregion
-        #region Flags
-        private int? _FlagsLocation;
-        public Water.Flag Flags => EnumBinaryTranslation<Water.Flag, MutagenFrame, MutagenWriter>.Instance.ParseRecord(_FlagsLocation, _recordData, _package, 1);
-        #endregion
-        public ISoundReferenceGetter? WASH { get; private set; }
-        #region ConsumeSpell
-        private int? _ConsumeSpellLocation;
-        public IFormLinkNullableGetter<ISpellGetter> ConsumeSpell => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ISpellGetter>(_package, _recordData, _ConsumeSpellLocation);
-        #endregion
-        #region ContactSpell
-        private int? _ContactSpellLocation;
-        public IFormLinkNullableGetter<ISpellGetter> ContactSpell => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ISpellGetter>(_package, _recordData, _ContactSpellLocation);
-        #endregion
-        #region DATA
-        private int? _DATALocation;
-        public ReadOnlyMemorySlice<Byte>? DATA => _DATALocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _DATALocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
-        #endregion
-        #region DNAM
-        private int? _DNAMLocation;
-        public ReadOnlyMemorySlice<Byte>? DNAM => _DNAMLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _DNAMLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
-        #endregion
-        #region GNAM
-        private int? _GNAMLocation;
-        public ReadOnlyMemorySlice<Byte>? GNAM => _GNAMLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _GNAMLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
-        #endregion
-        #region LinearVelocity
-        private int? _LinearVelocityLocation;
-        public P3Float? LinearVelocity => _LinearVelocityLocation.HasValue ? P3FloatBinaryTranslation<MutagenFrame, MutagenWriter>.Instance.Read(HeaderTranslation.ExtractSubrecordMemory(_recordData, _LinearVelocityLocation.Value, _package.MetaData.Constants)) : default(P3Float?);
-        #endregion
-        #region AngularVelocity
-        private int? _AngularVelocityLocation;
-        public P3Float? AngularVelocity => _AngularVelocityLocation.HasValue ? P3FloatBinaryTranslation<MutagenFrame, MutagenWriter>.Instance.Read(HeaderTranslation.ExtractSubrecordMemory(_recordData, _AngularVelocityLocation.Value, _package.MetaData.Constants)) : default(P3Float?);
-        #endregion
-        #region NAM2
-        private int? _NAM2Location;
-        public String? NAM2 => _NAM2Location.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NAM2Location.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
-        #region NAM3
-        private int? _NAM3Location;
-        public String? NAM3 => _NAM3Location.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NAM3Location.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
-        #region NAM4
-        private int? _NAM4Location;
-        public String? NAM4 => _NAM4Location.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NAM4Location.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
-        #region NAM5
-        private int? _NAM5Location;
-        public Byte? NAM5 => _NAM5Location.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _NAM5Location.Value, _package.MetaData.Constants)[0] : default(Byte?);
-        #endregion
-        #region NAM6
-        private int? _NAM6Location;
-        public Byte? NAM6 => _NAM6Location.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _NAM6Location.Value, _package.MetaData.Constants)[0] : default(Byte?);
-        #endregion
-        #region RiverAbsorptionCurve
-        private int? _RiverAbsorptionCurveLocation;
-        public IFormLinkNullableGetter<ICurve3DGetter> RiverAbsorptionCurve => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ICurve3DGetter>(_package, _recordData, _RiverAbsorptionCurveLocation);
-        #endregion
-        #region OceanAbsorptionCurve
-        private int? _OceanAbsorptionCurveLocation;
-        public IFormLinkNullableGetter<ICurve3DGetter> OceanAbsorptionCurve => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ICurve3DGetter>(_package, _recordData, _OceanAbsorptionCurveLocation);
-        #endregion
-        #region RiverScatteringCurve
-        private int? _RiverScatteringCurveLocation;
-        public IFormLinkNullableGetter<ICurve3DGetter> RiverScatteringCurve => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ICurve3DGetter>(_package, _recordData, _RiverScatteringCurveLocation);
-        #endregion
-        #region OceanScatteringCurve
-        private int? _OceanScatteringCurveLocation;
-        public IFormLinkNullableGetter<ICurve3DGetter> OceanScatteringCurve => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ICurve3DGetter>(_package, _recordData, _OceanScatteringCurveLocation);
-        #endregion
-        #region PhytoplanktonCurve
-        private int? _PhytoplanktonCurveLocation;
-        public IFormLinkNullableGetter<ICurve3DGetter> PhytoplanktonCurve => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ICurve3DGetter>(_package, _recordData, _PhytoplanktonCurveLocation);
-        #endregion
-        #region SedimentCurve
-        private int? _SedimentCurveLocation;
-        public IFormLinkNullableGetter<ICurve3DGetter> SedimentCurve => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ICurve3DGetter>(_package, _recordData, _SedimentCurveLocation);
-        #endregion
-        #region YelowMatterCurve
-        private int? _YelowMatterCurveLocation;
-        public IFormLinkNullableGetter<ICurve3DGetter> YelowMatterCurve => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ICurve3DGetter>(_package, _recordData, _YelowMatterCurveLocation);
-        #endregion
+        public Byte Opacity => Payload.OpacityLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.OpacityLocation.Value, _package.MetaData.Constants)[0] : default(Byte);
+        public Water.Flag Flags => EnumBinaryTranslation<Water.Flag, MutagenFrame, MutagenWriter>.Instance.ParseRecord(Payload.FlagsLocation, _recordData, _package, 1);
+        public ISoundReferenceGetter? WASH => Payload.WASH;
+        public IFormLinkNullableGetter<ISpellGetter> ConsumeSpell => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ISpellGetter>(_package, _recordData, Payload.ConsumeSpellLocation);
+        public IFormLinkNullableGetter<ISpellGetter> ContactSpell => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ISpellGetter>(_package, _recordData, Payload.ContactSpellLocation);
+        public ReadOnlyMemorySlice<Byte>? DATA => Payload.DATALocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.DATALocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
+        public ReadOnlyMemorySlice<Byte>? DNAM => Payload.DNAMLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.DNAMLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
+        public ReadOnlyMemorySlice<Byte>? GNAM => Payload.GNAMLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.GNAMLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
+        public P3Float? LinearVelocity => Payload.LinearVelocityLocation.HasValue ? P3FloatBinaryTranslation<MutagenFrame, MutagenWriter>.Instance.Read(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.LinearVelocityLocation.Value, _package.MetaData.Constants)) : default(P3Float?);
+        public P3Float? AngularVelocity => Payload.AngularVelocityLocation.HasValue ? P3FloatBinaryTranslation<MutagenFrame, MutagenWriter>.Instance.Read(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.AngularVelocityLocation.Value, _package.MetaData.Constants)) : default(P3Float?);
+        public String? NAM2 => Payload.NAM2Location.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NAM2Location.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? NAM3 => Payload.NAM3Location.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NAM3Location.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? NAM4 => Payload.NAM4Location.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NAM4Location.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public Byte? NAM5 => Payload.NAM5Location.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NAM5Location.Value, _package.MetaData.Constants)[0] : default(Byte?);
+        public Byte? NAM6 => Payload.NAM6Location.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NAM6Location.Value, _package.MetaData.Constants)[0] : default(Byte?);
+        public IFormLinkNullableGetter<ICurve3DGetter> RiverAbsorptionCurve => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ICurve3DGetter>(_package, _recordData, Payload.RiverAbsorptionCurveLocation);
+        public IFormLinkNullableGetter<ICurve3DGetter> OceanAbsorptionCurve => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ICurve3DGetter>(_package, _recordData, Payload.OceanAbsorptionCurveLocation);
+        public IFormLinkNullableGetter<ICurve3DGetter> RiverScatteringCurve => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ICurve3DGetter>(_package, _recordData, Payload.RiverScatteringCurveLocation);
+        public IFormLinkNullableGetter<ICurve3DGetter> OceanScatteringCurve => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ICurve3DGetter>(_package, _recordData, Payload.OceanScatteringCurveLocation);
+        public IFormLinkNullableGetter<ICurve3DGetter> PhytoplanktonCurve => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ICurve3DGetter>(_package, _recordData, Payload.PhytoplanktonCurveLocation);
+        public IFormLinkNullableGetter<ICurve3DGetter> SedimentCurve => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ICurve3DGetter>(_package, _recordData, Payload.SedimentCurveLocation);
+        public IFormLinkNullableGetter<ICurve3DGetter> YelowMatterCurve => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ICurve3DGetter>(_package, _recordData, Payload.YelowMatterCurveLocation);
+
+        internal partial class WaterRecordDataPayload
+        {
+            public int? NameLocation;
+            public int? OpacityLocation;
+            public int? FlagsLocation;
+            public ISoundReferenceGetter? WASH;
+            public int? ConsumeSpellLocation;
+            public int? ContactSpellLocation;
+            public int? DATALocation;
+            public int? DNAMLocation;
+            public int? GNAMLocation;
+            public int? LinearVelocityLocation;
+            public int? AngularVelocityLocation;
+            public int? NAM2Location;
+            public int? NAM3Location;
+            public int? NAM4Location;
+            public int? NAM5Location;
+            public int? NAM6Location;
+            public int? RiverAbsorptionCurveLocation;
+            public int? OceanAbsorptionCurveLocation;
+            public int? RiverScatteringCurveLocation;
+            public int? OceanScatteringCurveLocation;
+            public int? PhytoplanktonCurveLocation;
+            public int? SedimentCurveLocation;
+            public int? YelowMatterCurveLocation;
+        }
+
+        private LazyPayload<WaterRecordDataPayload> _payload = null!;
+
+        internal WaterRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<WaterRecordDataPayload>(init, new WaterRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -3215,10 +3189,10 @@ namespace Mutagen.Bethesda.Starfield
 
         partial void CustomCtor();
         protected WaterBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -3229,28 +3203,51 @@ namespace Mutagen.Bethesda.Starfield
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new WaterBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -3279,23 +3276,23 @@ namespace Mutagen.Bethesda.Starfield
             {
                 case RecordTypeInts.FULL:
                 {
-                    _NameLocation = (stream.Position - offset);
+                    _payload.Fields.NameLocation = (stream.Position - offset);
                     return (int)Water_FieldIndex.Name;
                 }
                 case RecordTypeInts.ANAM:
                 {
-                    _OpacityLocation = (stream.Position - offset);
+                    _payload.Fields.OpacityLocation = (stream.Position - offset);
                     return (int)Water_FieldIndex.Opacity;
                 }
                 case RecordTypeInts.FNAM:
                 {
-                    _FlagsLocation = (stream.Position - offset);
+                    _payload.Fields.FlagsLocation = (stream.Position - offset);
                     return (int)Water_FieldIndex.Flags;
                 }
                 case RecordTypeInts.WASH:
                 {
                     stream.Position += _package.MetaData.Constants.SubConstants.HeaderLength;
-                    this.WASH = SoundReferenceBinaryOverlay.SoundReferenceFactory(
+                    _payload.Fields.WASH = SoundReferenceBinaryOverlay.SoundReferenceFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());
@@ -3303,97 +3300,97 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.XNAM:
                 {
-                    _ConsumeSpellLocation = (stream.Position - offset);
+                    _payload.Fields.ConsumeSpellLocation = (stream.Position - offset);
                     return (int)Water_FieldIndex.ConsumeSpell;
                 }
                 case RecordTypeInts.YNAM:
                 {
-                    _ContactSpellLocation = (stream.Position - offset);
+                    _payload.Fields.ContactSpellLocation = (stream.Position - offset);
                     return (int)Water_FieldIndex.ContactSpell;
                 }
                 case RecordTypeInts.DATA:
                 {
-                    _DATALocation = (stream.Position - offset);
+                    _payload.Fields.DATALocation = (stream.Position - offset);
                     return (int)Water_FieldIndex.DATA;
                 }
                 case RecordTypeInts.DNAM:
                 {
-                    _DNAMLocation = (stream.Position - offset);
+                    _payload.Fields.DNAMLocation = (stream.Position - offset);
                     return (int)Water_FieldIndex.DNAM;
                 }
                 case RecordTypeInts.GNAM:
                 {
-                    _GNAMLocation = (stream.Position - offset);
+                    _payload.Fields.GNAMLocation = (stream.Position - offset);
                     return (int)Water_FieldIndex.GNAM;
                 }
                 case RecordTypeInts.NAM0:
                 {
-                    _LinearVelocityLocation = (stream.Position - offset);
+                    _payload.Fields.LinearVelocityLocation = (stream.Position - offset);
                     return (int)Water_FieldIndex.LinearVelocity;
                 }
                 case RecordTypeInts.NAM1:
                 {
-                    _AngularVelocityLocation = (stream.Position - offset);
+                    _payload.Fields.AngularVelocityLocation = (stream.Position - offset);
                     return (int)Water_FieldIndex.AngularVelocity;
                 }
                 case RecordTypeInts.NAM2:
                 {
-                    _NAM2Location = (stream.Position - offset);
+                    _payload.Fields.NAM2Location = (stream.Position - offset);
                     return (int)Water_FieldIndex.NAM2;
                 }
                 case RecordTypeInts.NAM3:
                 {
-                    _NAM3Location = (stream.Position - offset);
+                    _payload.Fields.NAM3Location = (stream.Position - offset);
                     return (int)Water_FieldIndex.NAM3;
                 }
                 case RecordTypeInts.NAM4:
                 {
-                    _NAM4Location = (stream.Position - offset);
+                    _payload.Fields.NAM4Location = (stream.Position - offset);
                     return (int)Water_FieldIndex.NAM4;
                 }
                 case RecordTypeInts.NAM5:
                 {
-                    _NAM5Location = (stream.Position - offset);
+                    _payload.Fields.NAM5Location = (stream.Position - offset);
                     return (int)Water_FieldIndex.NAM5;
                 }
                 case RecordTypeInts.NAM6:
                 {
-                    _NAM6Location = (stream.Position - offset);
+                    _payload.Fields.NAM6Location = (stream.Position - offset);
                     return (int)Water_FieldIndex.NAM6;
                 }
                 case RecordTypeInts.ENAM:
                 {
-                    _RiverAbsorptionCurveLocation = (stream.Position - offset);
+                    _payload.Fields.RiverAbsorptionCurveLocation = (stream.Position - offset);
                     return (int)Water_FieldIndex.RiverAbsorptionCurve;
                 }
                 case RecordTypeInts.HNAM:
                 {
-                    _OceanAbsorptionCurveLocation = (stream.Position - offset);
+                    _payload.Fields.OceanAbsorptionCurveLocation = (stream.Position - offset);
                     return (int)Water_FieldIndex.OceanAbsorptionCurve;
                 }
                 case RecordTypeInts.JNAM:
                 {
-                    _RiverScatteringCurveLocation = (stream.Position - offset);
+                    _payload.Fields.RiverScatteringCurveLocation = (stream.Position - offset);
                     return (int)Water_FieldIndex.RiverScatteringCurve;
                 }
                 case RecordTypeInts.LNAM:
                 {
-                    _OceanScatteringCurveLocation = (stream.Position - offset);
+                    _payload.Fields.OceanScatteringCurveLocation = (stream.Position - offset);
                     return (int)Water_FieldIndex.OceanScatteringCurve;
                 }
                 case RecordTypeInts.MNAM:
                 {
-                    _PhytoplanktonCurveLocation = (stream.Position - offset);
+                    _payload.Fields.PhytoplanktonCurveLocation = (stream.Position - offset);
                     return (int)Water_FieldIndex.PhytoplanktonCurve;
                 }
                 case RecordTypeInts.QNAM:
                 {
-                    _SedimentCurveLocation = (stream.Position - offset);
+                    _payload.Fields.SedimentCurveLocation = (stream.Position - offset);
                     return (int)Water_FieldIndex.SedimentCurve;
                 }
                 case RecordTypeInts.UNAM:
                 {
-                    _YelowMatterCurveLocation = (stream.Position - offset);
+                    _payload.Fields.YelowMatterCurveLocation = (stream.Position - offset);
                     return (int)Water_FieldIndex.YelowMatterCurve;
                 }
                 default:

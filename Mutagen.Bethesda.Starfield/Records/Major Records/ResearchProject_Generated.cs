@@ -36,6 +36,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -2751,8 +2752,7 @@ namespace Mutagen.Bethesda.Starfield
 
 
         #region Name
-        private int? _NameLocation;
-        public ITranslatedStringGetter? Name => _NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+        public ITranslatedStringGetter? Name => Payload.NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
         #region Aspects
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         string INamedRequiredGetter.Name => this.Name?.String ?? string.Empty;
@@ -2762,38 +2762,43 @@ namespace Mutagen.Bethesda.Starfield
         ITranslatedStringGetter ITranslatedNamedRequiredGetter.Name => this.Name ?? TranslatedString.Empty;
         #endregion
         #endregion
-        #region Description
-        private int? _DescriptionLocation;
-        public ITranslatedStringGetter? Description => _DescriptionLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _DescriptionLocation.Value, _package.MetaData.Constants), StringsSource.DL, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
-        #endregion
-        #region WorkbenchKeyword
-        private int? _WorkbenchKeywordLocation;
-        public IFormLinkNullableGetter<IKeywordGetter> WorkbenchKeyword => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IKeywordGetter>(_package, _recordData, _WorkbenchKeywordLocation);
-        #endregion
-        public IReadOnlyList<IConditionGetter>? Conditions { get; private set; }
-        public IReadOnlyList<IResearchProjectRequiredItemGetter>? RequiredItems { get; private set; }
-        public IReadOnlyList<IResearchProjectRequiredPerkGetter>? RequiredPerks { get; private set; }
-        #region CreatedItem
-        private int? _CreatedItemLocation;
-        public IFormLinkNullableGetter<IStarfieldMajorRecordGetter> CreatedItem => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IStarfieldMajorRecordGetter>(_package, _recordData, _CreatedItemLocation);
-        #endregion
-        #region NumberCreated
-        private int? _NumberCreatedLocation;
-        public UInt16? NumberCreated => _NumberCreatedLocation.HasValue ? BinaryPrimitives.ReadUInt16LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NumberCreatedLocation.Value, _package.MetaData.Constants)) : default(UInt16?);
-        #endregion
-        #region SortingPriority
-        private int? _SortingPriorityLocation;
-        public Single? SortingPriority => _SortingPriorityLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _SortingPriorityLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
-        #endregion
-        #region Tier
-        private int? _TierLocation;
-        public ResearchProject.TierEnum Tier => EnumBinaryTranslation<ResearchProject.TierEnum, MutagenFrame, MutagenWriter>.Instance.ParseRecord(_TierLocation, _recordData, _package, 1);
-        #endregion
-        #region CategoryKeyword
-        private int? _CategoryKeywordLocation;
-        public IFormLinkNullableGetter<IKeywordGetter> CategoryKeyword => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IKeywordGetter>(_package, _recordData, _CategoryKeywordLocation);
-        #endregion
-        public IReadOnlyList<IFormLinkGetter<IResearchProjectGetter>> RequiredProjects { get; private set; } = [];
+        public ITranslatedStringGetter? Description => Payload.DescriptionLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.DescriptionLocation.Value, _package.MetaData.Constants), StringsSource.DL, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+        public IFormLinkNullableGetter<IKeywordGetter> WorkbenchKeyword => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IKeywordGetter>(_package, _recordData, Payload.WorkbenchKeywordLocation);
+        public IReadOnlyList<IConditionGetter>? Conditions => Payload.Conditions;
+        public IReadOnlyList<IResearchProjectRequiredItemGetter>? RequiredItems => Payload.RequiredItems;
+        public IReadOnlyList<IResearchProjectRequiredPerkGetter>? RequiredPerks => Payload.RequiredPerks;
+        public IFormLinkNullableGetter<IStarfieldMajorRecordGetter> CreatedItem => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IStarfieldMajorRecordGetter>(_package, _recordData, Payload.CreatedItemLocation);
+        public UInt16? NumberCreated => Payload.NumberCreatedLocation.HasValue ? BinaryPrimitives.ReadUInt16LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NumberCreatedLocation.Value, _package.MetaData.Constants)) : default(UInt16?);
+        public Single? SortingPriority => Payload.SortingPriorityLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.SortingPriorityLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public ResearchProject.TierEnum Tier => EnumBinaryTranslation<ResearchProject.TierEnum, MutagenFrame, MutagenWriter>.Instance.ParseRecord(Payload.TierLocation, _recordData, _package, 1);
+        public IFormLinkNullableGetter<IKeywordGetter> CategoryKeyword => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IKeywordGetter>(_package, _recordData, Payload.CategoryKeywordLocation);
+        public IReadOnlyList<IFormLinkGetter<IResearchProjectGetter>> RequiredProjects => Payload.RequiredProjects ?? [];
+
+        internal partial class ResearchProjectRecordDataPayload
+        {
+            public int? NameLocation;
+            public int? DescriptionLocation;
+            public int? WorkbenchKeywordLocation;
+            public IReadOnlyList<IConditionGetter>? Conditions;
+            public IReadOnlyList<IResearchProjectRequiredItemGetter>? RequiredItems;
+            public IReadOnlyList<IResearchProjectRequiredPerkGetter>? RequiredPerks;
+            public int? CreatedItemLocation;
+            public int? NumberCreatedLocation;
+            public int? SortingPriorityLocation;
+            public int? TierLocation;
+            public int? CategoryKeywordLocation;
+            public IReadOnlyList<IFormLinkGetter<IResearchProjectGetter>> RequiredProjects = [];
+        }
+
+        private LazyPayload<ResearchProjectRecordDataPayload> _payload = null!;
+
+        internal ResearchProjectRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<ResearchProjectRecordDataPayload>(init, new ResearchProjectRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -2801,10 +2806,10 @@ namespace Mutagen.Bethesda.Starfield
 
         partial void CustomCtor();
         protected ResearchProjectBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -2815,28 +2820,51 @@ namespace Mutagen.Bethesda.Starfield
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new ResearchProjectBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -2865,23 +2893,23 @@ namespace Mutagen.Bethesda.Starfield
             {
                 case RecordTypeInts.FULL:
                 {
-                    _NameLocation = (stream.Position - offset);
+                    _payload.Fields.NameLocation = (stream.Position - offset);
                     return (int)ResearchProject_FieldIndex.Name;
                 }
                 case RecordTypeInts.DESC:
                 {
-                    _DescriptionLocation = (stream.Position - offset);
+                    _payload.Fields.DescriptionLocation = (stream.Position - offset);
                     return (int)ResearchProject_FieldIndex.Description;
                 }
                 case RecordTypeInts.BNAM:
                 {
-                    _WorkbenchKeywordLocation = (stream.Position - offset);
+                    _payload.Fields.WorkbenchKeywordLocation = (stream.Position - offset);
                     return (int)ResearchProject_FieldIndex.WorkbenchKeyword;
                 }
                 case RecordTypeInts.CTDA:
                 case RecordTypeInts.CITC:
                 {
-                    this.Conditions = BinaryOverlayList.FactoryByCountPerItem<IConditionGetter>(
+                    _payload.Fields.Conditions = BinaryOverlayList.FactoryByCountPerItem<IConditionGetter>(
                         stream: stream,
                         package: _package,
                         countLength: 4,
@@ -2894,7 +2922,7 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.FVPA:
                 {
-                    this.RequiredItems = BinaryOverlayList.FactoryByStartIndexWithTrigger<IResearchProjectRequiredItemGetter>(
+                    _payload.Fields.RequiredItems = BinaryOverlayList.FactoryByStartIndexWithTrigger<IResearchProjectRequiredItemGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -2904,7 +2932,7 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.RQPK:
                 {
-                    this.RequiredPerks = BinaryOverlayList.FactoryByStartIndexWithTrigger<IResearchProjectRequiredPerkGetter>(
+                    _payload.Fields.RequiredPerks = BinaryOverlayList.FactoryByStartIndexWithTrigger<IResearchProjectRequiredPerkGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -2914,32 +2942,32 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.CNAM:
                 {
-                    _CreatedItemLocation = (stream.Position - offset);
+                    _payload.Fields.CreatedItemLocation = (stream.Position - offset);
                     return (int)ResearchProject_FieldIndex.CreatedItem;
                 }
                 case RecordTypeInts.NNAM:
                 {
-                    _NumberCreatedLocation = (stream.Position - offset);
+                    _payload.Fields.NumberCreatedLocation = (stream.Position - offset);
                     return (int)ResearchProject_FieldIndex.NumberCreated;
                 }
                 case RecordTypeInts.SNAM:
                 {
-                    _SortingPriorityLocation = (stream.Position - offset);
+                    _payload.Fields.SortingPriorityLocation = (stream.Position - offset);
                     return (int)ResearchProject_FieldIndex.SortingPriority;
                 }
                 case RecordTypeInts.TNAM:
                 {
-                    _TierLocation = (stream.Position - offset);
+                    _payload.Fields.TierLocation = (stream.Position - offset);
                     return (int)ResearchProject_FieldIndex.Tier;
                 }
                 case RecordTypeInts.KNAM:
                 {
-                    _CategoryKeywordLocation = (stream.Position - offset);
+                    _payload.Fields.CategoryKeywordLocation = (stream.Position - offset);
                     return (int)ResearchProject_FieldIndex.CategoryKeyword;
                 }
                 case RecordTypeInts.RNAM:
                 {
-                    this.RequiredProjects = BinaryOverlayList.FactoryByArray<IFormLinkGetter<IResearchProjectGetter>>(
+                    _payload.Fields.RequiredProjects = BinaryOverlayList.FactoryByArray<IFormLinkGetter<IResearchProjectGetter>>(
                         mem: stream.RemainingMemory,
                         package: _package,
                         getter: (s, p) => FormLinkBinaryTranslation.Instance.OverlayFactory<IResearchProjectGetter>(p, s),

@@ -1,0 +1,2 @@
+RecordTypes.XCLA,
+RecordTypes.XCLD,

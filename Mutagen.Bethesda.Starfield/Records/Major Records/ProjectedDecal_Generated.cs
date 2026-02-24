@@ -37,6 +37,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -2696,67 +2697,71 @@ namespace Mutagen.Bethesda.Starfield
 
 
         #region ObjectBounds
-        private RangeInt32? _ObjectBoundsLocation;
-        private IObjectBoundsGetter? _ObjectBounds => _ObjectBoundsLocation.HasValue ? ObjectBoundsBinaryOverlay.ObjectBoundsFactory(_recordData.Slice(_ObjectBoundsLocation!.Value.Min), _package) : default;
+        private IObjectBoundsGetter? _ObjectBounds => Payload.ObjectBoundsLocation.HasValue ? ObjectBoundsBinaryOverlay.ObjectBoundsFactory(_recordData.Slice(Payload.ObjectBoundsLocation!.Value.Min), _package) : default;
         public IObjectBoundsGetter ObjectBounds => _ObjectBounds ?? new ObjectBounds();
         #endregion
-        #region DirtinessScale
-        private int? _DirtinessScaleLocation;
-        public Percent DirtinessScale => _DirtinessScaleLocation.HasValue ? PercentBinaryTranslation.GetPercent(HeaderTranslation.ExtractSubrecordMemory(_recordData, _DirtinessScaleLocation.Value, _package.MetaData.Constants), FloatIntegerType.UInt) : default(Percent);
-        #endregion
-        #region ObjectPaletteDefaults
-        private RangeInt32? _ObjectPaletteDefaultsLocation;
-        public IObjectPaletteDefaultsGetter? ObjectPaletteDefaults => _ObjectPaletteDefaultsLocation.HasValue ? ObjectPaletteDefaultsBinaryOverlay.ObjectPaletteDefaultsFactory(_recordData.Slice(_ObjectPaletteDefaultsLocation!.Value.Min), _package) : default;
-        #endregion
-        public IReadOnlyList<IAComponentGetter> Components { get; private set; } = [];
-        #region Transforms
-        private RangeInt32? _TransformsLocation;
-        public ITransformsGetter? Transforms => _TransformsLocation.HasValue ? TransformsBinaryOverlay.TransformsFactory(_recordData.Slice(_TransformsLocation!.Value.Min), _package) : default;
-        #endregion
-        #region PTTA
-        private RangeInt32? _PTTALocation;
-        public IPTTAGetter? PTTA => _PTTALocation.HasValue ? PTTABinaryOverlay.PTTAFactory(_recordData.Slice(_PTTALocation!.Value.Min), _package) : default;
-        #endregion
-        #region SnapBehavior
-        private int? _SnapBehaviorLocation;
-        public IFormLinkNullableGetter<ISnapTemplateBehaviorGetter> SnapBehavior => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ISnapTemplateBehaviorGetter>(_package, _recordData, _SnapBehaviorLocation);
-        #endregion
-        #region Material
-        private int? _MaterialLocation;
-        public IFormLinkNullableGetter<IMaterialPathGetter> Material => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IMaterialPathGetter>(_package, _recordData, _MaterialLocation);
-        #endregion
-        private RangeInt32? _DATALocation;
-        public ProjectedDecal.DATADataType DATADataTypeState { get; private set; }
+        public Percent DirtinessScale => Payload.DirtinessScaleLocation.HasValue ? PercentBinaryTranslation.GetPercent(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.DirtinessScaleLocation.Value, _package.MetaData.Constants), FloatIntegerType.UInt) : default(Percent);
+        public IObjectPaletteDefaultsGetter? ObjectPaletteDefaults => Payload.ObjectPaletteDefaultsLocation.HasValue ? ObjectPaletteDefaultsBinaryOverlay.ObjectPaletteDefaultsFactory(_recordData.Slice(Payload.ObjectPaletteDefaultsLocation!.Value.Min), _package) : default;
+        public IReadOnlyList<IAComponentGetter> Components => Payload.Components ?? [];
+        public ITransformsGetter? Transforms => Payload.TransformsLocation.HasValue ? TransformsBinaryOverlay.TransformsFactory(_recordData.Slice(Payload.TransformsLocation!.Value.Min), _package) : default;
+        public IPTTAGetter? PTTA => Payload.PTTALocation.HasValue ? PTTABinaryOverlay.PTTAFactory(_recordData.Slice(Payload.PTTALocation!.Value.Min), _package) : default;
+        public IFormLinkNullableGetter<ISnapTemplateBehaviorGetter> SnapBehavior => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ISnapTemplateBehaviorGetter>(_package, _recordData, Payload.SnapBehaviorLocation);
+        public IFormLinkNullableGetter<IMaterialPathGetter> Material => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IMaterialPathGetter>(_package, _recordData, Payload.MaterialLocation);
+        public ProjectedDecal.DATADataType DATADataTypeState => Payload.DATADataTypeState;
         #region UnknownData1
-        private int _UnknownData1Location => _DATALocation!.Value.Min;
-        private bool _UnknownData1_IsSet => _DATALocation.HasValue;
+        private int _UnknownData1Location => Payload.DATALocation!.Value.Min;
+        private bool _UnknownData1_IsSet => Payload.DATALocation.HasValue;
         public Single UnknownData1 => _UnknownData1_IsSet ? _recordData.Slice(_UnknownData1Location, 4).Float() : default(Single);
         #endregion
         #region UnknownData2
-        private int _UnknownData2Location => _DATALocation!.Value.Min + 0x4;
-        private bool _UnknownData2_IsSet => _DATALocation.HasValue;
+        private int _UnknownData2Location => Payload.DATALocation!.Value.Min + 0x4;
+        private bool _UnknownData2_IsSet => Payload.DATALocation.HasValue;
         public Single UnknownData2 => _UnknownData2_IsSet ? _recordData.Slice(_UnknownData2Location, 4).Float() : default(Single);
         #endregion
         #region UnknownData3
-        private int _UnknownData3Location => _DATALocation!.Value.Min + 0x8;
-        private bool _UnknownData3_IsSet => _DATALocation.HasValue;
+        private int _UnknownData3Location => Payload.DATALocation!.Value.Min + 0x8;
+        private bool _UnknownData3_IsSet => Payload.DATALocation.HasValue;
         public Single UnknownData3 => _UnknownData3_IsSet ? _recordData.Slice(_UnknownData3Location, 4).Float() : default(Single);
         #endregion
         #region UnknownData4
-        private int _UnknownData4Location => _DATALocation!.Value.Min + 0xC;
-        private bool _UnknownData4_IsSet => _DATALocation.HasValue;
+        private int _UnknownData4Location => Payload.DATALocation!.Value.Min + 0xC;
+        private bool _UnknownData4_IsSet => Payload.DATALocation.HasValue;
         public Single UnknownData4 => _UnknownData4_IsSet ? _recordData.Slice(_UnknownData4Location, 4).Float() : default(Single);
         #endregion
         #region UnknownData5
-        private int _UnknownData5Location => _DATALocation!.Value.Min + 0x10;
-        private bool _UnknownData5_IsSet => _DATALocation.HasValue;
+        private int _UnknownData5Location => Payload.DATALocation!.Value.Min + 0x10;
+        private bool _UnknownData5_IsSet => Payload.DATALocation.HasValue;
         public Single UnknownData5 => _UnknownData5_IsSet ? _recordData.Slice(_UnknownData5Location, 4).Float() : default(Single);
         #endregion
         #region UnknownData6
-        private int _UnknownData6Location => _DATALocation!.Value.Min + 0x14;
-        private bool _UnknownData6_IsSet => _DATALocation.HasValue && !DATADataTypeState.HasFlag(ProjectedDecal.DATADataType.Break0);
+        private int _UnknownData6Location => Payload.DATALocation!.Value.Min + 0x14;
+        private bool _UnknownData6_IsSet => Payload.DATALocation.HasValue && !DATADataTypeState.HasFlag(ProjectedDecal.DATADataType.Break0);
         public Single UnknownData6 => _UnknownData6_IsSet ? _recordData.Slice(_UnknownData6Location, 4).Float() : default(Single);
         #endregion
+
+        internal partial class ProjectedDecalRecordDataPayload
+        {
+            public RangeInt32? ObjectBoundsLocation;
+            public int? DirtinessScaleLocation;
+            public RangeInt32? ObjectPaletteDefaultsLocation;
+            public IReadOnlyList<IAComponentGetter> Components = [];
+            public RangeInt32? TransformsLocation;
+            public RangeInt32? PTTALocation;
+            public int? SnapBehaviorLocation;
+            public int? MaterialLocation;
+            public RangeInt32? DATALocation;
+            public ProjectedDecal.DATADataType DATADataTypeState;
+        }
+
+        private LazyPayload<ProjectedDecalRecordDataPayload> _payload = null!;
+
+        internal ProjectedDecalRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<ProjectedDecalRecordDataPayload>(init, new ProjectedDecalRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -2764,10 +2769,10 @@ namespace Mutagen.Bethesda.Starfield
 
         partial void CustomCtor();
         protected ProjectedDecalBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -2778,28 +2783,51 @@ namespace Mutagen.Bethesda.Starfield
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new ProjectedDecalBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -2828,22 +2856,22 @@ namespace Mutagen.Bethesda.Starfield
             {
                 case RecordTypeInts.OBND:
                 {
-                    _ObjectBoundsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.ObjectBoundsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)ProjectedDecal_FieldIndex.ObjectBounds;
                 }
                 case RecordTypeInts.ODTY:
                 {
-                    _DirtinessScaleLocation = (stream.Position - offset);
+                    _payload.Fields.DirtinessScaleLocation = (stream.Position - offset);
                     return (int)ProjectedDecal_FieldIndex.DirtinessScale;
                 }
                 case RecordTypeInts.OPDS:
                 {
-                    _ObjectPaletteDefaultsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.ObjectPaletteDefaultsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)ProjectedDecal_FieldIndex.ObjectPaletteDefaults;
                 }
                 case RecordTypeInts.BFCB:
                 {
-                    this.Components = this.ParseRepeatedTypelessSubrecord<IAComponentGetter>(
+                    _payload.Fields.Components = this.ParseRepeatedTypelessSubrecord<IAComponentGetter>(
                         stream: stream,
                         translationParams: translationParams,
                         trigger: AComponent_Registration.TriggerSpecs,
@@ -2852,31 +2880,31 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.PTT2:
                 {
-                    _TransformsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.TransformsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)ProjectedDecal_FieldIndex.Transforms;
                 }
                 case RecordTypeInts.PTTA:
                 {
-                    _PTTALocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.PTTALocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)ProjectedDecal_FieldIndex.PTTA;
                 }
                 case RecordTypeInts.SNBH:
                 {
-                    _SnapBehaviorLocation = (stream.Position - offset);
+                    _payload.Fields.SnapBehaviorLocation = (stream.Position - offset);
                     return (int)ProjectedDecal_FieldIndex.SnapBehavior;
                 }
                 case RecordTypeInts.DODT:
                 {
-                    _MaterialLocation = (stream.Position - offset);
+                    _payload.Fields.MaterialLocation = (stream.Position - offset);
                     return (int)ProjectedDecal_FieldIndex.Material;
                 }
                 case RecordTypeInts.DATA:
                 {
-                    _DATALocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.DATALocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     var subLen = _package.MetaData.Constants.SubrecordHeader(_recordData.Slice((stream.Position - offset))).ContentLength;
                     if (subLen <= 0x14)
                     {
-                        this.DATADataTypeState |= ProjectedDecal.DATADataType.Break0;
+                        _payload.Fields.DATADataTypeState |= ProjectedDecal.DATADataType.Break0;
                     }
                     return (int)ProjectedDecal_FieldIndex.UnknownData6;
                 }

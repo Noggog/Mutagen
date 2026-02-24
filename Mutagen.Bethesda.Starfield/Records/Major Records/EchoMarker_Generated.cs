@@ -1681,7 +1681,14 @@ namespace Mutagen.Bethesda.Starfield
 
         #region ECTE
         private int? _ECTELocation;
-        public Guid? ECTE => _ECTELocation.HasValue ? new Guid(HeaderTranslation.ExtractSubrecordMemory(_recordData, _ECTELocation.Value, _package.MetaData.Constants).Slice(0, 16)) : default(Guid?);
+        public Guid? ECTE
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _ECTELocation.HasValue ? new Guid(HeaderTranslation.ExtractSubrecordMemory(_data, _ECTELocation.Value, _package.MetaData.Constants).Slice(0, 16)) : default(Guid?);
+            }
+        }
         #endregion
         public ISoundReferenceGetter? Sound { get; private set; }
         #region ANAM
@@ -1690,7 +1697,14 @@ namespace Mutagen.Bethesda.Starfield
         #endregion
         #region BNAM
         private int? _BNAMLocation;
-        public Single? BNAM => _BNAMLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _BNAMLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public Single? BNAM
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _BNAMLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_data, _BNAMLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+            }
+        }
         #endregion
         #region CNAM
         private int? _CNAMLocation;
@@ -1706,7 +1720,14 @@ namespace Mutagen.Bethesda.Starfield
         #endregion
         #region Description
         private int? _DescriptionLocation;
-        public String? Description => _DescriptionLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _DescriptionLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? Description
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _DescriptionLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_data, _DescriptionLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+            }
+        }
         #endregion
         partial void CustomFactoryEnd(
             OverlayStream stream,

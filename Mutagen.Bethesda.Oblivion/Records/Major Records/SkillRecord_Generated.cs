@@ -33,6 +33,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -1925,38 +1926,36 @@ namespace Mutagen.Bethesda.Oblivion
         protected override Type LinkType => typeof(ISkillRecordGetter);
 
 
-        #region Skill
-        private int? _SkillLocation;
-        public ActorValue? Skill => EnumBinaryTranslation<ActorValue, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(_SkillLocation, _recordData, _package, 4);
-        #endregion
-        #region Description
-        private int? _DescriptionLocation;
-        public String? Description => _DescriptionLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _DescriptionLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
-        #region Icon
-        private int? _IconLocation;
-        public String? Icon => _IconLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _IconLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
-        #region Data
-        private RangeInt32? _DataLocation;
-        public ISkillDataGetter? Data => _DataLocation.HasValue ? SkillDataBinaryOverlay.SkillDataFactory(_recordData.Slice(_DataLocation!.Value.Min), _package) : default;
-        #endregion
-        #region ApprenticeText
-        private int? _ApprenticeTextLocation;
-        public String? ApprenticeText => _ApprenticeTextLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _ApprenticeTextLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
-        #region JourneymanText
-        private int? _JourneymanTextLocation;
-        public String? JourneymanText => _JourneymanTextLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _JourneymanTextLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
-        #region ExpertText
-        private int? _ExpertTextLocation;
-        public String? ExpertText => _ExpertTextLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _ExpertTextLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
-        #region MasterText
-        private int? _MasterTextLocation;
-        public String? MasterText => _MasterTextLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _MasterTextLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
+        public ActorValue? Skill => EnumBinaryTranslation<ActorValue, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(Payload.SkillLocation, _recordData, _package, 4);
+        public String? Description => Payload.DescriptionLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.DescriptionLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? Icon => Payload.IconLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.IconLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public ISkillDataGetter? Data => Payload.DataLocation.HasValue ? SkillDataBinaryOverlay.SkillDataFactory(_recordData.Slice(Payload.DataLocation!.Value.Min), _package) : default;
+        public String? ApprenticeText => Payload.ApprenticeTextLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.ApprenticeTextLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? JourneymanText => Payload.JourneymanTextLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.JourneymanTextLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? ExpertText => Payload.ExpertTextLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.ExpertTextLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? MasterText => Payload.MasterTextLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.MasterTextLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+
+        internal partial class SkillRecordRecordDataPayload
+        {
+            public int? SkillLocation;
+            public int? DescriptionLocation;
+            public int? IconLocation;
+            public RangeInt32? DataLocation;
+            public int? ApprenticeTextLocation;
+            public int? JourneymanTextLocation;
+            public int? ExpertTextLocation;
+            public int? MasterTextLocation;
+        }
+
+        private LazyPayload<SkillRecordRecordDataPayload> _payload = null!;
+
+        internal SkillRecordRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<SkillRecordRecordDataPayload>(init, new SkillRecordRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -1964,10 +1963,10 @@ namespace Mutagen.Bethesda.Oblivion
 
         partial void CustomCtor();
         protected SkillRecordBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -1978,28 +1977,51 @@ namespace Mutagen.Bethesda.Oblivion
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new SkillRecordBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -2028,42 +2050,42 @@ namespace Mutagen.Bethesda.Oblivion
             {
                 case RecordTypeInts.INDX:
                 {
-                    _SkillLocation = (stream.Position - offset);
+                    _payload.Fields.SkillLocation = (stream.Position - offset);
                     return (int)SkillRecord_FieldIndex.Skill;
                 }
                 case RecordTypeInts.DESC:
                 {
-                    _DescriptionLocation = (stream.Position - offset);
+                    _payload.Fields.DescriptionLocation = (stream.Position - offset);
                     return (int)SkillRecord_FieldIndex.Description;
                 }
                 case RecordTypeInts.ICON:
                 {
-                    _IconLocation = (stream.Position - offset);
+                    _payload.Fields.IconLocation = (stream.Position - offset);
                     return (int)SkillRecord_FieldIndex.Icon;
                 }
                 case RecordTypeInts.DATA:
                 {
-                    _DataLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.DataLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)SkillRecord_FieldIndex.Data;
                 }
                 case RecordTypeInts.ANAM:
                 {
-                    _ApprenticeTextLocation = (stream.Position - offset);
+                    _payload.Fields.ApprenticeTextLocation = (stream.Position - offset);
                     return (int)SkillRecord_FieldIndex.ApprenticeText;
                 }
                 case RecordTypeInts.JNAM:
                 {
-                    _JourneymanTextLocation = (stream.Position - offset);
+                    _payload.Fields.JourneymanTextLocation = (stream.Position - offset);
                     return (int)SkillRecord_FieldIndex.JourneymanText;
                 }
                 case RecordTypeInts.ENAM:
                 {
-                    _ExpertTextLocation = (stream.Position - offset);
+                    _payload.Fields.ExpertTextLocation = (stream.Position - offset);
                     return (int)SkillRecord_FieldIndex.ExpertText;
                 }
                 case RecordTypeInts.MNAM:
                 {
-                    _MasterTextLocation = (stream.Position - offset);
+                    _payload.Fields.MasterTextLocation = (stream.Position - offset);
                     return (int)SkillRecord_FieldIndex.MasterText;
                 }
                 default:

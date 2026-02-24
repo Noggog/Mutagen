@@ -1,0 +1,5 @@
+RecordTypes.BNAM,
+RecordTypes.PNAM,
+RecordTypes.PTDA,
+RecordTypes.CTDA,
+RecordTypes.CITC,

@@ -1,0 +1,7 @@
+RecordTypes.EXDC,
+RecordTypes.EXDZ,
+RecordTypes.EXCN,
+RecordTypes.EXCI,
+RecordTypes.EXAC,
+RecordTypes.EXAS,
+RecordTypes.EXBS,

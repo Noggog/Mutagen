@@ -1,0 +1,4 @@
+RecordTypes.QRXP,
+RecordTypes.QRCR,
+RecordTypes.QRRD,
+RecordTypes.CTDA,

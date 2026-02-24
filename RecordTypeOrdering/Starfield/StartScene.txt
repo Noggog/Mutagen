@@ -1,0 +1,7 @@
+RecordTypes.LCEP,
+RecordTypes.STSC,
+RecordTypes.INTT,
+RecordTypes.ACTV,
+RecordTypes.SSPN,
+RecordTypes.CTDA,
+RecordTypes.CITC,

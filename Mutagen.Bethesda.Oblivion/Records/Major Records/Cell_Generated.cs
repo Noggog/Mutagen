@@ -37,6 +37,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -4900,67 +4901,60 @@ namespace Mutagen.Bethesda.Oblivion
 
 
         #region Name
-        private int? _NameLocation;
-        public String? Name => _NameLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NameLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? Name => Payload.NameLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NameLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
         #region Aspects
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         string INamedRequiredGetter.Name => this.Name ?? string.Empty;
         #endregion
         #endregion
-        #region Flags
-        private int? _FlagsLocation;
-        public Cell.Flag? Flags => EnumBinaryTranslation<Cell.Flag, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(_FlagsLocation, _recordData, _package, 1);
-        #endregion
-        #region Grid
-        private int? _GridLocation;
-        public P2Int? Grid => _GridLocation.HasValue ? P2IntBinaryTranslation<MutagenFrame, MutagenWriter>.Instance.Read(HeaderTranslation.ExtractSubrecordMemory(_recordData, _GridLocation.Value, _package.MetaData.Constants)) : default(P2Int?);
-        #endregion
-        #region Lighting
-        private RangeInt32? _LightingLocation;
-        public ICellLightingGetter? Lighting => _LightingLocation.HasValue ? CellLightingBinaryOverlay.CellLightingFactory(_recordData.Slice(_LightingLocation!.Value.Min), _package) : default;
-        #endregion
-        public IReadOnlyList<IFormLinkGetter<IRegionGetter>>? Regions { get; private set; }
-        #region MusicType
-        private int? _MusicTypeLocation;
-        public MusicType? MusicType => EnumBinaryTranslation<MusicType, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(_MusicTypeLocation, _recordData, _package, 1);
-        #endregion
-        #region WaterHeight
-        private int? _WaterHeightLocation;
-        public Single? WaterHeight => _WaterHeightLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _WaterHeightLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
-        #endregion
-        #region Climate
-        private int? _ClimateLocation;
-        public IFormLinkNullableGetter<IClimateGetter> Climate => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IClimateGetter>(_package, _recordData, _ClimateLocation);
-        #endregion
-        #region Water
-        private int? _WaterLocation;
-        public IFormLinkNullableGetter<IWaterGetter> Water => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IWaterGetter>(_package, _recordData, _WaterLocation);
-        #endregion
-        #region Owner
-        private int? _OwnerLocation;
-        public IFormLinkNullableGetter<IFactionGetter> Owner => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IFactionGetter>(_package, _recordData, _OwnerLocation);
-        #endregion
-        #region FactionRank
-        private int? _FactionRankLocation;
-        public Int32? FactionRank => _FactionRankLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _FactionRankLocation.Value, _package.MetaData.Constants)) : default(Int32?);
-        #endregion
-        #region GlobalVariable
-        private int? _GlobalVariableLocation;
-        public IFormLinkNullableGetter<IGlobalGetter> GlobalVariable => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IGlobalGetter>(_package, _recordData, _GlobalVariableLocation);
-        #endregion
-        #region XTLI
-        private int? _XTLILocation;
-        public ReadOnlyMemorySlice<Byte>? XTLI => _XTLILocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _XTLILocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
-        #endregion
+        public Cell.Flag? Flags => EnumBinaryTranslation<Cell.Flag, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(Payload.FlagsLocation, _recordData, _package, 1);
+        public P2Int? Grid => Payload.GridLocation.HasValue ? P2IntBinaryTranslation<MutagenFrame, MutagenWriter>.Instance.Read(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.GridLocation.Value, _package.MetaData.Constants)) : default(P2Int?);
+        public ICellLightingGetter? Lighting => Payload.LightingLocation.HasValue ? CellLightingBinaryOverlay.CellLightingFactory(_recordData.Slice(Payload.LightingLocation!.Value.Min), _package) : default;
+        public IReadOnlyList<IFormLinkGetter<IRegionGetter>>? Regions => Payload.Regions;
+        public MusicType? MusicType => EnumBinaryTranslation<MusicType, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(Payload.MusicTypeLocation, _recordData, _package, 1);
+        public Single? WaterHeight => Payload.WaterHeightLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.WaterHeightLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public IFormLinkNullableGetter<IClimateGetter> Climate => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IClimateGetter>(_package, _recordData, Payload.ClimateLocation);
+        public IFormLinkNullableGetter<IWaterGetter> Water => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IWaterGetter>(_package, _recordData, Payload.WaterLocation);
+        public IFormLinkNullableGetter<IFactionGetter> Owner => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IFactionGetter>(_package, _recordData, Payload.OwnerLocation);
+        public Int32? FactionRank => Payload.FactionRankLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.FactionRankLocation.Value, _package.MetaData.Constants)) : default(Int32?);
+        public IFormLinkNullableGetter<IGlobalGetter> GlobalVariable => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IGlobalGetter>(_package, _recordData, Payload.GlobalVariableLocation);
+        public ReadOnlyMemorySlice<Byte>? XTLI => Payload.XTLILocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.XTLILocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
         #region XLRL
-        private int? _XLRLLocation;
-        private int? _XLRLLengthOverride;
         public ReadOnlyMemorySlice<Byte>? XLRL => PluginUtilityTranslation.ReadByteArrayWithOverflow(
             _recordData,
             _package.MetaData.Constants,
-            _XLRLLocation,
-            _XLRLLengthOverride);
+            Payload.XLRLLocation,
+            Payload.XLRLLengthOverride);
         #endregion
+
+        internal partial class CellRecordDataPayload
+        {
+            public int? NameLocation;
+            public int? FlagsLocation;
+            public int? GridLocation;
+            public RangeInt32? LightingLocation;
+            public IReadOnlyList<IFormLinkGetter<IRegionGetter>>? Regions;
+            public int? MusicTypeLocation;
+            public int? WaterHeightLocation;
+            public int? ClimateLocation;
+            public int? WaterLocation;
+            public int? OwnerLocation;
+            public int? FactionRankLocation;
+            public int? GlobalVariableLocation;
+            public int? XTLILocation;
+            public int? XLRLLocation;
+            public int? XLRLLengthOverride;
+        }
+
+        private LazyPayload<CellRecordDataPayload> _payload = null!;
+
+        internal CellRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<CellRecordDataPayload>(init, new CellRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -4972,10 +4966,10 @@ namespace Mutagen.Bethesda.Oblivion
 
         partial void CustomCtor();
         protected CellBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -4987,28 +4981,51 @@ namespace Mutagen.Bethesda.Oblivion
             TypedParseParams translationParams = default)
         {
             var origStream = stream;
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new CellBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             ret.CustomEnd(
                 stream: origStream,
                 finalPos: stream.Length,
@@ -5041,27 +5058,27 @@ namespace Mutagen.Bethesda.Oblivion
             {
                 case RecordTypeInts.FULL:
                 {
-                    _NameLocation = (stream.Position - offset);
+                    _payload.Fields.NameLocation = (stream.Position - offset);
                     return (int)Cell_FieldIndex.Name;
                 }
                 case RecordTypeInts.DATA:
                 {
-                    _FlagsLocation = (stream.Position - offset);
+                    _payload.Fields.FlagsLocation = (stream.Position - offset);
                     return (int)Cell_FieldIndex.Flags;
                 }
                 case RecordTypeInts.XCLC:
                 {
-                    _GridLocation = (stream.Position - offset);
+                    _payload.Fields.GridLocation = (stream.Position - offset);
                     return (int)Cell_FieldIndex.Grid;
                 }
                 case RecordTypeInts.XCLL:
                 {
-                    _LightingLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.LightingLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)Cell_FieldIndex.Lighting;
                 }
                 case RecordTypeInts.XCLR:
                 {
-                    this.Regions = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<IRegionGetter>>(
+                    _payload.Fields.Regions = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<IRegionGetter>>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -5071,48 +5088,48 @@ namespace Mutagen.Bethesda.Oblivion
                 }
                 case RecordTypeInts.XCMT:
                 {
-                    _MusicTypeLocation = (stream.Position - offset);
+                    _payload.Fields.MusicTypeLocation = (stream.Position - offset);
                     return (int)Cell_FieldIndex.MusicType;
                 }
                 case RecordTypeInts.XCLW:
                 {
-                    _WaterHeightLocation = (stream.Position - offset);
+                    _payload.Fields.WaterHeightLocation = (stream.Position - offset);
                     return (int)Cell_FieldIndex.WaterHeight;
                 }
                 case RecordTypeInts.XCCM:
                 {
-                    _ClimateLocation = (stream.Position - offset);
+                    _payload.Fields.ClimateLocation = (stream.Position - offset);
                     return (int)Cell_FieldIndex.Climate;
                 }
                 case RecordTypeInts.XCWT:
                 {
-                    _WaterLocation = (stream.Position - offset);
+                    _payload.Fields.WaterLocation = (stream.Position - offset);
                     return (int)Cell_FieldIndex.Water;
                 }
                 case RecordTypeInts.XOWN:
                 {
-                    _OwnerLocation = (stream.Position - offset);
+                    _payload.Fields.OwnerLocation = (stream.Position - offset);
                     return (int)Cell_FieldIndex.Owner;
                 }
                 case RecordTypeInts.XRNK:
                 {
-                    _FactionRankLocation = (stream.Position - offset);
+                    _payload.Fields.FactionRankLocation = (stream.Position - offset);
                     return (int)Cell_FieldIndex.FactionRank;
                 }
                 case RecordTypeInts.XGLB:
                 {
-                    _GlobalVariableLocation = (stream.Position - offset);
+                    _payload.Fields.GlobalVariableLocation = (stream.Position - offset);
                     return (int)Cell_FieldIndex.GlobalVariable;
                 }
                 case RecordTypeInts.XTLI:
                 {
-                    _XTLILocation = (stream.Position - offset);
+                    _payload.Fields.XTLILocation = (stream.Position - offset);
                     return (int)Cell_FieldIndex.XTLI;
                 }
                 case RecordTypeInts.XLRL:
                 {
-                    _XLRLLocation = (stream.Position - offset);
-                    _XLRLLengthOverride = lastParsed.LengthOverride;
+                    _payload.Fields.XLRLLocation = (stream.Position - offset);
+                    _payload.Fields.XLRLLengthOverride = lastParsed.LengthOverride;
                     if (lastParsed.LengthOverride.HasValue)
                     {
                         stream.Position += lastParsed.LengthOverride.Value;

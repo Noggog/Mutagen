@@ -1,0 +1,4 @@
+RecordTypes.MOD4,
+RecordTypes.FLLD,
+RecordTypes.MO4S,
+RecordTypes.MO4C,

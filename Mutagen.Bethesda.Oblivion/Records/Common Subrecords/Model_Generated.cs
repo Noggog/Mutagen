@@ -1222,11 +1222,25 @@ namespace Mutagen.Bethesda.Oblivion
 
         #region File
         private int? _FileLocation;
-        public String File => _FileLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _FileLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : string.Empty;
+        public String File
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _FileLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_data, _FileLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : string.Empty;
+            }
+        }
         #endregion
         #region BoundRadius
         private int? _BoundRadiusLocation;
-        public Single BoundRadius => _BoundRadiusLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _BoundRadiusLocation.Value, _package.MetaData.Constants).Float() : default(Single);
+        public Single BoundRadius
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _BoundRadiusLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_data, _BoundRadiusLocation.Value, _package.MetaData.Constants).Float() : default(Single);
+            }
+        }
         #endregion
         #region Hashes
         private int? _HashesLocation;

@@ -155,6 +155,7 @@ public class ByteArrayBinaryTranslationGeneration : PrimitiveBinaryTranslationGe
         string passedLengthAccessor,
         DataType? dataType = null)
     {
+        var payloadSb = (this.Module as PluginTranslationModule)?.CurrentPayloadFieldsSb;
         var data = typeGen.CustomData[Constants.DataKey] as MutagenFieldData;
         var posStr = dataType == null ? passedLengthAccessor : $"_{typeGen.Name}Location";
         switch (data.BinaryOverlayFallback)
@@ -177,26 +178,35 @@ public class ByteArrayBinaryTranslationGeneration : PrimitiveBinaryTranslationGe
         }
         if (data.HasTrigger)
         {
-            sb.AppendLine($"private int? _{typeGen.Name}Location;");
+            if (payloadSb != null)
+            {
+                payloadSb.AppendLine($"public int? {typeGen.Name}Location;");
+            }
+            else
+            {
+                sb.AppendLine($"private int? _{typeGen.Name}Location;");
+            }
         }
+        var locationPrefix = payloadSb != null ? $"Payload.{typeGen.Name}Location" : $"_{typeGen.Name}Location";
+        var overflowPrefix = payloadSb != null ? $"Payload.{typeGen.Name}LengthOverride" : $"_{typeGen.Name}LengthOverride";
         if (data.RecordType.HasValue)
         {
             if (dataType != null) throw new ArgumentException();
             if (data.OverflowRecordType.HasValue)
             {
-                OverflowGenerationHelper.GenerateWrapperOverflowMember(sb, typeGen);
+                OverflowGenerationHelper.GenerateWrapperOverflowMember(sb, typeGen, payloadSb);
                 using (var args = sb.Call(
                            $"public {typeGen.TypeName(getter: true)}{(typeGen.Nullable ? "?" : null)} {typeGen.Name} => {nameof(PluginUtilityTranslation)}.{nameof(PluginUtilityTranslation.ReadByteArrayWithOverflow)}"))
                 {
                     args.Add(recordDataAccessor.ToString());
                     args.Add($"_package.{nameof(BinaryOverlayFactoryPackage.MetaData)}.{nameof(ParsingMeta.Constants)}");
-                    args.Add($"_{typeGen.Name}Location");
-                    args.Add($"_{typeGen.Name}LengthOverride");
+                    args.Add(locationPrefix);
+                    args.Add(overflowPrefix);
                 }
             }
             else
             {
-                sb.AppendLine($"public {typeGen.TypeName(getter: true)}{(typeGen.Nullable ? "?" : null)} {typeGen.Name} => _{typeGen.Name}Location.HasValue ? {nameof(HeaderTranslation)}.{nameof(HeaderTranslation.ExtractSubrecordMemory)}({recordDataAccessor}, _{typeGen.Name}Location.Value, _package.{nameof(BinaryOverlayFactoryPackage.MetaData)}.{nameof(ParsingMeta.Constants)}) : {(typeGen.Nullable ? $"default(ReadOnlyMemorySlice<byte>?)" : "ReadOnlyMemorySlice<byte>.Empty")};");
+                sb.AppendLine($"public {typeGen.TypeName(getter: true)}{(typeGen.Nullable ? "?" : null)} {typeGen.Name} => {locationPrefix}.HasValue ? {nameof(HeaderTranslation)}.{nameof(HeaderTranslation.ExtractSubrecordMemory)}({recordDataAccessor}, {locationPrefix}.Value, _package.{nameof(BinaryOverlayFactoryPackage.MetaData)}.{nameof(ParsingMeta.Constants)}) : {(typeGen.Nullable ? $"default(ReadOnlyMemorySlice<byte>?)" : "ReadOnlyMemorySlice<byte>.Empty")};");
             }
         }
         else
@@ -237,11 +247,14 @@ public class ByteArrayBinaryTranslationGeneration : PrimitiveBinaryTranslationGe
             }
             else
             {
-                DataBinaryTranslationGeneration.GenerateWrapperExtraMembers(sb, dataType, objGen, typeGen, passedLengthAccessor);
+                DataBinaryTranslationGeneration.GenerateWrapperExtraMembers(sb, dataType, objGen, typeGen, passedLengthAccessor, isMajorRecord: payloadSb != null);
                 var expLen = (await this.ExpectedLength(objGen, typeGen))?.ToString();
                 if (expLen == null)
                 {
-                    expLen = $"_{dataType.GetFieldData().RecordType}Location!.Value.Max - _{typeGen.Name}Location + 1";
+                    var dtLocRef = payloadSb != null
+                        ? $"Payload.{dataType.GetFieldData().RecordType}Location"
+                        : $"_{dataType.GetFieldData().RecordType}Location";
+                    expLen = $"{dtLocRef}!.Value.Max - _{typeGen.Name}Location + 1";
                 }
                 sb.AppendLine($"public {typeGen.TypeName(getter: true)}{(typeGen.Nullable ? "?" : null)} {typeGen.Name} => _{typeGen.Name}_IsSet ? {recordDataAccessor}.Span.Slice(_{typeGen.Name}Location{(expLen != null ? $", {expLen}" : null)}).ToArray() : {(typeGen.Nullable ? $"default(ReadOnlyMemorySlice<byte>?)" : "ReadOnlyMemorySlice<byte>.Empty")};");
             }
@@ -289,7 +302,7 @@ public class ByteArrayBinaryTranslationGeneration : PrimitiveBinaryTranslationGe
         {
             sb.AppendLine("stream.ReadSubrecord();");
         }
-        OverflowGenerationHelper.GenerateWrapperOverflowParse(sb, typeGen, data);
+        OverflowGenerationHelper.GenerateWrapperOverflowParse(sb, typeGen, data, isMajorRecord: await objGen.IsMajorRecord());
     }
 
     public override string GenerateForTypicalWrapper(

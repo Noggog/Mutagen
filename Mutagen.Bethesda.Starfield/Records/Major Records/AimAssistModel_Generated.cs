@@ -33,6 +33,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -2572,117 +2573,131 @@ namespace Mutagen.Bethesda.Starfield
         protected override Type LinkType => typeof(IAimAssistModelGetter);
 
 
-        private RangeInt32? _SNAMLocation;
         #region InnerConeAngleDegrees
-        private int _InnerConeAngleDegreesLocation => _SNAMLocation!.Value.Min;
-        private bool _InnerConeAngleDegrees_IsSet => _SNAMLocation.HasValue;
+        private int _InnerConeAngleDegreesLocation => Payload.SNAMLocation!.Value.Min;
+        private bool _InnerConeAngleDegrees_IsSet => Payload.SNAMLocation.HasValue;
         public Single InnerConeAngleDegrees => _InnerConeAngleDegrees_IsSet ? _recordData.Slice(_InnerConeAngleDegreesLocation, 4).Float() : default(Single);
         #endregion
         #region OuterConeAngleDegrees
-        private int _OuterConeAngleDegreesLocation => _SNAMLocation!.Value.Min + 0x4;
-        private bool _OuterConeAngleDegrees_IsSet => _SNAMLocation.HasValue;
+        private int _OuterConeAngleDegreesLocation => Payload.SNAMLocation!.Value.Min + 0x4;
+        private bool _OuterConeAngleDegrees_IsSet => Payload.SNAMLocation.HasValue;
         public Single OuterConeAngleDegrees => _OuterConeAngleDegrees_IsSet ? _recordData.Slice(_OuterConeAngleDegreesLocation, 4).Float() : default(Single);
         #endregion
         #region SteeringDegreesPerSec
-        private int _SteeringDegreesPerSecLocation => _SNAMLocation!.Value.Min + 0x8;
-        private bool _SteeringDegreesPerSec_IsSet => _SNAMLocation.HasValue;
+        private int _SteeringDegreesPerSecLocation => Payload.SNAMLocation!.Value.Min + 0x8;
+        private bool _SteeringDegreesPerSec_IsSet => Payload.SNAMLocation.HasValue;
         public Single SteeringDegreesPerSec => _SteeringDegreesPerSec_IsSet ? _recordData.Slice(_SteeringDegreesPerSecLocation, 4).Float() : default(Single);
         #endregion
         #region PitchScale
-        private int _PitchScaleLocation => _SNAMLocation!.Value.Min + 0xC;
-        private bool _PitchScale_IsSet => _SNAMLocation.HasValue;
+        private int _PitchScaleLocation => Payload.SNAMLocation!.Value.Min + 0xC;
+        private bool _PitchScale_IsSet => Payload.SNAMLocation.HasValue;
         public Single PitchScale => _PitchScale_IsSet ? _recordData.Slice(_PitchScaleLocation, 4).Float() : default(Single);
         #endregion
         #region InnerSteeringRing
-        private int _InnerSteeringRingLocation => _SNAMLocation!.Value.Min + 0x10;
-        private bool _InnerSteeringRing_IsSet => _SNAMLocation.HasValue;
+        private int _InnerSteeringRingLocation => Payload.SNAMLocation!.Value.Min + 0x10;
+        private bool _InnerSteeringRing_IsSet => Payload.SNAMLocation.HasValue;
         public Single InnerSteeringRing => _InnerSteeringRing_IsSet ? _recordData.Slice(_InnerSteeringRingLocation, 4).Float() : default(Single);
         #endregion
         #region OuterSteeringRing
-        private int _OuterSteeringRingLocation => _SNAMLocation!.Value.Min + 0x14;
-        private bool _OuterSteeringRing_IsSet => _SNAMLocation.HasValue;
+        private int _OuterSteeringRingLocation => Payload.SNAMLocation!.Value.Min + 0x14;
+        private bool _OuterSteeringRing_IsSet => Payload.SNAMLocation.HasValue;
         public Single OuterSteeringRing => _OuterSteeringRing_IsSet ? _recordData.Slice(_OuterSteeringRingLocation, 4).Float() : default(Single);
         #endregion
         #region Friction
-        private int _FrictionLocation => _SNAMLocation!.Value.Min + 0x18;
-        private bool _Friction_IsSet => _SNAMLocation.HasValue;
+        private int _FrictionLocation => Payload.SNAMLocation!.Value.Min + 0x18;
+        private bool _Friction_IsSet => Payload.SNAMLocation.HasValue;
         public Single Friction => _Friction_IsSet ? _recordData.Slice(_FrictionLocation, 4).Float() : default(Single);
         #endregion
         #region MoveFollowDegreesPerSec
-        private int _MoveFollowDegreesPerSecLocation => _SNAMLocation!.Value.Min + 0x1C;
-        private bool _MoveFollowDegreesPerSec_IsSet => _SNAMLocation.HasValue;
+        private int _MoveFollowDegreesPerSecLocation => Payload.SNAMLocation!.Value.Min + 0x1C;
+        private bool _MoveFollowDegreesPerSec_IsSet => Payload.SNAMLocation.HasValue;
         public Single MoveFollowDegreesPerSec => _MoveFollowDegreesPerSec_IsSet ? _recordData.Slice(_MoveFollowDegreesPerSecLocation, 4).Float() : default(Single);
         #endregion
         #region AdsSnapSteeringMult
-        private int _AdsSnapSteeringMultLocation => _SNAMLocation!.Value.Min + 0x20;
-        private bool _AdsSnapSteeringMult_IsSet => _SNAMLocation.HasValue;
+        private int _AdsSnapSteeringMultLocation => Payload.SNAMLocation!.Value.Min + 0x20;
+        private bool _AdsSnapSteeringMult_IsSet => Payload.SNAMLocation.HasValue;
         public Single AdsSnapSteeringMult => _AdsSnapSteeringMult_IsSet ? _recordData.Slice(_AdsSnapSteeringMultLocation, 4).Float() : default(Single);
         #endregion
         #region AdsSnapSeconds
-        private int _AdsSnapSecondsLocation => _SNAMLocation!.Value.Min + 0x24;
-        private bool _AdsSnapSeconds_IsSet => _SNAMLocation.HasValue;
+        private int _AdsSnapSecondsLocation => Payload.SNAMLocation!.Value.Min + 0x24;
+        private bool _AdsSnapSeconds_IsSet => Payload.SNAMLocation.HasValue;
         public Single AdsSnapSeconds => _AdsSnapSeconds_IsSet ? _recordData.Slice(_AdsSnapSecondsLocation, 4).Float() : default(Single);
         #endregion
         #region AdsSnapConeAngleDegrees
-        private int _AdsSnapConeAngleDegreesLocation => _SNAMLocation!.Value.Min + 0x28;
-        private bool _AdsSnapConeAngleDegrees_IsSet => _SNAMLocation.HasValue;
+        private int _AdsSnapConeAngleDegreesLocation => Payload.SNAMLocation!.Value.Min + 0x28;
+        private bool _AdsSnapConeAngleDegrees_IsSet => Payload.SNAMLocation.HasValue;
         public Single AdsSnapConeAngleDegrees => _AdsSnapConeAngleDegrees_IsSet ? _recordData.Slice(_AdsSnapConeAngleDegreesLocation, 4).Float() : default(Single);
         #endregion
         #region NoSteering
-        private int _NoSteeringLocation => _SNAMLocation!.Value.Min + 0x2C;
-        private bool _NoSteering_IsSet => _SNAMLocation.HasValue;
+        private int _NoSteeringLocation => Payload.SNAMLocation!.Value.Min + 0x2C;
+        private bool _NoSteering_IsSet => Payload.SNAMLocation.HasValue;
         public Single NoSteering => _NoSteering_IsSet ? _recordData.Slice(_NoSteeringLocation, 4).Float() : default(Single);
         #endregion
         #region BulletBendingConeAngleDegrees
-        private int _BulletBendingConeAngleDegreesLocation => _SNAMLocation!.Value.Min + 0x30;
-        private bool _BulletBendingConeAngleDegrees_IsSet => _SNAMLocation.HasValue;
+        private int _BulletBendingConeAngleDegreesLocation => Payload.SNAMLocation!.Value.Min + 0x30;
+        private bool _BulletBendingConeAngleDegrees_IsSet => Payload.SNAMLocation.HasValue;
         public Single BulletBendingConeAngleDegrees => _BulletBendingConeAngleDegrees_IsSet ? _recordData.Slice(_BulletBendingConeAngleDegreesLocation, 4).Float() : default(Single);
         #endregion
         #region AdsSnapSteeringMultiplierInnerRing
-        private int _AdsSnapSteeringMultiplierInnerRingLocation => _SNAMLocation!.Value.Min + 0x34;
-        private bool _AdsSnapSteeringMultiplierInnerRing_IsSet => _SNAMLocation.HasValue;
+        private int _AdsSnapSteeringMultiplierInnerRingLocation => Payload.SNAMLocation!.Value.Min + 0x34;
+        private bool _AdsSnapSteeringMultiplierInnerRing_IsSet => Payload.SNAMLocation.HasValue;
         public Single AdsSnapSteeringMultiplierInnerRing => _AdsSnapSteeringMultiplierInnerRing_IsSet ? _recordData.Slice(_AdsSnapSteeringMultiplierInnerRingLocation, 4).Float() : default(Single);
         #endregion
         #region AdsSnapSteeringMultiplierOuterRing
-        private int _AdsSnapSteeringMultiplierOuterRingLocation => _SNAMLocation!.Value.Min + 0x38;
-        private bool _AdsSnapSteeringMultiplierOuterRing_IsSet => _SNAMLocation.HasValue;
+        private int _AdsSnapSteeringMultiplierOuterRingLocation => Payload.SNAMLocation!.Value.Min + 0x38;
+        private bool _AdsSnapSteeringMultiplierOuterRing_IsSet => Payload.SNAMLocation.HasValue;
         public Single AdsSnapSteeringMultiplierOuterRing => _AdsSnapSteeringMultiplierOuterRing_IsSet ? _recordData.Slice(_AdsSnapSteeringMultiplierOuterRingLocation, 4).Float() : default(Single);
         #endregion
         #region AdsMultiplierInnerConeAngleDegrees
-        private int _AdsMultiplierInnerConeAngleDegreesLocation => _SNAMLocation!.Value.Min + 0x3C;
-        private bool _AdsMultiplierInnerConeAngleDegrees_IsSet => _SNAMLocation.HasValue;
+        private int _AdsMultiplierInnerConeAngleDegreesLocation => Payload.SNAMLocation!.Value.Min + 0x3C;
+        private bool _AdsMultiplierInnerConeAngleDegrees_IsSet => Payload.SNAMLocation.HasValue;
         public Single AdsMultiplierInnerConeAngleDegrees => _AdsMultiplierInnerConeAngleDegrees_IsSet ? _recordData.Slice(_AdsMultiplierInnerConeAngleDegreesLocation, 4).Float() : default(Single);
         #endregion
         #region AdsMultiplierOuterConeAngleDegrees
-        private int _AdsMultiplierOuterConeAngleDegreesLocation => _SNAMLocation!.Value.Min + 0x40;
-        private bool _AdsMultiplierOuterConeAngleDegrees_IsSet => _SNAMLocation.HasValue;
+        private int _AdsMultiplierOuterConeAngleDegreesLocation => Payload.SNAMLocation!.Value.Min + 0x40;
+        private bool _AdsMultiplierOuterConeAngleDegrees_IsSet => Payload.SNAMLocation.HasValue;
         public Single AdsMultiplierOuterConeAngleDegrees => _AdsMultiplierOuterConeAngleDegrees_IsSet ? _recordData.Slice(_AdsMultiplierOuterConeAngleDegreesLocation, 4).Float() : default(Single);
         #endregion
         #region AdsMultiplierInnerSteeringRing
-        private int _AdsMultiplierInnerSteeringRingLocation => _SNAMLocation!.Value.Min + 0x44;
-        private bool _AdsMultiplierInnerSteeringRing_IsSet => _SNAMLocation.HasValue;
+        private int _AdsMultiplierInnerSteeringRingLocation => Payload.SNAMLocation!.Value.Min + 0x44;
+        private bool _AdsMultiplierInnerSteeringRing_IsSet => Payload.SNAMLocation.HasValue;
         public Single AdsMultiplierInnerSteeringRing => _AdsMultiplierInnerSteeringRing_IsSet ? _recordData.Slice(_AdsMultiplierInnerSteeringRingLocation, 4).Float() : default(Single);
         #endregion
         #region AdsMultiplierOuterSteeringRing
-        private int _AdsMultiplierOuterSteeringRingLocation => _SNAMLocation!.Value.Min + 0x48;
-        private bool _AdsMultiplierOuterSteeringRing_IsSet => _SNAMLocation.HasValue;
+        private int _AdsMultiplierOuterSteeringRingLocation => Payload.SNAMLocation!.Value.Min + 0x48;
+        private bool _AdsMultiplierOuterSteeringRing_IsSet => Payload.SNAMLocation.HasValue;
         public Single AdsMultiplierOuterSteeringRing => _AdsMultiplierOuterSteeringRing_IsSet ? _recordData.Slice(_AdsMultiplierOuterSteeringRingLocation, 4).Float() : default(Single);
         #endregion
         #region AdsMultiplierFriction
-        private int _AdsMultiplierFrictionLocation => _SNAMLocation!.Value.Min + 0x4C;
-        private bool _AdsMultiplierFriction_IsSet => _SNAMLocation.HasValue;
+        private int _AdsMultiplierFrictionLocation => Payload.SNAMLocation!.Value.Min + 0x4C;
+        private bool _AdsMultiplierFriction_IsSet => Payload.SNAMLocation.HasValue;
         public Single AdsMultiplierFriction => _AdsMultiplierFriction_IsSet ? _recordData.Slice(_AdsMultiplierFrictionLocation, 4).Float() : default(Single);
         #endregion
         #region AdsMultiplierSteeringDegreesPerSec
-        private int _AdsMultiplierSteeringDegreesPerSecLocation => _SNAMLocation!.Value.Min + 0x50;
-        private bool _AdsMultiplierSteeringDegreesPerSec_IsSet => _SNAMLocation.HasValue;
+        private int _AdsMultiplierSteeringDegreesPerSecLocation => Payload.SNAMLocation!.Value.Min + 0x50;
+        private bool _AdsMultiplierSteeringDegreesPerSec_IsSet => Payload.SNAMLocation.HasValue;
         public Single AdsMultiplierSteeringDegreesPerSec => _AdsMultiplierSteeringDegreesPerSec_IsSet ? _recordData.Slice(_AdsMultiplierSteeringDegreesPerSecLocation, 4).Float() : default(Single);
         #endregion
         #region AimAssistEnabled
-        private int _AimAssistEnabledLocation => _SNAMLocation!.Value.Min + 0x54;
-        private bool _AimAssistEnabled_IsSet => _SNAMLocation.HasValue;
+        private int _AimAssistEnabledLocation => Payload.SNAMLocation!.Value.Min + 0x54;
+        private bool _AimAssistEnabled_IsSet => Payload.SNAMLocation.HasValue;
         public Boolean AimAssistEnabled => _AimAssistEnabled_IsSet ? _recordData.Slice(_AimAssistEnabledLocation, 1)[0] >= 1 : default(Boolean);
         #endregion
+
+        internal partial class AimAssistModelRecordDataPayload
+        {
+            public RangeInt32? SNAMLocation;
+        }
+
+        private LazyPayload<AimAssistModelRecordDataPayload> _payload = null!;
+
+        internal AimAssistModelRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<AimAssistModelRecordDataPayload>(init, new AimAssistModelRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -2690,10 +2705,10 @@ namespace Mutagen.Bethesda.Starfield
 
         partial void CustomCtor();
         protected AimAssistModelBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -2704,28 +2719,51 @@ namespace Mutagen.Bethesda.Starfield
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new AimAssistModelBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -2754,7 +2792,7 @@ namespace Mutagen.Bethesda.Starfield
             {
                 case RecordTypeInts.SNAM:
                 {
-                    _SNAMLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.SNAMLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     return (int)AimAssistModel_FieldIndex.AimAssistEnabled;
                 }
                 default:

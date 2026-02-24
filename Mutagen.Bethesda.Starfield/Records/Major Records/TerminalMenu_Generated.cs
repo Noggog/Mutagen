@@ -36,6 +36,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -2318,14 +2319,11 @@ namespace Mutagen.Bethesda.Starfield
 
 
         #region VirtualMachineAdapter
-        private int? _VirtualMachineAdapterLengthOverride;
-        private RangeInt32? _VirtualMachineAdapterLocation;
-        public IVirtualMachineAdapterIndexedGetter? VirtualMachineAdapter => _VirtualMachineAdapterLocation.HasValue ? VirtualMachineAdapterIndexedBinaryOverlay.VirtualMachineAdapterIndexedFactory(_recordData.Slice(_VirtualMachineAdapterLocation!.Value.Min), _package, TypedParseParams.FromLengthOverride(_VirtualMachineAdapterLengthOverride)) : default;
+        public IVirtualMachineAdapterIndexedGetter? VirtualMachineAdapter => Payload.VirtualMachineAdapterLocation.HasValue ? VirtualMachineAdapterIndexedBinaryOverlay.VirtualMachineAdapterIndexedFactory(_recordData.Slice(Payload.VirtualMachineAdapterLocation!.Value.Min), _package, TypedParseParams.FromLengthOverride(Payload.VirtualMachineAdapterLengthOverride)) : default;
         IAVirtualMachineAdapterGetter? IHaveVirtualMachineAdapterGetter.VirtualMachineAdapter => this.VirtualMachineAdapter;
         #endregion
         #region Name
-        private int? _NameLocation;
-        public ITranslatedStringGetter? Name => _NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+        public ITranslatedStringGetter? Name => Payload.NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
         #region Aspects
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         string INamedRequiredGetter.Name => this.Name?.String ?? string.Empty;
@@ -2335,24 +2333,35 @@ namespace Mutagen.Bethesda.Starfield
         ITranslatedStringGetter ITranslatedNamedRequiredGetter.Name => this.Name ?? TranslatedString.Empty;
         #endregion
         #endregion
-        #region ShowBodyText
-        private int? _ShowBodyTextLocation;
-        public TerminalMenu.ShowBodyTextOption? ShowBodyText => EnumBinaryTranslation<TerminalMenu.ShowBodyTextOption, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(_ShowBodyTextLocation, _recordData, _package, 4);
-        #endregion
-        #region MenuButtonStyle
-        private int? _MenuButtonStyleLocation;
-        public TerminalMenu.MenuButtonStyleOption? MenuButtonStyle => EnumBinaryTranslation<TerminalMenu.MenuButtonStyleOption, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(_MenuButtonStyleLocation, _recordData, _package, 1);
-        #endregion
-        #region Style
-        private int? _StyleLocation;
-        public TerminalMenu.StyleOption? Style => EnumBinaryTranslation<TerminalMenu.StyleOption, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(_StyleLocation, _recordData, _package, 4);
-        #endregion
-        #region INAM
-        private int? _INAMLocation;
-        public ITranslatedStringGetter? INAM => _INAMLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _INAMLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
-        #endregion
-        public IReadOnlyList<ITerminalMenuBodyTextGetter>? BodyTexts { get; private set; }
-        public IReadOnlyList<ITerminalMenuItemGetter>? MenuItems { get; private set; }
+        public TerminalMenu.ShowBodyTextOption? ShowBodyText => EnumBinaryTranslation<TerminalMenu.ShowBodyTextOption, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(Payload.ShowBodyTextLocation, _recordData, _package, 4);
+        public TerminalMenu.MenuButtonStyleOption? MenuButtonStyle => EnumBinaryTranslation<TerminalMenu.MenuButtonStyleOption, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(Payload.MenuButtonStyleLocation, _recordData, _package, 1);
+        public TerminalMenu.StyleOption? Style => EnumBinaryTranslation<TerminalMenu.StyleOption, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(Payload.StyleLocation, _recordData, _package, 4);
+        public ITranslatedStringGetter? INAM => Payload.INAMLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.INAMLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+        public IReadOnlyList<ITerminalMenuBodyTextGetter>? BodyTexts => Payload.BodyTexts;
+        public IReadOnlyList<ITerminalMenuItemGetter>? MenuItems => Payload.MenuItems;
+
+        internal partial class TerminalMenuRecordDataPayload
+        {
+            public int? VirtualMachineAdapterLengthOverride;
+            public RangeInt32? VirtualMachineAdapterLocation;
+            public int? NameLocation;
+            public int? ShowBodyTextLocation;
+            public int? MenuButtonStyleLocation;
+            public int? StyleLocation;
+            public int? INAMLocation;
+            public IReadOnlyList<ITerminalMenuBodyTextGetter>? BodyTexts;
+            public IReadOnlyList<ITerminalMenuItemGetter>? MenuItems;
+        }
+
+        private LazyPayload<TerminalMenuRecordDataPayload> _payload = null!;
+
+        internal TerminalMenuRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<TerminalMenuRecordDataPayload>(init, new TerminalMenuRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -2360,10 +2369,10 @@ namespace Mutagen.Bethesda.Starfield
 
         partial void CustomCtor();
         protected TerminalMenuBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -2374,28 +2383,51 @@ namespace Mutagen.Bethesda.Starfield
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new TerminalMenuBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -2424,8 +2456,8 @@ namespace Mutagen.Bethesda.Starfield
             {
                 case RecordTypeInts.VMAD:
                 {
-                    _VirtualMachineAdapterLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
-                    _VirtualMachineAdapterLengthOverride = lastParsed.LengthOverride;
+                    _payload.Fields.VirtualMachineAdapterLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.VirtualMachineAdapterLengthOverride = lastParsed.LengthOverride;
                     if (lastParsed.LengthOverride.HasValue)
                     {
                         stream.Position += lastParsed.LengthOverride.Value;
@@ -2434,32 +2466,32 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.FULL:
                 {
-                    _NameLocation = (stream.Position - offset);
+                    _payload.Fields.NameLocation = (stream.Position - offset);
                     return (int)TerminalMenu_FieldIndex.Name;
                 }
                 case RecordTypeInts.TMVT:
                 {
-                    _ShowBodyTextLocation = (stream.Position - offset);
+                    _payload.Fields.ShowBodyTextLocation = (stream.Position - offset);
                     return (int)TerminalMenu_FieldIndex.ShowBodyText;
                 }
                 case RecordTypeInts.DNAM:
                 {
-                    _MenuButtonStyleLocation = (stream.Position - offset);
+                    _payload.Fields.MenuButtonStyleLocation = (stream.Position - offset);
                     return (int)TerminalMenu_FieldIndex.MenuButtonStyle;
                 }
                 case RecordTypeInts.SNAM:
                 {
-                    _StyleLocation = (stream.Position - offset);
+                    _payload.Fields.StyleLocation = (stream.Position - offset);
                     return (int)TerminalMenu_FieldIndex.Style;
                 }
                 case RecordTypeInts.INAM:
                 {
-                    _INAMLocation = (stream.Position - offset);
+                    _payload.Fields.INAMLocation = (stream.Position - offset);
                     return (int)TerminalMenu_FieldIndex.INAM;
                 }
                 case RecordTypeInts.BSIZ:
                 {
-                    this.BodyTexts = BinaryOverlayList.FactoryByCountPerItem<ITerminalMenuBodyTextGetter>(
+                    _payload.Fields.BodyTexts = BinaryOverlayList.FactoryByCountPerItem<ITerminalMenuBodyTextGetter>(
                         stream: stream,
                         package: _package,
                         countLength: 4,
@@ -2472,7 +2504,7 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.ISIZ:
                 {
-                    this.MenuItems = BinaryOverlayList.FactoryByCountPerItem<ITerminalMenuItemGetter>(
+                    _payload.Fields.MenuItems = BinaryOverlayList.FactoryByCountPerItem<ITerminalMenuItemGetter>(
                         stream: stream,
                         package: _package,
                         countLength: 4,

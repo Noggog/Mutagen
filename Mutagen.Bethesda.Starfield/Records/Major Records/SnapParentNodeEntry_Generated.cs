@@ -1194,7 +1194,14 @@ namespace Mutagen.Bethesda.Starfield
 
         #region NodeID
         private int? _NodeIDLocation;
-        public UInt32? NodeID => _NodeIDLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NodeIDLocation.Value, _package.MetaData.Constants)) : default(UInt32?);
+        public UInt32? NodeID
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _NodeIDLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _NodeIDLocation.Value, _package.MetaData.Constants)) : default(UInt32?);
+            }
+        }
         #endregion
         public IOffsetRotationGetter? OffsetRotation { get; private set; }
         partial void CustomFactoryEnd(

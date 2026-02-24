@@ -1,0 +1,4 @@
+RecordTypes.EDID,
+RecordTypes.FULL,
+RecordTypes.MNAM,
+RecordTypes.MWGT,

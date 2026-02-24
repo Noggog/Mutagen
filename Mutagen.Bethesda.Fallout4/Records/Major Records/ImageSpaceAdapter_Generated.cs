@@ -33,6 +33,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -12787,116 +12788,188 @@ namespace Mutagen.Bethesda.Fallout4
         protected override Type LinkType => typeof(IImageSpaceAdapterGetter);
 
 
-        private RangeInt32? _DNAMLocation;
-        public ImageSpaceAdapter.DNAMDataType DNAMDataTypeState { get; private set; }
+        public ImageSpaceAdapter.DNAMDataType DNAMDataTypeState => Payload.DNAMDataTypeState;
         #region Animatable
-        private int _AnimatableLocation => _DNAMLocation!.Value.Min;
-        private bool _Animatable_IsSet => _DNAMLocation.HasValue;
+        private int _AnimatableLocation => Payload.DNAMLocation!.Value.Min;
+        private bool _Animatable_IsSet => Payload.DNAMLocation.HasValue;
         public Boolean Animatable => _Animatable_IsSet ? BinaryPrimitives.ReadUInt32LittleEndian(_recordData.Slice(_AnimatableLocation, 4)) >= 1 : default(Boolean);
         #endregion
         #region Duration
-        private int _DurationLocation => _DNAMLocation!.Value.Min + 0x4;
-        private bool _Duration_IsSet => _DNAMLocation.HasValue;
+        private int _DurationLocation => Payload.DNAMLocation!.Value.Min + 0x4;
+        private bool _Duration_IsSet => Payload.DNAMLocation.HasValue;
         public Single Duration => _Duration_IsSet ? _recordData.Slice(_DurationLocation, 4).Float() : default(Single);
         #endregion
         #region Counts1
-        private int _Counts1Location => _DNAMLocation!.Value.Min + 0x8;
-        private bool _Counts1_IsSet => _DNAMLocation.HasValue;
+        private int _Counts1Location => Payload.DNAMLocation!.Value.Min + 0x8;
+        private bool _Counts1_IsSet => Payload.DNAMLocation.HasValue;
         partial void Counts1CustomParse(
             OverlayStream stream,
             int offset);
         #endregion
         #region RadialBlurUseTarget
-        private int _RadialBlurUseTargetLocation => _DNAMLocation!.Value.Min + 0xC8;
-        private bool _RadialBlurUseTarget_IsSet => _DNAMLocation.HasValue;
+        private int _RadialBlurUseTargetLocation => Payload.DNAMLocation!.Value.Min + 0xC8;
+        private bool _RadialBlurUseTarget_IsSet => Payload.DNAMLocation.HasValue;
         public Boolean RadialBlurUseTarget => _RadialBlurUseTarget_IsSet ? BinaryPrimitives.ReadUInt32LittleEndian(_recordData.Slice(_RadialBlurUseTargetLocation, 4)) >= 1 : default(Boolean);
         #endregion
         #region RadialBlurCenter
-        private int _RadialBlurCenterLocation => _DNAMLocation!.Value.Min + 0xCC;
-        private bool _RadialBlurCenter_IsSet => _DNAMLocation.HasValue;
+        private int _RadialBlurCenterLocation => Payload.DNAMLocation!.Value.Min + 0xCC;
+        private bool _RadialBlurCenter_IsSet => Payload.DNAMLocation.HasValue;
         public P2Float RadialBlurCenter => _RadialBlurCenter_IsSet ? P2FloatBinaryTranslation<MutagenFrame, MutagenWriter>.Instance.Read(_recordData.Slice(_RadialBlurCenterLocation, 8)) : default(P2Float);
         #endregion
         #region Counts2
-        private int _Counts2Location => _DNAMLocation!.Value.Min + 0xD4;
-        private bool _Counts2_IsSet => _DNAMLocation.HasValue;
+        private int _Counts2Location => Payload.DNAMLocation!.Value.Min + 0xD4;
+        private bool _Counts2_IsSet => Payload.DNAMLocation.HasValue;
         partial void Counts2CustomParse(
             OverlayStream stream,
             int offset);
         #endregion
         #region DepthOfFieldFlags
-        private int _DepthOfFieldFlagsLocation => _DNAMLocation!.Value.Min + 0xE0;
-        private bool _DepthOfFieldFlags_IsSet => _DNAMLocation.HasValue;
+        private int _DepthOfFieldFlagsLocation => Payload.DNAMLocation!.Value.Min + 0xE0;
+        private bool _DepthOfFieldFlags_IsSet => Payload.DNAMLocation.HasValue;
         public ImageSpaceAdapter.DepthOfFieldFlag DepthOfFieldFlags => _DepthOfFieldFlags_IsSet ? (ImageSpaceAdapter.DepthOfFieldFlag)BinaryPrimitives.ReadInt32LittleEndian(_recordData.Span.Slice(_DepthOfFieldFlagsLocation, 0x4)) : default;
         #endregion
         #region Counts3
-        private int _Counts3Location => _DNAMLocation!.Value.Min + 0xE4;
-        private bool _Counts3_IsSet => _DNAMLocation.HasValue;
+        private int _Counts3Location => Payload.DNAMLocation!.Value.Min + 0xE4;
+        private bool _Counts3_IsSet => Payload.DNAMLocation.HasValue;
         partial void Counts3CustomParse(
             OverlayStream stream,
             int offset);
         #endregion
         #region Unknown
-        private int _UnknownLocation => _DNAMLocation!.Value.Min + 0xF4;
-        private bool _Unknown_IsSet => _DNAMLocation.HasValue && !DNAMDataTypeState.HasFlag(ImageSpaceAdapter.DNAMDataType.Break0);
+        private int _UnknownLocation => Payload.DNAMLocation!.Value.Min + 0xF4;
+        private bool _Unknown_IsSet => Payload.DNAMLocation.HasValue && !DNAMDataTypeState.HasFlag(ImageSpaceAdapter.DNAMDataType.Break0);
         public UInt64 Unknown => _Unknown_IsSet ? BinaryPrimitives.ReadUInt64LittleEndian(_recordData.Slice(_UnknownLocation, 8)) : default(UInt64);
         #endregion
-        public IReadOnlyList<IKeyFrameGetter>? BlurRadius { get; private set; }
-        public IReadOnlyList<IKeyFrameGetter>? DoubleVisionStrength { get; private set; }
-        public IReadOnlyList<IColorFrameGetter>? TintColor { get; private set; }
-        public IReadOnlyList<IColorFrameGetter>? FadeColor { get; private set; }
-        public IReadOnlyList<IKeyFrameGetter>? RadialBlurStrength { get; private set; }
-        public IReadOnlyList<IKeyFrameGetter>? RadialBlurRampUp { get; private set; }
-        public IReadOnlyList<IKeyFrameGetter>? RadialBlurStart { get; private set; }
-        public IReadOnlyList<IKeyFrameGetter>? RadialBlurRampDown { get; private set; }
-        public IReadOnlyList<IKeyFrameGetter>? RadialBlurDownStart { get; private set; }
-        public IReadOnlyList<IKeyFrameGetter>? DepthOfFieldStrength { get; private set; }
-        public IReadOnlyList<IKeyFrameGetter>? DepthOfFieldDistance { get; private set; }
-        public IReadOnlyList<IKeyFrameGetter>? DepthOfFieldRange { get; private set; }
-        public IReadOnlyList<IKeyFrameGetter>? DepthOfFieldVignetteRadius { get; private set; }
-        public IReadOnlyList<IKeyFrameGetter>? DepthOfFieldVignetteStrength { get; private set; }
-        public IReadOnlyList<IKeyFrameGetter>? MotionBlurStrength { get; private set; }
-        public IReadOnlyList<IKeyFrameGetter>? HdrEyeAdaptSpeedMult { get; private set; }
-        public IReadOnlyList<IKeyFrameGetter>? HdrEyeAdaptSpeedAdd { get; private set; }
-        public IReadOnlyList<IKeyFrameGetter>? HdrBloomBlurRadiusMult { get; private set; }
-        public IReadOnlyList<IKeyFrameGetter>? HdrBloomBlurRadiusAdd { get; private set; }
-        public IReadOnlyList<IKeyFrameGetter>? HdrBloomThresholdMult { get; private set; }
-        public IReadOnlyList<IKeyFrameGetter>? HdrBloomThresholdAdd { get; private set; }
-        public IReadOnlyList<IKeyFrameGetter>? HdrBloomScaleMult { get; private set; }
-        public IReadOnlyList<IKeyFrameGetter>? HdrBloomScaleAdd { get; private set; }
-        public IReadOnlyList<IKeyFrameGetter>? HdrTargetLumMinMult { get; private set; }
-        public IReadOnlyList<IKeyFrameGetter>? HdrTargetLumMinAdd { get; private set; }
-        public IReadOnlyList<IKeyFrameGetter>? HdrTargetLumMaxMult { get; private set; }
-        public IReadOnlyList<IKeyFrameGetter>? HdrTargetLumMaxAdd { get; private set; }
-        public IReadOnlyList<IKeyFrameGetter>? HdrSunlightScaleMult { get; private set; }
-        public IReadOnlyList<IKeyFrameGetter>? HdrSunlightScaleAdd { get; private set; }
-        public IReadOnlyList<IKeyFrameGetter>? HdrSkyScaleMult { get; private set; }
-        public IReadOnlyList<IKeyFrameGetter>? HdrSkyScaleAdd { get; private set; }
-        public IReadOnlyList<IKeyFrameGetter>? Unknown08 { get; private set; }
-        public IReadOnlyList<IKeyFrameGetter>? Unknown48 { get; private set; }
-        public IReadOnlyList<IKeyFrameGetter>? Unknown09 { get; private set; }
-        public IReadOnlyList<IKeyFrameGetter>? Unknown49 { get; private set; }
-        public IReadOnlyList<IKeyFrameGetter>? Unknown0A { get; private set; }
-        public IReadOnlyList<IKeyFrameGetter>? Unknown4A { get; private set; }
-        public IReadOnlyList<IKeyFrameGetter>? Unknown0B { get; private set; }
-        public IReadOnlyList<IKeyFrameGetter>? Unknown4B { get; private set; }
-        public IReadOnlyList<IKeyFrameGetter>? Unknown0C { get; private set; }
-        public IReadOnlyList<IKeyFrameGetter>? Unknown4C { get; private set; }
-        public IReadOnlyList<IKeyFrameGetter>? Unknown0D { get; private set; }
-        public IReadOnlyList<IKeyFrameGetter>? Unknown4D { get; private set; }
-        public IReadOnlyList<IKeyFrameGetter>? Unknown0E { get; private set; }
-        public IReadOnlyList<IKeyFrameGetter>? Unknown4E { get; private set; }
-        public IReadOnlyList<IKeyFrameGetter>? Unknown0F { get; private set; }
-        public IReadOnlyList<IKeyFrameGetter>? Unknown4F { get; private set; }
-        public IReadOnlyList<IKeyFrameGetter>? Unknown10 { get; private set; }
-        public IReadOnlyList<IKeyFrameGetter>? Unknown50 { get; private set; }
-        public IReadOnlyList<IKeyFrameGetter>? CinematicSaturationMult { get; private set; }
-        public IReadOnlyList<IKeyFrameGetter>? CinematicSaturationAdd { get; private set; }
-        public IReadOnlyList<IKeyFrameGetter>? CinematicBrightnessMult { get; private set; }
-        public IReadOnlyList<IKeyFrameGetter>? CinematicBrightnessAdd { get; private set; }
-        public IReadOnlyList<IKeyFrameGetter>? CinematicContrastMult { get; private set; }
-        public IReadOnlyList<IKeyFrameGetter>? CinematicContrastAdd { get; private set; }
-        public IReadOnlyList<IKeyFrameGetter>? Unknown14 { get; private set; }
-        public IReadOnlyList<IKeyFrameGetter>? Unknown54 { get; private set; }
+        public IReadOnlyList<IKeyFrameGetter>? BlurRadius => Payload.BlurRadius;
+        public IReadOnlyList<IKeyFrameGetter>? DoubleVisionStrength => Payload.DoubleVisionStrength;
+        public IReadOnlyList<IColorFrameGetter>? TintColor => Payload.TintColor;
+        public IReadOnlyList<IColorFrameGetter>? FadeColor => Payload.FadeColor;
+        public IReadOnlyList<IKeyFrameGetter>? RadialBlurStrength => Payload.RadialBlurStrength;
+        public IReadOnlyList<IKeyFrameGetter>? RadialBlurRampUp => Payload.RadialBlurRampUp;
+        public IReadOnlyList<IKeyFrameGetter>? RadialBlurStart => Payload.RadialBlurStart;
+        public IReadOnlyList<IKeyFrameGetter>? RadialBlurRampDown => Payload.RadialBlurRampDown;
+        public IReadOnlyList<IKeyFrameGetter>? RadialBlurDownStart => Payload.RadialBlurDownStart;
+        public IReadOnlyList<IKeyFrameGetter>? DepthOfFieldStrength => Payload.DepthOfFieldStrength;
+        public IReadOnlyList<IKeyFrameGetter>? DepthOfFieldDistance => Payload.DepthOfFieldDistance;
+        public IReadOnlyList<IKeyFrameGetter>? DepthOfFieldRange => Payload.DepthOfFieldRange;
+        public IReadOnlyList<IKeyFrameGetter>? DepthOfFieldVignetteRadius => Payload.DepthOfFieldVignetteRadius;
+        public IReadOnlyList<IKeyFrameGetter>? DepthOfFieldVignetteStrength => Payload.DepthOfFieldVignetteStrength;
+        public IReadOnlyList<IKeyFrameGetter>? MotionBlurStrength => Payload.MotionBlurStrength;
+        public IReadOnlyList<IKeyFrameGetter>? HdrEyeAdaptSpeedMult => Payload.HdrEyeAdaptSpeedMult;
+        public IReadOnlyList<IKeyFrameGetter>? HdrEyeAdaptSpeedAdd => Payload.HdrEyeAdaptSpeedAdd;
+        public IReadOnlyList<IKeyFrameGetter>? HdrBloomBlurRadiusMult => Payload.HdrBloomBlurRadiusMult;
+        public IReadOnlyList<IKeyFrameGetter>? HdrBloomBlurRadiusAdd => Payload.HdrBloomBlurRadiusAdd;
+        public IReadOnlyList<IKeyFrameGetter>? HdrBloomThresholdMult => Payload.HdrBloomThresholdMult;
+        public IReadOnlyList<IKeyFrameGetter>? HdrBloomThresholdAdd => Payload.HdrBloomThresholdAdd;
+        public IReadOnlyList<IKeyFrameGetter>? HdrBloomScaleMult => Payload.HdrBloomScaleMult;
+        public IReadOnlyList<IKeyFrameGetter>? HdrBloomScaleAdd => Payload.HdrBloomScaleAdd;
+        public IReadOnlyList<IKeyFrameGetter>? HdrTargetLumMinMult => Payload.HdrTargetLumMinMult;
+        public IReadOnlyList<IKeyFrameGetter>? HdrTargetLumMinAdd => Payload.HdrTargetLumMinAdd;
+        public IReadOnlyList<IKeyFrameGetter>? HdrTargetLumMaxMult => Payload.HdrTargetLumMaxMult;
+        public IReadOnlyList<IKeyFrameGetter>? HdrTargetLumMaxAdd => Payload.HdrTargetLumMaxAdd;
+        public IReadOnlyList<IKeyFrameGetter>? HdrSunlightScaleMult => Payload.HdrSunlightScaleMult;
+        public IReadOnlyList<IKeyFrameGetter>? HdrSunlightScaleAdd => Payload.HdrSunlightScaleAdd;
+        public IReadOnlyList<IKeyFrameGetter>? HdrSkyScaleMult => Payload.HdrSkyScaleMult;
+        public IReadOnlyList<IKeyFrameGetter>? HdrSkyScaleAdd => Payload.HdrSkyScaleAdd;
+        public IReadOnlyList<IKeyFrameGetter>? Unknown08 => Payload.Unknown08;
+        public IReadOnlyList<IKeyFrameGetter>? Unknown48 => Payload.Unknown48;
+        public IReadOnlyList<IKeyFrameGetter>? Unknown09 => Payload.Unknown09;
+        public IReadOnlyList<IKeyFrameGetter>? Unknown49 => Payload.Unknown49;
+        public IReadOnlyList<IKeyFrameGetter>? Unknown0A => Payload.Unknown0A;
+        public IReadOnlyList<IKeyFrameGetter>? Unknown4A => Payload.Unknown4A;
+        public IReadOnlyList<IKeyFrameGetter>? Unknown0B => Payload.Unknown0B;
+        public IReadOnlyList<IKeyFrameGetter>? Unknown4B => Payload.Unknown4B;
+        public IReadOnlyList<IKeyFrameGetter>? Unknown0C => Payload.Unknown0C;
+        public IReadOnlyList<IKeyFrameGetter>? Unknown4C => Payload.Unknown4C;
+        public IReadOnlyList<IKeyFrameGetter>? Unknown0D => Payload.Unknown0D;
+        public IReadOnlyList<IKeyFrameGetter>? Unknown4D => Payload.Unknown4D;
+        public IReadOnlyList<IKeyFrameGetter>? Unknown0E => Payload.Unknown0E;
+        public IReadOnlyList<IKeyFrameGetter>? Unknown4E => Payload.Unknown4E;
+        public IReadOnlyList<IKeyFrameGetter>? Unknown0F => Payload.Unknown0F;
+        public IReadOnlyList<IKeyFrameGetter>? Unknown4F => Payload.Unknown4F;
+        public IReadOnlyList<IKeyFrameGetter>? Unknown10 => Payload.Unknown10;
+        public IReadOnlyList<IKeyFrameGetter>? Unknown50 => Payload.Unknown50;
+        public IReadOnlyList<IKeyFrameGetter>? CinematicSaturationMult => Payload.CinematicSaturationMult;
+        public IReadOnlyList<IKeyFrameGetter>? CinematicSaturationAdd => Payload.CinematicSaturationAdd;
+        public IReadOnlyList<IKeyFrameGetter>? CinematicBrightnessMult => Payload.CinematicBrightnessMult;
+        public IReadOnlyList<IKeyFrameGetter>? CinematicBrightnessAdd => Payload.CinematicBrightnessAdd;
+        public IReadOnlyList<IKeyFrameGetter>? CinematicContrastMult => Payload.CinematicContrastMult;
+        public IReadOnlyList<IKeyFrameGetter>? CinematicContrastAdd => Payload.CinematicContrastAdd;
+        public IReadOnlyList<IKeyFrameGetter>? Unknown14 => Payload.Unknown14;
+        public IReadOnlyList<IKeyFrameGetter>? Unknown54 => Payload.Unknown54;
+
+        internal partial class ImageSpaceAdapterRecordDataPayload
+        {
+            public RangeInt32? DNAMLocation;
+            public ImageSpaceAdapter.DNAMDataType DNAMDataTypeState;
+            public IReadOnlyList<IKeyFrameGetter>? BlurRadius;
+            public IReadOnlyList<IKeyFrameGetter>? DoubleVisionStrength;
+            public IReadOnlyList<IColorFrameGetter>? TintColor;
+            public IReadOnlyList<IColorFrameGetter>? FadeColor;
+            public IReadOnlyList<IKeyFrameGetter>? RadialBlurStrength;
+            public IReadOnlyList<IKeyFrameGetter>? RadialBlurRampUp;
+            public IReadOnlyList<IKeyFrameGetter>? RadialBlurStart;
+            public IReadOnlyList<IKeyFrameGetter>? RadialBlurRampDown;
+            public IReadOnlyList<IKeyFrameGetter>? RadialBlurDownStart;
+            public IReadOnlyList<IKeyFrameGetter>? DepthOfFieldStrength;
+            public IReadOnlyList<IKeyFrameGetter>? DepthOfFieldDistance;
+            public IReadOnlyList<IKeyFrameGetter>? DepthOfFieldRange;
+            public IReadOnlyList<IKeyFrameGetter>? DepthOfFieldVignetteRadius;
+            public IReadOnlyList<IKeyFrameGetter>? DepthOfFieldVignetteStrength;
+            public IReadOnlyList<IKeyFrameGetter>? MotionBlurStrength;
+            public IReadOnlyList<IKeyFrameGetter>? HdrEyeAdaptSpeedMult;
+            public IReadOnlyList<IKeyFrameGetter>? HdrEyeAdaptSpeedAdd;
+            public IReadOnlyList<IKeyFrameGetter>? HdrBloomBlurRadiusMult;
+            public IReadOnlyList<IKeyFrameGetter>? HdrBloomBlurRadiusAdd;
+            public IReadOnlyList<IKeyFrameGetter>? HdrBloomThresholdMult;
+            public IReadOnlyList<IKeyFrameGetter>? HdrBloomThresholdAdd;
+            public IReadOnlyList<IKeyFrameGetter>? HdrBloomScaleMult;
+            public IReadOnlyList<IKeyFrameGetter>? HdrBloomScaleAdd;
+            public IReadOnlyList<IKeyFrameGetter>? HdrTargetLumMinMult;
+            public IReadOnlyList<IKeyFrameGetter>? HdrTargetLumMinAdd;
+            public IReadOnlyList<IKeyFrameGetter>? HdrTargetLumMaxMult;
+            public IReadOnlyList<IKeyFrameGetter>? HdrTargetLumMaxAdd;
+            public IReadOnlyList<IKeyFrameGetter>? HdrSunlightScaleMult;
+            public IReadOnlyList<IKeyFrameGetter>? HdrSunlightScaleAdd;
+            public IReadOnlyList<IKeyFrameGetter>? HdrSkyScaleMult;
+            public IReadOnlyList<IKeyFrameGetter>? HdrSkyScaleAdd;
+            public IReadOnlyList<IKeyFrameGetter>? Unknown08;
+            public IReadOnlyList<IKeyFrameGetter>? Unknown48;
+            public IReadOnlyList<IKeyFrameGetter>? Unknown09;
+            public IReadOnlyList<IKeyFrameGetter>? Unknown49;
+            public IReadOnlyList<IKeyFrameGetter>? Unknown0A;
+            public IReadOnlyList<IKeyFrameGetter>? Unknown4A;
+            public IReadOnlyList<IKeyFrameGetter>? Unknown0B;
+            public IReadOnlyList<IKeyFrameGetter>? Unknown4B;
+            public IReadOnlyList<IKeyFrameGetter>? Unknown0C;
+            public IReadOnlyList<IKeyFrameGetter>? Unknown4C;
+            public IReadOnlyList<IKeyFrameGetter>? Unknown0D;
+            public IReadOnlyList<IKeyFrameGetter>? Unknown4D;
+            public IReadOnlyList<IKeyFrameGetter>? Unknown0E;
+            public IReadOnlyList<IKeyFrameGetter>? Unknown4E;
+            public IReadOnlyList<IKeyFrameGetter>? Unknown0F;
+            public IReadOnlyList<IKeyFrameGetter>? Unknown4F;
+            public IReadOnlyList<IKeyFrameGetter>? Unknown10;
+            public IReadOnlyList<IKeyFrameGetter>? Unknown50;
+            public IReadOnlyList<IKeyFrameGetter>? CinematicSaturationMult;
+            public IReadOnlyList<IKeyFrameGetter>? CinematicSaturationAdd;
+            public IReadOnlyList<IKeyFrameGetter>? CinematicBrightnessMult;
+            public IReadOnlyList<IKeyFrameGetter>? CinematicBrightnessAdd;
+            public IReadOnlyList<IKeyFrameGetter>? CinematicContrastMult;
+            public IReadOnlyList<IKeyFrameGetter>? CinematicContrastAdd;
+            public IReadOnlyList<IKeyFrameGetter>? Unknown14;
+            public IReadOnlyList<IKeyFrameGetter>? Unknown54;
+        }
+
+        private LazyPayload<ImageSpaceAdapterRecordDataPayload> _payload = null!;
+
+        internal ImageSpaceAdapterRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<ImageSpaceAdapterRecordDataPayload>(init, new ImageSpaceAdapterRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -12904,10 +12977,10 @@ namespace Mutagen.Bethesda.Fallout4
 
         partial void CustomCtor();
         protected ImageSpaceAdapterBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -12918,28 +12991,51 @@ namespace Mutagen.Bethesda.Fallout4
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new ImageSpaceAdapterBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -12968,17 +13064,17 @@ namespace Mutagen.Bethesda.Fallout4
             {
                 case RecordTypeInts.DNAM:
                 {
-                    _DNAMLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.DNAMLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     var subLen = _package.MetaData.Constants.SubrecordHeader(_recordData.Slice((stream.Position - offset))).ContentLength;
                     if (subLen <= 0xF4)
                     {
-                        this.DNAMDataTypeState |= ImageSpaceAdapter.DNAMDataType.Break0;
+                        _payload.Fields.DNAMDataTypeState |= ImageSpaceAdapter.DNAMDataType.Break0;
                     }
                     return (int)ImageSpaceAdapter_FieldIndex.Unknown;
                 }
                 case RecordTypeInts.BNAM:
                 {
-                    this.BlurRadius = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
+                    _payload.Fields.BlurRadius = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -12988,7 +13084,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.VNAM:
                 {
-                    this.DoubleVisionStrength = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
+                    _payload.Fields.DoubleVisionStrength = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -12998,7 +13094,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.TNAM:
                 {
-                    this.TintColor = BinaryOverlayList.FactoryByStartIndexWithTrigger<IColorFrameGetter>(
+                    _payload.Fields.TintColor = BinaryOverlayList.FactoryByStartIndexWithTrigger<IColorFrameGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -13008,7 +13104,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.NAM3:
                 {
-                    this.FadeColor = BinaryOverlayList.FactoryByStartIndexWithTrigger<IColorFrameGetter>(
+                    _payload.Fields.FadeColor = BinaryOverlayList.FactoryByStartIndexWithTrigger<IColorFrameGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -13018,7 +13114,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.RNAM:
                 {
-                    this.RadialBlurStrength = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
+                    _payload.Fields.RadialBlurStrength = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -13028,7 +13124,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.SNAM:
                 {
-                    this.RadialBlurRampUp = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
+                    _payload.Fields.RadialBlurRampUp = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -13038,7 +13134,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.UNAM:
                 {
-                    this.RadialBlurStart = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
+                    _payload.Fields.RadialBlurStart = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -13048,7 +13144,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.NAM1:
                 {
-                    this.RadialBlurRampDown = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
+                    _payload.Fields.RadialBlurRampDown = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -13058,7 +13154,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.NAM2:
                 {
-                    this.RadialBlurDownStart = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
+                    _payload.Fields.RadialBlurDownStart = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -13068,7 +13164,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.WNAM:
                 {
-                    this.DepthOfFieldStrength = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
+                    _payload.Fields.DepthOfFieldStrength = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -13078,7 +13174,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.XNAM:
                 {
-                    this.DepthOfFieldDistance = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
+                    _payload.Fields.DepthOfFieldDistance = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -13088,7 +13184,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.YNAM:
                 {
-                    this.DepthOfFieldRange = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
+                    _payload.Fields.DepthOfFieldRange = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -13098,7 +13194,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.NAM5:
                 {
-                    this.DepthOfFieldVignetteRadius = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
+                    _payload.Fields.DepthOfFieldVignetteRadius = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -13108,7 +13204,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.NAM6:
                 {
-                    this.DepthOfFieldVignetteStrength = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
+                    _payload.Fields.DepthOfFieldVignetteStrength = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -13118,7 +13214,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.NAM4:
                 {
-                    this.MotionBlurStrength = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
+                    _payload.Fields.MotionBlurStrength = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -13128,7 +13224,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts._0_IAD:
                 {
-                    this.HdrEyeAdaptSpeedMult = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
+                    _payload.Fields.HdrEyeAdaptSpeedMult = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -13138,7 +13234,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.@IAD:
                 {
-                    this.HdrEyeAdaptSpeedAdd = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
+                    _payload.Fields.HdrEyeAdaptSpeedAdd = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -13148,7 +13244,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts._1_IAD:
                 {
-                    this.HdrBloomBlurRadiusMult = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
+                    _payload.Fields.HdrBloomBlurRadiusMult = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -13158,7 +13254,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.AIAD:
                 {
-                    this.HdrBloomBlurRadiusAdd = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
+                    _payload.Fields.HdrBloomBlurRadiusAdd = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -13168,7 +13264,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts._2_IAD:
                 {
-                    this.HdrBloomThresholdMult = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
+                    _payload.Fields.HdrBloomThresholdMult = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -13178,7 +13274,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.BIAD:
                 {
-                    this.HdrBloomThresholdAdd = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
+                    _payload.Fields.HdrBloomThresholdAdd = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -13188,7 +13284,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts._3_IAD:
                 {
-                    this.HdrBloomScaleMult = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
+                    _payload.Fields.HdrBloomScaleMult = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -13198,7 +13294,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.CIAD:
                 {
-                    this.HdrBloomScaleAdd = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
+                    _payload.Fields.HdrBloomScaleAdd = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -13208,7 +13304,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts._4_IAD:
                 {
-                    this.HdrTargetLumMinMult = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
+                    _payload.Fields.HdrTargetLumMinMult = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -13218,7 +13314,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.DIAD:
                 {
-                    this.HdrTargetLumMinAdd = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
+                    _payload.Fields.HdrTargetLumMinAdd = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -13228,7 +13324,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts._5_IAD:
                 {
-                    this.HdrTargetLumMaxMult = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
+                    _payload.Fields.HdrTargetLumMaxMult = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -13238,7 +13334,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.EIAD:
                 {
-                    this.HdrTargetLumMaxAdd = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
+                    _payload.Fields.HdrTargetLumMaxAdd = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -13248,7 +13344,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts._6_IAD:
                 {
-                    this.HdrSunlightScaleMult = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
+                    _payload.Fields.HdrSunlightScaleMult = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -13258,7 +13354,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.FIAD:
                 {
-                    this.HdrSunlightScaleAdd = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
+                    _payload.Fields.HdrSunlightScaleAdd = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -13268,7 +13364,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts._7_IAD:
                 {
-                    this.HdrSkyScaleMult = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
+                    _payload.Fields.HdrSkyScaleMult = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -13278,7 +13374,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.GIAD:
                 {
-                    this.HdrSkyScaleAdd = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
+                    _payload.Fields.HdrSkyScaleAdd = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -13288,7 +13384,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts._8_IAD:
                 {
-                    this.Unknown08 = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
+                    _payload.Fields.Unknown08 = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -13298,7 +13394,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.HIAD:
                 {
-                    this.Unknown48 = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
+                    _payload.Fields.Unknown48 = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -13308,7 +13404,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts._9_IAD:
                 {
-                    this.Unknown09 = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
+                    _payload.Fields.Unknown09 = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -13318,7 +13414,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.IIAD:
                 {
-                    this.Unknown49 = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
+                    _payload.Fields.Unknown49 = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -13328,7 +13424,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts._A_IAD:
                 {
-                    this.Unknown0A = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
+                    _payload.Fields.Unknown0A = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -13338,7 +13434,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.JIAD:
                 {
-                    this.Unknown4A = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
+                    _payload.Fields.Unknown4A = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -13348,7 +13444,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts._B_IAD:
                 {
-                    this.Unknown0B = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
+                    _payload.Fields.Unknown0B = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -13358,7 +13454,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.KIAD:
                 {
-                    this.Unknown4B = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
+                    _payload.Fields.Unknown4B = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -13368,7 +13464,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts._C_IAD:
                 {
-                    this.Unknown0C = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
+                    _payload.Fields.Unknown0C = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -13378,7 +13474,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.LIAD:
                 {
-                    this.Unknown4C = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
+                    _payload.Fields.Unknown4C = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -13388,7 +13484,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts._D_IAD:
                 {
-                    this.Unknown0D = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
+                    _payload.Fields.Unknown0D = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -13398,7 +13494,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.MIAD:
                 {
-                    this.Unknown4D = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
+                    _payload.Fields.Unknown4D = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -13408,7 +13504,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts._E_IAD:
                 {
-                    this.Unknown0E = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
+                    _payload.Fields.Unknown0E = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -13418,7 +13514,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.NIAD:
                 {
-                    this.Unknown4E = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
+                    _payload.Fields.Unknown4E = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -13428,7 +13524,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts._F_IAD:
                 {
-                    this.Unknown0F = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
+                    _payload.Fields.Unknown0F = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -13438,7 +13534,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.OIAD:
                 {
-                    this.Unknown4F = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
+                    _payload.Fields.Unknown4F = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -13448,7 +13544,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts._10_IAD:
                 {
-                    this.Unknown10 = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
+                    _payload.Fields.Unknown10 = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -13458,7 +13554,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.PIAD:
                 {
-                    this.Unknown50 = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
+                    _payload.Fields.Unknown50 = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -13468,7 +13564,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts._11_IAD:
                 {
-                    this.CinematicSaturationMult = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
+                    _payload.Fields.CinematicSaturationMult = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -13478,7 +13574,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.QIAD:
                 {
-                    this.CinematicSaturationAdd = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
+                    _payload.Fields.CinematicSaturationAdd = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -13488,7 +13584,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts._12_IAD:
                 {
-                    this.CinematicBrightnessMult = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
+                    _payload.Fields.CinematicBrightnessMult = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -13498,7 +13594,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.RIAD:
                 {
-                    this.CinematicBrightnessAdd = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
+                    _payload.Fields.CinematicBrightnessAdd = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -13508,7 +13604,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts._13_IAD:
                 {
-                    this.CinematicContrastMult = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
+                    _payload.Fields.CinematicContrastMult = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -13518,7 +13614,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.SIAD:
                 {
-                    this.CinematicContrastAdd = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
+                    _payload.Fields.CinematicContrastAdd = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -13528,7 +13624,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts._14_IAD:
                 {
-                    this.Unknown14 = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
+                    _payload.Fields.Unknown14 = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -13538,7 +13634,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.TIAD:
                 {
-                    this.Unknown54 = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
+                    _payload.Fields.Unknown54 = BinaryOverlayList.FactoryByStartIndexWithTrigger<IKeyFrameGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,

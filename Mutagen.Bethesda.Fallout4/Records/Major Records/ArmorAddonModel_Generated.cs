@@ -1161,7 +1161,14 @@ namespace Mutagen.Bethesda.Fallout4
 
         #region AddonIndex
         private int? _AddonIndexLocation;
-        public UInt16? AddonIndex => _AddonIndexLocation.HasValue ? BinaryPrimitives.ReadUInt16LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _AddonIndexLocation.Value, _package.MetaData.Constants)) : default(UInt16?);
+        public UInt16? AddonIndex
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _AddonIndexLocation.HasValue ? BinaryPrimitives.ReadUInt16LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _AddonIndexLocation.Value, _package.MetaData.Constants)) : default(UInt16?);
+            }
+        }
         #endregion
         #region ArmorAddon
         private int? _ArmorAddonLocation;

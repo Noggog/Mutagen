@@ -1582,7 +1582,14 @@ namespace Mutagen.Bethesda.Starfield
         public IReadOnlyList<String>? EXASs { get; private set; }
         #region EXBS
         private int? _EXBSLocation;
-        public String EXBS => _EXBSLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _EXBSLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : string.Empty;
+        public String EXBS
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _EXBSLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_data, _EXBSLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : string.Empty;
+            }
+        }
         #endregion
         partial void CustomFactoryEnd(
             OverlayStream stream,

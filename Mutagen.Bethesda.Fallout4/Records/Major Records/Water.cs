@@ -107,33 +107,37 @@ partial class WaterBinaryWriteTranslation
 
 partial class WaterBinaryOverlay
 {
-    private SubrecordFrame? _nam2;
-    private SubrecordFrame? _nam3;
-    private SubrecordFrame? _nam4;
+    internal partial class WaterRecordDataPayload
+    {
+        public SubrecordFrame? Nam2;
+        public SubrecordFrame? Nam3;
+        public SubrecordFrame? Nam4;
+    }
+
     private int _dataLoc => _SpecularInteriorSpecularPowerLocation + 4;
 
-    public IWaterNoisePropertiesGetter NoiseLayerOne => new WaterNoisePropertiesBinaryOverlay(_recordData.Slice(_dataLoc), _nam2, _package);
+    public IWaterNoisePropertiesGetter NoiseLayerOne { get { return new WaterNoisePropertiesBinaryOverlay(_recordData.Slice(_dataLoc), Payload.Nam2, _package); } }
 
-    public IWaterNoisePropertiesGetter NoiseLayerTwo => new WaterNoisePropertiesBinaryOverlay(_recordData.Slice(_dataLoc + 4), _nam3, _package);
+    public IWaterNoisePropertiesGetter NoiseLayerTwo { get { return new WaterNoisePropertiesBinaryOverlay(_recordData.Slice(_dataLoc + 4), Payload.Nam3, _package); } }
 
-    public IWaterNoisePropertiesGetter NoiseLayerThree => new WaterNoisePropertiesBinaryOverlay(_recordData.Slice(_dataLoc + 8), _nam4, _package);
+    public IWaterNoisePropertiesGetter NoiseLayerThree { get { return new WaterNoisePropertiesBinaryOverlay(_recordData.Slice(_dataLoc + 8), Payload.Nam4, _package); } }
 
     public partial ParseResult NoiseTextureParsingCustomParse(
         OverlayStream stream,
-        int offset, 
+        int offset,
         PreviousParse lastParsed)
     {
         var rec = stream.ReadSubrecord();
         switch (rec.RecordTypeInt)
         {
             case RecordTypeInts.NAM2:
-                _nam2 = rec;
+                _payload.Fields.Nam2 = rec;
                 break;
             case RecordTypeInts.NAM3:
-                _nam3 = rec;
+                _payload.Fields.Nam3 = rec;
                 break;
             case RecordTypeInts.NAM4:
-                _nam4 = rec;
+                _payload.Fields.Nam4 = rec;
                 break;
             default:
                 throw new MalformedDataException($"Unexpected record type: {rec.RecordType}");

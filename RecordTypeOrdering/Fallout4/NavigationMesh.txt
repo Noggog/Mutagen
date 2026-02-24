@@ -1,0 +1,5 @@
+RecordTypes.EDID,
+RecordTypes.NVNM,
+RecordTypes.ONAM,
+RecordTypes.NNAM,
+RecordTypes.MNAM,

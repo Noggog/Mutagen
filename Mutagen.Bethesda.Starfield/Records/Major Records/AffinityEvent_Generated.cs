@@ -34,6 +34,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -2108,39 +2109,38 @@ namespace Mutagen.Bethesda.Starfield
         protected override Type LinkType => typeof(IAffinityEventGetter);
 
 
-        #region Flags
-        private int? _FlagsLocation;
-        public AffinityEvent.Flag Flags => EnumBinaryTranslation<AffinityEvent.Flag, MutagenFrame, MutagenWriter>.Instance.ParseRecord(_FlagsLocation, _recordData, _package, 4);
-        #endregion
-        #region ContextNotes
-        private int? _ContextNotesLocation;
-        public String? ContextNotes => _ContextNotesLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _ContextNotesLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
-        public IReadOnlyList<IActorReactionGetter> ActorReactions { get; private set; } = [];
-        #region ActorValue
-        private int? _ActorValueLocation;
-        public IFormLinkNullableGetter<IActorValueInformationGetter> ActorValue => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IActorValueInformationGetter>(_package, _recordData, _ActorValueLocation);
-        #endregion
-        #region EventSize
-        private int? _EventSizeLocation;
-        public IFormLinkNullableGetter<IGlobalGetter> EventSize => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IGlobalGetter>(_package, _recordData, _EventSizeLocation);
-        #endregion
-        #region DistanceToPlayer
-        private int? _DistanceToPlayerLocation;
-        public IFormLinkNullableGetter<IGlobalGetter> DistanceToPlayer => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IGlobalGetter>(_package, _recordData, _DistanceToPlayerLocation);
-        #endregion
-        #region CooldownInMinutes
-        private int? _CooldownInMinutesLocation;
-        public IFormLinkNullableGetter<IGlobalGetter> CooldownInMinutes => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IGlobalGetter>(_package, _recordData, _CooldownInMinutesLocation);
-        #endregion
-        #region RequiredFaction
-        private int? _RequiredFactionLocation;
-        public IFormLinkNullableGetter<IFactionGetter> RequiredFaction => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IFactionGetter>(_package, _recordData, _RequiredFactionLocation);
-        #endregion
-        #region AddToEvent
-        private int? _AddToEventLocation;
-        public IFormLinkNullableGetter<IAffinityEventGetter> AddToEvent => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IAffinityEventGetter>(_package, _recordData, _AddToEventLocation);
-        #endregion
+        public AffinityEvent.Flag Flags => EnumBinaryTranslation<AffinityEvent.Flag, MutagenFrame, MutagenWriter>.Instance.ParseRecord(Payload.FlagsLocation, _recordData, _package, 4);
+        public String? ContextNotes => Payload.ContextNotesLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.ContextNotesLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public IReadOnlyList<IActorReactionGetter> ActorReactions => Payload.ActorReactions ?? [];
+        public IFormLinkNullableGetter<IActorValueInformationGetter> ActorValue => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IActorValueInformationGetter>(_package, _recordData, Payload.ActorValueLocation);
+        public IFormLinkNullableGetter<IGlobalGetter> EventSize => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IGlobalGetter>(_package, _recordData, Payload.EventSizeLocation);
+        public IFormLinkNullableGetter<IGlobalGetter> DistanceToPlayer => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IGlobalGetter>(_package, _recordData, Payload.DistanceToPlayerLocation);
+        public IFormLinkNullableGetter<IGlobalGetter> CooldownInMinutes => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IGlobalGetter>(_package, _recordData, Payload.CooldownInMinutesLocation);
+        public IFormLinkNullableGetter<IFactionGetter> RequiredFaction => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IFactionGetter>(_package, _recordData, Payload.RequiredFactionLocation);
+        public IFormLinkNullableGetter<IAffinityEventGetter> AddToEvent => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IAffinityEventGetter>(_package, _recordData, Payload.AddToEventLocation);
+
+        internal partial class AffinityEventRecordDataPayload
+        {
+            public int? FlagsLocation;
+            public int? ContextNotesLocation;
+            public IReadOnlyList<IActorReactionGetter> ActorReactions = [];
+            public int? ActorValueLocation;
+            public int? EventSizeLocation;
+            public int? DistanceToPlayerLocation;
+            public int? CooldownInMinutesLocation;
+            public int? RequiredFactionLocation;
+            public int? AddToEventLocation;
+        }
+
+        private LazyPayload<AffinityEventRecordDataPayload> _payload = null!;
+
+        internal AffinityEventRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<AffinityEventRecordDataPayload>(init, new AffinityEventRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -2148,10 +2148,10 @@ namespace Mutagen.Bethesda.Starfield
 
         partial void CustomCtor();
         protected AffinityEventBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -2162,28 +2162,51 @@ namespace Mutagen.Bethesda.Starfield
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new AffinityEventBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -2212,18 +2235,18 @@ namespace Mutagen.Bethesda.Starfield
             {
                 case RecordTypeInts.FNAM:
                 {
-                    _FlagsLocation = (stream.Position - offset);
+                    _payload.Fields.FlagsLocation = (stream.Position - offset);
                     return (int)AffinityEvent_FieldIndex.Flags;
                 }
                 case RecordTypeInts.NLDT:
                 {
-                    _ContextNotesLocation = (stream.Position - offset);
+                    _payload.Fields.ContextNotesLocation = (stream.Position - offset);
                     return (int)AffinityEvent_FieldIndex.ContextNotes;
                 }
                 case RecordTypeInts.NNAM:
                 case RecordTypeInts.RNAM:
                 {
-                    this.ActorReactions = this.ParseRepeatedTypelessSubrecord<IActorReactionGetter>(
+                    _payload.Fields.ActorReactions = this.ParseRepeatedTypelessSubrecord<IActorReactionGetter>(
                         stream: stream,
                         translationParams: translationParams,
                         trigger: ActorReaction_Registration.TriggerSpecs,
@@ -2232,32 +2255,32 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.ANAM:
                 {
-                    _ActorValueLocation = (stream.Position - offset);
+                    _payload.Fields.ActorValueLocation = (stream.Position - offset);
                     return (int)AffinityEvent_FieldIndex.ActorValue;
                 }
                 case RecordTypeInts.ENAM:
                 {
-                    _EventSizeLocation = (stream.Position - offset);
+                    _payload.Fields.EventSizeLocation = (stream.Position - offset);
                     return (int)AffinityEvent_FieldIndex.EventSize;
                 }
                 case RecordTypeInts.DNAM:
                 {
-                    _DistanceToPlayerLocation = (stream.Position - offset);
+                    _payload.Fields.DistanceToPlayerLocation = (stream.Position - offset);
                     return (int)AffinityEvent_FieldIndex.DistanceToPlayer;
                 }
                 case RecordTypeInts.CNAM:
                 {
-                    _CooldownInMinutesLocation = (stream.Position - offset);
+                    _payload.Fields.CooldownInMinutesLocation = (stream.Position - offset);
                     return (int)AffinityEvent_FieldIndex.CooldownInMinutes;
                 }
                 case RecordTypeInts.BNAM:
                 {
-                    _RequiredFactionLocation = (stream.Position - offset);
+                    _payload.Fields.RequiredFactionLocation = (stream.Position - offset);
                     return (int)AffinityEvent_FieldIndex.RequiredFaction;
                 }
                 case RecordTypeInts.PNAM:
                 {
-                    _AddToEventLocation = (stream.Position - offset);
+                    _payload.Fields.AddToEventLocation = (stream.Position - offset);
                     return (int)AffinityEvent_FieldIndex.AddToEvent;
                 }
                 default:

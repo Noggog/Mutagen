@@ -1,0 +1,3 @@
+RecordTypes.KNAM,
+RecordTypes.KSIZ,
+RecordTypes.KWDA,

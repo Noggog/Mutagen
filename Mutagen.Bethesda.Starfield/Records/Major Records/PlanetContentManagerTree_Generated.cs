@@ -34,6 +34,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -1940,20 +1941,30 @@ namespace Mutagen.Bethesda.Starfield
         protected override Type LinkType => typeof(IPlanetContentManagerTreeGetter);
 
 
-        #region NAM1
-        private int? _NAM1Location;
-        public ReadOnlyMemorySlice<Byte> NAM1 => _NAM1Location.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _NAM1Location.Value, _package.MetaData.Constants) : ReadOnlyMemorySlice<byte>.Empty;
-        #endregion
-        #region NAM2
-        private int? _NAM2Location;
-        public ReadOnlyMemorySlice<Byte> NAM2 => _NAM2Location.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _NAM2Location.Value, _package.MetaData.Constants) : ReadOnlyMemorySlice<byte>.Empty;
-        #endregion
-        #region NAM5
-        private int? _NAM5Location;
-        public ReadOnlyMemorySlice<Byte> NAM5 => _NAM5Location.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _NAM5Location.Value, _package.MetaData.Constants) : ReadOnlyMemorySlice<byte>.Empty;
-        #endregion
-        public IReadOnlyList<IFormLinkGetter<IPlanetContentManagerBranchNodeGetter>> Nodes { get; private set; } = [];
-        public IReadOnlyList<IConditionGetter>? Conditions { get; private set; }
+        public ReadOnlyMemorySlice<Byte> NAM1 => Payload.NAM1Location.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NAM1Location.Value, _package.MetaData.Constants) : ReadOnlyMemorySlice<byte>.Empty;
+        public ReadOnlyMemorySlice<Byte> NAM2 => Payload.NAM2Location.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NAM2Location.Value, _package.MetaData.Constants) : ReadOnlyMemorySlice<byte>.Empty;
+        public ReadOnlyMemorySlice<Byte> NAM5 => Payload.NAM5Location.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NAM5Location.Value, _package.MetaData.Constants) : ReadOnlyMemorySlice<byte>.Empty;
+        public IReadOnlyList<IFormLinkGetter<IPlanetContentManagerBranchNodeGetter>> Nodes => Payload.Nodes ?? [];
+        public IReadOnlyList<IConditionGetter>? Conditions => Payload.Conditions;
+
+        internal partial class PlanetContentManagerTreeRecordDataPayload
+        {
+            public int? NAM1Location;
+            public int? NAM2Location;
+            public int? NAM5Location;
+            public IReadOnlyList<IFormLinkGetter<IPlanetContentManagerBranchNodeGetter>> Nodes = [];
+            public IReadOnlyList<IConditionGetter>? Conditions;
+        }
+
+        private LazyPayload<PlanetContentManagerTreeRecordDataPayload> _payload = null!;
+
+        internal PlanetContentManagerTreeRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<PlanetContentManagerTreeRecordDataPayload>(init, new PlanetContentManagerTreeRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -1961,10 +1972,10 @@ namespace Mutagen.Bethesda.Starfield
 
         partial void CustomCtor();
         protected PlanetContentManagerTreeBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -1975,28 +1986,51 @@ namespace Mutagen.Bethesda.Starfield
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new PlanetContentManagerTreeBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -2025,22 +2059,22 @@ namespace Mutagen.Bethesda.Starfield
             {
                 case RecordTypeInts.NAM1:
                 {
-                    _NAM1Location = (stream.Position - offset);
+                    _payload.Fields.NAM1Location = (stream.Position - offset);
                     return (int)PlanetContentManagerTree_FieldIndex.NAM1;
                 }
                 case RecordTypeInts.NAM2:
                 {
-                    _NAM2Location = (stream.Position - offset);
+                    _payload.Fields.NAM2Location = (stream.Position - offset);
                     return (int)PlanetContentManagerTree_FieldIndex.NAM2;
                 }
                 case RecordTypeInts.NAM5:
                 {
-                    _NAM5Location = (stream.Position - offset);
+                    _payload.Fields.NAM5Location = (stream.Position - offset);
                     return (int)PlanetContentManagerTree_FieldIndex.NAM5;
                 }
                 case RecordTypeInts.PCCB:
                 {
-                    this.Nodes = BinaryOverlayList.FactoryByArray<IFormLinkGetter<IPlanetContentManagerBranchNodeGetter>>(
+                    _payload.Fields.Nodes = BinaryOverlayList.FactoryByArray<IFormLinkGetter<IPlanetContentManagerBranchNodeGetter>>(
                         mem: stream.RemainingMemory,
                         package: _package,
                         getter: (s, p) => FormLinkBinaryTranslation.Instance.OverlayFactory<IPlanetContentManagerBranchNodeGetter>(p, s),
@@ -2055,7 +2089,7 @@ namespace Mutagen.Bethesda.Starfield
                 case RecordTypeInts.CTDA:
                 case RecordTypeInts.CITC:
                 {
-                    this.Conditions = BinaryOverlayList.FactoryByCountPerItem<IConditionGetter>(
+                    _payload.Fields.Conditions = BinaryOverlayList.FactoryByCountPerItem<IConditionGetter>(
                         stream: stream,
                         package: _package,
                         countLength: 4,

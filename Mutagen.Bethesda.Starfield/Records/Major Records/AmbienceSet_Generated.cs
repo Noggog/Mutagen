@@ -34,6 +34,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -1738,12 +1739,26 @@ namespace Mutagen.Bethesda.Starfield
         protected override Type LinkType => typeof(IAmbienceSetGetter);
 
 
-        public IReadOnlyList<IAmbientSoundEventGetter>? Sounds { get; private set; }
-        #region MergeBehavior
-        private int? _MergeBehaviorLocation;
-        public AmbienceSet.MergeBehaviorEnum? MergeBehavior => EnumBinaryTranslation<AmbienceSet.MergeBehaviorEnum, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(_MergeBehaviorLocation, _recordData, _package, 1);
-        #endregion
-        public ISoundReferenceGetter? WallaExterior { get; private set; }
+        public IReadOnlyList<IAmbientSoundEventGetter>? Sounds => Payload.Sounds;
+        public AmbienceSet.MergeBehaviorEnum? MergeBehavior => EnumBinaryTranslation<AmbienceSet.MergeBehaviorEnum, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(Payload.MergeBehaviorLocation, _recordData, _package, 1);
+        public ISoundReferenceGetter? WallaExterior => Payload.WallaExterior;
+
+        internal partial class AmbienceSetRecordDataPayload
+        {
+            public IReadOnlyList<IAmbientSoundEventGetter>? Sounds;
+            public int? MergeBehaviorLocation;
+            public ISoundReferenceGetter? WallaExterior;
+        }
+
+        private LazyPayload<AmbienceSetRecordDataPayload> _payload = null!;
+
+        internal AmbienceSetRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<AmbienceSetRecordDataPayload>(init, new AmbienceSetRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -1751,10 +1766,10 @@ namespace Mutagen.Bethesda.Starfield
 
         partial void CustomCtor();
         protected AmbienceSetBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -1765,28 +1780,51 @@ namespace Mutagen.Bethesda.Starfield
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new AmbienceSetBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -1816,7 +1854,7 @@ namespace Mutagen.Bethesda.Starfield
                 case RecordTypeInts.ASAE:
                 case RecordTypeInts.ASAS:
                 {
-                    this.Sounds = BinaryOverlayList.FactoryByCountPerItem<IAmbientSoundEventGetter>(
+                    _payload.Fields.Sounds = BinaryOverlayList.FactoryByCountPerItem<IAmbientSoundEventGetter>(
                         stream: stream,
                         package: _package,
                         countLength: 4,
@@ -1829,13 +1867,13 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.ASMB:
                 {
-                    _MergeBehaviorLocation = (stream.Position - offset);
+                    _payload.Fields.MergeBehaviorLocation = (stream.Position - offset);
                     return (int)AmbienceSet_FieldIndex.MergeBehavior;
                 }
                 case RecordTypeInts.WED0:
                 {
                     stream.Position += _package.MetaData.Constants.SubConstants.HeaderLength;
-                    this.WallaExterior = SoundReferenceBinaryOverlay.SoundReferenceFactory(
+                    _payload.Fields.WallaExterior = SoundReferenceBinaryOverlay.SoundReferenceFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());

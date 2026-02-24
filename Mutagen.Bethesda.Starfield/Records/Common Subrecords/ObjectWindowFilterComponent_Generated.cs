@@ -1204,7 +1204,14 @@ namespace Mutagen.Bethesda.Starfield
         #endregion
         #region FLTR
         private int? _FLTRLocation;
-        public String? FLTR => _FLTRLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _FLTRLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? FLTR
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _FLTRLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_data, _FLTRLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+            }
+        }
         #endregion
         partial void CustomFactoryEnd(
             OverlayStream stream,

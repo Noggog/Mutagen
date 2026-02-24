@@ -38,6 +38,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -2530,58 +2531,62 @@ namespace Mutagen.Bethesda.Skyrim
         protected override Type LinkType => typeof(ISoundDescriptorGetter);
 
 
-        #region Type
-        private int? _TypeLocation;
-        public SoundDescriptor.DescriptorType? Type => EnumBinaryTranslation<SoundDescriptor.DescriptorType, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(_TypeLocation, _recordData, _package, 4);
-        #endregion
-        #region Category
-        private int? _CategoryLocation;
-        public IFormLinkNullableGetter<ISoundCategoryGetter> Category => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ISoundCategoryGetter>(_package, _recordData, _CategoryLocation);
-        #endregion
-        #region AlternateSoundFor
-        private int? _AlternateSoundForLocation;
-        public IFormLinkNullableGetter<ISoundDescriptorGetter> AlternateSoundFor => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ISoundDescriptorGetter>(_package, _recordData, _AlternateSoundForLocation);
-        #endregion
-        public IReadOnlyList<IAssetLinkGetter<SkyrimSoundAssetType>> SoundFiles { get; private set; } = [];
-        #region OutputModel
-        private int? _OutputModelLocation;
-        public IFormLinkNullableGetter<ISoundOutputModelGetter> OutputModel => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ISoundOutputModelGetter>(_package, _recordData, _OutputModelLocation);
-        #endregion
-        #region String
-        private int? _StringLocation;
-        public ITranslatedStringGetter? String => _StringLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _StringLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
-        #endregion
-        public IReadOnlyList<IConditionGetter> Conditions { get; private set; } = [];
-        #region LoopAndRumble
-        private RangeInt32? _LoopAndRumbleLocation;
-        public ISoundLoopAndRumbleGetter? LoopAndRumble => _LoopAndRumbleLocation.HasValue ? SoundLoopAndRumbleBinaryOverlay.SoundLoopAndRumbleFactory(_recordData.Slice(_LoopAndRumbleLocation!.Value.Min), _package) : default;
-        #endregion
-        private RangeInt32? _BNAMLocation;
+        public SoundDescriptor.DescriptorType? Type => EnumBinaryTranslation<SoundDescriptor.DescriptorType, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(Payload.TypeLocation, _recordData, _package, 4);
+        public IFormLinkNullableGetter<ISoundCategoryGetter> Category => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ISoundCategoryGetter>(_package, _recordData, Payload.CategoryLocation);
+        public IFormLinkNullableGetter<ISoundDescriptorGetter> AlternateSoundFor => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ISoundDescriptorGetter>(_package, _recordData, Payload.AlternateSoundForLocation);
+        public IReadOnlyList<IAssetLinkGetter<SkyrimSoundAssetType>> SoundFiles => Payload.SoundFiles ?? [];
+        public IFormLinkNullableGetter<ISoundOutputModelGetter> OutputModel => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ISoundOutputModelGetter>(_package, _recordData, Payload.OutputModelLocation);
+        public ITranslatedStringGetter? String => Payload.StringLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.StringLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+        public IReadOnlyList<IConditionGetter> Conditions => Payload.Conditions ?? [];
+        public ISoundLoopAndRumbleGetter? LoopAndRumble => Payload.LoopAndRumbleLocation.HasValue ? SoundLoopAndRumbleBinaryOverlay.SoundLoopAndRumbleFactory(_recordData.Slice(Payload.LoopAndRumbleLocation!.Value.Min), _package) : default;
         #region PercentFrequencyShift
-        private int _PercentFrequencyShiftLocation => _BNAMLocation!.Value.Min;
-        private bool _PercentFrequencyShift_IsSet => _BNAMLocation.HasValue;
+        private int _PercentFrequencyShiftLocation => Payload.BNAMLocation!.Value.Min;
+        private bool _PercentFrequencyShift_IsSet => Payload.BNAMLocation.HasValue;
         public SByte PercentFrequencyShift => _PercentFrequencyShift_IsSet ? (sbyte)_recordData.Slice(_PercentFrequencyShiftLocation, 1)[0] : default(SByte);
         #endregion
         #region PercentFrequencyVariance
-        private int _PercentFrequencyVarianceLocation => _BNAMLocation!.Value.Min + 0x1;
-        private bool _PercentFrequencyVariance_IsSet => _BNAMLocation.HasValue;
+        private int _PercentFrequencyVarianceLocation => Payload.BNAMLocation!.Value.Min + 0x1;
+        private bool _PercentFrequencyVariance_IsSet => Payload.BNAMLocation.HasValue;
         public SByte PercentFrequencyVariance => _PercentFrequencyVariance_IsSet ? (sbyte)_recordData.Slice(_PercentFrequencyVarianceLocation, 1)[0] : default(SByte);
         #endregion
         #region Priority
-        private int _PriorityLocation => _BNAMLocation!.Value.Min + 0x2;
-        private bool _Priority_IsSet => _BNAMLocation.HasValue;
+        private int _PriorityLocation => Payload.BNAMLocation!.Value.Min + 0x2;
+        private bool _Priority_IsSet => Payload.BNAMLocation.HasValue;
         public Byte Priority => _Priority_IsSet ? _recordData.Span[_PriorityLocation] : default;
         #endregion
         #region Variance
-        private int _VarianceLocation => _BNAMLocation!.Value.Min + 0x3;
-        private bool _Variance_IsSet => _BNAMLocation.HasValue;
+        private int _VarianceLocation => Payload.BNAMLocation!.Value.Min + 0x3;
+        private bool _Variance_IsSet => Payload.BNAMLocation.HasValue;
         public Byte Variance => _Variance_IsSet ? _recordData.Span[_VarianceLocation] : default;
         #endregion
         #region StaticAttenuation
-        private int _StaticAttenuationLocation => _BNAMLocation!.Value.Min + 0x4;
-        private bool _StaticAttenuation_IsSet => _BNAMLocation.HasValue;
+        private int _StaticAttenuationLocation => Payload.BNAMLocation!.Value.Min + 0x4;
+        private bool _StaticAttenuation_IsSet => Payload.BNAMLocation.HasValue;
         public Single StaticAttenuation => _StaticAttenuation_IsSet ? FloatBinaryTranslation<MutagenFrame, MutagenWriter>.Instance.GetFloat(_recordData.Slice(_StaticAttenuationLocation, 2), FloatIntegerType.UShort, multiplier: null, divisor: 100f) : default(Single);
         #endregion
+
+        internal partial class SoundDescriptorRecordDataPayload
+        {
+            public int? TypeLocation;
+            public int? CategoryLocation;
+            public int? AlternateSoundForLocation;
+            public IReadOnlyList<IAssetLinkGetter<SkyrimSoundAssetType>> SoundFiles = [];
+            public int? OutputModelLocation;
+            public int? StringLocation;
+            public IReadOnlyList<IConditionGetter> Conditions = [];
+            public RangeInt32? LoopAndRumbleLocation;
+            public RangeInt32? BNAMLocation;
+        }
+
+        private LazyPayload<SoundDescriptorRecordDataPayload> _payload = null!;
+
+        internal SoundDescriptorRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<SoundDescriptorRecordDataPayload>(init, new SoundDescriptorRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -2589,10 +2594,10 @@ namespace Mutagen.Bethesda.Skyrim
 
         partial void CustomCtor();
         protected SoundDescriptorBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -2603,28 +2608,51 @@ namespace Mutagen.Bethesda.Skyrim
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new SoundDescriptorBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -2653,22 +2681,22 @@ namespace Mutagen.Bethesda.Skyrim
             {
                 case RecordTypeInts.CNAM:
                 {
-                    _TypeLocation = (stream.Position - offset);
+                    _payload.Fields.TypeLocation = (stream.Position - offset);
                     return (int)SoundDescriptor_FieldIndex.Type;
                 }
                 case RecordTypeInts.GNAM:
                 {
-                    _CategoryLocation = (stream.Position - offset);
+                    _payload.Fields.CategoryLocation = (stream.Position - offset);
                     return (int)SoundDescriptor_FieldIndex.Category;
                 }
                 case RecordTypeInts.SNAM:
                 {
-                    _AlternateSoundForLocation = (stream.Position - offset);
+                    _payload.Fields.AlternateSoundForLocation = (stream.Position - offset);
                     return (int)SoundDescriptor_FieldIndex.AlternateSoundFor;
                 }
                 case RecordTypeInts.ANAM:
                 {
-                    this.SoundFiles = BinaryOverlayList.FactoryByArray<IAssetLinkGetter<SkyrimSoundAssetType>>(
+                    _payload.Fields.SoundFiles = BinaryOverlayList.FactoryByArray<IAssetLinkGetter<SkyrimSoundAssetType>>(
                         mem: stream.RemainingMemory,
                         package: _package,
                         getter: (s, p) => new AssetLinkGetter<SkyrimSoundAssetType>(BinaryStringUtility.ProcessWholeToZString(p.MetaData.Constants.Subrecord(s).Content, encoding: p.MetaData.Encodings.NonTranslated)),
@@ -2682,17 +2710,17 @@ namespace Mutagen.Bethesda.Skyrim
                 }
                 case RecordTypeInts.ONAM:
                 {
-                    _OutputModelLocation = (stream.Position - offset);
+                    _payload.Fields.OutputModelLocation = (stream.Position - offset);
                     return (int)SoundDescriptor_FieldIndex.OutputModel;
                 }
                 case RecordTypeInts.FNAM:
                 {
-                    _StringLocation = (stream.Position - offset);
+                    _payload.Fields.StringLocation = (stream.Position - offset);
                     return (int)SoundDescriptor_FieldIndex.String;
                 }
                 case RecordTypeInts.CTDA:
                 {
-                    this.Conditions = BinaryOverlayList.FactoryByArray<IConditionGetter>(
+                    _payload.Fields.Conditions = BinaryOverlayList.FactoryByArray<IConditionGetter>(
                         mem: stream.RemainingMemory,
                         package: _package,
                         translationParams: translationParams,
@@ -2707,12 +2735,12 @@ namespace Mutagen.Bethesda.Skyrim
                 }
                 case RecordTypeInts.LNAM:
                 {
-                    _LoopAndRumbleLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.LoopAndRumbleLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)SoundDescriptor_FieldIndex.LoopAndRumble;
                 }
                 case RecordTypeInts.BNAM:
                 {
-                    _BNAMLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.BNAMLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     return (int)SoundDescriptor_FieldIndex.StaticAttenuation;
                 }
                 default:

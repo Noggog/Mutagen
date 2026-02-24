@@ -1,0 +1,7 @@
+RecordTypes.EDID,
+RecordTypes.OBND,
+RecordTypes.ODTY,
+RecordTypes.XALG,
+RecordTypes.KSIZ,
+RecordTypes.KWDA,
+RecordTypes.SMLS,

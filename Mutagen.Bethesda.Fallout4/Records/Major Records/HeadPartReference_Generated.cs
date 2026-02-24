@@ -1161,7 +1161,14 @@ namespace Mutagen.Bethesda.Fallout4
 
         #region Number
         private int? _NumberLocation;
-        public Int32? Number => _NumberLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NumberLocation.Value, _package.MetaData.Constants)) : default(Int32?);
+        public Int32? Number
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _NumberLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _NumberLocation.Value, _package.MetaData.Constants)) : default(Int32?);
+            }
+        }
         #endregion
         #region Head
         private int? _HeadLocation;

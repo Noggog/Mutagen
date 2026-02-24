@@ -1,5 +1,6 @@
 using Loqui.Generation;
 using Mutagen.Bethesda.Generation.Fields;
+using Mutagen.Bethesda.Generation.Modules.Plugin;
 using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Plugins.Binary.Overlay;
 using Mutagen.Bethesda.Plugins.Binary.Streams;
@@ -348,14 +349,31 @@ public class Array2dBinaryTranslationGeneration : BinaryTranslationGeneration
             typeName = arr2d.SubTypeGeneration.TypeName(getter: true, needsCovariance: true);
         }
         
+        var payloadSb = (this.Module as PluginTranslationModule)?.CurrentPayloadFieldsSb;
         if (typeGen.Nullable)
         {
-            sb.AppendLine($"public {arr2d.ListTypeName(getter: true, internalInterface: true)}{typeGen.NullChar} {typeGen.Name} {{ get; private set; }}");
+            if (payloadSb != null)
+            {
+                payloadSb.AppendLine($"public {arr2d.ListTypeName(getter: true, internalInterface: true)}{typeGen.NullChar} {typeGen.Name};");
+                sb.AppendLine($"public {arr2d.ListTypeName(getter: true, internalInterface: true)}{typeGen.NullChar} {typeGen.Name} => Payload.{typeGen.Name};");
+            }
+            else
+            {
+                sb.AppendLine($"public {arr2d.ListTypeName(getter: true, internalInterface: true)}{typeGen.NullChar} {typeGen.Name} {{ get; private set; }}");
+            }
         }
         else if (typeGen.GetFieldData().HasTrigger)
         {
             sb.AppendLine($"private static {arr2d.ListTypeName(getter: true, internalInterface: true)} _{typeGen.Name}Empty = new Array2d<{arr2d.SubTypeGeneration.TypeName(getter: true)}>({arr2d.FixedSize.Value.X}, {arr2d.FixedSize.Value.Y}, {arr2d.SubTypeGeneration.GetDefault(getter: false)});");
-            sb.AppendLine($"public {arr2d.ListTypeName(getter: true, internalInterface: true)} {typeGen.Name} {{ get; private set; }} = _{typeGen.Name}Empty;");
+            if (payloadSb != null)
+            {
+                payloadSb.AppendLine($"public {arr2d.ListTypeName(getter: true, internalInterface: true)} {typeGen.Name};");
+                sb.AppendLine($"public {arr2d.ListTypeName(getter: true, internalInterface: true)} {typeGen.Name} => Payload.{typeGen.Name} ?? _{typeGen.Name}Empty;");
+            }
+            else
+            {
+                sb.AppendLine($"public {arr2d.ListTypeName(getter: true, internalInterface: true)} {typeGen.Name} {{ get; private set; }} = _{typeGen.Name}Empty;");
+            }
         }
         else
         {
@@ -394,8 +412,10 @@ public class Array2dBinaryTranslationGeneration : BinaryTranslationGeneration
             dataAccess = "stream.RemainingMemory";
         }
         
+        var isMajor = await objGen.IsMajorRecord();
+        var assignPrefix = isMajor ? "_payload.Fields." : "this.";
         using (var args = sb.Call(
-                   $"this.{typeGen.Name} = BinaryOverlayArray2d.Factory<{typeName}>"))
+                   $"{assignPrefix}{typeGen.Name} = BinaryOverlayArray2d.Factory<{typeName}>"))
         {
             args.Add($"mem: {dataAccess}");
             args.Add($"package: _package");

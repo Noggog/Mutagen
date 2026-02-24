@@ -36,6 +36,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -2116,28 +2117,34 @@ namespace Mutagen.Bethesda.Starfield
         protected override Type LinkType => typeof(IActorValueModulationGetter);
 
 
-        public IReadOnlyList<IAComponentGetter> Components { get; private set; } = [];
-        #region Type
-        private int? _TypeLocation;
-        public ActorValueModulation.GroupType Type => EnumBinaryTranslation<ActorValueModulation.GroupType, MutagenFrame, MutagenWriter>.Instance.ParseRecord(_TypeLocation, _recordData, _package, 4);
-        #endregion
-        #region YNAM
-        private int? _YNAMLocation;
-        public String YNAM => _YNAMLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _YNAMLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : string.Empty;
-        #endregion
-        #region TNAM
-        private int? _TNAMLocation;
-        public String TNAM => _TNAMLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _TNAMLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : string.Empty;
-        #endregion
-        public IReadOnlyList<IActorValueModulationEntryGetter>? Entries { get; private set; }
-        #region TextureType
-        private int? _TextureTypeLocation;
-        public ActorValueModulation.TextureTypeEnum? TextureType => EnumBinaryTranslation<ActorValueModulation.TextureTypeEnum, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(_TextureTypeLocation, _recordData, _package, 4);
-        #endregion
-        #region Parent
-        private int? _ParentLocation;
-        public IFormLinkNullableGetter<IActorValueModulationGetter> Parent => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IActorValueModulationGetter>(_package, _recordData, _ParentLocation);
-        #endregion
+        public IReadOnlyList<IAComponentGetter> Components => Payload.Components ?? [];
+        public ActorValueModulation.GroupType Type => EnumBinaryTranslation<ActorValueModulation.GroupType, MutagenFrame, MutagenWriter>.Instance.ParseRecord(Payload.TypeLocation, _recordData, _package, 4);
+        public String YNAM => Payload.YNAMLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.YNAMLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : string.Empty;
+        public String TNAM => Payload.TNAMLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.TNAMLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : string.Empty;
+        public IReadOnlyList<IActorValueModulationEntryGetter>? Entries => Payload.Entries;
+        public ActorValueModulation.TextureTypeEnum? TextureType => EnumBinaryTranslation<ActorValueModulation.TextureTypeEnum, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(Payload.TextureTypeLocation, _recordData, _package, 4);
+        public IFormLinkNullableGetter<IActorValueModulationGetter> Parent => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IActorValueModulationGetter>(_package, _recordData, Payload.ParentLocation);
+
+        internal partial class ActorValueModulationRecordDataPayload
+        {
+            public IReadOnlyList<IAComponentGetter> Components = [];
+            public int? TypeLocation;
+            public int? YNAMLocation;
+            public int? TNAMLocation;
+            public IReadOnlyList<IActorValueModulationEntryGetter>? Entries;
+            public int? TextureTypeLocation;
+            public int? ParentLocation;
+        }
+
+        private LazyPayload<ActorValueModulationRecordDataPayload> _payload = null!;
+
+        internal ActorValueModulationRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<ActorValueModulationRecordDataPayload>(init, new ActorValueModulationRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -2145,10 +2152,10 @@ namespace Mutagen.Bethesda.Starfield
 
         partial void CustomCtor();
         protected ActorValueModulationBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -2159,28 +2166,51 @@ namespace Mutagen.Bethesda.Starfield
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new ActorValueModulationBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -2209,7 +2239,7 @@ namespace Mutagen.Bethesda.Starfield
             {
                 case RecordTypeInts.BFCB:
                 {
-                    this.Components = this.ParseRepeatedTypelessSubrecord<IAComponentGetter>(
+                    _payload.Fields.Components = this.ParseRepeatedTypelessSubrecord<IAComponentGetter>(
                         stream: stream,
                         translationParams: translationParams,
                         trigger: AComponent_Registration.TriggerSpecs,
@@ -2218,23 +2248,23 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.MNAM:
                 {
-                    _TypeLocation = (stream.Position - offset);
+                    _payload.Fields.TypeLocation = (stream.Position - offset);
                     return (int)ActorValueModulation_FieldIndex.Type;
                 }
                 case RecordTypeInts.YNAM:
                 {
-                    _YNAMLocation = (stream.Position - offset);
+                    _payload.Fields.YNAMLocation = (stream.Position - offset);
                     return (int)ActorValueModulation_FieldIndex.YNAM;
                 }
                 case RecordTypeInts.TNAM:
                 {
-                    _TNAMLocation = (stream.Position - offset);
+                    _payload.Fields.TNAMLocation = (stream.Position - offset);
                     return (int)ActorValueModulation_FieldIndex.TNAM;
                 }
                 case RecordTypeInts.LNAM:
                 case RecordTypeInts.ITMC:
                 {
-                    this.Entries = BinaryOverlayList.FactoryByCountPerItem<IActorValueModulationEntryGetter>(
+                    _payload.Fields.Entries = BinaryOverlayList.FactoryByCountPerItem<IActorValueModulationEntryGetter>(
                         stream: stream,
                         package: _package,
                         countLength: 4,
@@ -2247,12 +2277,12 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.MODT:
                 {
-                    _TextureTypeLocation = (stream.Position - offset);
+                    _payload.Fields.TextureTypeLocation = (stream.Position - offset);
                     return (int)ActorValueModulation_FieldIndex.TextureType;
                 }
                 case RecordTypeInts.AVMP:
                 {
-                    _ParentLocation = (stream.Position - offset);
+                    _payload.Fields.ParentLocation = (stream.Position - offset);
                     return (int)ActorValueModulation_FieldIndex.Parent;
                 }
                 default:

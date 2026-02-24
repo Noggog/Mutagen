@@ -1,0 +1,6 @@
+RecordTypes.BUO4,
+RecordTypes.BODM,
+RecordTypes.BODC,
+RecordTypes.BODS,
+RecordTypes.BLUF,
+RecordTypes.BOID,

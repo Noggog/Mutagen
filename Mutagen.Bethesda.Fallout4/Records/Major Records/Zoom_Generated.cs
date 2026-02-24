@@ -34,6 +34,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -1584,27 +1585,41 @@ namespace Mutagen.Bethesda.Fallout4
         protected override Type LinkType => typeof(IZoomGetter);
 
 
-        private RangeInt32? _GNAMLocation;
         #region FovMult
-        private int _FovMultLocation => _GNAMLocation!.Value.Min;
-        private bool _FovMult_IsSet => _GNAMLocation.HasValue;
+        private int _FovMultLocation => Payload.GNAMLocation!.Value.Min;
+        private bool _FovMult_IsSet => Payload.GNAMLocation.HasValue;
         public Single FovMult => _FovMult_IsSet ? _recordData.Slice(_FovMultLocation, 4).Float() : default(Single);
         #endregion
         #region Overlay
-        private int _OverlayLocation => _GNAMLocation!.Value.Min + 0x4;
-        private bool _Overlay_IsSet => _GNAMLocation.HasValue;
+        private int _OverlayLocation => Payload.GNAMLocation!.Value.Min + 0x4;
+        private bool _Overlay_IsSet => Payload.GNAMLocation.HasValue;
         public Zoom.OverlayType Overlay => _Overlay_IsSet ? (Zoom.OverlayType)BinaryPrimitives.ReadInt32LittleEndian(_recordData.Span.Slice(_OverlayLocation, 0x4)) : default;
         #endregion
         #region ImagespaceModifier
-        private int _ImagespaceModifierLocation => _GNAMLocation!.Value.Min + 0x8;
-        private bool _ImagespaceModifier_IsSet => _GNAMLocation.HasValue;
+        private int _ImagespaceModifierLocation => Payload.GNAMLocation!.Value.Min + 0x8;
+        private bool _ImagespaceModifier_IsSet => Payload.GNAMLocation.HasValue;
         public IFormLinkGetter<IImageSpaceAdapterGetter> ImagespaceModifier => _ImagespaceModifier_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<IImageSpaceAdapterGetter>(_package, _recordData.Span.Slice(_ImagespaceModifierLocation, 0x4), isSet: _ImagespaceModifier_IsSet) : FormLink<IImageSpaceAdapterGetter>.Null;
         #endregion
         #region CameraOffset
-        private int _CameraOffsetLocation => _GNAMLocation!.Value.Min + 0xC;
-        private bool _CameraOffset_IsSet => _GNAMLocation.HasValue;
+        private int _CameraOffsetLocation => Payload.GNAMLocation!.Value.Min + 0xC;
+        private bool _CameraOffset_IsSet => Payload.GNAMLocation.HasValue;
         public P3Float CameraOffset => _CameraOffset_IsSet ? P3FloatBinaryTranslation<MutagenFrame, MutagenWriter>.Instance.Read(_recordData.Slice(_CameraOffsetLocation, 12)) : default(P3Float);
         #endregion
+
+        internal partial class ZoomRecordDataPayload
+        {
+            public RangeInt32? GNAMLocation;
+        }
+
+        private LazyPayload<ZoomRecordDataPayload> _payload = null!;
+
+        internal ZoomRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<ZoomRecordDataPayload>(init, new ZoomRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -1612,10 +1627,10 @@ namespace Mutagen.Bethesda.Fallout4
 
         partial void CustomCtor();
         protected ZoomBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -1626,28 +1641,51 @@ namespace Mutagen.Bethesda.Fallout4
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new ZoomBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -1676,7 +1714,7 @@ namespace Mutagen.Bethesda.Fallout4
             {
                 case RecordTypeInts.GNAM:
                 {
-                    _GNAMLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.GNAMLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     return (int)Zoom_FieldIndex.CameraOffset;
                 }
                 default:

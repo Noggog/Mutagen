@@ -1,5 +1,6 @@
 using Loqui.Generation;
 using Mutagen.Bethesda.Generation.Fields;
+using Mutagen.Bethesda.Generation.Modules.Plugin;
 using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Plugins.Binary.Overlay;
 using Mutagen.Bethesda.Plugins.Binary.Streams;
@@ -252,16 +253,32 @@ public class FormLinkBinaryTranslationGeneration : PrimitiveBinaryTranslationGen
                 throw new NotImplementedException();
         }
 
+        var payloadSb = (this.Module as PluginTranslationModule)?.CurrentPayloadFieldsSb;
         if (data.HasTrigger)
         {
-            sb.AppendLine($"private int? _{typeGen.Name}Location;");
+            if (payloadSb != null)
+            {
+                payloadSb.AppendLine($"public int? {typeGen.Name}Location;");
+            }
+            else
+            {
+                sb.AppendLine($"private int? _{typeGen.Name}Location;");
+            }
         }
         FormLinkType linkType = typeGen as FormLinkType;
-            
+
         if (data.RecordType.HasValue)
         {
             if (dataType != null) throw new ArgumentException();
-            sb.AppendLine($"public {typeGen.TypeName(getter: true)} {typeGen.Name} => {nameof(FormLinkBinaryTranslation)}.Instance.{nameof(FormLinkBinaryTranslation.NullableRecordOverlayFactory)}<{linkType.GenericString}>(_package, {recordDataAccessor}, _{typeGen.Name}Location{(linkType.MaxIsNone ? ", maxIsNull: true" : null)});");
+            if (payloadSb != null)
+            {
+                // Major record: use Payload for location access
+                sb.AppendLine($"public {typeGen.TypeName(getter: true)} {typeGen.Name} => {nameof(FormLinkBinaryTranslation)}.Instance.{nameof(FormLinkBinaryTranslation.NullableRecordOverlayFactory)}<{linkType.GenericString}>(_package, {recordDataAccessor}, Payload.{typeGen.Name}Location{(linkType.MaxIsNone ? ", maxIsNull: true" : null)});");
+            }
+            else
+            {
+                sb.AppendLine($"public {typeGen.TypeName(getter: true)} {typeGen.Name} => {nameof(FormLinkBinaryTranslation)}.Instance.{nameof(FormLinkBinaryTranslation.NullableRecordOverlayFactory)}<{linkType.GenericString}>(_package, {recordDataAccessor}, _{typeGen.Name}Location{(linkType.MaxIsNone ? ", maxIsNull: true" : null)});");
+            }
         }
         else
         {
@@ -282,7 +299,7 @@ public class FormLinkBinaryTranslationGeneration : PrimitiveBinaryTranslationGen
             }
             else
             {
-                DataBinaryTranslationGeneration.GenerateWrapperExtraMembers(sb, dataType, objGen, typeGen, passedLengthAccessor);
+                DataBinaryTranslationGeneration.GenerateWrapperExtraMembers(sb, dataType, objGen, typeGen, passedLengthAccessor, isMajorRecord: payloadSb != null);
                 sb.AppendLine($"public {typeGen.TypeName(getter: true)} {typeGen.Name} => _{typeGen.Name}_IsSet ? FormLinkBinaryTranslation.Instance.OverlayFactory<{linkType.LoquiType.TypeNameInternal(getter: true, internalInterface: true)}>(_package, {recordDataAccessor}.Span.Slice(_{typeGen.Name}Location, 0x{(await this.ExpectedLength(objGen, typeGen)).Value:X}), isSet: _{typeGen.Name}_IsSet{(linkType.MaxIsNone ? ", maxIsNull: true" : null)}) : {linkType.DirectTypeName(getter: true)}.Null;");
             }
         }

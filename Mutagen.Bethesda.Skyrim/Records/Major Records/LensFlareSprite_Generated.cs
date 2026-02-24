@@ -1308,11 +1308,25 @@ namespace Mutagen.Bethesda.Skyrim
 
         #region LensFlareSpriteId
         private int? _LensFlareSpriteIdLocation;
-        public String? LensFlareSpriteId => _LensFlareSpriteIdLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _LensFlareSpriteIdLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? LensFlareSpriteId
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _LensFlareSpriteIdLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_data, _LensFlareSpriteIdLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+            }
+        }
         #endregion
         #region Texture
         private int? _TextureLocation;
-        public AssetLinkGetter<SkyrimTextureAssetType>? Texture => _TextureLocation.HasValue ? new AssetLinkGetter<SkyrimTextureAssetType>(BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _TextureLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated)) : default(AssetLinkGetter<SkyrimTextureAssetType>?);
+        public AssetLinkGetter<SkyrimTextureAssetType>? Texture
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _TextureLocation.HasValue ? new AssetLinkGetter<SkyrimTextureAssetType>(BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_data, _TextureLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated)) : default(AssetLinkGetter<SkyrimTextureAssetType>?);
+            }
+        }
         #endregion
         #region Data
         private RangeInt32? _DataLocation;

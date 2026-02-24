@@ -35,6 +35,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -3544,65 +3545,64 @@ namespace Mutagen.Bethesda.Fallout4
 
 
         #region VirtualMachineAdapter
-        private int? _VirtualMachineAdapterLengthOverride;
-        private RangeInt32? _VirtualMachineAdapterLocation;
-        public ISceneAdapterGetter? VirtualMachineAdapter => _VirtualMachineAdapterLocation.HasValue ? SceneAdapterBinaryOverlay.SceneAdapterFactory(_recordData.Slice(_VirtualMachineAdapterLocation!.Value.Min), _package, TypedParseParams.FromLengthOverride(_VirtualMachineAdapterLengthOverride)) : default;
+        public ISceneAdapterGetter? VirtualMachineAdapter => Payload.VirtualMachineAdapterLocation.HasValue ? SceneAdapterBinaryOverlay.SceneAdapterFactory(_recordData.Slice(Payload.VirtualMachineAdapterLocation!.Value.Min), _package, TypedParseParams.FromLengthOverride(Payload.VirtualMachineAdapterLengthOverride)) : default;
         IAVirtualMachineAdapterGetter? IHaveVirtualMachineAdapterGetter.VirtualMachineAdapter => this.VirtualMachineAdapter;
         #endregion
-        #region Flags
-        private int? _FlagsLocation;
-        public Scene.Flag? Flags => EnumBinaryTranslation<Scene.Flag, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(_FlagsLocation, _recordData, _package, 4);
-        #endregion
-        public IReadOnlyList<IScenePhaseGetter> Phases { get; private set; } = [];
-        public IReadOnlyList<ISceneActorGetter> Actors { get; private set; } = [];
-        public IReadOnlyList<ISceneActionGetter> Actions { get; private set; } = [];
-        public IScenePhaseUnusedDataGetter? Unused { get; private set; }
-        public IScenePhaseUnusedDataGetter? Unused2 { get; private set; }
-        #region Quest
-        private int? _QuestLocation;
-        public IFormLinkNullableGetter<IQuestGetter> Quest => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IQuestGetter>(_package, _recordData, _QuestLocation);
-        #endregion
-        #region LastActionIndex
-        private int? _LastActionIndexLocation;
-        public UInt32? LastActionIndex => _LastActionIndexLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _LastActionIndexLocation.Value, _package.MetaData.Constants)) : default(UInt32?);
-        #endregion
-        #region VNAM
-        private int? _VNAMLocation;
-        public ReadOnlyMemorySlice<Byte>? VNAM => _VNAMLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _VNAMLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
-        #endregion
-        #region CameraDistanceOverride
-        private int? _CameraDistanceOverrideLocation;
-        public Single? CameraDistanceOverride => _CameraDistanceOverrideLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _CameraDistanceOverrideLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
-        #endregion
-        #region DialogueDistanceOverride
-        private int? _DialogueDistanceOverrideLocation;
-        public Single? DialogueDistanceOverride => _DialogueDistanceOverrideLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _DialogueDistanceOverrideLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
-        #endregion
-        #region FovOverride
-        private int? _FovOverrideLocation;
-        public Single? FovOverride => _FovOverrideLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _FovOverrideLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
-        #endregion
+        public Scene.Flag? Flags => EnumBinaryTranslation<Scene.Flag, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(Payload.FlagsLocation, _recordData, _package, 4);
+        public IReadOnlyList<IScenePhaseGetter> Phases => Payload.Phases ?? [];
+        public IReadOnlyList<ISceneActorGetter> Actors => Payload.Actors ?? [];
+        public IReadOnlyList<ISceneActionGetter> Actions => Payload.Actions ?? [];
+        public IScenePhaseUnusedDataGetter? Unused => Payload.Unused;
+        public IScenePhaseUnusedDataGetter? Unused2 => Payload.Unused2;
+        public IFormLinkNullableGetter<IQuestGetter> Quest => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IQuestGetter>(_package, _recordData, Payload.QuestLocation);
+        public UInt32? LastActionIndex => Payload.LastActionIndexLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.LastActionIndexLocation.Value, _package.MetaData.Constants)) : default(UInt32?);
+        public ReadOnlyMemorySlice<Byte>? VNAM => Payload.VNAMLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.VNAMLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
+        public Single? CameraDistanceOverride => Payload.CameraDistanceOverrideLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.CameraDistanceOverrideLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public Single? DialogueDistanceOverride => Payload.DialogueDistanceOverrideLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.DialogueDistanceOverrideLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public Single? FovOverride => Payload.FovOverrideLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.FovOverrideLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
         #region Keywords
-        public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? Keywords { get; private set; }
+        public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? Keywords => Payload.Keywords;
         IReadOnlyList<IFormLinkGetter<IKeywordCommonGetter>>? IKeywordedGetter.Keywords => this.Keywords;
         #endregion
-        public IReadOnlyList<IConditionGetter> Conditions { get; private set; } = [];
-        #region SetParentQuestStage
-        private RangeInt32? _SetParentQuestStageLocation;
-        public ISceneSetParentQuestStageGetter? SetParentQuestStage => _SetParentQuestStageLocation.HasValue ? SceneSetParentQuestStageBinaryOverlay.SceneSetParentQuestStageFactory(_recordData.Slice(_SetParentQuestStageLocation!.Value.Min), _package) : default;
-        #endregion
-        #region Notes
-        private int? _NotesLocation;
-        public String? Notes => _NotesLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NotesLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
-        #region Template
-        private int? _TemplateLocation;
-        public IFormLinkNullableGetter<ISceneGetter> Template => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ISceneGetter>(_package, _recordData, _TemplateLocation);
-        #endregion
-        #region Index
-        private int? _IndexLocation;
-        public UInt32? Index => _IndexLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _IndexLocation.Value, _package.MetaData.Constants)) : default(UInt32?);
-        #endregion
+        public IReadOnlyList<IConditionGetter> Conditions => Payload.Conditions ?? [];
+        public ISceneSetParentQuestStageGetter? SetParentQuestStage => Payload.SetParentQuestStageLocation.HasValue ? SceneSetParentQuestStageBinaryOverlay.SceneSetParentQuestStageFactory(_recordData.Slice(Payload.SetParentQuestStageLocation!.Value.Min), _package) : default;
+        public String? Notes => Payload.NotesLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NotesLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public IFormLinkNullableGetter<ISceneGetter> Template => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ISceneGetter>(_package, _recordData, Payload.TemplateLocation);
+        public UInt32? Index => Payload.IndexLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.IndexLocation.Value, _package.MetaData.Constants)) : default(UInt32?);
+
+        internal partial class SceneRecordDataPayload
+        {
+            public int? VirtualMachineAdapterLengthOverride;
+            public RangeInt32? VirtualMachineAdapterLocation;
+            public int? FlagsLocation;
+            public IReadOnlyList<IScenePhaseGetter> Phases = [];
+            public IReadOnlyList<ISceneActorGetter> Actors = [];
+            public IReadOnlyList<ISceneActionGetter> Actions = [];
+            public IScenePhaseUnusedDataGetter? Unused;
+            public IScenePhaseUnusedDataGetter? Unused2;
+            public int? QuestLocation;
+            public int? LastActionIndexLocation;
+            public int? VNAMLocation;
+            public int? CameraDistanceOverrideLocation;
+            public int? DialogueDistanceOverrideLocation;
+            public int? FovOverrideLocation;
+            public IReadOnlyList<IFormLinkGetter<IKeywordGetter>>? Keywords;
+            public IReadOnlyList<IConditionGetter> Conditions = [];
+            public RangeInt32? SetParentQuestStageLocation;
+            public int? NotesLocation;
+            public int? TemplateLocation;
+            public int? IndexLocation;
+        }
+
+        private LazyPayload<SceneRecordDataPayload> _payload = null!;
+
+        internal SceneRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<SceneRecordDataPayload>(init, new SceneRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -3610,10 +3610,10 @@ namespace Mutagen.Bethesda.Fallout4
 
         partial void CustomCtor();
         protected SceneBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -3624,28 +3624,51 @@ namespace Mutagen.Bethesda.Fallout4
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new SceneBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -3674,8 +3697,8 @@ namespace Mutagen.Bethesda.Fallout4
             {
                 case RecordTypeInts.VMAD:
                 {
-                    _VirtualMachineAdapterLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
-                    _VirtualMachineAdapterLengthOverride = lastParsed.LengthOverride;
+                    _payload.Fields.VirtualMachineAdapterLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.VirtualMachineAdapterLengthOverride = lastParsed.LengthOverride;
                     if (lastParsed.LengthOverride.HasValue)
                     {
                         stream.Position += lastParsed.LengthOverride.Value;
@@ -3684,12 +3707,12 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.FNAM:
                 {
-                    _FlagsLocation = (stream.Position - offset);
+                    _payload.Fields.FlagsLocation = (stream.Position - offset);
                     return (int)Scene_FieldIndex.Flags;
                 }
                 case RecordTypeInts.HNAM:
                 {
-                    this.Phases = this.ParseRepeatedTypelessSubrecord<IScenePhaseGetter>(
+                    _payload.Fields.Phases = this.ParseRepeatedTypelessSubrecord<IScenePhaseGetter>(
                         stream: stream,
                         translationParams: translationParams,
                         trigger: ScenePhase_Registration.TriggerSpecs,
@@ -3698,7 +3721,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.ALID:
                 {
-                    this.Actors = this.ParseRepeatedTypelessSubrecord<ISceneActorGetter>(
+                    _payload.Fields.Actors = this.ParseRepeatedTypelessSubrecord<ISceneActorGetter>(
                         stream: stream,
                         translationParams: translationParams,
                         trigger: SceneActor_Registration.TriggerSpecs,
@@ -3707,7 +3730,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.ANAM:
                 {
-                    this.Actions = this.ParseRepeatedTypelessSubrecord<ISceneActionGetter>(
+                    _payload.Fields.Actions = this.ParseRepeatedTypelessSubrecord<ISceneActionGetter>(
                         stream: stream,
                         translationParams: translationParams,
                         trigger: SceneAction_Registration.TriggerSpecs,
@@ -3720,7 +3743,7 @@ namespace Mutagen.Bethesda.Fallout4
                 case RecordTypeInts.QNAM:
                 case RecordTypeInts.SCRO:
                 {
-                    this.Unused = ScenePhaseUnusedDataBinaryOverlay.ScenePhaseUnusedDataFactory(
+                    _payload.Fields.Unused = ScenePhaseUnusedDataBinaryOverlay.ScenePhaseUnusedDataFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());
@@ -3729,7 +3752,7 @@ namespace Mutagen.Bethesda.Fallout4
                 case RecordTypeInts.NEXT:
                 {
                     stream.Position += _package.MetaData.Constants.SubConstants.HeaderLength; // Skip marker
-                    this.Unused2 = ScenePhaseUnusedDataBinaryOverlay.ScenePhaseUnusedDataFactory(
+                    _payload.Fields.Unused2 = ScenePhaseUnusedDataBinaryOverlay.ScenePhaseUnusedDataFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());
@@ -3737,38 +3760,38 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.PNAM:
                 {
-                    _QuestLocation = (stream.Position - offset);
+                    _payload.Fields.QuestLocation = (stream.Position - offset);
                     return (int)Scene_FieldIndex.Quest;
                 }
                 case RecordTypeInts.INAM:
                 {
-                    _LastActionIndexLocation = (stream.Position - offset);
+                    _payload.Fields.LastActionIndexLocation = (stream.Position - offset);
                     return (int)Scene_FieldIndex.LastActionIndex;
                 }
                 case RecordTypeInts.VNAM:
                 {
-                    _VNAMLocation = (stream.Position - offset);
+                    _payload.Fields.VNAMLocation = (stream.Position - offset);
                     return (int)Scene_FieldIndex.VNAM;
                 }
                 case RecordTypeInts.CNAM:
                 {
-                    _CameraDistanceOverrideLocation = (stream.Position - offset);
+                    _payload.Fields.CameraDistanceOverrideLocation = (stream.Position - offset);
                     return (int)Scene_FieldIndex.CameraDistanceOverride;
                 }
                 case RecordTypeInts.ACTV:
                 {
-                    _DialogueDistanceOverrideLocation = (stream.Position - offset);
+                    _payload.Fields.DialogueDistanceOverrideLocation = (stream.Position - offset);
                     return (int)Scene_FieldIndex.DialogueDistanceOverride;
                 }
                 case RecordTypeInts.CRIS:
                 {
-                    _FovOverrideLocation = (stream.Position - offset);
+                    _payload.Fields.FovOverrideLocation = (stream.Position - offset);
                     return (int)Scene_FieldIndex.FovOverride;
                 }
                 case RecordTypeInts.KSIZ:
                 case RecordTypeInts.KWDA:
                 {
-                    this.Keywords = BinaryOverlayList.FactoryByCount<IFormLinkGetter<IKeywordGetter>>(
+                    _payload.Fields.Keywords = BinaryOverlayList.FactoryByCount<IFormLinkGetter<IKeywordGetter>>(
                         stream: stream,
                         package: _package,
                         itemLength: 0x4,
@@ -3780,7 +3803,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.CTDA:
                 {
-                    this.Conditions = BinaryOverlayList.FactoryByArray<IConditionGetter>(
+                    _payload.Fields.Conditions = BinaryOverlayList.FactoryByArray<IConditionGetter>(
                         mem: stream.RemainingMemory,
                         package: _package,
                         translationParams: translationParams,
@@ -3795,22 +3818,22 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.SCQS:
                 {
-                    _SetParentQuestStageLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.SetParentQuestStageLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)Scene_FieldIndex.SetParentQuestStage;
                 }
                 case RecordTypeInts.NNAM:
                 {
-                    _NotesLocation = (stream.Position - offset);
+                    _payload.Fields.NotesLocation = (stream.Position - offset);
                     return (int)Scene_FieldIndex.Notes;
                 }
                 case RecordTypeInts.TNAM:
                 {
-                    _TemplateLocation = (stream.Position - offset);
+                    _payload.Fields.TemplateLocation = (stream.Position - offset);
                     return (int)Scene_FieldIndex.Template;
                 }
                 case RecordTypeInts.XNAM:
                 {
-                    _IndexLocation = (stream.Position - offset);
+                    _payload.Fields.IndexLocation = (stream.Position - offset);
                     return (int)Scene_FieldIndex.Index;
                 }
                 case RecordTypeInts.XXXX:

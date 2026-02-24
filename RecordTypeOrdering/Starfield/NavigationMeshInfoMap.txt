@@ -1,0 +1,4 @@
+RecordTypes.EDID,
+RecordTypes.NVER,
+RecordTypes.NVMI,
+RecordTypes.NVPP,

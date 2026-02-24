@@ -1,0 +1,4 @@
+RecordTypes.EDID,
+RecordTypes.MODL,
+RecordTypes.MODB,
+RecordTypes.MODT,

@@ -1243,7 +1243,14 @@ namespace Mutagen.Bethesda.Oblivion
 
         #region RankNumber
         private int? _RankNumberLocation;
-        public Int32? RankNumber => _RankNumberLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _RankNumberLocation.Value, _package.MetaData.Constants)) : default(Int32?);
+        public Int32? RankNumber
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _RankNumberLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _RankNumberLocation.Value, _package.MetaData.Constants)) : default(Int32?);
+            }
+        }
         #endregion
         #region Name
         private IGenderedItemGetter<String?>? _NameOverlay;
@@ -1251,7 +1258,14 @@ namespace Mutagen.Bethesda.Oblivion
         #endregion
         #region Insignia
         private int? _InsigniaLocation;
-        public String? Insignia => _InsigniaLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _InsigniaLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? Insignia
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _InsigniaLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_data, _InsigniaLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+            }
+        }
         #endregion
         partial void CustomFactoryEnd(
             OverlayStream stream,

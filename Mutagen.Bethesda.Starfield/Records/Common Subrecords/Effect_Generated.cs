@@ -1861,15 +1861,36 @@ namespace Mutagen.Bethesda.Starfield
         #endregion
         #region MAGF
         private int? _MAGFLocation;
-        public Int32? MAGF => _MAGFLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _MAGFLocation.Value, _package.MetaData.Constants)) : default(Int32?);
+        public Int32? MAGF
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _MAGFLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _MAGFLocation.Value, _package.MetaData.Constants)) : default(Int32?);
+            }
+        }
         #endregion
         #region EFIF
         private int? _EFIFLocation;
-        public Int32? EFIF => _EFIFLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _EFIFLocation.Value, _package.MetaData.Constants)) : default(Int32?);
+        public Int32? EFIF
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _EFIFLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _EFIFLocation.Value, _package.MetaData.Constants)) : default(Int32?);
+            }
+        }
         #endregion
         #region MUID
         private int? _MUIDLocation;
-        public Int32? MUID => _MUIDLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _MUIDLocation.Value, _package.MetaData.Constants)) : default(Int32?);
+        public Int32? MUID
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _MUIDLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _MUIDLocation.Value, _package.MetaData.Constants)) : default(Int32?);
+            }
+        }
         #endregion
         partial void CustomFactoryEnd(
             OverlayStream stream,

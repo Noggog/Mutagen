@@ -37,6 +37,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -3703,79 +3704,65 @@ namespace Mutagen.Bethesda.Starfield
         protected override Type LinkType => typeof(IPlanetGetter);
 
 
-        public IReadOnlyList<IAComponentGetter> Components { get; private set; } = [];
-        public IReadOnlyList<IMasterWorldspaceGetter>? MasterWorldspaces { get; private set; }
-        public IReadOnlyList<IAddedWorldspaceGetter>? AddedWorldspaces { get; private set; }
-        public IReadOnlyList<IPlanetBiomeGetter> Biomes { get; private set; } = [];
-        #region SurfaceTree
-        private int? _SurfaceTreeLocation;
-        public IFormLinkNullableGetter<ISurfaceTreeGetter> SurfaceTree => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ISurfaceTreeGetter>(_package, _recordData, _SurfaceTreeLocation);
-        #endregion
-        #region ScanWorldspaceMultiplier
-        private int? _ScanWorldspaceMultiplierLocation;
-        public Single? ScanWorldspaceMultiplier => _ScanWorldspaceMultiplierLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _ScanWorldspaceMultiplierLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
-        #endregion
-        #region Name
-        private int? _NameLocation;
-        public String Name => _NameLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NameLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : string.Empty;
-        #endregion
-        #region EnvironmentMap
-        private int? _EnvironmentMapLocation;
-        public String? EnvironmentMap => _EnvironmentMapLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _EnvironmentMapLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
-        #endregion
-        #region BodyType
-        private int? _BodyTypeLocation;
-        public Planet.BodyTypeEnum BodyType => EnumBinaryTranslation<Planet.BodyTypeEnum, MutagenFrame, MutagenWriter>.Instance.ParseRecord(_BodyTypeLocation, _recordData, _package, 1);
-        #endregion
-        #region SpaceCell
-        private RangeInt32? _SpaceCellLocation;
-        public ISpaceCellGetter? SpaceCell => _SpaceCellLocation.HasValue ? SpaceCellBinaryOverlay.SpaceCellFactory(_recordData.Slice(_SpaceCellLocation!.Value.Min), _package) : default;
-        #endregion
+        public IReadOnlyList<IAComponentGetter> Components => Payload.Components ?? [];
+        public IReadOnlyList<IMasterWorldspaceGetter>? MasterWorldspaces => Payload.MasterWorldspaces;
+        public IReadOnlyList<IAddedWorldspaceGetter>? AddedWorldspaces => Payload.AddedWorldspaces;
+        public IReadOnlyList<IPlanetBiomeGetter> Biomes => Payload.Biomes ?? [];
+        public IFormLinkNullableGetter<ISurfaceTreeGetter> SurfaceTree => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ISurfaceTreeGetter>(_package, _recordData, Payload.SurfaceTreeLocation);
+        public Single? ScanWorldspaceMultiplier => Payload.ScanWorldspaceMultiplierLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.ScanWorldspaceMultiplierLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public String Name => Payload.NameLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NameLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : string.Empty;
+        public String? EnvironmentMap => Payload.EnvironmentMapLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.EnvironmentMapLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public Planet.BodyTypeEnum BodyType => EnumBinaryTranslation<Planet.BodyTypeEnum, MutagenFrame, MutagenWriter>.Instance.ParseRecord(Payload.BodyTypeLocation, _recordData, _package, 1);
+        public ISpaceCellGetter? SpaceCell => Payload.SpaceCellLocation.HasValue ? SpaceCellBinaryOverlay.SpaceCellFactory(_recordData.Slice(Payload.SpaceCellLocation!.Value.Min), _package) : default;
         #region OrbitalData
-        private RangeInt32? _OrbitalDataLocation;
-        private IOrbitalDataGetter? _OrbitalData => _OrbitalDataLocation.HasValue ? OrbitalDataBinaryOverlay.OrbitalDataFactory(_recordData.Slice(_OrbitalDataLocation!.Value.Min), _package) : default;
+        private IOrbitalDataGetter? _OrbitalData => Payload.OrbitalDataLocation.HasValue ? OrbitalDataBinaryOverlay.OrbitalDataFactory(_recordData.Slice(Payload.OrbitalDataLocation!.Value.Min), _package) : default;
         public IOrbitalDataGetter OrbitalData => _OrbitalData ?? new OrbitalData();
         #endregion
-        #region OrbitedData
-        private RangeInt32? _OrbitedDataLocation;
-        public IOrbitedDataGetter? OrbitedData => _OrbitedDataLocation.HasValue ? OrbitedDataBinaryOverlay.OrbitedDataFactory(_recordData.Slice(_OrbitedDataLocation!.Value.Min), _package) : default;
-        #endregion
-        #region GalaxyData
-        private RangeInt32? _GalaxyDataLocation;
-        public IGalaxyDataGetter? GalaxyData => _GalaxyDataLocation.HasValue ? GalaxyDataBinaryOverlay.GalaxyDataFactory(_recordData.Slice(_GalaxyDataLocation!.Value.Min), _package) : default;
-        #endregion
-        #region Details
-        private RangeInt32? _DetailsLocation;
-        public IPlanetDetailsGetter? Details => _DetailsLocation.HasValue ? PlanetDetailsBinaryOverlay.PlanetDetailsFactory(_recordData.Slice(_DetailsLocation!.Value.Min), _package) : default;
-        #endregion
-        #region AtmosphereData
-        private RangeInt32? _AtmosphereDataLocation;
-        public IAtmosphereDataGetter? AtmosphereData => _AtmosphereDataLocation.HasValue ? AtmosphereDataBinaryOverlay.AtmosphereDataFactory(_recordData.Slice(_AtmosphereDataLocation!.Value.Min), _package) : default;
-        #endregion
-        #region BiomeNoise
-        private RangeInt32? _BiomeNoiseLocation;
-        public IBiomeNoiseGetter? BiomeNoise => _BiomeNoiseLocation.HasValue ? BiomeNoiseBinaryOverlay.BiomeNoiseFactory(_recordData.Slice(_BiomeNoiseLocation!.Value.Min), _package) : default;
-        #endregion
-        #region PlayerKnowledge
-        private int? _PlayerKnowledgeLocation;
-        public Planet.PlayerKnowledgeFlag? PlayerKnowledge => EnumBinaryTranslation<Planet.PlayerKnowledgeFlag, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(_PlayerKnowledgeLocation, _recordData, _package, 4);
-        #endregion
-        #region Temperature
-        private int? _TemperatureLocation;
-        public Single? Temperature => _TemperatureLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _TemperatureLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
-        #endregion
-        #region Density
-        private int? _DensityLocation;
-        public Single? Density => _DensityLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _DensityLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
-        #endregion
-        #region PerihelionAngleDegrees
-        private int? _PerihelionAngleDegreesLocation;
-        public Single? PerihelionAngleDegrees => _PerihelionAngleDegreesLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _PerihelionAngleDegreesLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
-        #endregion
-        #region ResourceCreationSeed
-        private int? _ResourceCreationSeedLocation;
-        public Int32? ResourceCreationSeed => _ResourceCreationSeedLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _ResourceCreationSeedLocation.Value, _package.MetaData.Constants)) : default(Int32?);
-        #endregion
+        public IOrbitedDataGetter? OrbitedData => Payload.OrbitedDataLocation.HasValue ? OrbitedDataBinaryOverlay.OrbitedDataFactory(_recordData.Slice(Payload.OrbitedDataLocation!.Value.Min), _package) : default;
+        public IGalaxyDataGetter? GalaxyData => Payload.GalaxyDataLocation.HasValue ? GalaxyDataBinaryOverlay.GalaxyDataFactory(_recordData.Slice(Payload.GalaxyDataLocation!.Value.Min), _package) : default;
+        public IPlanetDetailsGetter? Details => Payload.DetailsLocation.HasValue ? PlanetDetailsBinaryOverlay.PlanetDetailsFactory(_recordData.Slice(Payload.DetailsLocation!.Value.Min), _package) : default;
+        public IAtmosphereDataGetter? AtmosphereData => Payload.AtmosphereDataLocation.HasValue ? AtmosphereDataBinaryOverlay.AtmosphereDataFactory(_recordData.Slice(Payload.AtmosphereDataLocation!.Value.Min), _package) : default;
+        public IBiomeNoiseGetter? BiomeNoise => Payload.BiomeNoiseLocation.HasValue ? BiomeNoiseBinaryOverlay.BiomeNoiseFactory(_recordData.Slice(Payload.BiomeNoiseLocation!.Value.Min), _package) : default;
+        public Planet.PlayerKnowledgeFlag? PlayerKnowledge => EnumBinaryTranslation<Planet.PlayerKnowledgeFlag, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(Payload.PlayerKnowledgeLocation, _recordData, _package, 4);
+        public Single? Temperature => Payload.TemperatureLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.TemperatureLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public Single? Density => Payload.DensityLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.DensityLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public Single? PerihelionAngleDegrees => Payload.PerihelionAngleDegreesLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.PerihelionAngleDegreesLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public Int32? ResourceCreationSeed => Payload.ResourceCreationSeedLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.ResourceCreationSeedLocation.Value, _package.MetaData.Constants)) : default(Int32?);
+
+        internal partial class PlanetRecordDataPayload
+        {
+            public IReadOnlyList<IAComponentGetter> Components = [];
+            public IReadOnlyList<IMasterWorldspaceGetter>? MasterWorldspaces;
+            public IReadOnlyList<IAddedWorldspaceGetter>? AddedWorldspaces;
+            public IReadOnlyList<IPlanetBiomeGetter> Biomes = [];
+            public int? SurfaceTreeLocation;
+            public int? ScanWorldspaceMultiplierLocation;
+            public int? NameLocation;
+            public int? EnvironmentMapLocation;
+            public int? BodyTypeLocation;
+            public RangeInt32? SpaceCellLocation;
+            public RangeInt32? OrbitalDataLocation;
+            public RangeInt32? OrbitedDataLocation;
+            public RangeInt32? GalaxyDataLocation;
+            public RangeInt32? DetailsLocation;
+            public RangeInt32? AtmosphereDataLocation;
+            public RangeInt32? BiomeNoiseLocation;
+            public int? PlayerKnowledgeLocation;
+            public int? TemperatureLocation;
+            public int? DensityLocation;
+            public int? PerihelionAngleDegreesLocation;
+            public int? ResourceCreationSeedLocation;
+        }
+
+        private LazyPayload<PlanetRecordDataPayload> _payload = null!;
+
+        internal PlanetRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<PlanetRecordDataPayload>(init, new PlanetRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -3783,10 +3770,10 @@ namespace Mutagen.Bethesda.Starfield
 
         partial void CustomCtor();
         protected PlanetBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -3797,28 +3784,51 @@ namespace Mutagen.Bethesda.Starfield
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new PlanetBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -3847,7 +3857,7 @@ namespace Mutagen.Bethesda.Starfield
             {
                 case RecordTypeInts.BFCB:
                 {
-                    this.Components = this.ParseRepeatedTypelessSubrecord<IAComponentGetter>(
+                    _payload.Fields.Components = this.ParseRepeatedTypelessSubrecord<IAComponentGetter>(
                         stream: stream,
                         translationParams: translationParams,
                         trigger: AComponent_Registration.TriggerSpecs,
@@ -3859,7 +3869,7 @@ namespace Mutagen.Bethesda.Starfield
                     if (!lastParsed.ParsedIndex.HasValue
                         || lastParsed.ParsedIndex.Value <= (int)Planet_FieldIndex.Components)
                     {
-                        this.MasterWorldspaces = BinaryOverlayList.FactoryByStartIndexWithTrigger<IMasterWorldspaceGetter>(
+                        _payload.Fields.MasterWorldspaces = BinaryOverlayList.FactoryByStartIndexWithTrigger<IMasterWorldspaceGetter>(
                             stream: stream,
                             package: _package,
                             finalPos: finalPos,
@@ -3869,7 +3879,7 @@ namespace Mutagen.Bethesda.Starfield
                     }
                     else if (lastParsed.ParsedIndex.Value <= (int)Planet_FieldIndex.EnvironmentMap)
                     {
-                        _BodyTypeLocation = (stream.Position - offset);
+                        _payload.Fields.BodyTypeLocation = (stream.Position - offset);
                         return new ParseResult((int)Planet_FieldIndex.BodyType, type);
                     }
                     else
@@ -3878,7 +3888,7 @@ namespace Mutagen.Bethesda.Starfield
                         {
                             case 0:
                             {
-                                this.MasterWorldspaces = BinaryOverlayList.FactoryByStartIndexWithTrigger<IMasterWorldspaceGetter>(
+                                _payload.Fields.MasterWorldspaces = BinaryOverlayList.FactoryByStartIndexWithTrigger<IMasterWorldspaceGetter>(
                                     stream: stream,
                                     package: _package,
                                     finalPos: finalPos,
@@ -3888,7 +3898,7 @@ namespace Mutagen.Bethesda.Starfield
                             }
                             case 1:
                             {
-                                _BodyTypeLocation = (stream.Position - offset);
+                                _payload.Fields.BodyTypeLocation = (stream.Position - offset);
                                 return new ParseResult((int)Planet_FieldIndex.BodyType, type);
                             }
                             default:
@@ -3898,7 +3908,7 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.EOVR:
                 {
-                    this.AddedWorldspaces = BinaryOverlayList.FactoryByStartIndexWithTrigger<IAddedWorldspaceGetter>(
+                    _payload.Fields.AddedWorldspaces = BinaryOverlayList.FactoryByStartIndexWithTrigger<IAddedWorldspaceGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -3908,7 +3918,7 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.PPBD:
                 {
-                    this.Biomes = BinaryOverlayList.FactoryByArray<IPlanetBiomeGetter>(
+                    _payload.Fields.Biomes = BinaryOverlayList.FactoryByArray<IPlanetBiomeGetter>(
                         mem: stream.RemainingMemory,
                         package: _package,
                         translationParams: translationParams,
@@ -3926,12 +3936,12 @@ namespace Mutagen.Bethesda.Starfield
                     if (!lastParsed.ParsedIndex.HasValue
                         || lastParsed.ParsedIndex.Value <= (int)Planet_FieldIndex.Biomes)
                     {
-                        _SurfaceTreeLocation = (stream.Position - offset);
+                        _payload.Fields.SurfaceTreeLocation = (stream.Position - offset);
                         return new ParseResult((int)Planet_FieldIndex.SurfaceTree, type);
                     }
                     else if (lastParsed.ParsedIndex.Value <= (int)Planet_FieldIndex.OrbitalData)
                     {
-                        _OrbitedDataLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                        _payload.Fields.OrbitedDataLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                         return new ParseResult((int)Planet_FieldIndex.OrbitedData, type);
                     }
                     else
@@ -3940,12 +3950,12 @@ namespace Mutagen.Bethesda.Starfield
                         {
                             case 0:
                             {
-                                _SurfaceTreeLocation = (stream.Position - offset);
+                                _payload.Fields.SurfaceTreeLocation = (stream.Position - offset);
                                 return new ParseResult((int)Planet_FieldIndex.SurfaceTree, type);
                             }
                             case 1:
                             {
-                                _OrbitedDataLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                                _payload.Fields.OrbitedDataLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                                 return new ParseResult((int)Planet_FieldIndex.OrbitedData, type);
                             }
                             default:
@@ -3958,12 +3968,12 @@ namespace Mutagen.Bethesda.Starfield
                     if (!lastParsed.ParsedIndex.HasValue
                         || lastParsed.ParsedIndex.Value <= (int)Planet_FieldIndex.SurfaceTree)
                     {
-                        _ScanWorldspaceMultiplierLocation = (stream.Position - offset);
+                        _payload.Fields.ScanWorldspaceMultiplierLocation = (stream.Position - offset);
                         return new ParseResult((int)Planet_FieldIndex.ScanWorldspaceMultiplier, type);
                     }
                     else if (lastParsed.ParsedIndex.Value <= (int)Planet_FieldIndex.OrbitedData)
                     {
-                        _GalaxyDataLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                        _payload.Fields.GalaxyDataLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                         return new ParseResult((int)Planet_FieldIndex.GalaxyData, type);
                     }
                     else
@@ -3972,12 +3982,12 @@ namespace Mutagen.Bethesda.Starfield
                         {
                             case 0:
                             {
-                                _ScanWorldspaceMultiplierLocation = (stream.Position - offset);
+                                _payload.Fields.ScanWorldspaceMultiplierLocation = (stream.Position - offset);
                                 return new ParseResult((int)Planet_FieldIndex.ScanWorldspaceMultiplier, type);
                             }
                             case 1:
                             {
-                                _GalaxyDataLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                                _payload.Fields.GalaxyDataLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                                 return new ParseResult((int)Planet_FieldIndex.GalaxyData, type);
                             }
                             default:
@@ -3992,42 +4002,42 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.ANAM:
                 {
-                    _NameLocation = (stream.Position - offset);
+                    _payload.Fields.NameLocation = (stream.Position - offset);
                     return (int)Planet_FieldIndex.Name;
                 }
                 case RecordTypeInts.XEMP:
                 {
-                    _EnvironmentMapLocation = (stream.Position - offset);
+                    _payload.Fields.EnvironmentMapLocation = (stream.Position - offset);
                     return (int)Planet_FieldIndex.EnvironmentMap;
                 }
                 case RecordTypeInts.DNAM:
                 {
-                    _SpaceCellLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.SpaceCellLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)Planet_FieldIndex.SpaceCell;
                 }
                 case RecordTypeInts.ENAM:
                 {
-                    _OrbitalDataLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.OrbitalDataLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)Planet_FieldIndex.OrbitalData;
                 }
                 case RecordTypeInts.HNAM:
                 {
-                    _DetailsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.DetailsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)Planet_FieldIndex.Details;
                 }
                 case RecordTypeInts.INAM:
                 {
-                    _AtmosphereDataLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.AtmosphereDataLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)Planet_FieldIndex.AtmosphereData;
                 }
                 case RecordTypeInts.KNAM:
                 {
-                    _BiomeNoiseLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.BiomeNoiseLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)Planet_FieldIndex.BiomeNoise;
                 }
                 case RecordTypeInts.NNAM:
                 {
-                    _PlayerKnowledgeLocation = (stream.Position - offset);
+                    _payload.Fields.PlayerKnowledgeLocation = (stream.Position - offset);
                     return (int)Planet_FieldIndex.PlayerKnowledge;
                 }
                 case RecordTypeInts.BDED:
@@ -4037,22 +4047,22 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.TEMP:
                 {
-                    _TemperatureLocation = (stream.Position - offset);
+                    _payload.Fields.TemperatureLocation = (stream.Position - offset);
                     return (int)Planet_FieldIndex.Temperature;
                 }
                 case RecordTypeInts.DENS:
                 {
-                    _DensityLocation = (stream.Position - offset);
+                    _payload.Fields.DensityLocation = (stream.Position - offset);
                     return (int)Planet_FieldIndex.Density;
                 }
                 case RecordTypeInts.PHLA:
                 {
-                    _PerihelionAngleDegreesLocation = (stream.Position - offset);
+                    _payload.Fields.PerihelionAngleDegreesLocation = (stream.Position - offset);
                     return (int)Planet_FieldIndex.PerihelionAngleDegrees;
                 }
                 case RecordTypeInts.RSCS:
                 {
-                    _ResourceCreationSeedLocation = (stream.Position - offset);
+                    _payload.Fields.ResourceCreationSeedLocation = (stream.Position - offset);
                     return (int)Planet_FieldIndex.ResourceCreationSeed;
                 }
                 default:

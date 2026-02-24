@@ -9,12 +9,13 @@ namespace Mutagen.Bethesda.Generation.Modules.Binary;
 public class OverflowGenerationHelper
 {
     public static void GenerateWrapperOverflowParse(StructuredStringBuilder sb, TypeGeneration typeGen,
-        MutagenFieldData data)
+        MutagenFieldData data, bool isMajorRecord = false)
     {
         if (data.OverflowRecordType.HasValue
             && data.BinaryOverlayFallback != BinaryGenerationType.Custom)
         {
-            sb.AppendLine($"_{typeGen.Name}LengthOverride = lastParsed.{nameof(PreviousParse.LengthOverride)};");
+            var prefix = isMajorRecord ? "_payload.Fields." : "_";
+            sb.AppendLine($"{prefix}{typeGen.Name}LengthOverride = lastParsed.{nameof(PreviousParse.LengthOverride)};");
             sb.AppendLine($"if (lastParsed.{nameof(PreviousParse.LengthOverride)}.HasValue)");
             using (sb.CurlyBrace())
             {
@@ -23,8 +24,16 @@ public class OverflowGenerationHelper
         }
     }
 
-    public static void GenerateWrapperOverflowMember(StructuredStringBuilder sb, TypeGeneration typeGen)
+    public static void GenerateWrapperOverflowMember(StructuredStringBuilder sb, TypeGeneration typeGen,
+        StructuredStringBuilder? payloadSb = null)
     {
-        sb.AppendLine($"private int? _{typeGen.Name}LengthOverride;");
+        if (payloadSb != null)
+        {
+            payloadSb.AppendLine($"public int? {typeGen.Name}LengthOverride;");
+        }
+        else
+        {
+            sb.AppendLine($"private int? _{typeGen.Name}LengthOverride;");
+        }
     }
 }

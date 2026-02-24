@@ -1260,7 +1260,14 @@ namespace Mutagen.Bethesda.Skyrim
 
         #region Number
         private int? _NumberLocation;
-        public UInt32? Number => _NumberLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NumberLocation.Value, _package.MetaData.Constants)) : default(UInt32?);
+        public UInt32? Number
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _NumberLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _NumberLocation.Value, _package.MetaData.Constants)) : default(UInt32?);
+            }
+        }
         #endregion
         #region Title
         private IGenderedItemGetter<ITranslatedStringGetter?>? _TitleOverlay;
@@ -1268,7 +1275,14 @@ namespace Mutagen.Bethesda.Skyrim
         #endregion
         #region Insignia
         private int? _InsigniaLocation;
-        public String? Insignia => _InsigniaLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _InsigniaLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? Insignia
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _InsigniaLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_data, _InsigniaLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+            }
+        }
         #endregion
         partial void CustomFactoryEnd(
             OverlayStream stream,

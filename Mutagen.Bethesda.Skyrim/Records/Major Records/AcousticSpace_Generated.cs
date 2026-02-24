@@ -35,6 +35,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -1684,22 +1685,30 @@ namespace Mutagen.Bethesda.Skyrim
 
 
         #region ObjectBounds
-        private RangeInt32? _ObjectBoundsLocation;
-        private IObjectBoundsGetter? _ObjectBounds => _ObjectBoundsLocation.HasValue ? ObjectBoundsBinaryOverlay.ObjectBoundsFactory(_recordData.Slice(_ObjectBoundsLocation!.Value.Min), _package) : default;
+        private IObjectBoundsGetter? _ObjectBounds => Payload.ObjectBoundsLocation.HasValue ? ObjectBoundsBinaryOverlay.ObjectBoundsFactory(_recordData.Slice(Payload.ObjectBoundsLocation!.Value.Min), _package) : default;
         public IObjectBoundsGetter ObjectBounds => _ObjectBounds ?? new ObjectBounds();
         #endregion
-        #region AmbientSound
-        private int? _AmbientSoundLocation;
-        public IFormLinkNullableGetter<ISoundDescriptorGetter> AmbientSound => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ISoundDescriptorGetter>(_package, _recordData, _AmbientSoundLocation);
-        #endregion
-        #region UseSoundFromRegion
-        private int? _UseSoundFromRegionLocation;
-        public IFormLinkNullableGetter<IRegionGetter> UseSoundFromRegion => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IRegionGetter>(_package, _recordData, _UseSoundFromRegionLocation);
-        #endregion
-        #region EnvironmentType
-        private int? _EnvironmentTypeLocation;
-        public IFormLinkNullableGetter<IReverbParametersGetter> EnvironmentType => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IReverbParametersGetter>(_package, _recordData, _EnvironmentTypeLocation);
-        #endregion
+        public IFormLinkNullableGetter<ISoundDescriptorGetter> AmbientSound => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ISoundDescriptorGetter>(_package, _recordData, Payload.AmbientSoundLocation);
+        public IFormLinkNullableGetter<IRegionGetter> UseSoundFromRegion => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IRegionGetter>(_package, _recordData, Payload.UseSoundFromRegionLocation);
+        public IFormLinkNullableGetter<IReverbParametersGetter> EnvironmentType => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IReverbParametersGetter>(_package, _recordData, Payload.EnvironmentTypeLocation);
+
+        internal partial class AcousticSpaceRecordDataPayload
+        {
+            public RangeInt32? ObjectBoundsLocation;
+            public int? AmbientSoundLocation;
+            public int? UseSoundFromRegionLocation;
+            public int? EnvironmentTypeLocation;
+        }
+
+        private LazyPayload<AcousticSpaceRecordDataPayload> _payload = null!;
+
+        internal AcousticSpaceRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<AcousticSpaceRecordDataPayload>(init, new AcousticSpaceRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -1707,10 +1716,10 @@ namespace Mutagen.Bethesda.Skyrim
 
         partial void CustomCtor();
         protected AcousticSpaceBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -1721,28 +1730,51 @@ namespace Mutagen.Bethesda.Skyrim
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new AcousticSpaceBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -1771,22 +1803,22 @@ namespace Mutagen.Bethesda.Skyrim
             {
                 case RecordTypeInts.OBND:
                 {
-                    _ObjectBoundsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.ObjectBoundsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)AcousticSpace_FieldIndex.ObjectBounds;
                 }
                 case RecordTypeInts.SNAM:
                 {
-                    _AmbientSoundLocation = (stream.Position - offset);
+                    _payload.Fields.AmbientSoundLocation = (stream.Position - offset);
                     return (int)AcousticSpace_FieldIndex.AmbientSound;
                 }
                 case RecordTypeInts.RDAT:
                 {
-                    _UseSoundFromRegionLocation = (stream.Position - offset);
+                    _payload.Fields.UseSoundFromRegionLocation = (stream.Position - offset);
                     return (int)AcousticSpace_FieldIndex.UseSoundFromRegion;
                 }
                 case RecordTypeInts.BNAM:
                 {
-                    _EnvironmentTypeLocation = (stream.Position - offset);
+                    _payload.Fields.EnvironmentTypeLocation = (stream.Position - offset);
                     return (int)AcousticSpace_FieldIndex.EnvironmentType;
                 }
                 default:

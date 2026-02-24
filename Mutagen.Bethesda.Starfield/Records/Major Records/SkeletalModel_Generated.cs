@@ -1449,15 +1449,36 @@ namespace Mutagen.Bethesda.Starfield
         public IModelGetter? Model { get; private set; }
         #region Rig
         private int? _RigLocation;
-        public AssetLinkGetter<StarfieldRigAssetType>? Rig => _RigLocation.HasValue ? new AssetLinkGetter<StarfieldRigAssetType>(BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _RigLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated)) : default(AssetLinkGetter<StarfieldRigAssetType>?);
+        public AssetLinkGetter<StarfieldRigAssetType>? Rig
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _RigLocation.HasValue ? new AssetLinkGetter<StarfieldRigAssetType>(BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_data, _RigLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated)) : default(AssetLinkGetter<StarfieldRigAssetType>?);
+            }
+        }
         #endregion
         #region AnimationRoot
         private int? _AnimationRootLocation;
-        public AssetLinkGetter<StarfieldAnimationTextAssetType>? AnimationRoot => _AnimationRootLocation.HasValue ? new AssetLinkGetter<StarfieldAnimationTextAssetType>(BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _AnimationRootLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated)) : default(AssetLinkGetter<StarfieldAnimationTextAssetType>?);
+        public AssetLinkGetter<StarfieldAnimationTextAssetType>? AnimationRoot
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _AnimationRootLocation.HasValue ? new AssetLinkGetter<StarfieldAnimationTextAssetType>(BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_data, _AnimationRootLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated)) : default(AssetLinkGetter<StarfieldAnimationTextAssetType>?);
+            }
+        }
         #endregion
         #region Animations
         private int? _AnimationsLocation;
-        public String? Animations => _AnimationsLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _AnimationsLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? Animations
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _AnimationsLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_data, _AnimationsLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+            }
+        }
         #endregion
         partial void CustomFactoryEnd(
             OverlayStream stream,

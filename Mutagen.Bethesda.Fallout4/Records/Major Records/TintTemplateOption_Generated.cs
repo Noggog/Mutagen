@@ -2051,7 +2051,14 @@ namespace Mutagen.Bethesda.Fallout4
         #endregion
         #region Name
         private int? _NameLocation;
-        public ITranslatedStringGetter? Name => _NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+        public ITranslatedStringGetter? Name
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_data, _NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+            }
+        }
         #region Aspects
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         string INamedRequiredGetter.Name => this.Name?.String ?? string.Empty;
@@ -2074,7 +2081,14 @@ namespace Mutagen.Bethesda.Fallout4
         public IReadOnlyList<ITintTemplateColorGetter>? TemplateColors { get; private set; }
         #region Default
         private int? _DefaultLocation;
-        public Single? Default => _DefaultLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _DefaultLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+        public Single? Default
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _DefaultLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_data, _DefaultLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
+            }
+        }
         #endregion
         partial void CustomFactoryEnd(
             OverlayStream stream,

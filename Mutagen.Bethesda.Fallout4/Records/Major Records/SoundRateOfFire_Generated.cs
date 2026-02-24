@@ -1172,11 +1172,25 @@ namespace Mutagen.Bethesda.Fallout4
 
         #region RotationsPerMinute
         private int? _RotationsPerMinuteLocation;
-        public UInt32? RotationsPerMinute => _RotationsPerMinuteLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _RotationsPerMinuteLocation.Value, _package.MetaData.Constants)) : default(UInt32?);
+        public UInt32? RotationsPerMinute
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _RotationsPerMinuteLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _RotationsPerMinuteLocation.Value, _package.MetaData.Constants)) : default(UInt32?);
+            }
+        }
         #endregion
         #region File
         private int? _FileLocation;
-        public String? File => _FileLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _FileLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? File
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _FileLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_data, _FileLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+            }
+        }
         #endregion
         partial void CustomFactoryEnd(
             OverlayStream stream,

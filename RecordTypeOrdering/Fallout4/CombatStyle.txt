@@ -1,0 +1,5 @@
+RecordTypes.EDID,
+RecordTypes.CSMD,
+RecordTypes.CSRA,
+RecordTypes.CSCV,
+RecordTypes.DATA,

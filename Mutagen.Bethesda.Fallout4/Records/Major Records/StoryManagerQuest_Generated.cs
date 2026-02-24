@@ -1239,11 +1239,25 @@ namespace Mutagen.Bethesda.Fallout4
         #endregion
         #region FNAM
         private int? _FNAMLocation;
-        public UInt32? FNAM => _FNAMLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _FNAMLocation.Value, _package.MetaData.Constants)) : default(UInt32?);
+        public UInt32? FNAM
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _FNAMLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _FNAMLocation.Value, _package.MetaData.Constants)) : default(UInt32?);
+            }
+        }
         #endregion
         #region HoursUntilReset
         private int? _HoursUntilResetLocation;
-        public Single? HoursUntilReset => _HoursUntilResetLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _HoursUntilResetLocation.Value, _package.MetaData.Constants).Float() / 24f : default(Single?);
+        public Single? HoursUntilReset
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _HoursUntilResetLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_data, _HoursUntilResetLocation.Value, _package.MetaData.Constants).Float() / 24f : default(Single?);
+            }
+        }
         #endregion
         partial void CustomFactoryEnd(
             OverlayStream stream,

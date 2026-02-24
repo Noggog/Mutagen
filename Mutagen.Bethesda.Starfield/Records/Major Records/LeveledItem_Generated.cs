@@ -39,6 +39,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -3792,29 +3793,17 @@ namespace Mutagen.Bethesda.Starfield
         public LeveledItem.MajorFlag MajorFlags => (LeveledItem.MajorFlag)this.MajorRecordFlagsRaw;
 
         #region VirtualMachineAdapter
-        private int? _VirtualMachineAdapterLengthOverride;
-        private RangeInt32? _VirtualMachineAdapterLocation;
-        public IVirtualMachineAdapterGetter? VirtualMachineAdapter => _VirtualMachineAdapterLocation.HasValue ? VirtualMachineAdapterBinaryOverlay.VirtualMachineAdapterFactory(_recordData.Slice(_VirtualMachineAdapterLocation!.Value.Min), _package, TypedParseParams.FromLengthOverride(_VirtualMachineAdapterLengthOverride)) : default;
+        public IVirtualMachineAdapterGetter? VirtualMachineAdapter => Payload.VirtualMachineAdapterLocation.HasValue ? VirtualMachineAdapterBinaryOverlay.VirtualMachineAdapterFactory(_recordData.Slice(Payload.VirtualMachineAdapterLocation!.Value.Min), _package, TypedParseParams.FromLengthOverride(Payload.VirtualMachineAdapterLengthOverride)) : default;
         IAVirtualMachineAdapterGetter? IHaveVirtualMachineAdapterGetter.VirtualMachineAdapter => this.VirtualMachineAdapter;
         #endregion
         #region ObjectBounds
-        private RangeInt32? _ObjectBoundsLocation;
-        private IObjectBoundsGetter? _ObjectBounds => _ObjectBoundsLocation.HasValue ? ObjectBoundsBinaryOverlay.ObjectBoundsFactory(_recordData.Slice(_ObjectBoundsLocation!.Value.Min), _package) : default;
+        private IObjectBoundsGetter? _ObjectBounds => Payload.ObjectBoundsLocation.HasValue ? ObjectBoundsBinaryOverlay.ObjectBoundsFactory(_recordData.Slice(Payload.ObjectBoundsLocation!.Value.Min), _package) : default;
         public IObjectBoundsGetter ObjectBounds => _ObjectBounds ?? new ObjectBounds();
         #endregion
-        #region DirtinessScale
-        private int? _DirtinessScaleLocation;
-        public Percent DirtinessScale => _DirtinessScaleLocation.HasValue ? PercentBinaryTranslation.GetPercent(HeaderTranslation.ExtractSubrecordMemory(_recordData, _DirtinessScaleLocation.Value, _package.MetaData.Constants), FloatIntegerType.UInt) : default(Percent);
-        #endregion
-        #region ObjectPaletteDefaults
-        private RangeInt32? _ObjectPaletteDefaultsLocation;
-        public IObjectPaletteDefaultsGetter? ObjectPaletteDefaults => _ObjectPaletteDefaultsLocation.HasValue ? ObjectPaletteDefaultsBinaryOverlay.ObjectPaletteDefaultsFactory(_recordData.Slice(_ObjectPaletteDefaultsLocation!.Value.Min), _package) : default;
-        #endregion
-        public IReadOnlyList<IAComponentGetter> Components { get; private set; } = [];
-        #region XALG
-        private int? _XALGLocation;
-        public UInt64? XALG => _XALGLocation.HasValue ? BinaryPrimitives.ReadUInt64LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _XALGLocation.Value, _package.MetaData.Constants)) : default(UInt64?);
-        #endregion
+        public Percent DirtinessScale => Payload.DirtinessScaleLocation.HasValue ? PercentBinaryTranslation.GetPercent(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.DirtinessScaleLocation.Value, _package.MetaData.Constants), FloatIntegerType.UInt) : default(Percent);
+        public IObjectPaletteDefaultsGetter? ObjectPaletteDefaults => Payload.ObjectPaletteDefaultsLocation.HasValue ? ObjectPaletteDefaultsBinaryOverlay.ObjectPaletteDefaultsFactory(_recordData.Slice(Payload.ObjectPaletteDefaultsLocation!.Value.Min), _package) : default;
+        public IReadOnlyList<IAComponentGetter> Components => Payload.Components ?? [];
+        public UInt64? XALG => Payload.XALGLocation.HasValue ? BinaryPrimitives.ReadUInt64LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.XALGLocation.Value, _package.MetaData.Constants)) : default(UInt64?);
         #region ChanceNone
         partial void ChanceNoneCustomParse(
             OverlayStream stream,
@@ -3823,47 +3812,55 @@ namespace Mutagen.Bethesda.Starfield
         public partial Single GetChanceNoneCustom();
         public Single ChanceNone => GetChanceNoneCustom();
         #endregion
-        #region MaxCount
-        private int? _MaxCountLocation;
-        public Byte? MaxCount => _MaxCountLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _MaxCountLocation.Value, _package.MetaData.Constants)[0] : default(Byte?);
-        #endregion
-        #region Flags
-        private int? _FlagsLocation;
-        public LeveledItem.Flag Flags => EnumBinaryTranslation<LeveledItem.Flag, MutagenFrame, MutagenWriter>.Instance.ParseRecord(_FlagsLocation, _recordData, _package, 2);
-        #endregion
-        public IReadOnlyList<IConditionGetter> Conditions { get; private set; } = [];
-        #region UseChanceNoneGlobal
-        private int? _UseChanceNoneGlobalLocation;
-        public IFormLinkNullableGetter<IGlobalGetter> UseChanceNoneGlobal => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IGlobalGetter>(_package, _recordData, _UseChanceNoneGlobalLocation);
-        #endregion
-        #region RequiredBiome
-        private int? _RequiredBiomeLocation;
-        public IFormLinkNullableGetter<IBiomeGetter> RequiredBiome => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IBiomeGetter>(_package, _recordData, _RequiredBiomeLocation);
-        #endregion
-        #region RequiredResourceVein
-        private int? _RequiredResourceVeinLocation;
-        public IFormLinkNullableGetter<IResourceGetter> RequiredResourceVein => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IResourceGetter>(_package, _recordData, _RequiredResourceVeinLocation);
-        #endregion
-        public IReadOnlyList<ILeveledItemEntryGetter>? Entries { get; private set; }
-        public IReadOnlyList<IFilterKeywordChanceGetter>? FilterKeywordChances { get; private set; }
-        #region EpicLootChance
-        private int? _EpicLootChanceLocation;
-        public IFormLinkNullableGetter<IGlobalGetter> EpicLootChance => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IGlobalGetter>(_package, _recordData, _EpicLootChanceLocation);
-        #endregion
-        #region MarkerColor
-        private int? _MarkerColorLocation;
-        public Color? MarkerColor => _MarkerColorLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _MarkerColorLocation.Value, _package.MetaData.Constants).ReadColor(ColorBinaryType.Alpha) : default(Color?);
-        #endregion
-        #region OverrideName
-        private int? _OverrideNameLocation;
-        public ITranslatedStringGetter? OverrideName => _OverrideNameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _OverrideNameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
-        #endregion
-        #region LegendaryItemDefaultListRank
-        private int? _LegendaryItemDefaultListRankLocation;
-        public Byte? LegendaryItemDefaultListRank => _LegendaryItemDefaultListRankLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _LegendaryItemDefaultListRankLocation.Value, _package.MetaData.Constants)[0] : default(Byte?);
-        #endregion
-        public IModelGetter? Model { get; private set; }
-        public IReadOnlyList<IFormLinkGetter<ILocationReferenceTypeGetter>>? ForcedLocations { get; private set; }
+        public Byte? MaxCount => Payload.MaxCountLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.MaxCountLocation.Value, _package.MetaData.Constants)[0] : default(Byte?);
+        public LeveledItem.Flag Flags => EnumBinaryTranslation<LeveledItem.Flag, MutagenFrame, MutagenWriter>.Instance.ParseRecord(Payload.FlagsLocation, _recordData, _package, 2);
+        public IReadOnlyList<IConditionGetter> Conditions => Payload.Conditions ?? [];
+        public IFormLinkNullableGetter<IGlobalGetter> UseChanceNoneGlobal => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IGlobalGetter>(_package, _recordData, Payload.UseChanceNoneGlobalLocation);
+        public IFormLinkNullableGetter<IBiomeGetter> RequiredBiome => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IBiomeGetter>(_package, _recordData, Payload.RequiredBiomeLocation);
+        public IFormLinkNullableGetter<IResourceGetter> RequiredResourceVein => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IResourceGetter>(_package, _recordData, Payload.RequiredResourceVeinLocation);
+        public IReadOnlyList<ILeveledItemEntryGetter>? Entries => Payload.Entries;
+        public IReadOnlyList<IFilterKeywordChanceGetter>? FilterKeywordChances => Payload.FilterKeywordChances;
+        public IFormLinkNullableGetter<IGlobalGetter> EpicLootChance => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IGlobalGetter>(_package, _recordData, Payload.EpicLootChanceLocation);
+        public Color? MarkerColor => Payload.MarkerColorLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.MarkerColorLocation.Value, _package.MetaData.Constants).ReadColor(ColorBinaryType.Alpha) : default(Color?);
+        public ITranslatedStringGetter? OverrideName => Payload.OverrideNameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.OverrideNameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
+        public Byte? LegendaryItemDefaultListRank => Payload.LegendaryItemDefaultListRankLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.LegendaryItemDefaultListRankLocation.Value, _package.MetaData.Constants)[0] : default(Byte?);
+        public IModelGetter? Model => Payload.Model;
+        public IReadOnlyList<IFormLinkGetter<ILocationReferenceTypeGetter>>? ForcedLocations => Payload.ForcedLocations;
+
+        internal partial class LeveledItemRecordDataPayload
+        {
+            public int? VirtualMachineAdapterLengthOverride;
+            public RangeInt32? VirtualMachineAdapterLocation;
+            public RangeInt32? ObjectBoundsLocation;
+            public int? DirtinessScaleLocation;
+            public RangeInt32? ObjectPaletteDefaultsLocation;
+            public IReadOnlyList<IAComponentGetter> Components = [];
+            public int? XALGLocation;
+            public int? MaxCountLocation;
+            public int? FlagsLocation;
+            public IReadOnlyList<IConditionGetter> Conditions = [];
+            public int? UseChanceNoneGlobalLocation;
+            public int? RequiredBiomeLocation;
+            public int? RequiredResourceVeinLocation;
+            public IReadOnlyList<ILeveledItemEntryGetter>? Entries;
+            public IReadOnlyList<IFilterKeywordChanceGetter>? FilterKeywordChances;
+            public int? EpicLootChanceLocation;
+            public int? MarkerColorLocation;
+            public int? OverrideNameLocation;
+            public int? LegendaryItemDefaultListRankLocation;
+            public IModelGetter? Model;
+            public IReadOnlyList<IFormLinkGetter<ILocationReferenceTypeGetter>>? ForcedLocations;
+        }
+
+        private LazyPayload<LeveledItemRecordDataPayload> _payload = null!;
+
+        internal LeveledItemRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<LeveledItemRecordDataPayload>(init, new LeveledItemRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -3871,10 +3868,10 @@ namespace Mutagen.Bethesda.Starfield
 
         partial void CustomCtor();
         protected LeveledItemBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -3885,28 +3882,51 @@ namespace Mutagen.Bethesda.Starfield
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new LeveledItemBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -3935,8 +3955,8 @@ namespace Mutagen.Bethesda.Starfield
             {
                 case RecordTypeInts.VMAD:
                 {
-                    _VirtualMachineAdapterLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
-                    _VirtualMachineAdapterLengthOverride = lastParsed.LengthOverride;
+                    _payload.Fields.VirtualMachineAdapterLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.VirtualMachineAdapterLengthOverride = lastParsed.LengthOverride;
                     if (lastParsed.LengthOverride.HasValue)
                     {
                         stream.Position += lastParsed.LengthOverride.Value;
@@ -3945,22 +3965,22 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.OBND:
                 {
-                    _ObjectBoundsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.ObjectBoundsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)LeveledItem_FieldIndex.ObjectBounds;
                 }
                 case RecordTypeInts.ODTY:
                 {
-                    _DirtinessScaleLocation = (stream.Position - offset);
+                    _payload.Fields.DirtinessScaleLocation = (stream.Position - offset);
                     return (int)LeveledItem_FieldIndex.DirtinessScale;
                 }
                 case RecordTypeInts.OPDS:
                 {
-                    _ObjectPaletteDefaultsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.ObjectPaletteDefaultsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)LeveledItem_FieldIndex.ObjectPaletteDefaults;
                 }
                 case RecordTypeInts.BFCB:
                 {
-                    this.Components = this.ParseRepeatedTypelessSubrecord<IAComponentGetter>(
+                    _payload.Fields.Components = this.ParseRepeatedTypelessSubrecord<IAComponentGetter>(
                         stream: stream,
                         translationParams: translationParams,
                         trigger: AComponent_Registration.TriggerSpecs,
@@ -3969,7 +3989,7 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.XALG:
                 {
-                    _XALGLocation = (stream.Position - offset);
+                    _payload.Fields.XALGLocation = (stream.Position - offset);
                     return (int)LeveledItem_FieldIndex.XALG;
                 }
                 case RecordTypeInts.LVLD:
@@ -3982,17 +4002,17 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.LVLM:
                 {
-                    _MaxCountLocation = (stream.Position - offset);
+                    _payload.Fields.MaxCountLocation = (stream.Position - offset);
                     return (int)LeveledItem_FieldIndex.MaxCount;
                 }
                 case RecordTypeInts.LVLF:
                 {
-                    _FlagsLocation = (stream.Position - offset);
+                    _payload.Fields.FlagsLocation = (stream.Position - offset);
                     return (int)LeveledItem_FieldIndex.Flags;
                 }
                 case RecordTypeInts.CTDA:
                 {
-                    this.Conditions = BinaryOverlayList.FactoryByArray<IConditionGetter>(
+                    _payload.Fields.Conditions = BinaryOverlayList.FactoryByArray<IConditionGetter>(
                         mem: stream.RemainingMemory,
                         package: _package,
                         translationParams: translationParams,
@@ -4007,23 +4027,23 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.LVLG:
                 {
-                    _UseChanceNoneGlobalLocation = (stream.Position - offset);
+                    _payload.Fields.UseChanceNoneGlobalLocation = (stream.Position - offset);
                     return (int)LeveledItem_FieldIndex.UseChanceNoneGlobal;
                 }
                 case RecordTypeInts.LLRB:
                 {
-                    _RequiredBiomeLocation = (stream.Position - offset);
+                    _payload.Fields.RequiredBiomeLocation = (stream.Position - offset);
                     return (int)LeveledItem_FieldIndex.RequiredBiome;
                 }
                 case RecordTypeInts.LLRV:
                 {
-                    _RequiredResourceVeinLocation = (stream.Position - offset);
+                    _payload.Fields.RequiredResourceVeinLocation = (stream.Position - offset);
                     return (int)LeveledItem_FieldIndex.RequiredResourceVein;
                 }
                 case RecordTypeInts.LVLO:
                 case RecordTypeInts.LLCT:
                 {
-                    this.Entries = BinaryOverlayList.FactoryByCountPerItem<ILeveledItemEntryGetter>(
+                    _payload.Fields.Entries = BinaryOverlayList.FactoryByCountPerItem<ILeveledItemEntryGetter>(
                         stream: stream,
                         package: _package,
                         countLength: 1,
@@ -4036,7 +4056,7 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.LLKC:
                 {
-                    this.FilterKeywordChances = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFilterKeywordChanceGetter>(
+                    _payload.Fields.FilterKeywordChances = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFilterKeywordChanceGetter>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,
@@ -4046,22 +4066,22 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.LVSG:
                 {
-                    _EpicLootChanceLocation = (stream.Position - offset);
+                    _payload.Fields.EpicLootChanceLocation = (stream.Position - offset);
                     return (int)LeveledItem_FieldIndex.EpicLootChance;
                 }
                 case RecordTypeInts.LIMC:
                 {
-                    _MarkerColorLocation = (stream.Position - offset);
+                    _payload.Fields.MarkerColorLocation = (stream.Position - offset);
                     return (int)LeveledItem_FieldIndex.MarkerColor;
                 }
                 case RecordTypeInts.ONAM:
                 {
-                    _OverrideNameLocation = (stream.Position - offset);
+                    _payload.Fields.OverrideNameLocation = (stream.Position - offset);
                     return (int)LeveledItem_FieldIndex.OverrideName;
                 }
                 case RecordTypeInts.LVLL:
                 {
-                    _LegendaryItemDefaultListRankLocation = (stream.Position - offset);
+                    _payload.Fields.LegendaryItemDefaultListRankLocation = (stream.Position - offset);
                     return (int)LeveledItem_FieldIndex.LegendaryItemDefaultListRank;
                 }
                 case RecordTypeInts.MODL:
@@ -4072,7 +4092,7 @@ namespace Mutagen.Bethesda.Starfield
                 case RecordTypeInts.MODC:
                 case RecordTypeInts.MODF:
                 {
-                    this.Model = ModelBinaryOverlay.ModelFactory(
+                    _payload.Fields.Model = ModelBinaryOverlay.ModelFactory(
                         stream: stream,
                         package: _package,
                         translationParams: translationParams.DoNotShortCircuit());
@@ -4080,7 +4100,7 @@ namespace Mutagen.Bethesda.Starfield
                 }
                 case RecordTypeInts.FTYP:
                 {
-                    this.ForcedLocations = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<ILocationReferenceTypeGetter>>(
+                    _payload.Fields.ForcedLocations = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<ILocationReferenceTypeGetter>>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,

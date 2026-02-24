@@ -1,0 +1,7 @@
+RecordTypes.EDID,
+RecordTypes.MNAM,
+RecordTypes.SPED,
+RecordTypes.LNAM,
+RecordTypes.KNAM,
+RecordTypes.INTV,
+RecordTypes.BOLV,

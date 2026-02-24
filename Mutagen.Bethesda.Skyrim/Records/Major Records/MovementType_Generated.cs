@@ -34,6 +34,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -2275,74 +2276,87 @@ namespace Mutagen.Bethesda.Skyrim
 
 
         #region Name
-        private int? _NameLocation;
-        public String? Name => _NameLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NameLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
+        public String? Name => Payload.NameLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.NameLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
         #region Aspects
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         string INamedRequiredGetter.Name => this.Name ?? string.Empty;
         #endregion
         #endregion
-        private RangeInt32? _SPEDLocation;
-        public MovementType.SPEDDataType SPEDDataTypeState { get; private set; }
+        public MovementType.SPEDDataType SPEDDataTypeState => Payload.SPEDDataTypeState;
         #region LeftWalk
-        private int _LeftWalkLocation => _SPEDLocation!.Value.Min;
-        private bool _LeftWalk_IsSet => _SPEDLocation.HasValue;
+        private int _LeftWalkLocation => Payload.SPEDLocation!.Value.Min;
+        private bool _LeftWalk_IsSet => Payload.SPEDLocation.HasValue;
         public Single LeftWalk => _LeftWalk_IsSet ? _recordData.Slice(_LeftWalkLocation, 4).Float() : default(Single);
         #endregion
         #region LeftRun
-        private int _LeftRunLocation => _SPEDLocation!.Value.Min + 0x4;
-        private bool _LeftRun_IsSet => _SPEDLocation.HasValue;
+        private int _LeftRunLocation => Payload.SPEDLocation!.Value.Min + 0x4;
+        private bool _LeftRun_IsSet => Payload.SPEDLocation.HasValue;
         public Single LeftRun => _LeftRun_IsSet ? _recordData.Slice(_LeftRunLocation, 4).Float() : default(Single);
         #endregion
         #region RightWalk
-        private int _RightWalkLocation => _SPEDLocation!.Value.Min + 0x8;
-        private bool _RightWalk_IsSet => _SPEDLocation.HasValue;
+        private int _RightWalkLocation => Payload.SPEDLocation!.Value.Min + 0x8;
+        private bool _RightWalk_IsSet => Payload.SPEDLocation.HasValue;
         public Single RightWalk => _RightWalk_IsSet ? _recordData.Slice(_RightWalkLocation, 4).Float() : default(Single);
         #endregion
         #region RightRun
-        private int _RightRunLocation => _SPEDLocation!.Value.Min + 0xC;
-        private bool _RightRun_IsSet => _SPEDLocation.HasValue;
+        private int _RightRunLocation => Payload.SPEDLocation!.Value.Min + 0xC;
+        private bool _RightRun_IsSet => Payload.SPEDLocation.HasValue;
         public Single RightRun => _RightRun_IsSet ? _recordData.Slice(_RightRunLocation, 4).Float() : default(Single);
         #endregion
         #region ForwardWalk
-        private int _ForwardWalkLocation => _SPEDLocation!.Value.Min + 0x10;
-        private bool _ForwardWalk_IsSet => _SPEDLocation.HasValue;
+        private int _ForwardWalkLocation => Payload.SPEDLocation!.Value.Min + 0x10;
+        private bool _ForwardWalk_IsSet => Payload.SPEDLocation.HasValue;
         public Single ForwardWalk => _ForwardWalk_IsSet ? _recordData.Slice(_ForwardWalkLocation, 4).Float() : default(Single);
         #endregion
         #region ForwardRun
-        private int _ForwardRunLocation => _SPEDLocation!.Value.Min + 0x14;
-        private bool _ForwardRun_IsSet => _SPEDLocation.HasValue;
+        private int _ForwardRunLocation => Payload.SPEDLocation!.Value.Min + 0x14;
+        private bool _ForwardRun_IsSet => Payload.SPEDLocation.HasValue;
         public Single ForwardRun => _ForwardRun_IsSet ? _recordData.Slice(_ForwardRunLocation, 4).Float() : default(Single);
         #endregion
         #region BackWalk
-        private int _BackWalkLocation => _SPEDLocation!.Value.Min + 0x18;
-        private bool _BackWalk_IsSet => _SPEDLocation.HasValue;
+        private int _BackWalkLocation => Payload.SPEDLocation!.Value.Min + 0x18;
+        private bool _BackWalk_IsSet => Payload.SPEDLocation.HasValue;
         public Single BackWalk => _BackWalk_IsSet ? _recordData.Slice(_BackWalkLocation, 4).Float() : default(Single);
         #endregion
         #region BackRun
-        private int _BackRunLocation => _SPEDLocation!.Value.Min + 0x1C;
-        private bool _BackRun_IsSet => _SPEDLocation.HasValue;
+        private int _BackRunLocation => Payload.SPEDLocation!.Value.Min + 0x1C;
+        private bool _BackRun_IsSet => Payload.SPEDLocation.HasValue;
         public Single BackRun => _BackRun_IsSet ? _recordData.Slice(_BackRunLocation, 4).Float() : default(Single);
         #endregion
         #region RotateInPlaceWalk
-        private int _RotateInPlaceWalkLocation => _SPEDLocation!.Value.Min + 0x20;
-        private bool _RotateInPlaceWalk_IsSet => _SPEDLocation.HasValue;
+        private int _RotateInPlaceWalkLocation => Payload.SPEDLocation!.Value.Min + 0x20;
+        private bool _RotateInPlaceWalk_IsSet => Payload.SPEDLocation.HasValue;
         public Single RotateInPlaceWalk => _RotateInPlaceWalk_IsSet ? _recordData.Slice(_RotateInPlaceWalkLocation, 4).Float() * 57.2958f : default(Single);
         #endregion
         #region RotateInPlaceRun
-        private int _RotateInPlaceRunLocation => _SPEDLocation!.Value.Min + 0x24;
-        private bool _RotateInPlaceRun_IsSet => _SPEDLocation.HasValue;
+        private int _RotateInPlaceRunLocation => Payload.SPEDLocation!.Value.Min + 0x24;
+        private bool _RotateInPlaceRun_IsSet => Payload.SPEDLocation.HasValue;
         public Single RotateInPlaceRun => _RotateInPlaceRun_IsSet ? _recordData.Slice(_RotateInPlaceRunLocation, 4).Float() * 57.2958f : default(Single);
         #endregion
         #region RotateWhileMovingRun
-        private int _RotateWhileMovingRunLocation => _SPEDLocation!.Value.Min + 0x28;
-        private bool _RotateWhileMovingRun_IsSet => _SPEDLocation.HasValue && !SPEDDataTypeState.HasFlag(MovementType.SPEDDataType.Break0);
+        private int _RotateWhileMovingRunLocation => Payload.SPEDLocation!.Value.Min + 0x28;
+        private bool _RotateWhileMovingRun_IsSet => Payload.SPEDLocation.HasValue && !SPEDDataTypeState.HasFlag(MovementType.SPEDDataType.Break0);
         public Single RotateWhileMovingRun => _RotateWhileMovingRun_IsSet ? _recordData.Slice(_RotateWhileMovingRunLocation, 4).Float() * 57.2958f : default(Single);
         #endregion
-        #region AnimationChangeThresholds
-        private RangeInt32? _AnimationChangeThresholdsLocation;
-        public IAnimationChangeThresholdsGetter? AnimationChangeThresholds => _AnimationChangeThresholdsLocation.HasValue ? AnimationChangeThresholdsBinaryOverlay.AnimationChangeThresholdsFactory(_recordData.Slice(_AnimationChangeThresholdsLocation!.Value.Min), _package) : default;
-        #endregion
+        public IAnimationChangeThresholdsGetter? AnimationChangeThresholds => Payload.AnimationChangeThresholdsLocation.HasValue ? AnimationChangeThresholdsBinaryOverlay.AnimationChangeThresholdsFactory(_recordData.Slice(Payload.AnimationChangeThresholdsLocation!.Value.Min), _package) : default;
+
+        internal partial class MovementTypeRecordDataPayload
+        {
+            public int? NameLocation;
+            public RangeInt32? SPEDLocation;
+            public MovementType.SPEDDataType SPEDDataTypeState;
+            public RangeInt32? AnimationChangeThresholdsLocation;
+        }
+
+        private LazyPayload<MovementTypeRecordDataPayload> _payload = null!;
+
+        internal MovementTypeRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<MovementTypeRecordDataPayload>(init, new MovementTypeRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -2350,10 +2364,10 @@ namespace Mutagen.Bethesda.Skyrim
 
         partial void CustomCtor();
         protected MovementTypeBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -2364,28 +2378,51 @@ namespace Mutagen.Bethesda.Skyrim
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new MovementTypeBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -2414,22 +2451,22 @@ namespace Mutagen.Bethesda.Skyrim
             {
                 case RecordTypeInts.MNAM:
                 {
-                    _NameLocation = (stream.Position - offset);
+                    _payload.Fields.NameLocation = (stream.Position - offset);
                     return (int)MovementType_FieldIndex.Name;
                 }
                 case RecordTypeInts.SPED:
                 {
-                    _SPEDLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
+                    _payload.Fields.SPEDLocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
                     var subLen = _package.MetaData.Constants.SubrecordHeader(_recordData.Slice((stream.Position - offset))).ContentLength;
                     if (subLen <= 0x28)
                     {
-                        this.SPEDDataTypeState |= MovementType.SPEDDataType.Break0;
+                        _payload.Fields.SPEDDataTypeState |= MovementType.SPEDDataType.Break0;
                     }
                     return (int)MovementType_FieldIndex.RotateWhileMovingRun;
                 }
                 case RecordTypeInts.INAM:
                 {
-                    _AnimationChangeThresholdsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.AnimationChangeThresholdsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)MovementType_FieldIndex.AnimationChangeThresholds;
                 }
                 default:

@@ -1259,7 +1259,14 @@ namespace Mutagen.Bethesda.Oblivion
 
         #region EdgeFallOff
         private int? _EdgeFallOffLocation;
-        public UInt32? EdgeFallOff => _EdgeFallOffLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _EdgeFallOffLocation.Value, _package.MetaData.Constants)) : default(UInt32?);
+        public UInt32? EdgeFallOff
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _EdgeFallOffLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _EdgeFallOffLocation.Value, _package.MetaData.Constants)) : default(UInt32?);
+            }
+        }
         #endregion
         public IReadOnlyList<P2Float>? RegionPoints { get; private set; }
         partial void CustomFactoryEnd(

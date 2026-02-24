@@ -1405,23 +1405,58 @@ namespace Mutagen.Bethesda.Starfield
         #endregion
         #region TintGroup
         private int? _TintGroupLocation;
-        public String TintGroup => _TintGroupLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _TintGroupLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : string.Empty;
+        public String TintGroup
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _TintGroupLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_data, _TintGroupLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : string.Empty;
+            }
+        }
         #endregion
         #region TintName
         private int? _TintNameLocation;
-        public String TintName => _TintNameLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _TintNameLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : string.Empty;
+        public String TintName
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _TintNameLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_data, _TintNameLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : string.Empty;
+            }
+        }
         #endregion
         #region TintTexture
         private int? _TintTextureLocation;
-        public String TintTexture => _TintTextureLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _TintTextureLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : string.Empty;
+        public String TintTexture
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _TintTextureLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_data, _TintTextureLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : string.Empty;
+            }
+        }
         #endregion
         #region TintColor
         private int? _TintColorLocation;
-        public Color TintColor => _TintColorLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _TintColorLocation.Value, _package.MetaData.Constants).ReadColor(ColorBinaryType.Alpha) : default(Color);
+        public Color TintColor
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _TintColorLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_data, _TintColorLocation.Value, _package.MetaData.Constants).ReadColor(ColorBinaryType.Alpha) : default(Color);
+            }
+        }
         #endregion
         #region TintIntensity
         private int? _TintIntensityLocation;
-        public UInt32 TintIntensity => _TintIntensityLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _TintIntensityLocation.Value, _package.MetaData.Constants)) : default(UInt32);
+        public UInt32 TintIntensity
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _TintIntensityLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _TintIntensityLocation.Value, _package.MetaData.Constants)) : default(UInt32);
+            }
+        }
         #endregion
         partial void CustomFactoryEnd(
             OverlayStream stream,

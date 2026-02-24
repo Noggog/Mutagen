@@ -35,6 +35,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -2020,27 +2021,35 @@ namespace Mutagen.Bethesda.Fallout4
         protected override Type LinkType => typeof(ISoundKeywordMappingGetter);
 
 
-        #region PrimaryDescriptor
-        private int? _PrimaryDescriptorLocation;
-        public IFormLinkNullableGetter<ISoundDescriptorGetter> PrimaryDescriptor => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ISoundDescriptorGetter>(_package, _recordData, _PrimaryDescriptorLocation);
-        #endregion
-        #region ExteriorTail
-        private int? _ExteriorTailLocation;
-        public IFormLinkNullableGetter<ISoundDescriptorGetter> ExteriorTail => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ISoundDescriptorGetter>(_package, _recordData, _ExteriorTailLocation);
-        #endregion
-        #region VatsDescriptor
-        private int? _VatsDescriptorLocation;
-        public IFormLinkNullableGetter<ISoundDescriptorGetter> VatsDescriptor => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ISoundDescriptorGetter>(_package, _recordData, _VatsDescriptorLocation);
-        #endregion
-        #region VatsThreshold
-        private int? _VatsThresholdLocation;
-        public Single? VatsThreshold => _VatsThresholdLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _VatsThresholdLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
-        #endregion
+        public IFormLinkNullableGetter<ISoundDescriptorGetter> PrimaryDescriptor => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ISoundDescriptorGetter>(_package, _recordData, Payload.PrimaryDescriptorLocation);
+        public IFormLinkNullableGetter<ISoundDescriptorGetter> ExteriorTail => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ISoundDescriptorGetter>(_package, _recordData, Payload.ExteriorTailLocation);
+        public IFormLinkNullableGetter<ISoundDescriptorGetter> VatsDescriptor => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ISoundDescriptorGetter>(_package, _recordData, Payload.VatsDescriptorLocation);
+        public Single? VatsThreshold => Payload.VatsThresholdLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.VatsThresholdLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
         #region Keywords
-        public IReadOnlyList<IFormLinkGetter<IKeywordGetter>> Keywords { get; private set; } = [];
+        public IReadOnlyList<IFormLinkGetter<IKeywordGetter>> Keywords => Payload.Keywords ?? [];
         IReadOnlyList<IFormLinkGetter<IKeywordCommonGetter>>? IKeywordedGetter.Keywords => this.Keywords;
         #endregion
-        public IReadOnlyList<IMappingSoundGetter> Sounds { get; private set; } = [];
+        public IReadOnlyList<IMappingSoundGetter> Sounds => Payload.Sounds ?? [];
+
+        internal partial class SoundKeywordMappingRecordDataPayload
+        {
+            public int? PrimaryDescriptorLocation;
+            public int? ExteriorTailLocation;
+            public int? VatsDescriptorLocation;
+            public int? VatsThresholdLocation;
+            public IReadOnlyList<IFormLinkGetter<IKeywordGetter>> Keywords = [];
+            public IReadOnlyList<IMappingSoundGetter> Sounds = [];
+        }
+
+        private LazyPayload<SoundKeywordMappingRecordDataPayload> _payload = null!;
+
+        internal SoundKeywordMappingRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<SoundKeywordMappingRecordDataPayload>(init, new SoundKeywordMappingRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -2048,10 +2057,10 @@ namespace Mutagen.Bethesda.Fallout4
 
         partial void CustomCtor();
         protected SoundKeywordMappingBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -2062,28 +2071,51 @@ namespace Mutagen.Bethesda.Fallout4
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new SoundKeywordMappingBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -2112,27 +2144,27 @@ namespace Mutagen.Bethesda.Fallout4
             {
                 case RecordTypeInts.DNAM:
                 {
-                    _PrimaryDescriptorLocation = (stream.Position - offset);
+                    _payload.Fields.PrimaryDescriptorLocation = (stream.Position - offset);
                     return (int)SoundKeywordMapping_FieldIndex.PrimaryDescriptor;
                 }
                 case RecordTypeInts.ENAM:
                 {
-                    _ExteriorTailLocation = (stream.Position - offset);
+                    _payload.Fields.ExteriorTailLocation = (stream.Position - offset);
                     return (int)SoundKeywordMapping_FieldIndex.ExteriorTail;
                 }
                 case RecordTypeInts.VNAM:
                 {
-                    _VatsDescriptorLocation = (stream.Position - offset);
+                    _payload.Fields.VatsDescriptorLocation = (stream.Position - offset);
                     return (int)SoundKeywordMapping_FieldIndex.VatsDescriptor;
                 }
                 case RecordTypeInts.TNAM:
                 {
-                    _VatsThresholdLocation = (stream.Position - offset);
+                    _payload.Fields.VatsThresholdLocation = (stream.Position - offset);
                     return (int)SoundKeywordMapping_FieldIndex.VatsThreshold;
                 }
                 case RecordTypeInts.KNAM:
                 {
-                    this.Keywords = BinaryOverlayList.FactoryByArray<IFormLinkGetter<IKeywordGetter>>(
+                    _payload.Fields.Keywords = BinaryOverlayList.FactoryByArray<IFormLinkGetter<IKeywordGetter>>(
                         mem: stream.RemainingMemory,
                         package: _package,
                         getter: (s, p) => FormLinkBinaryTranslation.Instance.OverlayFactory<IKeywordGetter>(p, s),
@@ -2146,7 +2178,7 @@ namespace Mutagen.Bethesda.Fallout4
                 }
                 case RecordTypeInts.RNAM:
                 {
-                    this.Sounds = BinaryOverlayList.FactoryByArray<IMappingSoundGetter>(
+                    _payload.Fields.Sounds = BinaryOverlayList.FactoryByArray<IMappingSoundGetter>(
                         mem: stream.RemainingMemory,
                         package: _package,
                         translationParams: translationParams,

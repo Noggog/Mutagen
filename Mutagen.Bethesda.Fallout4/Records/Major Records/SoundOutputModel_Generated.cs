@@ -34,6 +34,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -1891,30 +1892,32 @@ namespace Mutagen.Bethesda.Fallout4
         protected override Type LinkType => typeof(ISoundOutputModelGetter);
 
 
-        #region Data
-        private RangeInt32? _DataLocation;
-        public ISoundOutputDataGetter? Data => _DataLocation.HasValue ? SoundOutputDataBinaryOverlay.SoundOutputDataFactory(_recordData.Slice(_DataLocation!.Value.Min), _package) : default;
-        #endregion
-        #region Type
-        private int? _TypeLocation;
-        public SoundOutputModel.TypeEnum? Type => EnumBinaryTranslation<SoundOutputModel.TypeEnum, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(_TypeLocation, _recordData, _package, 4);
-        #endregion
-        #region StaticAttenuation
-        private int? _StaticAttenuationLocation;
-        public Single? StaticAttenuation => _StaticAttenuationLocation.HasValue ? FloatBinaryTranslation<MutagenFrame, MutagenWriter>.Instance.GetFloat(HeaderTranslation.ExtractSubrecordMemory(_recordData, _StaticAttenuationLocation.Value, _package.MetaData.Constants), FloatIntegerType.UShort, multiplier: null, divisor: 100f) : default(Single?);
-        #endregion
-        #region OutputChannels
-        private RangeInt32? _OutputChannelsLocation;
-        public ISoundOutputChannelsGetter? OutputChannels => _OutputChannelsLocation.HasValue ? SoundOutputChannelsBinaryOverlay.SoundOutputChannelsFactory(_recordData.Slice(_OutputChannelsLocation!.Value.Min), _package) : default;
-        #endregion
-        #region DynamicAttentuation
-        private RangeInt32? _DynamicAttentuationLocation;
-        public IDynamicAttentuationValuesGetter? DynamicAttentuation => _DynamicAttentuationLocation.HasValue ? DynamicAttentuationValuesBinaryOverlay.DynamicAttentuationValuesFactory(_recordData.Slice(_DynamicAttentuationLocation!.Value.Min), _package) : default;
-        #endregion
-        #region EffectChain
-        private int? _EffectChainLocation;
-        public IFormLinkNullableGetter<IAudioEffectChainGetter> EffectChain => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IAudioEffectChainGetter>(_package, _recordData, _EffectChainLocation);
-        #endregion
+        public ISoundOutputDataGetter? Data => Payload.DataLocation.HasValue ? SoundOutputDataBinaryOverlay.SoundOutputDataFactory(_recordData.Slice(Payload.DataLocation!.Value.Min), _package) : default;
+        public SoundOutputModel.TypeEnum? Type => EnumBinaryTranslation<SoundOutputModel.TypeEnum, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(Payload.TypeLocation, _recordData, _package, 4);
+        public Single? StaticAttenuation => Payload.StaticAttenuationLocation.HasValue ? FloatBinaryTranslation<MutagenFrame, MutagenWriter>.Instance.GetFloat(HeaderTranslation.ExtractSubrecordMemory(_recordData, Payload.StaticAttenuationLocation.Value, _package.MetaData.Constants), FloatIntegerType.UShort, multiplier: null, divisor: 100f) : default(Single?);
+        public ISoundOutputChannelsGetter? OutputChannels => Payload.OutputChannelsLocation.HasValue ? SoundOutputChannelsBinaryOverlay.SoundOutputChannelsFactory(_recordData.Slice(Payload.OutputChannelsLocation!.Value.Min), _package) : default;
+        public IDynamicAttentuationValuesGetter? DynamicAttentuation => Payload.DynamicAttentuationLocation.HasValue ? DynamicAttentuationValuesBinaryOverlay.DynamicAttentuationValuesFactory(_recordData.Slice(Payload.DynamicAttentuationLocation!.Value.Min), _package) : default;
+        public IFormLinkNullableGetter<IAudioEffectChainGetter> EffectChain => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<IAudioEffectChainGetter>(_package, _recordData, Payload.EffectChainLocation);
+
+        internal partial class SoundOutputModelRecordDataPayload
+        {
+            public RangeInt32? DataLocation;
+            public int? TypeLocation;
+            public int? StaticAttenuationLocation;
+            public RangeInt32? OutputChannelsLocation;
+            public RangeInt32? DynamicAttentuationLocation;
+            public int? EffectChainLocation;
+        }
+
+        private LazyPayload<SoundOutputModelRecordDataPayload> _payload = null!;
+
+        internal SoundOutputModelRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<SoundOutputModelRecordDataPayload>(init, new SoundOutputModelRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -1922,10 +1925,10 @@ namespace Mutagen.Bethesda.Fallout4
 
         partial void CustomCtor();
         protected SoundOutputModelBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -1936,28 +1939,51 @@ namespace Mutagen.Bethesda.Fallout4
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new SoundOutputModelBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -1986,32 +2012,32 @@ namespace Mutagen.Bethesda.Fallout4
             {
                 case RecordTypeInts.NAM1:
                 {
-                    _DataLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.DataLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)SoundOutputModel_FieldIndex.Data;
                 }
                 case RecordTypeInts.MNAM:
                 {
-                    _TypeLocation = (stream.Position - offset);
+                    _payload.Fields.TypeLocation = (stream.Position - offset);
                     return (int)SoundOutputModel_FieldIndex.Type;
                 }
                 case RecordTypeInts.VNAM:
                 {
-                    _StaticAttenuationLocation = (stream.Position - offset);
+                    _payload.Fields.StaticAttenuationLocation = (stream.Position - offset);
                     return (int)SoundOutputModel_FieldIndex.StaticAttenuation;
                 }
                 case RecordTypeInts.ONAM:
                 {
-                    _OutputChannelsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.OutputChannelsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)SoundOutputModel_FieldIndex.OutputChannels;
                 }
                 case RecordTypeInts.ATTN:
                 {
-                    _DynamicAttentuationLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.DynamicAttentuationLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)SoundOutputModel_FieldIndex.DynamicAttentuation;
                 }
                 case RecordTypeInts.ENAM:
                 {
-                    _EffectChainLocation = (stream.Position - offset);
+                    _payload.Fields.EffectChainLocation = (stream.Position - offset);
                     return (int)SoundOutputModel_FieldIndex.EffectChain;
                 }
                 default:

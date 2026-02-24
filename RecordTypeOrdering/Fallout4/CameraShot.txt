@@ -1,0 +1,8 @@
+RecordTypes.EDID,
+RecordTypes.MODL,
+RecordTypes.MODC,
+RecordTypes.MODT,
+RecordTypes.MODS,
+RecordTypes.MODF,
+RecordTypes.CTDA,
+RecordTypes.MNAM,

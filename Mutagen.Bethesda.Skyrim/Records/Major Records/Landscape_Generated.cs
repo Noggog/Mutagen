@@ -34,6 +34,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -2289,18 +2290,32 @@ namespace Mutagen.Bethesda.Skyrim
         protected override Type LinkType => typeof(ILandscapeGetter);
 
 
-        #region Flags
-        private int? _FlagsLocation;
-        public Landscape.Flag? Flags => EnumBinaryTranslation<Landscape.Flag, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(_FlagsLocation, _recordData, _package, 4);
-        #endregion
-        public IReadOnlyArray2d<P3UInt8>? VertexNormals { get; private set; }
-        #region VertexHeightMap
-        private RangeInt32? _VertexHeightMapLocation;
-        public ILandscapeVertexHeightMapGetter? VertexHeightMap => _VertexHeightMapLocation.HasValue ? LandscapeVertexHeightMapBinaryOverlay.LandscapeVertexHeightMapFactory(_recordData.Slice(_VertexHeightMapLocation!.Value.Min), _package) : default;
-        #endregion
-        public IReadOnlyArray2d<P3UInt8>? VertexColors { get; private set; }
-        public IReadOnlyList<IBaseLayerGetter> Layers { get; private set; } = [];
-        public IReadOnlyList<IFormLinkGetter<ILandscapeTextureGetter>>? Textures { get; private set; }
+        public Landscape.Flag? Flags => EnumBinaryTranslation<Landscape.Flag, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(Payload.FlagsLocation, _recordData, _package, 4);
+        public IReadOnlyArray2d<P3UInt8>? VertexNormals => Payload.VertexNormals;
+        public ILandscapeVertexHeightMapGetter? VertexHeightMap => Payload.VertexHeightMapLocation.HasValue ? LandscapeVertexHeightMapBinaryOverlay.LandscapeVertexHeightMapFactory(_recordData.Slice(Payload.VertexHeightMapLocation!.Value.Min), _package) : default;
+        public IReadOnlyArray2d<P3UInt8>? VertexColors => Payload.VertexColors;
+        public IReadOnlyList<IBaseLayerGetter> Layers => Payload.Layers ?? [];
+        public IReadOnlyList<IFormLinkGetter<ILandscapeTextureGetter>>? Textures => Payload.Textures;
+
+        internal partial class LandscapeRecordDataPayload
+        {
+            public int? FlagsLocation;
+            public IReadOnlyArray2d<P3UInt8>? VertexNormals;
+            public RangeInt32? VertexHeightMapLocation;
+            public IReadOnlyArray2d<P3UInt8>? VertexColors;
+            public IReadOnlyList<IBaseLayerGetter> Layers = [];
+            public IReadOnlyList<IFormLinkGetter<ILandscapeTextureGetter>>? Textures;
+        }
+
+        private LazyPayload<LandscapeRecordDataPayload> _payload = null!;
+
+        internal LandscapeRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<LandscapeRecordDataPayload>(init, new LandscapeRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -2308,10 +2323,10 @@ namespace Mutagen.Bethesda.Skyrim
 
         partial void CustomCtor();
         protected LandscapeBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
@@ -2322,28 +2337,51 @@ namespace Mutagen.Bethesda.Skyrim
             BinaryOverlayFactoryPackage package,
             TypedParseParams translationParams = default)
         {
-            stream = Decompression.DecompressStream(stream);
-            stream = ExtractRecordMemory(
+            PluginBinaryOverlay.ExtractRecordMemoryLazy(
                 stream: stream,
                 meta: package.MetaData.Constants,
-                memoryPair: out var memoryPair,
+                lazyRecordData: out var lazyRecordData,
+                originalSlice: out var originalSlice,
                 offset: out var offset,
-                finalPos: out var finalPos);
+                totalLength: out var totalLength);
             var ret = new LandscapeBinaryOverlay(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package);
             ret._package.FormVersion = ret;
-            ret.CustomFactoryEnd(
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset);
-            ret.FillSubrecordTypes(
-                majorReference: ret,
-                stream: stream,
-                finalPos: finalPos,
-                offset: offset,
-                translationParams: translationParams,
-                fill: ret.FillRecordType);
+            var init = new Lazy<bool>(() =>
+            {
+                OverlayStream subStream;
+                int finalPos;
+                if (lazyRecordData.IsCompressed)
+                {
+                    subStream = PluginBinaryOverlay.CreateSubrecordStream(
+                        lazyRecordData: lazyRecordData,
+                        originalSlice: originalSlice,
+                        meta: package.MetaData.Constants,
+                        package: package,
+                        finalPos: out finalPos);
+                }
+                else
+                {
+                    subStream = new OverlayStream(originalSlice, stream.MetaData);
+                    subStream.Position = offset;
+                    finalPos = offset + lazyRecordData.RecordData.Length;
+                }
+                ret.CustomFactoryEnd(
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset);
+                ret.FillSubrecordTypes(
+                    majorReference: ret,
+                    stream: subStream,
+                    finalPos: finalPos,
+                    offset: offset,
+                    translationParams: translationParams,
+                    fill: ret.FillRecordType);
+                return true;
+            }
+            , LazyThreadSafetyMode.ExecutionAndPublication);
+            ret.InitPayload(init);
             return ret;
         }
 
@@ -2372,13 +2410,13 @@ namespace Mutagen.Bethesda.Skyrim
             {
                 case RecordTypeInts.DATA:
                 {
-                    _FlagsLocation = (stream.Position - offset);
+                    _payload.Fields.FlagsLocation = (stream.Position - offset);
                     return (int)Landscape_FieldIndex.Flags;
                 }
                 case RecordTypeInts.VNML:
                 {
                     var subMeta = stream.ReadSubrecordHeader();
-                    this.VertexNormals = BinaryOverlayArray2d.Factory<P3UInt8>(
+                    _payload.Fields.VertexNormals = BinaryOverlayArray2d.Factory<P3UInt8>(
                         mem: stream.RemainingMemory.Slice(0, subMeta.ContentLength),
                         package: _package,
                         itemLength: 3,
@@ -2388,13 +2426,13 @@ namespace Mutagen.Bethesda.Skyrim
                 }
                 case RecordTypeInts.VHGT:
                 {
-                    _VertexHeightMapLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    _payload.Fields.VertexHeightMapLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)Landscape_FieldIndex.VertexHeightMap;
                 }
                 case RecordTypeInts.VCLR:
                 {
                     var subMeta = stream.ReadSubrecordHeader();
-                    this.VertexColors = BinaryOverlayArray2d.Factory<P3UInt8>(
+                    _payload.Fields.VertexColors = BinaryOverlayArray2d.Factory<P3UInt8>(
                         mem: stream.RemainingMemory.Slice(0, subMeta.ContentLength),
                         package: _package,
                         itemLength: 3,
@@ -2405,7 +2443,7 @@ namespace Mutagen.Bethesda.Skyrim
                 case RecordTypeInts.BTXT:
                 case RecordTypeInts.ATXT:
                 {
-                    this.Layers = this.ParseRepeatedTypelessSubrecord<IBaseLayerGetter>(
+                    _payload.Fields.Layers = this.ParseRepeatedTypelessSubrecord<IBaseLayerGetter>(
                         stream: stream,
                         translationParams: translationParams,
                         trigger: BaseLayer_Registration.TriggerSpecs,
@@ -2425,7 +2463,7 @@ namespace Mutagen.Bethesda.Skyrim
                 }
                 case RecordTypeInts.VTEX:
                 {
-                    this.Textures = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<ILandscapeTextureGetter>>(
+                    _payload.Fields.Textures = BinaryOverlayList.FactoryByStartIndexWithTrigger<IFormLinkGetter<ILandscapeTextureGetter>>(
                         stream: stream,
                         package: _package,
                         finalPos: finalPos,

@@ -1,0 +1,8 @@
+RecordTypes.EDID,
+RecordTypes.FULL,
+RecordTypes.MODL,
+RecordTypes.MODB,
+RecordTypes.MODT,
+RecordTypes.SCRI,
+RecordTypes.PFIG,
+RecordTypes.PFPC,

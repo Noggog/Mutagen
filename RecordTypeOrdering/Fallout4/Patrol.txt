@@ -1,0 +1,4 @@
+RecordTypes.XPRD,
+RecordTypes.INAM,
+RecordTypes.PDTO,
+RecordTypes.TNAM,

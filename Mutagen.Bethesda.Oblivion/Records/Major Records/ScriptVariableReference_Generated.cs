@@ -1086,7 +1086,14 @@ namespace Mutagen.Bethesda.Oblivion
 
         #region VariableIndex
         private int? _VariableIndexLocation;
-        public Int32 VariableIndex => _VariableIndexLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _VariableIndexLocation.Value, _package.MetaData.Constants)) : default(Int32);
+        public Int32 VariableIndex
+        {
+            get
+            {
+                var _data = _recordData; // Trigger lazy initialization if needed
+                return _VariableIndexLocation.HasValue ? BinaryPrimitives.ReadInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_data, _VariableIndexLocation.Value, _package.MetaData.Constants)) : default(Int32);
+            }
+        }
         #endregion
         partial void CustomFactoryEnd(
             OverlayStream stream,

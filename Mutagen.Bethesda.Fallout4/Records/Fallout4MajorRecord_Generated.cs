@@ -35,6 +35,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 #endregion
 
 #nullable enable
@@ -1780,6 +1781,20 @@ namespace Mutagen.Bethesda.Fallout4
 
         public UInt16 FormVersion => BinaryPrimitives.ReadUInt16LittleEndian(_structData.Slice(0xC, 0x2));
         public UInt16 Version2 => BinaryPrimitives.ReadUInt16LittleEndian(_structData.Slice(0xE, 0x2));
+
+        internal partial class Fallout4MajorRecordRecordDataPayload
+        {
+        }
+
+        private LazyPayload<Fallout4MajorRecordRecordDataPayload> _payload = null!;
+
+        internal Fallout4MajorRecordRecordDataPayload Payload => _payload.Value;
+
+        protected override void InitPayload(Lazy<bool> init)
+        {
+            base.InitPayload(init);
+            _payload = new LazyPayload<Fallout4MajorRecordRecordDataPayload>(init, new Fallout4MajorRecordRecordDataPayload());
+        }
         partial void CustomFactoryEnd(
             OverlayStream stream,
             int finalPos,
@@ -1787,10 +1802,10 @@ namespace Mutagen.Bethesda.Fallout4
 
         partial void CustomCtor();
         protected Fallout4MajorRecordBinaryOverlay(
-            MemoryPair memoryPair,
+            LazyMajorRecordData lazyRecordData,
             BinaryOverlayFactoryPackage package)
             : base(
-                memoryPair: memoryPair,
+                lazyRecordData: lazyRecordData,
                 package: package)
         {
             this.CustomCtor();
