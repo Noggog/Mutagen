@@ -31,13 +31,15 @@ public class SplitModSelfReferenceTests
         // When written, MyMod_2.esp lists MyMod.esp as a master.
         // Importing both with the base mod key should not throw SelfReferenceException.
         var mod1 = new SkyrimMod(TestModKey, SkyrimRelease.SkyrimSE);
-        var flst1 = mod1.FormLists.AddNew();
+        var flst1 = new FormList(new FormKey(TestModKey, 0x800), SkyrimRelease.SkyrimSE);
         flst1.EditorID = "RecordA";
+        mod1.FormLists.Add(flst1);
 
         var mod2 = new SkyrimMod(SplitModKey2, SkyrimRelease.SkyrimSE);
-        var flst2 = mod2.FormLists.AddNew();
+        var flst2 = new FormList(new FormKey(SplitModKey2, 0x900), SkyrimRelease.SkyrimSE);
         flst2.EditorID = "RecordB";
         flst2.Items.Add(flst1.ToLink());
+        mod2.FormLists.Add(flst2);
 
         var file1 = WriteSplitFile(mod1, existingOutputDirectory, fileSystem, 1);
         var file2 = WriteSplitFile(mod2, existingOutputDirectory, fileSystem, 2);
@@ -68,19 +70,22 @@ public class SplitModSelfReferenceTests
         // MyMod_2.esp has recordB referencing recordA (masters MyMod.esp)
         // MyMod_3.esp has recordC referencing recordA and recordB (masters MyMod.esp, MyMod_2.esp)
         var mod1 = new SkyrimMod(TestModKey, SkyrimRelease.SkyrimSE);
-        var flst1 = mod1.FormLists.AddNew();
+        var flst1 = new FormList(new FormKey(TestModKey, 0x800), SkyrimRelease.SkyrimSE);
         flst1.EditorID = "RecordA";
+        mod1.FormLists.Add(flst1);
 
         var mod2 = new SkyrimMod(SplitModKey2, SkyrimRelease.SkyrimSE);
-        var flst2 = mod2.FormLists.AddNew();
+        var flst2 = new FormList(new FormKey(SplitModKey2, 0x900), SkyrimRelease.SkyrimSE);
         flst2.EditorID = "RecordB";
         flst2.Items.Add(flst1.ToLink());
+        mod2.FormLists.Add(flst2);
 
         var mod3 = new SkyrimMod(SplitModKey3, SkyrimRelease.SkyrimSE);
-        var flst3 = mod3.FormLists.AddNew();
+        var flst3 = new FormList(new FormKey(SplitModKey3, 0xA00), SkyrimRelease.SkyrimSE);
         flst3.EditorID = "RecordC";
         flst3.Items.Add(flst1.ToLink());
         flst3.Items.Add(flst2.ToLink());
+        mod3.FormLists.Add(flst3);
 
         var file1 = WriteSplitFile(mod1, existingOutputDirectory, fileSystem, 1);
         var file2 = WriteSplitFile(mod2, existingOutputDirectory, fileSystem, 2);
@@ -109,13 +114,15 @@ public class SplitModSelfReferenceTests
         // End-to-end test through the auto-detection path, which is the actual
         // code path that triggers the bug by forcing the base mod key on all split files.
         var mod1 = new SkyrimMod(TestModKey, SkyrimRelease.SkyrimSE);
-        var flst1 = mod1.FormLists.AddNew();
+        var flst1 = new FormList(new FormKey(TestModKey, 0x800), SkyrimRelease.SkyrimSE);
         flst1.EditorID = "RecordA";
+        mod1.FormLists.Add(flst1);
 
         var mod2 = new SkyrimMod(SplitModKey2, SkyrimRelease.SkyrimSE);
-        var flst2 = mod2.FormLists.AddNew();
+        var flst2 = new FormList(new FormKey(SplitModKey2, 0x900), SkyrimRelease.SkyrimSE);
         flst2.EditorID = "RecordB";
         flst2.Items.Add(flst1.ToLink());
+        mod2.FormLists.Add(flst2);
 
         var file1 = WriteSplitFile(mod1, existingOutputDirectory, fileSystem, 1);
         var file2 = WriteSplitFile(mod2, existingOutputDirectory, fileSystem, 2);
