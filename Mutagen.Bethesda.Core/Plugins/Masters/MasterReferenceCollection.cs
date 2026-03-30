@@ -99,6 +99,11 @@ public sealed class MasterReferenceCollection : IMasterReferenceCollection
             }
             if (modKey == CurrentMod)
             {
+                if (index == Masters.Count - 1)
+                {
+                    Masters.RemoveAt(Masters.Count - 1);
+                    break;
+                }
                 throw new SelfReferenceException(CurrentMod);
             }
             // Don't care about duplicates too much, just skip
