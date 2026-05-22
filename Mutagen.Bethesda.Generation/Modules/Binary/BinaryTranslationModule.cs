@@ -494,7 +494,8 @@ public abstract class BinaryTranslationModule : TranslationModule<BinaryTranslat
         bool forOverlay,
         string passedLenPrefix = null,
         bool includeBaseClass = false,
-        SetMarkerType.ExpandSets expand = SetMarkerType.ExpandSets.FalseAndInclude)
+        SetMarkerType.ExpandSets expand = SetMarkerType.ExpandSets.FalseAndInclude,
+        string endingPosPrefix = null)
     {
         await foreach (var item in IteratePassedLengths(
                            obj,
@@ -503,7 +504,8 @@ public abstract class BinaryTranslationModule : TranslationModule<BinaryTranslat
                                nonIntegrated: true,
                                includeBaseClass: true),
                            forOverlay: forOverlay,
-                           passedLenPrefix: passedLenPrefix))
+                           passedLenPrefix: passedLenPrefix,
+                           endingPosPrefix: endingPosPrefix))
         {
             if (includeBaseClass
                 || obj.Fields.Contains(item.Field)
@@ -519,7 +521,8 @@ public abstract class BinaryTranslationModule : TranslationModule<BinaryTranslat
         ObjectGeneration obj,
         IEnumerable<TypeGeneration> fields,
         bool forOverlay,
-        string passedLenPrefix = null)
+        string passedLenPrefix = null,
+        string endingPosPrefix = null)
     {
         var lengths = new PassedLengths()
         {
@@ -546,7 +549,7 @@ public abstract class BinaryTranslationModule : TranslationModule<BinaryTranslat
                 {
                     lengths.CurLength = null;
                     lastUnknownField = field;
-                    lengths.CurAccessor = $"{passedLenPrefix}{lastUnknownField.Name}EndingPos";
+                    lengths.CurAccessor = $"{endingPosPrefix ?? passedLenPrefix}{lastUnknownField.Name}EndingPos";
                     lastVersionedField = null;
                     lengths.CurType = PassedType.Relative;
                 }
@@ -572,7 +575,7 @@ public abstract class BinaryTranslationModule : TranslationModule<BinaryTranslat
                     }
                     if (lastUnknownField != null)
                     {
-                        lengths.CurAccessor = $"{passedLenPrefix}{lastUnknownField.Name}EndingPos{(string.IsNullOrEmpty(lengths.CurAccessor) ? null : $" + {lengths.CurAccessor}")}";
+                        lengths.CurAccessor = $"{endingPosPrefix ?? passedLenPrefix}{lastUnknownField.Name}EndingPos{(string.IsNullOrEmpty(lengths.CurAccessor) ? null : $" + {lengths.CurAccessor}")}";
                         lengths.CurType = PassedType.Relative;
                     }
                 }

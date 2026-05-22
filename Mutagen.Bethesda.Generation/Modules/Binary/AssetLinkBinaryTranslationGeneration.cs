@@ -162,9 +162,10 @@ public class AssetLinkBinaryTranslationGeneration : StringBinaryTranslationGener
         ObjectGeneration objGen,
         TypeGeneration typeGen,
         Accessor dataAccessor,
-        int? passedLength, 
+        int? passedLength,
         string? passedLengthAccessor,
-        DataType? data = null)
+        DataType? data = null,
+        string endingPosWritePrefix = "ret.")
     {
         AssetLinkType asset = typeGen as AssetLinkType;
         switch (asset.BinaryType)
@@ -173,10 +174,10 @@ public class AssetLinkBinaryTranslationGeneration : StringBinaryTranslationGener
                 sb.AppendLine(
                     $"ret.{typeGen.Name} = new AssetLink<{asset.AssetTypeString}>({nameof(BinaryStringUtility)}.{nameof(BinaryStringUtility.ParseUnknownLengthString)}(ret.{dataAccessor}.Slice({passedLengthAccessor}), package.{nameof(BinaryOverlayFactoryPackage.MetaData)}.{nameof(ParsingMeta.Encodings)}.{nameof(EncodingBundle.NonTranslated)}));");
                 sb.AppendLine(
-                    $"ret.{typeGen.Name}EndingPos = {(passedLengthAccessor == null ? null : $"{passedLengthAccessor} + ")}{(asset.Translated == null ? $"ret.{AccessorTransform(typeGen, typeGen.Name)}.Length + 1" : "5")};");
+                    $"{endingPosWritePrefix}{typeGen.Name}EndingPos = {(passedLengthAccessor == null ? null : $"{passedLengthAccessor} + ")}{(asset.Translated == null ? $"ret.{AccessorTransform(typeGen, typeGen.Name)}.Length + 1" : "5")};");
                 break;
             default:
-                await base.GenerateWrapperUnknownLengthParse(sb, objGen, typeGen, dataAccessor, passedLength, passedLengthAccessor);
+                await base.GenerateWrapperUnknownLengthParse(sb, objGen, typeGen, dataAccessor, passedLength, passedLengthAccessor, endingPosWritePrefix: endingPosWritePrefix);
                 break;
         }
     } 

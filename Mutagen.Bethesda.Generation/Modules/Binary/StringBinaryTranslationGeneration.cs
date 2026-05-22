@@ -259,35 +259,36 @@ public class StringBinaryTranslationGeneration : PrimitiveBinaryTranslationGener
         }  
     }  
   
-    public override async Task GenerateWrapperUnknownLengthParse(  
-        StructuredStringBuilder sb,   
-        ObjectGeneration objGen,  
-        TypeGeneration typeGen,  
-        Accessor dataAccessor, 
-        int? passedLength,  
+    public override async Task GenerateWrapperUnknownLengthParse(
+        StructuredStringBuilder sb,
+        ObjectGeneration objGen,
+        TypeGeneration typeGen,
+        Accessor dataAccessor,
+        int? passedLength,
         string? passedLengthAccessor,
-        DataType? data = null)  
-    {  
-        StringType str = typeGen as StringType;  
-        switch (str.BinaryType)  
-        {  
+        DataType? data = null,
+        string endingPosWritePrefix = "ret.")
+    {
+        StringType str = typeGen as StringType;
+        switch (str.BinaryType)
+        {
             case StringBinaryType.PrependLength:
             case StringBinaryType.PrependLengthWithNullIfContent:
-                sb.AppendLine($"ret.{typeGen.Name}EndingPos = {(passedLengthAccessor == null ? null : $"{passedLengthAccessor} + ")}BinaryPrimitives.ReadInt32LittleEndian(ret.{dataAccessor}{(passedLengthAccessor == null ? null : $".Slice({passedLengthAccessor})")}) + 4;");  
-                break;  
-            case StringBinaryType.PrependLengthUShort:  
-                sb.AppendLine($"ret.{typeGen.Name}EndingPos = {(passedLengthAccessor == null ? null : $"{passedLengthAccessor} + ")}BinaryPrimitives.ReadUInt16LittleEndian(ret.{dataAccessor}{(passedLengthAccessor == null ? null : $".Slice({passedLengthAccessor})")}) + 2;");  
-                break;  
-            case StringBinaryType.PrependLengthUInt8:  
-                sb.AppendLine($"ret.{typeGen.Name}EndingPos = {(passedLengthAccessor == null ? null : $"{passedLengthAccessor} + ")}ret.{dataAccessor}{(passedLengthAccessor == null ? null : $".Slice({passedLengthAccessor})")}[0] + 1;");  
-                break;  
-            case StringBinaryType.NullTerminate:  
-                sb.AppendLine($"ret.{AccessorTransform(typeGen, typeGen.Name)} = {(str.Translated.HasValue ? $"({nameof(TranslatedString)})" : string.Empty)}{nameof(BinaryStringUtility)}.{nameof(BinaryStringUtility.ParseUnknownLengthString)}(ret.{dataAccessor}{(passedLengthAccessor == null ? null : $".Slice({passedLengthAccessor})")}, package.{nameof(BinaryOverlayFactoryPackage.MetaData)}.{nameof(ParsingMeta.Encodings)}.{nameof(EncodingBundle.NonTranslated)});");  
-                sb.AppendLine($"ret.{typeGen.Name}EndingPos = {(passedLengthAccessor == null ? null : $"{passedLengthAccessor} + ")}{(str.Translated == null ? $"ret.{AccessorTransform(typeGen, typeGen.Name)}.Length + 1" : "5")};");  
-                break;  
-            default:  
-                if (typeGen.GetFieldData().Binary == BinaryGenerationType.Custom) return;  
-                throw new NotImplementedException();  
-        }  
+                sb.AppendLine($"{endingPosWritePrefix}{typeGen.Name}EndingPos = {(passedLengthAccessor == null ? null : $"{passedLengthAccessor} + ")}BinaryPrimitives.ReadInt32LittleEndian(ret.{dataAccessor}{(passedLengthAccessor == null ? null : $".Slice({passedLengthAccessor})")}) + 4;");
+                break;
+            case StringBinaryType.PrependLengthUShort:
+                sb.AppendLine($"{endingPosWritePrefix}{typeGen.Name}EndingPos = {(passedLengthAccessor == null ? null : $"{passedLengthAccessor} + ")}BinaryPrimitives.ReadUInt16LittleEndian(ret.{dataAccessor}{(passedLengthAccessor == null ? null : $".Slice({passedLengthAccessor})")}) + 2;");
+                break;
+            case StringBinaryType.PrependLengthUInt8:
+                sb.AppendLine($"{endingPosWritePrefix}{typeGen.Name}EndingPos = {(passedLengthAccessor == null ? null : $"{passedLengthAccessor} + ")}ret.{dataAccessor}{(passedLengthAccessor == null ? null : $".Slice({passedLengthAccessor})")}[0] + 1;");
+                break;
+            case StringBinaryType.NullTerminate:
+                sb.AppendLine($"ret.{AccessorTransform(typeGen, typeGen.Name)} = {(str.Translated.HasValue ? $"({nameof(TranslatedString)})" : string.Empty)}{nameof(BinaryStringUtility)}.{nameof(BinaryStringUtility.ParseUnknownLengthString)}(ret.{dataAccessor}{(passedLengthAccessor == null ? null : $".Slice({passedLengthAccessor})")}, package.{nameof(BinaryOverlayFactoryPackage.MetaData)}.{nameof(ParsingMeta.Encodings)}.{nameof(EncodingBundle.NonTranslated)});");
+                sb.AppendLine($"{endingPosWritePrefix}{typeGen.Name}EndingPos = {(passedLengthAccessor == null ? null : $"{passedLengthAccessor} + ")}{(str.Translated == null ? $"ret.{AccessorTransform(typeGen, typeGen.Name)}.Length + 1" : "5")};");
+                break;
+            default:
+                if (typeGen.GetFieldData().Binary == BinaryGenerationType.Custom) return;
+                throw new NotImplementedException();
+        }
     }  
 }

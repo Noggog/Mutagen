@@ -86,7 +86,8 @@ public abstract class BinaryTranslationGeneration : TranslationGeneration
         Accessor dataAccessor,
         int? passedLength,
         string passedLengthAccessor,
-        DataType? data = null)
+        DataType? data = null,
+        string endingPosWritePrefix = "ret.")
     {
     }
 

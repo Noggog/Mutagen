@@ -165,7 +165,15 @@ public class DataBinaryTranslationGeneration : BinaryTranslationGeneration
                     }
                     else
                     {
-                        sb.AppendLine($"protected int {length.Field.Name}EndingPos;");
+                        if (payloadSb != null)
+                        {
+                            payloadSb.AppendLine($"public int {length.Field.Name}EndingPos;");
+                            sb.AppendLine($"protected int {length.Field.Name}EndingPos => Payload.{length.Field.Name}EndingPos;");
+                        }
+                        else
+                        {
+                            sb.AppendLine($"protected int {length.Field.Name}EndingPos;");
+                        }
                     }
                 }
             }
@@ -299,7 +307,8 @@ public class DataBinaryTranslationGeneration : BinaryTranslationGeneration
         Accessor dataAccessor,
         int? passedLength,
         string passedLengthAccessor,
-        DataType? data = null)
+        DataType? data = null,
+        string endingPosWritePrefix = "ret.")
     {
         var dataType = typeGen as DataType;
         var isMajor = await objGen.IsMajorRecord();
@@ -310,7 +319,8 @@ public class DataBinaryTranslationGeneration : BinaryTranslationGeneration
                 objGen,
                 dataType.SubFields,
                 passedLenPrefix: "ret.",
-                forOverlay: true)
+                forOverlay: true,
+                endingPosPrefix: endingPosWritePrefix)
             .ToListAsync();
         foreach (var field in dataType.IterateFieldsWithMeta())
         {
@@ -356,7 +366,8 @@ public class DataBinaryTranslationGeneration : BinaryTranslationGeneration
                         dataAccessor,
                         length.PassedLength,
                         passedLenForField,
-                        data: dataType);
+                        data: dataType,
+                        endingPosWritePrefix: endingPosWritePrefix);
                     break;
             }
         }

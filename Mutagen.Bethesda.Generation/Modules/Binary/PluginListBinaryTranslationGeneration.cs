@@ -1280,10 +1280,11 @@ public class PluginListBinaryTranslationGeneration : BinaryTranslationGeneration
         StructuredStringBuilder sb,
         ObjectGeneration objGen,
         TypeGeneration typeGen,
-        Accessor dataAccessor, 
+        Accessor dataAccessor,
         int? passedLength,
         string? passedLengthAccessor,
-        DataType? data = null)
+        DataType? data = null,
+        string endingPosWritePrefix = "ret.")
     {
         ListType list = typeGen as ListType;
         var fieldData = list.GetFieldData();
@@ -1318,7 +1319,7 @@ public class PluginListBinaryTranslationGeneration : BinaryTranslationGeneration
                         default:
                             throw new NotImplementedException();
                     }
-                    sb.AppendLine($"ret.{typeGen.Name}EndingPos = {(passedLengthAccessor == null ? null : $"{passedLengthAccessor} + ")}{readStr} * {subExpLen.Value} + {len}{(expectedLengthLength == 0 ? null : $" + {expectedLengthLength}")};");
+                    sb.AppendLine($"{endingPosWritePrefix}{typeGen.Name}EndingPos = {(passedLengthAccessor == null ? null : $"{passedLengthAccessor} + ")}{readStr} * {subExpLen.Value} + {len}{(expectedLengthLength == 0 ? null : $" + {expectedLengthLength}")};");
                 }
                 else if (list.SubTypeGeneration is StringType strType && strType.BinaryType == StringBinaryType.PrependLengthUShort)
                 {
@@ -1327,7 +1328,7 @@ public class PluginListBinaryTranslationGeneration : BinaryTranslationGeneration
                     {
                         accessorData += $".Slice({passedLengthAccessor})";
                     }
-                    sb.AppendLine($"ret.{typeGen.Name}EndingPos = {(passedLengthAccessor == null ? null : $"{passedLengthAccessor} + ")}StringBinaryTranslation.Instance.ExtractManyUInt16PrependedStringsLength({len}, {accessorData}) + {len};");
+                    sb.AppendLine($"{endingPosWritePrefix}{typeGen.Name}EndingPos = {(passedLengthAccessor == null ? null : $"{passedLengthAccessor} + ")}StringBinaryTranslation.Instance.ExtractManyUInt16PrependedStringsLength({len}, {accessorData}) + {len};");
                 }
                 else
                 {
@@ -1347,7 +1348,7 @@ public class PluginListBinaryTranslationGeneration : BinaryTranslationGeneration
                         }
                         var counterLength = (byte)list.CustomData[CounterByteLength];
                         sb.AppendLine($"ret.{typeGen.Name} = BinaryOverlayList.EagerFactoryByPrependedCount(tempStream, package, {counterLength}, (s, p) => {subGen.GenerateForTypicalWrapper(objGen, list.SubTypeGeneration, "s", "p")});");
-                        sb.AppendLine($"ret.{typeGen.Name}EndingPos = tempStream.Position;");
+                        sb.AppendLine($"{endingPosWritePrefix}{typeGen.Name}EndingPos = tempStream.Position;");
                     }
                 }
             }
@@ -1355,7 +1356,7 @@ public class PluginListBinaryTranslationGeneration : BinaryTranslationGeneration
             case ListBinaryType.Frame:
                 if (!subTypeFieldData.HasTrigger)
                 {
-                    sb.AppendLine($"ret.{typeGen.Name}EndingPos = ret.{dataAccessor}.Length;");
+                    sb.AppendLine($"{endingPosWritePrefix}{typeGen.Name}EndingPos = ret.{dataAccessor}.Length;");
                 }
                 break;
             case ListBinaryType.SubTrigger:

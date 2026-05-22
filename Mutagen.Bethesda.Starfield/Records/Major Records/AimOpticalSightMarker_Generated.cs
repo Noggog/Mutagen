@@ -2401,7 +2401,7 @@ namespace Mutagen.Bethesda.Starfield
         private int _OpticalSightAttachNodeLocation => Payload.ANAMLocation!.Value.Min + 0x1;
         private bool _OpticalSightAttachNode_IsSet => Payload.ANAMLocation.HasValue;
         public String OpticalSightAttachNode => _OpticalSightAttachNode_IsSet ? BinaryStringUtility.ParsePrependedString(_recordData.Slice(_OpticalSightAttachNodeLocation), lengthLength: 4, encoding: _package.MetaData.Encodings.NonTranslated) : string.Empty;
-        protected int OpticalSightAttachNodeEndingPos;
+        protected int OpticalSightAttachNodeEndingPos => Payload.OpticalSightAttachNodeEndingPos;
         #endregion
         #region DelayBeforeSightActivation
         private int _DelayBeforeSightActivationLocation => OpticalSightAttachNodeEndingPos;
@@ -2468,6 +2468,7 @@ namespace Mutagen.Bethesda.Starfield
         {
             public IReadOnlyList<IAComponentGetter> Components = [];
             public RangeInt32? ANAMLocation;
+            public int OpticalSightAttachNodeEndingPos;
         }
 
         private LazyPayload<AimOpticalSightMarkerRecordDataPayload> _payload = null!;
@@ -2541,7 +2542,7 @@ namespace Mutagen.Bethesda.Starfield
                     offset: offset,
                     translationParams: translationParams,
                     fill: ret.FillRecordType);
-                ret.OpticalSightAttachNodeEndingPos = ret._payload.Fields.ANAMLocation!.Value.Min + 0x1 + BinaryPrimitives.ReadInt32LittleEndian(ret._recordData.Slice(ret._payload.Fields.ANAMLocation!.Value.Min + 0x1)) + 4;
+                ret._payload.Fields.OpticalSightAttachNodeEndingPos = ret._payload.Fields.ANAMLocation!.Value.Min + 0x1 + BinaryPrimitives.ReadInt32LittleEndian(ret._recordData.Slice(ret._payload.Fields.ANAMLocation!.Value.Min + 0x1)) + 4;
                 return true;
             }
             , LazyThreadSafetyMode.ExecutionAndPublication);

@@ -5168,7 +5168,7 @@ namespace Mutagen.Bethesda.Starfield
         private int _UnknownPRODString1Location => Payload.PRODLocation!.Value.Min + 0x51;
         private bool _UnknownPRODString1_IsSet => Payload.PRODLocation.HasValue;
         public String UnknownPRODString1 => _UnknownPRODString1_IsSet ? BinaryStringUtility.ParsePrependedString(_recordData.Slice(_UnknownPRODString1Location), lengthLength: 4, encoding: _package.MetaData.Encodings.NonTranslated) : string.Empty;
-        protected int UnknownPRODString1EndingPos;
+        protected int UnknownPRODString1EndingPos => Payload.UnknownPRODString1EndingPos;
         #endregion
         #region UnknownPROD2
         private int _UnknownPROD2Location => UnknownPRODString1EndingPos;
@@ -5189,7 +5189,7 @@ namespace Mutagen.Bethesda.Starfield
         private int _UnknownPRODString2Location => UnknownPRODString1EndingPos + 0x9;
         private bool _UnknownPRODString2_IsSet => Payload.PRODLocation.HasValue;
         public String UnknownPRODString2 => _UnknownPRODString2_IsSet ? BinaryStringUtility.ParsePrependedString(_recordData.Slice(_UnknownPRODString2Location), lengthLength: 4, encoding: _package.MetaData.Encodings.NonTranslated) : string.Empty;
-        protected int UnknownPRODString2EndingPos;
+        protected int UnknownPRODString2EndingPos => Payload.UnknownPRODString2EndingPos;
         #endregion
         #region UnknownPROD5
         private int _UnknownPROD5Location => UnknownPRODString2EndingPos;
@@ -5232,6 +5232,8 @@ namespace Mutagen.Bethesda.Starfield
             public IDestructibleGetter? Destructible;
             public int? UnusedLocation;
             public RangeInt32? PRODLocation;
+            public int UnknownPRODString1EndingPos;
+            public int UnknownPRODString2EndingPos;
             public int? MuzzleFlashModelLocation;
             public int? TextureFilesHashesLocation;
             public int? FLLDLocation;
@@ -5313,8 +5315,8 @@ namespace Mutagen.Bethesda.Starfield
                     offset: offset,
                     translationParams: translationParams,
                     fill: ret.FillRecordType);
-                ret.UnknownPRODString1EndingPos = ret._payload.Fields.PRODLocation!.Value.Min + 0x51 + BinaryPrimitives.ReadInt32LittleEndian(ret._recordData.Slice(ret._payload.Fields.PRODLocation!.Value.Min + 0x51)) + 4;
-                ret.UnknownPRODString2EndingPos = ret.UnknownPRODString1EndingPos + 0x9 + BinaryPrimitives.ReadInt32LittleEndian(ret._recordData.Slice(ret.UnknownPRODString1EndingPos + 0x9)) + 4;
+                ret._payload.Fields.UnknownPRODString1EndingPos = ret._payload.Fields.PRODLocation!.Value.Min + 0x51 + BinaryPrimitives.ReadInt32LittleEndian(ret._recordData.Slice(ret._payload.Fields.PRODLocation!.Value.Min + 0x51)) + 4;
+                ret._payload.Fields.UnknownPRODString2EndingPos = ret._payload.Fields.UnknownPRODString1EndingPos + 0x9 + BinaryPrimitives.ReadInt32LittleEndian(ret._recordData.Slice(ret._payload.Fields.UnknownPRODString1EndingPos + 0x9)) + 4;
                 return true;
             }
             , LazyThreadSafetyMode.ExecutionAndPublication);

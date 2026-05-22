@@ -2483,7 +2483,15 @@ public class PluginTranslationModule : BinaryTranslationModule
                     {
                         if (lengths.CurLength == null)
                         {
-                            sb.AppendLine($"protected int {lengths.Field.Name}EndingPos;");
+                            if (payloadSb != null)
+                            {
+                                payloadSb.AppendLine($"public int {lengths.Field.Name}EndingPos;");
+                                sb.AppendLine($"protected int {lengths.Field.Name}EndingPos => Payload.{lengths.Field.Name}EndingPos;");
+                            }
+                            else
+                            {
+                                sb.AppendLine($"protected int {lengths.Field.Name}EndingPos;");
+                            }
                             if (data.BinaryOverlayFallback == BinaryGenerationType.Custom)
                             {
                                 sb.AppendLine($"partial void Custom{lengths.Field.Name}EndPos();");
@@ -2801,12 +2809,12 @@ public class PluginTranslationModule : BinaryTranslationModule
         sb.AppendLine();
     }
 
-    private async Task<StructuredStringBuilder> GetParseEndingPositionsBuilder(ObjectGeneration obj, Accessor structDataAccessor)
+    private async Task<StructuredStringBuilder> GetParseEndingPositionsBuilder(ObjectGeneration obj, Accessor structDataAccessor, string endingPosWritePrefix = "ret.")
     {
         var endingPositionsBuilder = new StructuredStringBuilder();
 
-        // Parse ending positions  
-        await foreach (var lengths in IteratePassedLengths(obj, forOverlay: true, passedLenPrefix: "ret."))
+        // Parse ending positions
+        await foreach (var lengths in IteratePassedLengths(obj, forOverlay: true, passedLenPrefix: "ret.", endingPosPrefix: endingPosWritePrefix))
         {
             if (!TryGetTypeGeneration(lengths.Field.GetType(), out var typeGen)) continue;
             var data = lengths.Field.GetFieldData();
@@ -2838,7 +2846,8 @@ public class PluginTranslationModule : BinaryTranslationModule
                         lengths.Field,
                         structDataAccessor,
                         lengths.PassedLength,
-                        lengths.PassedAccessor);
+                        lengths.PassedAccessor,
+                        endingPosWritePrefix: endingPosWritePrefix);
                     break;
             }
         }
@@ -3145,7 +3154,7 @@ public class PluginTranslationModule : BinaryTranslationModule
                             sb.AppendLine($"{obj.Name}ParseEndingPositions(ret, package);");
                         }
                         // DataType ending positions also need to be inside the lambda
-                        await foreach (var lengths in IteratePassedLengths(obj, forOverlay: true, passedLenPrefix: "ret."))
+                        await foreach (var lengths in IteratePassedLengths(obj, forOverlay: true, passedLenPrefix: "ret.", endingPosPrefix: "ret._payload.Fields."))
                         {
                             if (!TryGetTypeGeneration(lengths.Field.GetType(), out var typeGen)) continue;
                             var data = lengths.Field.GetFieldData();
@@ -3165,7 +3174,8 @@ public class PluginTranslationModule : BinaryTranslationModule
                                     lengths.Field,
                                     recordDataAccessor,
                                     lengths.PassedLength,
-                                    lengths.PassedAccessor);
+                                    lengths.PassedAccessor,
+                                    endingPosWritePrefix: "ret._payload.Fields.");
                             }
                         }
                         sb.AppendLine("return true;");
@@ -3399,9 +3409,11 @@ public class PluginTranslationModule : BinaryTranslationModule
 
     private async Task GenerateEndingPositionFunction(ObjectGeneration obj, StructuredStringBuilder sb, Accessor structDataAccessor)
     {
-        var endingPositionsBuilder = await GetParseEndingPositionsBuilder(obj, structDataAccessor);
+        var isMajorRecord = await obj.IsMajorRecord();
+        var writePrefix = isMajorRecord ? "ret._payload.Fields." : "ret.";
+        var endingPositionsBuilder = await GetParseEndingPositionsBuilder(obj, structDataAccessor, endingPosWritePrefix: writePrefix);
 
-        var hasBaseClassEndingPositions = (obj.BaseClass != null && (await GetParseEndingPositionsBuilder(obj.BaseClass, structDataAccessor))?.Count > 0);
+        var hasBaseClassEndingPositions = (obj.BaseClass != null && (await GetParseEndingPositionsBuilder(obj.BaseClass, structDataAccessor, endingPosWritePrefix: writePrefix))?.Count > 0);
 
         if (endingPositionsBuilder.Count > 0 || hasBaseClassEndingPositions)
         {
