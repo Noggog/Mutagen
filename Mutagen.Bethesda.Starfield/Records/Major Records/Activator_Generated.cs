@@ -365,6 +365,17 @@ namespace Mutagen.Bethesda.Starfield
         #region InvertFacing
         public Boolean InvertFacing { get; set; } = default(Boolean);
         #endregion
+        #region RadioReceiver
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private RadioReceiver? _RadioReceiver;
+        public RadioReceiver? RadioReceiver
+        {
+            get => _RadioReceiver;
+            set => _RadioReceiver = value;
+        }
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        IRadioReceiverGetter? IActivatorGetter.RadioReceiver => this.RadioReceiver;
+        #endregion
         #region Conditions
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private ExtendedList<Condition>? _Conditions;
@@ -441,6 +452,7 @@ namespace Mutagen.Bethesda.Starfield
                 this.Flags = initialValue;
                 this.ActivationAngle = initialValue;
                 this.InvertFacing = initialValue;
+                this.RadioReceiver = new MaskItem<TItem, RadioReceiver.Mask<TItem>?>(initialValue, new RadioReceiver.Mask<TItem>(initialValue));
                 this.Conditions = new MaskItem<TItem, IEnumerable<MaskItemIndexed<TItem, Condition.Mask<TItem>?>>?>(initialValue, []);
                 this.NavmeshGeometry = new MaskItem<TItem, NavmeshGeometry.Mask<TItem>?>(initialValue, new NavmeshGeometry.Mask<TItem>(initialValue));
             }
@@ -479,6 +491,7 @@ namespace Mutagen.Bethesda.Starfield
                 TItem Flags,
                 TItem ActivationAngle,
                 TItem InvertFacing,
+                TItem RadioReceiver,
                 TItem Conditions,
                 TItem NavmeshGeometry)
             : base(
@@ -516,6 +529,7 @@ namespace Mutagen.Bethesda.Starfield
                 this.Flags = Flags;
                 this.ActivationAngle = ActivationAngle;
                 this.InvertFacing = InvertFacing;
+                this.RadioReceiver = new MaskItem<TItem, RadioReceiver.Mask<TItem>?>(RadioReceiver, new RadioReceiver.Mask<TItem>(RadioReceiver));
                 this.Conditions = new MaskItem<TItem, IEnumerable<MaskItemIndexed<TItem, Condition.Mask<TItem>?>>?>(Conditions, []);
                 this.NavmeshGeometry = new MaskItem<TItem, NavmeshGeometry.Mask<TItem>?>(NavmeshGeometry, new NavmeshGeometry.Mask<TItem>(NavmeshGeometry));
             }
@@ -555,6 +569,7 @@ namespace Mutagen.Bethesda.Starfield
             public TItem Flags;
             public TItem ActivationAngle;
             public TItem InvertFacing;
+            public MaskItem<TItem, RadioReceiver.Mask<TItem>?>? RadioReceiver { get; set; }
             public MaskItem<TItem, IEnumerable<MaskItemIndexed<TItem, Condition.Mask<TItem>?>>?>? Conditions;
             public MaskItem<TItem, NavmeshGeometry.Mask<TItem>?>? NavmeshGeometry { get; set; }
             #endregion
@@ -596,6 +611,7 @@ namespace Mutagen.Bethesda.Starfield
                 if (!object.Equals(this.Flags, rhs.Flags)) return false;
                 if (!object.Equals(this.ActivationAngle, rhs.ActivationAngle)) return false;
                 if (!object.Equals(this.InvertFacing, rhs.InvertFacing)) return false;
+                if (!object.Equals(this.RadioReceiver, rhs.RadioReceiver)) return false;
                 if (!object.Equals(this.Conditions, rhs.Conditions)) return false;
                 if (!object.Equals(this.NavmeshGeometry, rhs.NavmeshGeometry)) return false;
                 return true;
@@ -629,6 +645,7 @@ namespace Mutagen.Bethesda.Starfield
                 hash.Add(this.Flags);
                 hash.Add(this.ActivationAngle);
                 hash.Add(this.InvertFacing);
+                hash.Add(this.RadioReceiver);
                 hash.Add(this.Conditions);
                 hash.Add(this.NavmeshGeometry);
                 hash.Add(base.GetHashCode());
@@ -741,6 +758,11 @@ namespace Mutagen.Bethesda.Starfield
                 if (!eval(this.Flags)) return false;
                 if (!eval(this.ActivationAngle)) return false;
                 if (!eval(this.InvertFacing)) return false;
+                if (RadioReceiver != null)
+                {
+                    if (!eval(this.RadioReceiver.Overall)) return false;
+                    if (this.RadioReceiver.Specific != null && !this.RadioReceiver.Specific.All(eval)) return false;
+                }
                 if (this.Conditions != null)
                 {
                     if (!eval(this.Conditions.Overall)) return false;
@@ -866,6 +888,11 @@ namespace Mutagen.Bethesda.Starfield
                 if (eval(this.Flags)) return true;
                 if (eval(this.ActivationAngle)) return true;
                 if (eval(this.InvertFacing)) return true;
+                if (RadioReceiver != null)
+                {
+                    if (eval(this.RadioReceiver.Overall)) return true;
+                    if (this.RadioReceiver.Specific != null && this.RadioReceiver.Specific.Any(eval)) return true;
+                }
                 if (this.Conditions != null)
                 {
                     if (eval(this.Conditions.Overall)) return true;
@@ -978,6 +1005,7 @@ namespace Mutagen.Bethesda.Starfield
                 obj.Flags = eval(this.Flags);
                 obj.ActivationAngle = eval(this.ActivationAngle);
                 obj.InvertFacing = eval(this.InvertFacing);
+                obj.RadioReceiver = this.RadioReceiver == null ? null : new MaskItem<R, RadioReceiver.Mask<R>?>(eval(this.RadioReceiver.Overall), this.RadioReceiver.Specific?.Translate(eval));
                 if (Conditions != null)
                 {
                     obj.Conditions = new MaskItem<R, IEnumerable<MaskItemIndexed<R, Condition.Mask<R>?>>?>(eval(this.Conditions.Overall), []);
@@ -1180,6 +1208,10 @@ namespace Mutagen.Bethesda.Starfield
                     {
                         sb.AppendItem(InvertFacing, "InvertFacing");
                     }
+                    if (printMask?.RadioReceiver?.Overall ?? true)
+                    {
+                        RadioReceiver?.Print(sb);
+                    }
                     if ((printMask?.Conditions?.Overall ?? true)
                         && Conditions is {} ConditionsItem)
                     {
@@ -1240,6 +1272,7 @@ namespace Mutagen.Bethesda.Starfield
             public Exception? Flags;
             public Exception? ActivationAngle;
             public Exception? InvertFacing;
+            public MaskItem<Exception?, RadioReceiver.ErrorMask?>? RadioReceiver;
             public MaskItem<Exception?, IEnumerable<MaskItem<Exception?, Condition.ErrorMask?>>?>? Conditions;
             public MaskItem<Exception?, NavmeshGeometry.ErrorMask?>? NavmeshGeometry;
             #endregion
@@ -1302,6 +1335,8 @@ namespace Mutagen.Bethesda.Starfield
                         return ActivationAngle;
                     case Activator_FieldIndex.InvertFacing:
                         return InvertFacing;
+                    case Activator_FieldIndex.RadioReceiver:
+                        return RadioReceiver;
                     case Activator_FieldIndex.Conditions:
                         return Conditions;
                     case Activator_FieldIndex.NavmeshGeometry:
@@ -1393,6 +1428,9 @@ namespace Mutagen.Bethesda.Starfield
                         break;
                     case Activator_FieldIndex.InvertFacing:
                         this.InvertFacing = ex;
+                        break;
+                    case Activator_FieldIndex.RadioReceiver:
+                        this.RadioReceiver = new MaskItem<Exception?, RadioReceiver.ErrorMask?>(ex, null);
                         break;
                     case Activator_FieldIndex.Conditions:
                         this.Conditions = new MaskItem<Exception?, IEnumerable<MaskItem<Exception?, Condition.ErrorMask?>>?>(ex, null);
@@ -1489,6 +1527,9 @@ namespace Mutagen.Bethesda.Starfield
                     case Activator_FieldIndex.InvertFacing:
                         this.InvertFacing = (Exception?)obj;
                         break;
+                    case Activator_FieldIndex.RadioReceiver:
+                        this.RadioReceiver = (MaskItem<Exception?, RadioReceiver.ErrorMask?>?)obj;
+                        break;
                     case Activator_FieldIndex.Conditions:
                         this.Conditions = (MaskItem<Exception?, IEnumerable<MaskItem<Exception?, Condition.ErrorMask?>>?>)obj;
                         break;
@@ -1530,6 +1571,7 @@ namespace Mutagen.Bethesda.Starfield
                 if (Flags != null) return true;
                 if (ActivationAngle != null) return true;
                 if (InvertFacing != null) return true;
+                if (RadioReceiver != null) return true;
                 if (Conditions != null) return true;
                 if (NavmeshGeometry != null) return true;
                 return false;
@@ -1684,6 +1726,7 @@ namespace Mutagen.Bethesda.Starfield
                 {
                     sb.AppendItem(InvertFacing, "InvertFacing");
                 }
+                RadioReceiver?.Print(sb);
                 if (Conditions is {} ConditionsItem)
                 {
                     sb.AppendLine("Conditions =>");
@@ -1737,6 +1780,7 @@ namespace Mutagen.Bethesda.Starfield
                 ret.Flags = this.Flags.Combine(rhs.Flags);
                 ret.ActivationAngle = this.ActivationAngle.Combine(rhs.ActivationAngle);
                 ret.InvertFacing = this.InvertFacing.Combine(rhs.InvertFacing);
+                ret.RadioReceiver = this.RadioReceiver.Combine(rhs.RadioReceiver, (l, r) => l.Combine(r));
                 ret.Conditions = new MaskItem<Exception?, IEnumerable<MaskItem<Exception?, Condition.ErrorMask?>>?>(Noggog.ExceptionExt.Combine(this.Conditions?.Overall, rhs.Conditions?.Overall), Noggog.ExceptionExt.Combine(this.Conditions?.Specific, rhs.Conditions?.Specific));
                 ret.NavmeshGeometry = this.NavmeshGeometry.Combine(rhs.NavmeshGeometry, (l, r) => l.Combine(r));
                 return ret;
@@ -1787,6 +1831,7 @@ namespace Mutagen.Bethesda.Starfield
             public bool Flags;
             public bool ActivationAngle;
             public bool InvertFacing;
+            public RadioReceiver.TranslationMask? RadioReceiver;
             public Condition.TranslationMask? Conditions;
             public NavmeshGeometry.TranslationMask? NavmeshGeometry;
             #endregion
@@ -1846,6 +1891,7 @@ namespace Mutagen.Bethesda.Starfield
                 ret.Add((Flags, null));
                 ret.Add((ActivationAngle, null));
                 ret.Add((InvertFacing, null));
+                ret.Add((RadioReceiver != null ? RadioReceiver.OnOverall : DefaultOn, RadioReceiver?.GetCrystal()));
                 ret.Add((Conditions == null ? DefaultOn : !Conditions.GetCrystal().CopyNothing, Conditions?.GetCrystal()));
                 ret.Add((NavmeshGeometry != null ? NavmeshGeometry.OnOverall : DefaultOn, NavmeshGeometry?.GetCrystal()));
             }
@@ -2063,6 +2109,7 @@ namespace Mutagen.Bethesda.Starfield
         new Activator.Flag? Flags { get; set; }
         new UInt16? ActivationAngle { get; set; }
         new Boolean InvertFacing { get; set; }
+        new RadioReceiver? RadioReceiver { get; set; }
         new ExtendedList<Condition>? Conditions { get; set; }
         new NavmeshGeometry? NavmeshGeometry { get; set; }
         #region Mutagen
@@ -2158,6 +2205,7 @@ namespace Mutagen.Bethesda.Starfield
         Activator.Flag? Flags { get; }
         UInt16? ActivationAngle { get; }
         Boolean InvertFacing { get; }
+        IRadioReceiverGetter? RadioReceiver { get; }
         IReadOnlyList<IConditionGetter>? Conditions { get; }
         INavmeshGeometryGetter? NavmeshGeometry { get; }
 
@@ -2366,8 +2414,9 @@ namespace Mutagen.Bethesda.Starfield
         Flags = 30,
         ActivationAngle = 31,
         InvertFacing = 32,
-        Conditions = 33,
-        NavmeshGeometry = 34,
+        RadioReceiver = 33,
+        Conditions = 34,
+        NavmeshGeometry = 35,
     }
     #endregion
 
@@ -2378,9 +2427,9 @@ namespace Mutagen.Bethesda.Starfield
 
         public static ProtocolKey ProtocolKey => ProtocolDefinition_Starfield.ProtocolKey;
 
-        public const ushort AdditionalFieldCount = 28;
+        public const ushort AdditionalFieldCount = 29;
 
-        public const ushort FieldCount = 35;
+        public const ushort FieldCount = 36;
 
         public static readonly Type MaskType = typeof(Activator.Mask<>);
 
@@ -2451,6 +2500,7 @@ namespace Mutagen.Bethesda.Starfield
                 RecordTypes.FNAM,
                 RecordTypes.JNAM,
                 RecordTypes.INAM,
+                RecordTypes.RADR,
                 RecordTypes.CTDA,
                 RecordTypes.CITC,
                 RecordTypes.CIS1,
@@ -2526,6 +2576,7 @@ namespace Mutagen.Bethesda.Starfield
             item.Flags = default;
             item.ActivationAngle = default;
             item.InvertFacing = default(Boolean);
+            item.RadioReceiver = null;
             item.Conditions = null;
             item.NavmeshGeometry = null;
             base.Clear(item);
@@ -2735,6 +2786,11 @@ namespace Mutagen.Bethesda.Starfield
             ret.Flags = item.Flags == rhs.Flags;
             ret.ActivationAngle = item.ActivationAngle == rhs.ActivationAngle;
             ret.InvertFacing = item.InvertFacing == rhs.InvertFacing;
+            ret.RadioReceiver = EqualsMaskHelper.EqualsHelper(
+                item.RadioReceiver,
+                rhs.RadioReceiver,
+                (loqLhs, loqRhs, incl) => loqLhs.GetEqualsMask(loqRhs, incl),
+                include);
             ret.Conditions = item.Conditions.CollectionEqualsHelper(
                 rhs.Conditions,
                 (loqLhs, loqRhs) => loqLhs.GetEqualsMask(loqRhs, include),
@@ -2954,6 +3010,11 @@ namespace Mutagen.Bethesda.Starfield
             {
                 sb.AppendItem(item.InvertFacing, "InvertFacing");
             }
+            if ((printMask?.RadioReceiver?.Overall ?? true)
+                && item.RadioReceiver is {} RadioReceiverItem)
+            {
+                RadioReceiverItem?.Print(sb, "RadioReceiver");
+            }
             if ((printMask?.Conditions?.Overall ?? true)
                 && item.Conditions is {} ConditionsItem)
             {
@@ -3160,6 +3221,14 @@ namespace Mutagen.Bethesda.Starfield
             {
                 if (lhs.InvertFacing != rhs.InvertFacing) return false;
             }
+            if ((equalsMask?.GetShouldTranslate((int)Activator_FieldIndex.RadioReceiver) ?? true))
+            {
+                if (EqualsMaskHelper.RefEquality(lhs.RadioReceiver, rhs.RadioReceiver, out var lhsRadioReceiver, out var rhsRadioReceiver, out var isRadioReceiverEqual))
+                {
+                    if (!((RadioReceiverCommon)((IRadioReceiverGetter)lhsRadioReceiver).CommonInstance()!).Equals(lhsRadioReceiver, rhsRadioReceiver, equalsMask?.GetSubCrystal((int)Activator_FieldIndex.RadioReceiver))) return false;
+                }
+                else if (!isRadioReceiverEqual) return false;
+            }
             if ((equalsMask?.GetShouldTranslate((int)Activator_FieldIndex.Conditions) ?? true))
             {
                 if (!lhs.Conditions.SequenceEqualNullable(rhs.Conditions, (l, r) => ((ConditionCommon)((IConditionGetter)l).CommonInstance()!).Equals(l, r, equalsMask?.GetSubCrystal((int)Activator_FieldIndex.Conditions)))) return false;
@@ -3268,6 +3337,10 @@ namespace Mutagen.Bethesda.Starfield
                 hash.Add(ActivationAngleitem);
             }
             hash.Add(item.InvertFacing);
+            if (item.RadioReceiver is {} RadioReceiveritem)
+            {
+                hash.Add(RadioReceiveritem);
+            }
             hash.Add(item.Conditions);
             if (item.NavmeshGeometry is {} NavmeshGeometryitem)
             {
@@ -3898,6 +3971,32 @@ namespace Mutagen.Bethesda.Starfield
             {
                 item.InvertFacing = rhs.InvertFacing;
             }
+            if ((copyMask?.GetShouldTranslate((int)Activator_FieldIndex.RadioReceiver) ?? true))
+            {
+                errorMask?.PushIndex((int)Activator_FieldIndex.RadioReceiver);
+                try
+                {
+                    if(rhs.RadioReceiver is {} rhsRadioReceiver)
+                    {
+                        item.RadioReceiver = rhsRadioReceiver.DeepCopy(
+                            errorMask: errorMask,
+                            copyMask?.GetSubCrystal((int)Activator_FieldIndex.RadioReceiver));
+                    }
+                    else
+                    {
+                        item.RadioReceiver = default;
+                    }
+                }
+                catch (Exception ex)
+                when (errorMask != null)
+                {
+                    errorMask.ReportException(ex);
+                }
+                finally
+                {
+                    errorMask?.PopIndex();
+                }
+            }
             if ((copyMask?.GetShouldTranslate((int)Activator_FieldIndex.Conditions) ?? true))
             {
                 errorMask?.PushIndex((int)Activator_FieldIndex.Conditions);
@@ -4293,6 +4392,13 @@ namespace Mutagen.Bethesda.Starfield
                 writer: writer,
                 item: item.InvertFacing,
                 header: translationParams.ConvertToCustom(RecordTypes.INAM));
+            if (item.RadioReceiver is {} RadioReceiverItem)
+            {
+                ((RadioReceiverBinaryWriteTranslation)((IBinaryItem)RadioReceiverItem).BinaryWriteTranslator).Write(
+                    item: RadioReceiverItem,
+                    writer: writer,
+                    translationParams: translationParams);
+            }
             Mutagen.Bethesda.Plugins.Binary.Translations.ListBinaryTranslation<IConditionGetter>.Instance.WriteWithCounter(
                 writer: writer,
                 items: item.Conditions,
@@ -4581,6 +4687,11 @@ namespace Mutagen.Bethesda.Starfield
                     item.InvertFacing = true;
                     return (int)Activator_FieldIndex.InvertFacing;
                 }
+                case RecordTypeInts.RADR:
+                {
+                    item.RadioReceiver = Mutagen.Bethesda.Starfield.RadioReceiver.CreateFromBinary(frame: frame);
+                    return (int)Activator_FieldIndex.RadioReceiver;
+                }
                 case RecordTypeInts.CTDA:
                 case RecordTypeInts.CITC:
                 {
@@ -4759,6 +4870,10 @@ namespace Mutagen.Bethesda.Starfield
         #region InvertFacing
         private int? _InvertFacingLocation;
         public Boolean InvertFacing => _InvertFacingLocation.HasValue ? true : default(Boolean);
+        #endregion
+        #region RadioReceiver
+        private RangeInt32? _RadioReceiverLocation;
+        public IRadioReceiverGetter? RadioReceiver => _RadioReceiverLocation.HasValue ? RadioReceiverBinaryOverlay.RadioReceiverFactory(_recordData.Slice(_RadioReceiverLocation!.Value.Min), _package) : default;
         #endregion
         public IReadOnlyList<IConditionGetter>? Conditions { get; private set; }
         #region NavmeshGeometry
@@ -5013,6 +5128,11 @@ namespace Mutagen.Bethesda.Starfield
                 {
                     _InvertFacingLocation = (stream.Position - offset);
                     return (int)Activator_FieldIndex.InvertFacing;
+                }
+                case RecordTypeInts.RADR:
+                {
+                    _RadioReceiverLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    return (int)Activator_FieldIndex.RadioReceiver;
                 }
                 case RecordTypeInts.CTDA:
                 case RecordTypeInts.CITC:

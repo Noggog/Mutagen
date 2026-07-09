@@ -6911,5 +6911,8 @@
     <Compile Include="Records\Major Records\LegendaryItemLnamEntry_Generated.cs">
       <DependentUpon>LegendaryItem.xml</DependentUpon>
     </Compile>
+    <Compile Include="Records\Major Records\RadioReceiver_Generated.cs">
+      <DependentUpon>Activator.xml</DependentUpon>
+    </Compile>
   </ItemGroup>
 </Project>

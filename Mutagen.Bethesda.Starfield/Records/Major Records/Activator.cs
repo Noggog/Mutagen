@@ -3,7 +3,7 @@
 public partial class Activator
 {
     [Flags]
-    public enum MajorFlag
+    public enum MajorFlag : uint
     {
         HeadingMarker = 0x4,
         NonOccluder = 0x10,
@@ -16,6 +16,7 @@ public partial class Activator
         HasDistantLOD = 0x8000,
         RandomAnimStart = 0x10000,
         Dangerous = 0x20000,
+        HasCurrents = 0x80000,
         IgnoreObjectInteraction = 0x100000,
         IsMarker = 0x800000,
         Obstacle = 0x2000000,
@@ -24,6 +25,7 @@ public partial class Activator
         NavmeshOnlyCut = 0x10000000,
         NavmeshIgnoreErosion = 0x20000000,
         NavmeshGround = 0x40000000,
+        MustBeUnique = 0x80000000,
     }
     
     [Flags]

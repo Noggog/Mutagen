@@ -1170,6 +1170,7 @@ internal class ProtocolDefinition_Starfield : IProtocolRegistration
             QuestStageRewardData_Registration.Instance,
             Race_Registration.Instance,
             RaceHeadPart_Registration.Instance,
+            RadioReceiver_Registration.Instance,
             RadioSceneAction_Registration.Instance,
             RagdollData_Registration.Instance,
             Rank_Registration.Instance,
