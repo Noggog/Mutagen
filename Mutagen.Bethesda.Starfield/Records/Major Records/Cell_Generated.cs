@@ -3271,7 +3271,6 @@ namespace Mutagen.Bethesda.Starfield
                 RecordTypes.NVNM,
                 RecordTypes.NNAM,
                 RecordTypes.MNAM,
-                RecordTypes.ACHR,
                 RecordTypes.REFR,
                 RecordTypes.NAME,
                 RecordTypes.XEMI,
@@ -3286,7 +3285,8 @@ namespace Mutagen.Bethesda.Starfield
                 RecordTypes.XLRT,
                 RecordTypes.XESP,
                 RecordTypes.XATP,
-                RecordTypes.XSCL);
+                RecordTypes.XSCL,
+                RecordTypes.ACHR);
             return new RecordTriggerSpecs(
                 allRecordTypes: all,
                 triggeringRecordTypes: triggers);

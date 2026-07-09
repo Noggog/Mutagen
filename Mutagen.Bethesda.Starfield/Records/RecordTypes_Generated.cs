@@ -1297,6 +1297,7 @@ public partial class RecordTypes
     public static readonly RecordType XESP = new(0x50534558);
     public static readonly RecordType XEZN = new(0x4E5A4558);
     public static readonly RecordType XFLG = new(0x474C4658);
+    public static readonly RecordType XFVC = new(0x43564658);
     public static readonly RecordType XGDS = new(0x53444758);
     public static readonly RecordType XGOM = new(0x4D4F4758);
     public static readonly RecordType XHLT = new(0x544C4858);

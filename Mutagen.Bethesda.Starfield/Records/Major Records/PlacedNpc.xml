@@ -23,10 +23,19 @@
       <RefDirect name="ExternalEmittance" refName="ExternalEmittance" />
       <RefDirect name="Ownership" refName="Ownership"/>
       <FormLink name="EncounterLocation" refName="Location" recordType="XEZN" />
-      <Float name="GeometryDirtinessScale" recordType="XGDS" />
+      <RefDirect name="GroupedPackIn" refName="GroupedPackIn" />
+      <UInt32 name="BlueprintPartOrigin" recordType="XBPO" />
+      <UInt32 name="XGDS" recordType="XGDS" unknown="true" />
       <FormLink name="Layer" refName="Layer" recordType="XLYR" />
+      <List name="LayeredMaterialSwaps" recordType="XLMS">
+        <FormLink refName="LayeredMaterialSwap" />
+      </List>
       <FormLink name="Location" refName="Location" recordType="XLRL" />
       <Float name="HeadTrackingWeight" recordType="XHTW" />
+      <Float name="FavorCost" recordType="XFVC" />
+      <FormLink name="AttachRef" recordType="XATR">
+        <Interface>IPlaced</Interface>
+      </FormLink>
       <List name="LocationRefTypes" recordType="XLRT">
         <FormLink refName="LocationReferenceType" />
       </List>

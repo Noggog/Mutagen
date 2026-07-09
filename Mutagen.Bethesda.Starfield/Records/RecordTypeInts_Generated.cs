@@ -1295,6 +1295,7 @@ public partial class RecordTypeInts
     public const int XESP = 0x50534558;
     public const int XEZN = 0x4E5A4558;
     public const int XFLG = 0x474C4658;
+    public const int XFVC = 0x43564658;
     public const int XGDS = 0x53444758;
     public const int XGOM = 0x4D4F4758;
     public const int XHLT = 0x544C4858;
