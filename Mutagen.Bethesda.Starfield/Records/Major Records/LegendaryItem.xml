@@ -4,7 +4,7 @@
     <Fields>
       <RefDirect name="VirtualMachineAdapter" refName="VirtualMachineAdapter" overflowRecordType="XXXX" />
       <RefDirect name="ObjectBounds" refName="ObjectBounds" />
-      <Percent name="DirtinessScale" recordType="ODTY" nullable="False" />
+      <Percent name="DirtinessScale" recordType="ODTY" integerType="Float" nullable="False" />
       <ByteArray name="FLLD" recordType="FLLD" unknown="true" />
       <String name="Name" recordType="FULL" translated="Normal" />
       <RefDirect name="ObjectPaletteDefaults" refName="ObjectPaletteDefaults" />

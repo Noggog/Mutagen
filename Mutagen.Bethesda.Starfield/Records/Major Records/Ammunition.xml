@@ -4,7 +4,7 @@
     <Fields>
       <RefDirect name="VirtualMachineAdapter" refName="VirtualMachineAdapter" overflowRecordType="XXXX" />
       <RefDirect name="ObjectBounds" refName="ObjectBounds" nullable="False" />
-      <Percent name="DirtinessScale" recordType="ODTY" nullable="False" />
+      <Percent name="DirtinessScale" recordType="ODTY" integerType="Float" nullable="False" />
       <RefDirect name="Transforms" refName="Transforms" />
       <String name="Name" recordType="FULL" translated="Normal" />
       <RefDirect name="Model" refName="Model" />

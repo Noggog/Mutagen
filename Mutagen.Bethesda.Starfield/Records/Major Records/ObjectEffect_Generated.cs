@@ -2214,7 +2214,7 @@ namespace Mutagen.Bethesda.Starfield
             PercentBinaryTranslation.Write(
                 writer: writer,
                 item: item.DirtinessScale,
-                integerType: FloatIntegerType.UInt,
+                integerType: FloatIntegerType.Float,
                 header: translationParams.ConvertToCustom(RecordTypes.ODTY));
             Mutagen.Bethesda.Plugins.Binary.Translations.ListBinaryTranslation<IAComponentGetter>.Instance.Write(
                 writer: writer,
@@ -2343,7 +2343,7 @@ namespace Mutagen.Bethesda.Starfield
                     frame.Position += frame.MetaData.Constants.SubConstants.HeaderLength;
                     item.DirtinessScale = PercentBinaryTranslation.Parse(
                         reader: frame,
-                        integerType: FloatIntegerType.UInt);
+                        integerType: FloatIntegerType.Float);
                     return (int)ObjectEffect_FieldIndex.DirtinessScale;
                 }
                 case RecordTypeInts.BFCB:
@@ -2548,7 +2548,7 @@ namespace Mutagen.Bethesda.Starfield
         #endregion
         #region DirtinessScale
         private int? _DirtinessScaleLocation;
-        public Percent DirtinessScale => _DirtinessScaleLocation.HasValue ? PercentBinaryTranslation.GetPercent(HeaderTranslation.ExtractSubrecordMemory(_recordData, _DirtinessScaleLocation.Value, _package.MetaData.Constants), FloatIntegerType.UInt) : default(Percent);
+        public Percent DirtinessScale => _DirtinessScaleLocation.HasValue ? PercentBinaryTranslation.GetPercent(HeaderTranslation.ExtractSubrecordMemory(_recordData, _DirtinessScaleLocation.Value, _package.MetaData.Constants), FloatIntegerType.Float) : default(Percent);
         #endregion
         public IReadOnlyList<IAComponentGetter> Components { get; private set; } = [];
         #region Name

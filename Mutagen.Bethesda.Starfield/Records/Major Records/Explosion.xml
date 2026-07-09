@@ -3,7 +3,7 @@
   <Object name="Explosion" recordType="EXPL" objType="Record" baseClass="StarfieldMajorRecord">
     <Fields>
       <RefDirect name="ObjectBounds" refName="ObjectBounds" nullable="False" />
-      <Percent name="DirtinessScale" recordType="ODTY" nullable="False" />
+      <Percent name="DirtinessScale" recordType="ODTY" integerType="Float" nullable="False" />
       <RefDirect name="ObjectPaletteDefaults" refName="ObjectPaletteDefaults" />
       <UInt64 name="XALG" recordType="XALG" unknown="true" />
       <FormLink name="DefaultLayer" refName="Layer" recordType="DEFL" />

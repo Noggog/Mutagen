@@ -5,5 +5,6 @@ public enum FloatIntegerType
     UInt,
     UShort,
     Byte,
-    ByteHundred
+    ByteHundred,
+    Float
 }

@@ -4,7 +4,7 @@
     <Fields>
       <RefDirect name="VirtualMachineAdapter" refName="VirtualMachineAdapter" overflowRecordType="XXXX" />
       <RefDirect name="ObjectBounds" refName="ObjectBounds" nullable="False" />
-      <Percent name="DirtinessScale" recordType="ODTY" nullable="False" />
+      <Percent name="DirtinessScale" recordType="ODTY" integerType="Float" nullable="False" />
       <RefList name="Components" refName="AComponent" />
       <RefDirect name="Model" refName="Model" />
       <UInt32 name="NodeIndex" recordType="DATA" nullable="False" />

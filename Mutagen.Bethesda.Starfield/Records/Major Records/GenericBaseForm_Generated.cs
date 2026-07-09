@@ -2425,7 +2425,7 @@ namespace Mutagen.Bethesda.Starfield
             PercentBinaryTranslation.Write(
                 writer: writer,
                 item: item.DirtinessScale,
-                integerType: FloatIntegerType.UInt,
+                integerType: FloatIntegerType.Float,
                 header: translationParams.ConvertToCustom(RecordTypes.ODTY));
             if (item.ObjectPaletteDefaults is {} ObjectPaletteDefaultsItem)
             {
@@ -2566,7 +2566,7 @@ namespace Mutagen.Bethesda.Starfield
                     frame.Position += frame.MetaData.Constants.SubConstants.HeaderLength;
                     item.DirtinessScale = PercentBinaryTranslation.Parse(
                         reader: frame,
-                        integerType: FloatIntegerType.UInt);
+                        integerType: FloatIntegerType.Float);
                     return (int)GenericBaseForm_FieldIndex.DirtinessScale;
                 }
                 case RecordTypeInts.OPDS:
@@ -2737,7 +2737,7 @@ namespace Mutagen.Bethesda.Starfield
         #endregion
         #region DirtinessScale
         private int? _DirtinessScaleLocation;
-        public Percent DirtinessScale => _DirtinessScaleLocation.HasValue ? PercentBinaryTranslation.GetPercent(HeaderTranslation.ExtractSubrecordMemory(_recordData, _DirtinessScaleLocation.Value, _package.MetaData.Constants), FloatIntegerType.UInt) : default(Percent);
+        public Percent DirtinessScale => _DirtinessScaleLocation.HasValue ? PercentBinaryTranslation.GetPercent(HeaderTranslation.ExtractSubrecordMemory(_recordData, _DirtinessScaleLocation.Value, _package.MetaData.Constants), FloatIntegerType.Float) : default(Percent);
         #endregion
         #region ObjectPaletteDefaults
         private RangeInt32? _ObjectPaletteDefaultsLocation;

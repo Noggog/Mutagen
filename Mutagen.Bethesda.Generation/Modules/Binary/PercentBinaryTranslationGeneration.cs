@@ -24,6 +24,7 @@ public class PercentBinaryTranslationGeneration : PrimitiveBinaryTranslationGene
         switch (percType.IntegerType)
         {
             case FloatIntegerType.UInt:
+            case FloatIntegerType.Float:
                 return 4;
             case FloatIntegerType.UShort:
                 return 2;
