@@ -47,8 +47,6 @@
           <Float name="TaperCurve" />
           <Float name="TaperDuration" />
           <Float name="TaperWeight" />
-          <Break />
-          <ByteArray name="Unknown2" byteLength="6" nullable="false" unknown="true" />
         </Fields>
       </Data>
       <List name="CounterEffects">

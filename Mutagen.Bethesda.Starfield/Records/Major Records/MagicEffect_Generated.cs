@@ -386,17 +386,6 @@ namespace Mutagen.Bethesda.Starfield
         #region TaperWeight
         public Single TaperWeight { get; set; } = default(Single);
         #endregion
-        #region Unknown2
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private MemorySlice<Byte> _Unknown2 = new byte[6];
-        public MemorySlice<Byte> Unknown2
-        {
-            get => _Unknown2;
-            set => this._Unknown2 = value;
-        }
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        ReadOnlyMemorySlice<Byte> IMagicEffectGetter.Unknown2 => this.Unknown2;
-        #endregion
         #region CounterEffects
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private ExtendedList<IFormLinkGetter<IMagicEffectGetter>> _CounterEffects = new ExtendedList<IFormLinkGetter<IMagicEffectGetter>>();
@@ -443,9 +432,6 @@ namespace Mutagen.Bethesda.Starfield
         IReadOnlyList<IConditionGetter> IMagicEffectGetter.Conditions => _Conditions;
         #endregion
 
-        #endregion
-        #region DATADataTypeState
-        public MagicEffect.DATADataType DATADataTypeState { get; set; } = default(MagicEffect.DATADataType);
         #endregion
 
         #region To String
@@ -512,12 +498,10 @@ namespace Mutagen.Bethesda.Starfield
                 this.TaperCurve = initialValue;
                 this.TaperDuration = initialValue;
                 this.TaperWeight = initialValue;
-                this.Unknown2 = initialValue;
                 this.CounterEffects = new MaskItem<TItem, IEnumerable<(int Index, TItem Value)>?>(initialValue, []);
                 this.Sounds = new MaskItem<TItem, IEnumerable<MaskItemIndexed<TItem, MagicEffectSound.Mask<TItem>?>>?>(initialValue, []);
                 this.Description = initialValue;
                 this.Conditions = new MaskItem<TItem, IEnumerable<MaskItemIndexed<TItem, Condition.Mask<TItem>?>>?>(initialValue, []);
-                this.DATADataTypeState = initialValue;
             }
 
             public Mask(
@@ -568,12 +552,10 @@ namespace Mutagen.Bethesda.Starfield
                 TItem TaperCurve,
                 TItem TaperDuration,
                 TItem TaperWeight,
-                TItem Unknown2,
                 TItem CounterEffects,
                 TItem Sounds,
                 TItem Description,
-                TItem Conditions,
-                TItem DATADataTypeState)
+                TItem Conditions)
             : base(
                 MajorRecordFlagsRaw: MajorRecordFlagsRaw,
                 FormKey: FormKey,
@@ -623,12 +605,10 @@ namespace Mutagen.Bethesda.Starfield
                 this.TaperCurve = TaperCurve;
                 this.TaperDuration = TaperDuration;
                 this.TaperWeight = TaperWeight;
-                this.Unknown2 = Unknown2;
                 this.CounterEffects = new MaskItem<TItem, IEnumerable<(int Index, TItem Value)>?>(CounterEffects, []);
                 this.Sounds = new MaskItem<TItem, IEnumerable<MaskItemIndexed<TItem, MagicEffectSound.Mask<TItem>?>>?>(Sounds, []);
                 this.Description = Description;
                 this.Conditions = new MaskItem<TItem, IEnumerable<MaskItemIndexed<TItem, Condition.Mask<TItem>?>>?>(Conditions, []);
-                this.DATADataTypeState = DATADataTypeState;
             }
 
             #pragma warning disable CS8618
@@ -680,12 +660,10 @@ namespace Mutagen.Bethesda.Starfield
             public TItem TaperCurve;
             public TItem TaperDuration;
             public TItem TaperWeight;
-            public TItem Unknown2;
             public MaskItem<TItem, IEnumerable<(int Index, TItem Value)>?>? CounterEffects;
             public MaskItem<TItem, IEnumerable<MaskItemIndexed<TItem, MagicEffectSound.Mask<TItem>?>>?>? Sounds;
             public TItem Description;
             public MaskItem<TItem, IEnumerable<MaskItemIndexed<TItem, Condition.Mask<TItem>?>>?>? Conditions;
-            public TItem DATADataTypeState;
             #endregion
 
             #region Equals
@@ -739,12 +717,10 @@ namespace Mutagen.Bethesda.Starfield
                 if (!object.Equals(this.TaperCurve, rhs.TaperCurve)) return false;
                 if (!object.Equals(this.TaperDuration, rhs.TaperDuration)) return false;
                 if (!object.Equals(this.TaperWeight, rhs.TaperWeight)) return false;
-                if (!object.Equals(this.Unknown2, rhs.Unknown2)) return false;
                 if (!object.Equals(this.CounterEffects, rhs.CounterEffects)) return false;
                 if (!object.Equals(this.Sounds, rhs.Sounds)) return false;
                 if (!object.Equals(this.Description, rhs.Description)) return false;
                 if (!object.Equals(this.Conditions, rhs.Conditions)) return false;
-                if (!object.Equals(this.DATADataTypeState, rhs.DATADataTypeState)) return false;
                 return true;
             }
             public override int GetHashCode()
@@ -790,12 +766,10 @@ namespace Mutagen.Bethesda.Starfield
                 hash.Add(this.TaperCurve);
                 hash.Add(this.TaperDuration);
                 hash.Add(this.TaperWeight);
-                hash.Add(this.Unknown2);
                 hash.Add(this.CounterEffects);
                 hash.Add(this.Sounds);
                 hash.Add(this.Description);
                 hash.Add(this.Conditions);
-                hash.Add(this.DATADataTypeState);
                 hash.Add(base.GetHashCode());
                 return hash.ToHashCode();
             }
@@ -875,7 +849,6 @@ namespace Mutagen.Bethesda.Starfield
                 if (!eval(this.TaperCurve)) return false;
                 if (!eval(this.TaperDuration)) return false;
                 if (!eval(this.TaperWeight)) return false;
-                if (!eval(this.Unknown2)) return false;
                 if (this.CounterEffects != null)
                 {
                     if (!eval(this.CounterEffects.Overall)) return false;
@@ -912,7 +885,6 @@ namespace Mutagen.Bethesda.Starfield
                         }
                     }
                 }
-                if (!eval(this.DATADataTypeState)) return false;
                 return true;
             }
             #endregion
@@ -990,7 +962,6 @@ namespace Mutagen.Bethesda.Starfield
                 if (eval(this.TaperCurve)) return true;
                 if (eval(this.TaperDuration)) return true;
                 if (eval(this.TaperWeight)) return true;
-                if (eval(this.Unknown2)) return true;
                 if (this.CounterEffects != null)
                 {
                     if (eval(this.CounterEffects.Overall)) return true;
@@ -1027,7 +998,6 @@ namespace Mutagen.Bethesda.Starfield
                         }
                     }
                 }
-                if (eval(this.DATADataTypeState)) return true;
                 return false;
             }
             #endregion
@@ -1110,7 +1080,6 @@ namespace Mutagen.Bethesda.Starfield
                 obj.TaperCurve = eval(this.TaperCurve);
                 obj.TaperDuration = eval(this.TaperDuration);
                 obj.TaperWeight = eval(this.TaperWeight);
-                obj.Unknown2 = eval(this.Unknown2);
                 if (CounterEffects != null)
                 {
                     obj.CounterEffects = new MaskItem<R, IEnumerable<(int Index, R Value)>?>(eval(this.CounterEffects.Overall), []);
@@ -1156,7 +1125,6 @@ namespace Mutagen.Bethesda.Starfield
                         }
                     }
                 }
-                obj.DATADataTypeState = eval(this.DATADataTypeState);
             }
             #endregion
 
@@ -1367,10 +1335,6 @@ namespace Mutagen.Bethesda.Starfield
                     {
                         sb.AppendItem(TaperWeight, "TaperWeight");
                     }
-                    if (printMask?.Unknown2 ?? true)
-                    {
-                        sb.AppendItem(Unknown2, "Unknown2");
-                    }
                     if ((printMask?.CounterEffects?.Overall ?? true)
                         && CounterEffects is {} CounterEffectsItem)
                     {
@@ -1434,10 +1398,6 @@ namespace Mutagen.Bethesda.Starfield
                             }
                         }
                     }
-                    if (printMask?.DATADataTypeState ?? true)
-                    {
-                        sb.AppendItem(DATADataTypeState, "DATADataTypeState");
-                    }
                 }
             }
             #endregion
@@ -1489,12 +1449,10 @@ namespace Mutagen.Bethesda.Starfield
             public Exception? TaperCurve;
             public Exception? TaperDuration;
             public Exception? TaperWeight;
-            public Exception? Unknown2;
             public MaskItem<Exception?, IEnumerable<(int Index, Exception Value)>?>? CounterEffects;
             public MaskItem<Exception?, IEnumerable<MaskItem<Exception?, MagicEffectSound.ErrorMask?>>?>? Sounds;
             public Exception? Description;
             public MaskItem<Exception?, IEnumerable<MaskItem<Exception?, Condition.ErrorMask?>>?>? Conditions;
-            public Exception? DATADataTypeState;
             #endregion
 
             #region IErrorMask
@@ -1583,8 +1541,6 @@ namespace Mutagen.Bethesda.Starfield
                         return TaperDuration;
                     case MagicEffect_FieldIndex.TaperWeight:
                         return TaperWeight;
-                    case MagicEffect_FieldIndex.Unknown2:
-                        return Unknown2;
                     case MagicEffect_FieldIndex.CounterEffects:
                         return CounterEffects;
                     case MagicEffect_FieldIndex.Sounds:
@@ -1593,8 +1549,6 @@ namespace Mutagen.Bethesda.Starfield
                         return Description;
                     case MagicEffect_FieldIndex.Conditions:
                         return Conditions;
-                    case MagicEffect_FieldIndex.DATADataTypeState:
-                        return DATADataTypeState;
                     default:
                         return base.GetNthMask(index);
                 }
@@ -1725,9 +1679,6 @@ namespace Mutagen.Bethesda.Starfield
                     case MagicEffect_FieldIndex.TaperWeight:
                         this.TaperWeight = ex;
                         break;
-                    case MagicEffect_FieldIndex.Unknown2:
-                        this.Unknown2 = ex;
-                        break;
                     case MagicEffect_FieldIndex.CounterEffects:
                         this.CounterEffects = new MaskItem<Exception?, IEnumerable<(int Index, Exception Value)>?>(ex, null);
                         break;
@@ -1739,9 +1690,6 @@ namespace Mutagen.Bethesda.Starfield
                         break;
                     case MagicEffect_FieldIndex.Conditions:
                         this.Conditions = new MaskItem<Exception?, IEnumerable<MaskItem<Exception?, Condition.ErrorMask?>>?>(ex, null);
-                        break;
-                    case MagicEffect_FieldIndex.DATADataTypeState:
-                        this.DATADataTypeState = ex;
                         break;
                     default:
                         base.SetNthException(index, ex);
@@ -1874,9 +1822,6 @@ namespace Mutagen.Bethesda.Starfield
                     case MagicEffect_FieldIndex.TaperWeight:
                         this.TaperWeight = (Exception?)obj;
                         break;
-                    case MagicEffect_FieldIndex.Unknown2:
-                        this.Unknown2 = (Exception?)obj;
-                        break;
                     case MagicEffect_FieldIndex.CounterEffects:
                         this.CounterEffects = (MaskItem<Exception?, IEnumerable<(int Index, Exception Value)>?>)obj;
                         break;
@@ -1888,9 +1833,6 @@ namespace Mutagen.Bethesda.Starfield
                         break;
                     case MagicEffect_FieldIndex.Conditions:
                         this.Conditions = (MaskItem<Exception?, IEnumerable<MaskItem<Exception?, Condition.ErrorMask?>>?>)obj;
-                        break;
-                    case MagicEffect_FieldIndex.DATADataTypeState:
-                        this.DATADataTypeState = (Exception?)obj;
                         break;
                     default:
                         base.SetNthMask(index, obj);
@@ -1941,12 +1883,10 @@ namespace Mutagen.Bethesda.Starfield
                 if (TaperCurve != null) return true;
                 if (TaperDuration != null) return true;
                 if (TaperWeight != null) return true;
-                if (Unknown2 != null) return true;
                 if (CounterEffects != null) return true;
                 if (Sounds != null) return true;
                 if (Description != null) return true;
                 if (Conditions != null) return true;
-                if (DATADataTypeState != null) return true;
                 return false;
             }
             #endregion
@@ -2121,9 +2061,6 @@ namespace Mutagen.Bethesda.Starfield
                 {
                     sb.AppendItem(TaperWeight, "TaperWeight");
                 }
-                {
-                    sb.AppendItem(Unknown2, "Unknown2");
-                }
                 if (CounterEffects is {} CounterEffectsItem)
                 {
                     sb.AppendLine("CounterEffects =>");
@@ -2183,9 +2120,6 @@ namespace Mutagen.Bethesda.Starfield
                         }
                     }
                 }
-                {
-                    sb.AppendItem(DATADataTypeState, "DATADataTypeState");
-                }
             }
             #endregion
 
@@ -2234,12 +2168,10 @@ namespace Mutagen.Bethesda.Starfield
                 ret.TaperCurve = this.TaperCurve.Combine(rhs.TaperCurve);
                 ret.TaperDuration = this.TaperDuration.Combine(rhs.TaperDuration);
                 ret.TaperWeight = this.TaperWeight.Combine(rhs.TaperWeight);
-                ret.Unknown2 = this.Unknown2.Combine(rhs.Unknown2);
                 ret.CounterEffects = new MaskItem<Exception?, IEnumerable<(int Index, Exception Value)>?>(Noggog.ExceptionExt.Combine(this.CounterEffects?.Overall, rhs.CounterEffects?.Overall), Noggog.ExceptionExt.Combine(this.CounterEffects?.Specific, rhs.CounterEffects?.Specific));
                 ret.Sounds = new MaskItem<Exception?, IEnumerable<MaskItem<Exception?, MagicEffectSound.ErrorMask?>>?>(Noggog.ExceptionExt.Combine(this.Sounds?.Overall, rhs.Sounds?.Overall), Noggog.ExceptionExt.Combine(this.Sounds?.Specific, rhs.Sounds?.Specific));
                 ret.Description = this.Description.Combine(rhs.Description);
                 ret.Conditions = new MaskItem<Exception?, IEnumerable<MaskItem<Exception?, Condition.ErrorMask?>>?>(Noggog.ExceptionExt.Combine(this.Conditions?.Overall, rhs.Conditions?.Overall), Noggog.ExceptionExt.Combine(this.Conditions?.Specific, rhs.Conditions?.Specific));
-                ret.DATADataTypeState = this.DATADataTypeState.Combine(rhs.DATADataTypeState);
                 return ret;
             }
             public static ErrorMask? Combine(ErrorMask? lhs, ErrorMask? rhs)
@@ -2302,12 +2234,10 @@ namespace Mutagen.Bethesda.Starfield
             public bool TaperCurve;
             public bool TaperDuration;
             public bool TaperWeight;
-            public bool Unknown2;
             public bool CounterEffects;
             public MagicEffectSound.TranslationMask? Sounds;
             public bool Description;
             public Condition.TranslationMask? Conditions;
-            public bool DATADataTypeState;
             #endregion
 
             #region Ctors
@@ -2353,10 +2283,8 @@ namespace Mutagen.Bethesda.Starfield
                 this.TaperCurve = defaultOn;
                 this.TaperDuration = defaultOn;
                 this.TaperWeight = defaultOn;
-                this.Unknown2 = defaultOn;
                 this.CounterEffects = defaultOn;
                 this.Description = defaultOn;
-                this.DATADataTypeState = defaultOn;
             }
 
             #endregion
@@ -2404,12 +2332,10 @@ namespace Mutagen.Bethesda.Starfield
                 ret.Add((TaperCurve, null));
                 ret.Add((TaperDuration, null));
                 ret.Add((TaperWeight, null));
-                ret.Add((Unknown2, null));
                 ret.Add((CounterEffects, null));
                 ret.Add((Sounds == null ? DefaultOn : !Sounds.GetCrystal().CopyNothing, Sounds?.GetCrystal()));
                 ret.Add((Description, null));
                 ret.Add((Conditions == null ? DefaultOn : !Conditions.GetCrystal().CopyNothing, Conditions?.GetCrystal()));
-                ret.Add((DATADataTypeState, null));
             }
 
             public static implicit operator TranslationMask(bool defaultOn)
@@ -2477,11 +2403,6 @@ namespace Mutagen.Bethesda.Starfield
         {
             get => (MajorFlag)this.MajorRecordFlagsRaw;
             set => this.MajorRecordFlagsRaw = (int)value;
-        }
-        [Flags]
-        public enum DATADataType
-        {
-            Break0 = 1
         }
         public override IEnumerable<IAssetLinkGetter> EnumerateAssetLinks(AssetLinkQuery queryCategories, IAssetLinkCache? linkCache, Type? assetType) => MagicEffectCommon.Instance.EnumerateAssetLinks(this, queryCategories, linkCache, assetType);
         public override IEnumerable<IAssetLink> EnumerateListedAssetLinks() => MagicEffectSetterCommon.Instance.EnumerateListedAssetLinks(this);
@@ -2628,12 +2549,10 @@ namespace Mutagen.Bethesda.Starfield
         new Single TaperCurve { get; set; }
         new Single TaperDuration { get; set; }
         new Single TaperWeight { get; set; }
-        new MemorySlice<Byte> Unknown2 { get; set; }
         new ExtendedList<IFormLinkGetter<IMagicEffectGetter>> CounterEffects { get; }
         new ExtendedList<MagicEffectSound> Sounds { get; }
         new TranslatedString? Description { get; set; }
         new ExtendedList<Condition> Conditions { get; }
-        new MagicEffect.DATADataType DATADataTypeState { get; set; }
         #region Mutagen
         new MagicEffect.MajorFlag MajorFlags { get; set; }
         #endregion
@@ -2719,12 +2638,10 @@ namespace Mutagen.Bethesda.Starfield
         Single TaperCurve { get; }
         Single TaperDuration { get; }
         Single TaperWeight { get; }
-        ReadOnlyMemorySlice<Byte> Unknown2 { get; }
         IReadOnlyList<IFormLinkGetter<IMagicEffectGetter>> CounterEffects { get; }
         IReadOnlyList<IMagicEffectSoundGetter> Sounds { get; }
         ITranslatedStringGetter? Description { get; }
         IReadOnlyList<IConditionGetter> Conditions { get; }
-        MagicEffect.DATADataType DATADataTypeState { get; }
 
         #region Mutagen
         MagicEffect.MajorFlag MajorFlags { get; }
@@ -2945,12 +2862,10 @@ namespace Mutagen.Bethesda.Starfield
         TaperCurve = 44,
         TaperDuration = 45,
         TaperWeight = 46,
-        Unknown2 = 47,
-        CounterEffects = 48,
-        Sounds = 49,
-        Description = 50,
-        Conditions = 51,
-        DATADataTypeState = 52,
+        CounterEffects = 47,
+        Sounds = 48,
+        Description = 49,
+        Conditions = 50,
     }
     #endregion
 
@@ -2961,9 +2876,9 @@ namespace Mutagen.Bethesda.Starfield
 
         public static ProtocolKey ProtocolKey => ProtocolDefinition_Starfield.ProtocolKey;
 
-        public const ushort AdditionalFieldCount = 46;
+        public const ushort AdditionalFieldCount = 44;
 
-        public const ushort FieldCount = 53;
+        public const ushort FieldCount = 51;
 
         public static readonly Type MaskType = typeof(MagicEffect.Mask<>);
 
@@ -3096,12 +3011,10 @@ namespace Mutagen.Bethesda.Starfield
             item.TaperCurve = default(Single);
             item.TaperDuration = default(Single);
             item.TaperWeight = default(Single);
-            item.Unknown2 = new byte[6];
             item.CounterEffects.Clear();
             item.Sounds.Clear();
             item.Description = default;
             item.Conditions.Clear();
-            item.DATADataTypeState = default(MagicEffect.DATADataType);
             base.Clear(item);
         }
         
@@ -3285,7 +3198,6 @@ namespace Mutagen.Bethesda.Starfield
             ret.TaperCurve = item.TaperCurve.EqualsWithin(rhs.TaperCurve);
             ret.TaperDuration = item.TaperDuration.EqualsWithin(rhs.TaperDuration);
             ret.TaperWeight = item.TaperWeight.EqualsWithin(rhs.TaperWeight);
-            ret.Unknown2 = MemoryExtensions.SequenceEqual(item.Unknown2.Span, rhs.Unknown2.Span);
             ret.CounterEffects = item.CounterEffects.CollectionEqualsHelper(
                 rhs.CounterEffects,
                 (l, r) => object.Equals(l, r),
@@ -3299,7 +3211,6 @@ namespace Mutagen.Bethesda.Starfield
                 rhs.Conditions,
                 (loqLhs, loqRhs) => loqLhs.GetEqualsMask(loqRhs, include),
                 include);
-            ret.DATADataTypeState = item.DATADataTypeState == rhs.DATADataTypeState;
             base.FillEqualsMask(item, rhs, ret, include);
         }
         
@@ -3532,10 +3443,6 @@ namespace Mutagen.Bethesda.Starfield
             {
                 sb.AppendItem(item.TaperWeight, "TaperWeight");
             }
-            if (printMask?.Unknown2 ?? true)
-            {
-                sb.AppendLine($"Unknown2 => {SpanExt.ToHexString(item.Unknown2)}");
-            }
             if (printMask?.CounterEffects?.Overall ?? true)
             {
                 sb.AppendLine("CounterEffects =>");
@@ -3582,10 +3489,6 @@ namespace Mutagen.Bethesda.Starfield
                         }
                     }
                 }
-            }
-            if (printMask?.DATADataTypeState ?? true)
-            {
-                sb.AppendItem(item.DATADataTypeState, "DATADataTypeState");
             }
         }
         
@@ -3805,10 +3708,6 @@ namespace Mutagen.Bethesda.Starfield
             {
                 if (!lhs.TaperWeight.EqualsWithin(rhs.TaperWeight)) return false;
             }
-            if ((equalsMask?.GetShouldTranslate((int)MagicEffect_FieldIndex.Unknown2) ?? true))
-            {
-                if (!MemoryExtensions.SequenceEqual(lhs.Unknown2.Span, rhs.Unknown2.Span)) return false;
-            }
             if ((equalsMask?.GetShouldTranslate((int)MagicEffect_FieldIndex.CounterEffects) ?? true))
             {
                 if (!lhs.CounterEffects.SequenceEqualNullable(rhs.CounterEffects)) return false;
@@ -3824,10 +3723,6 @@ namespace Mutagen.Bethesda.Starfield
             if ((equalsMask?.GetShouldTranslate((int)MagicEffect_FieldIndex.Conditions) ?? true))
             {
                 if (!lhs.Conditions.SequenceEqual(rhs.Conditions, (l, r) => ((ConditionCommon)((IConditionGetter)l).CommonInstance()!).Equals(l, r, equalsMask?.GetSubCrystal((int)MagicEffect_FieldIndex.Conditions)))) return false;
-            }
-            if ((equalsMask?.GetShouldTranslate((int)MagicEffect_FieldIndex.DATADataTypeState) ?? true))
-            {
-                if (lhs.DATADataTypeState != rhs.DATADataTypeState) return false;
             }
             return true;
         }
@@ -3903,7 +3798,6 @@ namespace Mutagen.Bethesda.Starfield
             hash.Add(item.TaperCurve);
             hash.Add(item.TaperDuration);
             hash.Add(item.TaperWeight);
-            hash.Add(item.Unknown2);
             hash.Add(item.CounterEffects);
             hash.Add(item.Sounds);
             if (item.Description is {} Descriptionitem)
@@ -3911,7 +3805,6 @@ namespace Mutagen.Bethesda.Starfield
                 hash.Add(Descriptionitem);
             }
             hash.Add(item.Conditions);
-            hash.Add(item.DATADataTypeState);
             hash.Add(base.GetHashCode());
             return hash.ToHashCode();
         }
@@ -4353,10 +4246,6 @@ namespace Mutagen.Bethesda.Starfield
             {
                 item.TaperWeight = rhs.TaperWeight;
             }
-            if ((copyMask?.GetShouldTranslate((int)MagicEffect_FieldIndex.Unknown2) ?? true))
-            {
-                item.Unknown2 = rhs.Unknown2.ToArray();
-            }
             if ((copyMask?.GetShouldTranslate((int)MagicEffect_FieldIndex.CounterEffects) ?? true))
             {
                 errorMask?.PushIndex((int)MagicEffect_FieldIndex.CounterEffects);
@@ -4427,10 +4316,6 @@ namespace Mutagen.Bethesda.Starfield
                 {
                     errorMask?.PopIndex();
                 }
-            }
-            if ((copyMask?.GetShouldTranslate((int)MagicEffect_FieldIndex.DATADataTypeState) ?? true))
-            {
-                item.DATADataTypeState = rhs.DATADataTypeState;
             }
             DeepCopyInCustom(
                 item: item,
@@ -4592,15 +4477,6 @@ namespace Mutagen.Bethesda.Starfield
     {
         public new static readonly MagicEffectBinaryWriteTranslation Instance = new();
 
-        public static void WriteEmbedded(
-            IMagicEffectGetter item,
-            MutagenWriter writer)
-        {
-            StarfieldMajorRecordBinaryWriteTranslation.WriteEmbedded(
-                item: item,
-                writer: writer);
-        }
-
         public static void WriteRecordTypes(
             IMagicEffectGetter item,
             MutagenWriter writer,
@@ -4760,12 +4636,6 @@ namespace Mutagen.Bethesda.Starfield
                 FloatBinaryTranslation<MutagenFrame, MutagenWriter>.Instance.Write(
                     writer: writer,
                     item: item.TaperWeight);
-                if (!item.DATADataTypeState.HasFlag(MagicEffect.DATADataType.Break0))
-                {
-                    ByteArrayBinaryTranslation<MutagenFrame, MutagenWriter>.Instance.Write(
-                        writer: writer,
-                        item: item.Unknown2);
-                }
             }
             Mutagen.Bethesda.Plugins.Binary.Translations.ListBinaryTranslation<IFormLinkGetter<IMagicEffectGetter>>.Instance.Write(
                 writer: writer,
@@ -4887,15 +4757,6 @@ namespace Mutagen.Bethesda.Starfield
         public new static readonly MagicEffectBinaryCreateTranslation Instance = new MagicEffectBinaryCreateTranslation();
 
         public override RecordType RecordType => RecordTypes.MGEF;
-        public static void FillBinaryStructs(
-            IMagicEffectInternal item,
-            MutagenFrame frame)
-        {
-            StarfieldMajorRecordBinaryCreateTranslation.FillBinaryStructs(
-                item: item,
-                frame: frame);
-        }
-
         public static ParseResult FillBinaryRecordTypes(
             IMagicEffectInternal item,
             MutagenFrame frame,
@@ -5042,13 +4903,7 @@ namespace Mutagen.Bethesda.Starfield
                     item.TaperDuration = FloatBinaryTranslation<MutagenFrame, MutagenWriter>.Instance.Parse(reader: dataFrame);
                     if (dataFrame.Remaining < 4) return null;
                     item.TaperWeight = FloatBinaryTranslation<MutagenFrame, MutagenWriter>.Instance.Parse(reader: dataFrame);
-                    if (dataFrame.Complete)
-                    {
-                        item.DATADataTypeState |= MagicEffect.DATADataType.Break0;
-                        return (int)MagicEffect_FieldIndex.TaperWeight;
-                    }
-                    item.Unknown2 = ByteArrayBinaryTranslation<MutagenFrame, MutagenWriter>.Instance.Parse(reader: dataFrame.SpawnWithLength(6));
-                    return (int)MagicEffect_FieldIndex.Unknown2;
+                    return (int)MagicEffect_FieldIndex.TaperWeight;
                 }
                 case RecordTypeInts.ESCE:
                 {
@@ -5192,7 +5047,6 @@ namespace Mutagen.Bethesda.Starfield
         IReadOnlyList<IFormLinkGetter<IKeywordCommonGetter>>? IKeywordedGetter.Keywords => this.Keywords;
         #endregion
         private RangeInt32? _DATALocation;
-        public MagicEffect.DATADataType DATADataTypeState { get; private set; }
         #region AssociatedItem
         private int _AssociatedItemLocation => _DATALocation!.Value.Min;
         private bool _AssociatedItem_IsSet => _DATALocation.HasValue;
@@ -5375,11 +5229,6 @@ namespace Mutagen.Bethesda.Starfield
         private bool _TaperWeight_IsSet => _DATALocation.HasValue;
         public Single TaperWeight => _TaperWeight_IsSet ? _recordData.Slice(_TaperWeightLocation, 4).Float() : default(Single);
         #endregion
-        #region Unknown2
-        private int _Unknown2Location => _DATALocation!.Value.Min + 0x88;
-        private bool _Unknown2_IsSet => _DATALocation.HasValue && !DATADataTypeState.HasFlag(MagicEffect.DATADataType.Break0);
-        public ReadOnlyMemorySlice<Byte> Unknown2 => _Unknown2_IsSet ? _recordData.Span.Slice(_Unknown2Location, 6).ToArray() : ReadOnlyMemorySlice<byte>.Empty;
-        #endregion
         public IReadOnlyList<IFormLinkGetter<IMagicEffectGetter>> CounterEffects { get; private set; } = [];
         public IReadOnlyList<IMagicEffectSoundGetter> Sounds { get; private set; } = [];
         #region Description
@@ -5501,12 +5350,7 @@ namespace Mutagen.Bethesda.Starfield
                 case RecordTypeInts.DATA:
                 {
                     _DATALocation = new((stream.Position - offset) + _package.MetaData.Constants.SubConstants.TypeAndLengthLength, finalPos - offset - 1);
-                    var subLen = _package.MetaData.Constants.SubrecordHeader(_recordData.Slice((stream.Position - offset))).ContentLength;
-                    if (subLen <= 0x88)
-                    {
-                        this.DATADataTypeState |= MagicEffect.DATADataType.Break0;
-                    }
-                    return (int)MagicEffect_FieldIndex.Unknown2;
+                    return (int)MagicEffect_FieldIndex.TaperWeight;
                 }
                 case RecordTypeInts.ESCE:
                 {
