@@ -20,9 +20,9 @@ public class BoolToBrushConverter : IValueConverter
 public class TestStateToBrushConverter : IValueConverter
 {
     public static readonly IBrush NotStarted = new SolidColorBrush(Color.Parse("#303030"));
-    public static readonly IBrush Running = new SolidColorBrush(Color.Parse("#2D6E8A"));
-    public static readonly IBrush Complete = new SolidColorBrush(Color.Parse("#2E7D32"));
-    public static readonly IBrush Error = new SolidColorBrush(Color.Parse("#7A2E2E"));
+    public static readonly IBrush Running = new SolidColorBrush(Color.Parse("#155E5D"));
+    public static readonly IBrush Complete = new SolidColorBrush(Color.Parse("#295c23"));
+    public static readonly IBrush Error = new SolidColorBrush(Color.Parse("#912327"));
 
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
@@ -41,7 +41,7 @@ public class TestStateToBrushConverter : IValueConverter
 
 public class SelectedToBorderBrushConverter : IValueConverter
 {
-    public static readonly IBrush Selected = new SolidColorBrush(Color.Parse("#1BA1E2"));
+    public static readonly IBrush Selected = new SolidColorBrush(Color.Parse("#07908E"));
     public static readonly IBrush Unselected = Brushes.Transparent;
 
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)

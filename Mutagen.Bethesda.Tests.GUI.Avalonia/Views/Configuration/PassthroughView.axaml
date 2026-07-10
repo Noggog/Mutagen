@@ -6,15 +6,20 @@
     xmlns:controls="using:Noggog.UI"
     mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="35"
     x:Class="Mutagen.Bethesda.Tests.GUI.Views.PassthroughView">
-    <Grid Margin="0,1" ColumnDefinitions="Auto,*,Auto">
+    <Grid x:Name="RowGrid" Margin="0,1" ColumnDefinitions="24,*,Auto">
         <Border Grid.Column="0" Grid.ColumnSpan="3"
                 Margin="0,3,-3,3" CornerRadius="2"
                 Background="{Binding Doing, Converter={StaticResource DoingToBrush}}" />
         <Button Grid.Column="0"
                 Margin="2,0"
+                Padding="0"
+                HorizontalAlignment="Stretch"
+                HorizontalContentAlignment="Center"
                 Background="{StaticResource ErrorForegroundBrush}"
                 Content="✕"
-                Command="{Binding DeleteCommand}" />
+                ToolTip.Tip="Delete"
+                Command="{Binding DeleteCommand}"
+                IsVisible="{Binding #RowGrid.IsPointerOver}" />
         <controls:PathPicker Grid.Column="1" Margin="4,0,0,0" PickerVM="{Binding Path}" />
         <CheckBox Grid.Column="2" Margin="5,0,-1,0" IsChecked="{Binding Do}" />
     </Grid>
