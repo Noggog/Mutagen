@@ -8,8 +8,10 @@
 using Loqui;
 using Loqui.Interfaces;
 using Loqui.Internal;
+using Mutagen.Bethesda.Assets;
 using Mutagen.Bethesda.Binary;
 using Mutagen.Bethesda.Plugins;
+using Mutagen.Bethesda.Plugins.Assets;
 using Mutagen.Bethesda.Plugins.Binary.Headers;
 using Mutagen.Bethesda.Plugins.Binary.Overlay;
 using Mutagen.Bethesda.Plugins.Binary.Streams;
@@ -55,6 +57,20 @@ namespace Mutagen.Bethesda.Starfield
         partial void CustomCtor();
         #endregion
 
+        #region Components
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private ExtendedList<AComponent> _Components = new ExtendedList<AComponent>();
+        public ExtendedList<AComponent> Components
+        {
+            get => this._Components;
+            init => this._Components = value;
+        }
+        #region Interface Members
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        IReadOnlyList<IAComponentGetter> IAmbienceSetGetter.Components => _Components;
+        #endregion
+
+        #endregion
         #region Sounds
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private ExtendedList<AmbientSoundEvent>? _Sounds;
@@ -110,6 +126,7 @@ namespace Mutagen.Bethesda.Starfield
             public Mask(TItem initialValue)
             : base(initialValue)
             {
+                this.Components = new MaskItem<TItem, IEnumerable<MaskItemIndexed<TItem, AComponent.Mask<TItem>?>>?>(initialValue, []);
                 this.Sounds = new MaskItem<TItem, IEnumerable<MaskItemIndexed<TItem, AmbientSoundEvent.Mask<TItem>?>>?>(initialValue, []);
                 this.MergeBehavior = initialValue;
                 this.WallaExterior = new MaskItem<TItem, SoundReference.Mask<TItem>?>(initialValue, new SoundReference.Mask<TItem>(initialValue));
@@ -123,6 +140,7 @@ namespace Mutagen.Bethesda.Starfield
                 TItem FormVersion,
                 TItem Version2,
                 TItem StarfieldMajorRecordFlags,
+                TItem Components,
                 TItem Sounds,
                 TItem MergeBehavior,
                 TItem WallaExterior)
@@ -135,6 +153,7 @@ namespace Mutagen.Bethesda.Starfield
                 Version2: Version2,
                 StarfieldMajorRecordFlags: StarfieldMajorRecordFlags)
             {
+                this.Components = new MaskItem<TItem, IEnumerable<MaskItemIndexed<TItem, AComponent.Mask<TItem>?>>?>(Components, []);
                 this.Sounds = new MaskItem<TItem, IEnumerable<MaskItemIndexed<TItem, AmbientSoundEvent.Mask<TItem>?>>?>(Sounds, []);
                 this.MergeBehavior = MergeBehavior;
                 this.WallaExterior = new MaskItem<TItem, SoundReference.Mask<TItem>?>(WallaExterior, new SoundReference.Mask<TItem>(WallaExterior));
@@ -149,6 +168,7 @@ namespace Mutagen.Bethesda.Starfield
             #endregion
 
             #region Members
+            public MaskItem<TItem, IEnumerable<MaskItemIndexed<TItem, AComponent.Mask<TItem>?>>?>? Components;
             public MaskItem<TItem, IEnumerable<MaskItemIndexed<TItem, AmbientSoundEvent.Mask<TItem>?>>?>? Sounds;
             public TItem MergeBehavior;
             public MaskItem<TItem, SoundReference.Mask<TItem>?>? WallaExterior { get; set; }
@@ -165,6 +185,7 @@ namespace Mutagen.Bethesda.Starfield
             {
                 if (rhs == null) return false;
                 if (!base.Equals(rhs)) return false;
+                if (!object.Equals(this.Components, rhs.Components)) return false;
                 if (!object.Equals(this.Sounds, rhs.Sounds)) return false;
                 if (!object.Equals(this.MergeBehavior, rhs.MergeBehavior)) return false;
                 if (!object.Equals(this.WallaExterior, rhs.WallaExterior)) return false;
@@ -173,6 +194,7 @@ namespace Mutagen.Bethesda.Starfield
             public override int GetHashCode()
             {
                 var hash = new HashCode();
+                hash.Add(this.Components);
                 hash.Add(this.Sounds);
                 hash.Add(this.MergeBehavior);
                 hash.Add(this.WallaExterior);
@@ -186,6 +208,18 @@ namespace Mutagen.Bethesda.Starfield
             public override bool All(Func<TItem, bool> eval)
             {
                 if (!base.All(eval)) return false;
+                if (this.Components != null)
+                {
+                    if (!eval(this.Components.Overall)) return false;
+                    if (this.Components.Specific != null)
+                    {
+                        foreach (var item in this.Components.Specific)
+                        {
+                            if (!eval(item.Overall)) return false;
+                            if (item.Specific != null && !item.Specific.All(eval)) return false;
+                        }
+                    }
+                }
                 if (this.Sounds != null)
                 {
                     if (!eval(this.Sounds.Overall)) return false;
@@ -212,6 +246,18 @@ namespace Mutagen.Bethesda.Starfield
             public override bool Any(Func<TItem, bool> eval)
             {
                 if (base.Any(eval)) return true;
+                if (this.Components != null)
+                {
+                    if (eval(this.Components.Overall)) return true;
+                    if (this.Components.Specific != null)
+                    {
+                        foreach (var item in this.Components.Specific)
+                        {
+                            if (!eval(item.Overall)) return false;
+                            if (item.Specific != null && !item.Specific.All(eval)) return false;
+                        }
+                    }
+                }
                 if (this.Sounds != null)
                 {
                     if (eval(this.Sounds.Overall)) return true;
@@ -245,6 +291,21 @@ namespace Mutagen.Bethesda.Starfield
             protected void Translate_InternalFill<R>(Mask<R> obj, Func<TItem, R> eval)
             {
                 base.Translate_InternalFill(obj, eval);
+                if (Components != null)
+                {
+                    obj.Components = new MaskItem<R, IEnumerable<MaskItemIndexed<R, AComponent.Mask<R>?>>?>(eval(this.Components.Overall), []);
+                    if (Components.Specific != null)
+                    {
+                        var l = new List<MaskItemIndexed<R, AComponent.Mask<R>?>>();
+                        obj.Components.Specific = l;
+                        foreach (var item in Components.Specific)
+                        {
+                            MaskItemIndexed<R, AComponent.Mask<R>?>? mask = item == null ? null : new MaskItemIndexed<R, AComponent.Mask<R>?>(item.Index, eval(item.Overall), item.Specific?.Translate(eval));
+                            if (mask == null) continue;
+                            l.Add(mask);
+                        }
+                    }
+                }
                 if (Sounds != null)
                 {
                     obj.Sounds = new MaskItem<R, IEnumerable<MaskItemIndexed<R, AmbientSoundEvent.Mask<R>?>>?>(eval(this.Sounds.Overall), []);
@@ -280,6 +341,25 @@ namespace Mutagen.Bethesda.Starfield
                 sb.AppendLine($"{nameof(AmbienceSet.Mask<TItem>)} =>");
                 using (sb.Brace())
                 {
+                    if ((printMask?.Components?.Overall ?? true)
+                        && Components is {} ComponentsItem)
+                    {
+                        sb.AppendLine("Components =>");
+                        using (sb.Brace())
+                        {
+                            sb.AppendItem(ComponentsItem.Overall);
+                            if (ComponentsItem.Specific != null)
+                            {
+                                foreach (var subItem in ComponentsItem.Specific)
+                                {
+                                    using (sb.Brace())
+                                    {
+                                        subItem?.Print(sb);
+                                    }
+                                }
+                            }
+                        }
+                    }
                     if ((printMask?.Sounds?.Overall ?? true)
                         && Sounds is {} SoundsItem)
                     {
@@ -318,6 +398,7 @@ namespace Mutagen.Bethesda.Starfield
             IErrorMask<ErrorMask>
         {
             #region Members
+            public MaskItem<Exception?, IEnumerable<MaskItem<Exception?, AComponent.ErrorMask?>>?>? Components;
             public MaskItem<Exception?, IEnumerable<MaskItem<Exception?, AmbientSoundEvent.ErrorMask?>>?>? Sounds;
             public Exception? MergeBehavior;
             public MaskItem<Exception?, SoundReference.ErrorMask?>? WallaExterior;
@@ -329,6 +410,8 @@ namespace Mutagen.Bethesda.Starfield
                 AmbienceSet_FieldIndex enu = (AmbienceSet_FieldIndex)index;
                 switch (enu)
                 {
+                    case AmbienceSet_FieldIndex.Components:
+                        return Components;
                     case AmbienceSet_FieldIndex.Sounds:
                         return Sounds;
                     case AmbienceSet_FieldIndex.MergeBehavior:
@@ -345,6 +428,9 @@ namespace Mutagen.Bethesda.Starfield
                 AmbienceSet_FieldIndex enu = (AmbienceSet_FieldIndex)index;
                 switch (enu)
                 {
+                    case AmbienceSet_FieldIndex.Components:
+                        this.Components = new MaskItem<Exception?, IEnumerable<MaskItem<Exception?, AComponent.ErrorMask?>>?>(ex, null);
+                        break;
                     case AmbienceSet_FieldIndex.Sounds:
                         this.Sounds = new MaskItem<Exception?, IEnumerable<MaskItem<Exception?, AmbientSoundEvent.ErrorMask?>>?>(ex, null);
                         break;
@@ -365,6 +451,9 @@ namespace Mutagen.Bethesda.Starfield
                 AmbienceSet_FieldIndex enu = (AmbienceSet_FieldIndex)index;
                 switch (enu)
                 {
+                    case AmbienceSet_FieldIndex.Components:
+                        this.Components = (MaskItem<Exception?, IEnumerable<MaskItem<Exception?, AComponent.ErrorMask?>>?>)obj;
+                        break;
                     case AmbienceSet_FieldIndex.Sounds:
                         this.Sounds = (MaskItem<Exception?, IEnumerable<MaskItem<Exception?, AmbientSoundEvent.ErrorMask?>>?>)obj;
                         break;
@@ -383,6 +472,7 @@ namespace Mutagen.Bethesda.Starfield
             public override bool IsInError()
             {
                 if (Overall != null) return true;
+                if (Components != null) return true;
                 if (Sounds != null) return true;
                 if (MergeBehavior != null) return true;
                 if (WallaExterior != null) return true;
@@ -412,6 +502,24 @@ namespace Mutagen.Bethesda.Starfield
             protected override void PrintFillInternal(StructuredStringBuilder sb)
             {
                 base.PrintFillInternal(sb);
+                if (Components is {} ComponentsItem)
+                {
+                    sb.AppendLine("Components =>");
+                    using (sb.Brace())
+                    {
+                        sb.AppendItem(ComponentsItem.Overall);
+                        if (ComponentsItem.Specific != null)
+                        {
+                            foreach (var subItem in ComponentsItem.Specific)
+                            {
+                                using (sb.Brace())
+                                {
+                                    subItem?.Print(sb);
+                                }
+                            }
+                        }
+                    }
+                }
                 if (Sounds is {} SoundsItem)
                 {
                     sb.AppendLine("Sounds =>");
@@ -442,6 +550,7 @@ namespace Mutagen.Bethesda.Starfield
             {
                 if (rhs == null) return this;
                 var ret = new ErrorMask();
+                ret.Components = new MaskItem<Exception?, IEnumerable<MaskItem<Exception?, AComponent.ErrorMask?>>?>(Noggog.ExceptionExt.Combine(this.Components?.Overall, rhs.Components?.Overall), Noggog.ExceptionExt.Combine(this.Components?.Specific, rhs.Components?.Specific));
                 ret.Sounds = new MaskItem<Exception?, IEnumerable<MaskItem<Exception?, AmbientSoundEvent.ErrorMask?>>?>(Noggog.ExceptionExt.Combine(this.Sounds?.Overall, rhs.Sounds?.Overall), Noggog.ExceptionExt.Combine(this.Sounds?.Specific, rhs.Sounds?.Specific));
                 ret.MergeBehavior = this.MergeBehavior.Combine(rhs.MergeBehavior);
                 ret.WallaExterior = this.WallaExterior.Combine(rhs.WallaExterior, (l, r) => l.Combine(r));
@@ -467,6 +576,7 @@ namespace Mutagen.Bethesda.Starfield
             ITranslationMask
         {
             #region Members
+            public AComponent.TranslationMask? Components;
             public AmbientSoundEvent.TranslationMask? Sounds;
             public bool MergeBehavior;
             public SoundReference.TranslationMask? WallaExterior;
@@ -486,6 +596,7 @@ namespace Mutagen.Bethesda.Starfield
             protected override void GetCrystal(List<(bool On, TranslationCrystal? SubCrystal)> ret)
             {
                 base.GetCrystal(ret);
+                ret.Add((Components == null ? DefaultOn : !Components.GetCrystal().CopyNothing, Components?.GetCrystal()));
                 ret.Add((Sounds == null ? DefaultOn : !Sounds.GetCrystal().CopyNothing, Sounds?.GetCrystal()));
                 ret.Add((MergeBehavior, null));
                 ret.Add((WallaExterior != null ? WallaExterior.OnOverall : DefaultOn, WallaExterior?.GetCrystal()));
@@ -552,6 +663,10 @@ namespace Mutagen.Bethesda.Starfield
 
         protected override Type LinkType => typeof(IAmbienceSet);
 
+        public override IEnumerable<IAssetLinkGetter> EnumerateAssetLinks(AssetLinkQuery queryCategories, IAssetLinkCache? linkCache, Type? assetType) => AmbienceSetCommon.Instance.EnumerateAssetLinks(this, queryCategories, linkCache, assetType);
+        public override IEnumerable<IAssetLink> EnumerateListedAssetLinks() => AmbienceSetSetterCommon.Instance.EnumerateListedAssetLinks(this);
+        public override void RemapAssetLinks(IReadOnlyDictionary<IAssetLinkGetter, string> mapping, AssetLinkQuery queryCategories, IAssetLinkCache? linkCache) => AmbienceSetSetterCommon.Instance.RemapAssetLinks(this, mapping, linkCache, queryCategories);
+        public override void RemapListedAssetLinks(IReadOnlyDictionary<IAssetLinkGetter, string> mapping) => AmbienceSetSetterCommon.Instance.RemapAssetLinks(this, mapping, null, AssetLinkQuery.Listed);
         #region Equals and Hash
         public override bool Equals(object? obj)
         {
@@ -632,10 +747,12 @@ namespace Mutagen.Bethesda.Starfield
     #region Interface
     public partial interface IAmbienceSet :
         IAmbienceSetGetter,
+        IAssetLinkContainer,
         IFormLinkContainer,
         ILoquiObjectSetter<IAmbienceSetInternal>,
         IStarfieldMajorRecordInternal
     {
+        new ExtendedList<AComponent> Components { get; }
         new ExtendedList<AmbientSoundEvent>? Sounds { get; set; }
         new AmbienceSet.MergeBehaviorEnum? MergeBehavior { get; set; }
         new SoundReference? WallaExterior { get; set; }
@@ -651,12 +768,14 @@ namespace Mutagen.Bethesda.Starfield
     [AssociatedRecordTypesAttribute(Mutagen.Bethesda.Starfield.Internals.RecordTypeInts.AMBS)]
     public partial interface IAmbienceSetGetter :
         IStarfieldMajorRecordGetter,
+        IAssetLinkContainerGetter,
         IBinaryItem,
         IFormLinkContainerGetter,
         ILoquiObject<IAmbienceSetGetter>,
         IMapsToGetter<IAmbienceSetGetter>
     {
         static new ILoquiRegistration StaticRegistration => AmbienceSet_Registration.Instance;
+        IReadOnlyList<IAComponentGetter> Components { get; }
         IReadOnlyList<IAmbientSoundEventGetter>? Sounds { get; }
         AmbienceSet.MergeBehaviorEnum? MergeBehavior { get; }
         ISoundReferenceGetter? WallaExterior { get; }
@@ -836,9 +955,10 @@ namespace Mutagen.Bethesda.Starfield
         FormVersion = 4,
         Version2 = 5,
         StarfieldMajorRecordFlags = 6,
-        Sounds = 7,
-        MergeBehavior = 8,
-        WallaExterior = 9,
+        Components = 7,
+        Sounds = 8,
+        MergeBehavior = 9,
+        WallaExterior = 10,
     }
     #endregion
 
@@ -849,9 +969,9 @@ namespace Mutagen.Bethesda.Starfield
 
         public static ProtocolKey ProtocolKey => ProtocolDefinition_Starfield.ProtocolKey;
 
-        public const ushort AdditionalFieldCount = 3;
+        public const ushort AdditionalFieldCount = 4;
 
-        public const ushort FieldCount = 10;
+        public const ushort FieldCount = 11;
 
         public static readonly Type MaskType = typeof(AmbienceSet.Mask<>);
 
@@ -884,6 +1004,8 @@ namespace Mutagen.Bethesda.Starfield
             var triggers = RecordCollection.Factory(RecordTypes.AMBS);
             var all = RecordCollection.Factory(
                 RecordTypes.AMBS,
+                RecordTypes.BFCB,
+                RecordTypes.BFCE,
                 RecordTypes.ASAE,
                 RecordTypes.ASAS,
                 RecordTypes.ASMB,
@@ -932,6 +1054,7 @@ namespace Mutagen.Bethesda.Starfield
         public void Clear(IAmbienceSetInternal item)
         {
             ClearPartial();
+            item.Components.Clear();
             item.Sounds = null;
             item.MergeBehavior = default;
             item.WallaExterior = null;
@@ -952,8 +1075,33 @@ namespace Mutagen.Bethesda.Starfield
         public void RemapLinks(IAmbienceSet obj, IReadOnlyDictionary<FormKey, FormKey> mapping)
         {
             base.RemapLinks(obj, mapping);
+            obj.Components.RemapLinks(mapping);
             obj.Sounds?.RemapLinks(mapping);
             obj.WallaExterior?.RemapLinks(mapping);
+        }
+        
+        public IEnumerable<IAssetLink> EnumerateListedAssetLinks(IAmbienceSet obj)
+        {
+            foreach (var item in base.EnumerateListedAssetLinks(obj))
+            {
+                yield return item;
+            }
+            foreach (var item in obj.Components.WhereCastable<IAComponentGetter, IAssetLinkContainer>()
+                .SelectMany((f) => f.EnumerateListedAssetLinks()))
+            {
+                yield return item;
+            }
+            yield break;
+        }
+        
+        public void RemapAssetLinks(
+            IAmbienceSet obj,
+            IReadOnlyDictionary<IAssetLinkGetter, string> mapping,
+            IAssetLinkCache? linkCache,
+            AssetLinkQuery queryCategories)
+        {
+            base.RemapAssetLinks(obj, mapping, linkCache, queryCategories);
+            obj.Components.ForEach(x => x.RemapAssetLinks(mapping, queryCategories, linkCache));
         }
         
         #endregion
@@ -1021,6 +1169,10 @@ namespace Mutagen.Bethesda.Starfield
             AmbienceSet.Mask<bool> ret,
             EqualsMaskHelper.Include include = EqualsMaskHelper.Include.All)
         {
+            ret.Components = item.Components.CollectionEqualsHelper(
+                rhs.Components,
+                (loqLhs, loqRhs) => loqLhs.GetEqualsMask(loqRhs, include),
+                include);
             ret.Sounds = item.Sounds.CollectionEqualsHelper(
                 rhs.Sounds,
                 (loqLhs, loqRhs) => loqLhs.GetEqualsMask(loqRhs, include),
@@ -1080,6 +1232,20 @@ namespace Mutagen.Bethesda.Starfield
                 item: item,
                 sb: sb,
                 printMask: printMask);
+            if (printMask?.Components?.Overall ?? true)
+            {
+                sb.AppendLine("Components =>");
+                using (sb.Brace())
+                {
+                    foreach (var subItem in item.Components)
+                    {
+                        using (sb.Brace())
+                        {
+                            subItem?.Print(sb, "Item");
+                        }
+                    }
+                }
+            }
             if ((printMask?.Sounds?.Overall ?? true)
                 && item.Sounds is {} SoundsItem)
             {
@@ -1155,6 +1321,10 @@ namespace Mutagen.Bethesda.Starfield
         {
             if (!EqualsMaskHelper.RefEquality(lhs, rhs, out var isEqual)) return isEqual;
             if (!base.Equals((IStarfieldMajorRecordGetter)lhs, (IStarfieldMajorRecordGetter)rhs, equalsMask)) return false;
+            if ((equalsMask?.GetShouldTranslate((int)AmbienceSet_FieldIndex.Components) ?? true))
+            {
+                if (!lhs.Components.SequenceEqual(rhs.Components, (l, r) => ((AComponentCommon)((IAComponentGetter)l).CommonInstance()!).Equals(l, r, equalsMask?.GetSubCrystal((int)AmbienceSet_FieldIndex.Components)))) return false;
+            }
             if ((equalsMask?.GetShouldTranslate((int)AmbienceSet_FieldIndex.Sounds) ?? true))
             {
                 if (!lhs.Sounds.SequenceEqualNullable(rhs.Sounds, (l, r) => ((AmbientSoundEventCommon)((IAmbientSoundEventGetter)l).CommonInstance()!).Equals(l, r, equalsMask?.GetSubCrystal((int)AmbienceSet_FieldIndex.Sounds)))) return false;
@@ -1199,6 +1369,7 @@ namespace Mutagen.Bethesda.Starfield
         public virtual int GetHashCode(IAmbienceSetGetter item)
         {
             var hash = new HashCode();
+            hash.Add(item.Components);
             hash.Add(item.Sounds);
             if (item.MergeBehavior is {} MergeBehavioritem)
             {
@@ -1237,6 +1408,11 @@ namespace Mutagen.Bethesda.Starfield
             {
                 yield return item;
             }
+            foreach (var item in obj.Components.WhereCastable<IAComponentGetter, IFormLinkContainerGetter>()
+                .SelectMany((f) => f.EnumerateFormLinks(iterateNestedRecords)))
+            {
+                yield return FormLinkInformation.Factory(item);
+            }
             if (obj.Sounds is {} SoundsItem)
             {
                 foreach (var item in SoundsItem.SelectMany(f => f.EnumerateFormLinks(iterateNestedRecords)))
@@ -1250,6 +1426,20 @@ namespace Mutagen.Bethesda.Starfield
                 {
                     yield return item;
                 }
+            }
+            yield break;
+        }
+        
+        public IEnumerable<IAssetLinkGetter> EnumerateAssetLinks(IAmbienceSetGetter obj, AssetLinkQuery queryCategories, IAssetLinkCache? linkCache, Type? assetType)
+        {
+            foreach (var item in base.EnumerateAssetLinks(obj, queryCategories, linkCache, assetType))
+            {
+                yield return item;
+            }
+            foreach (var item in obj.Components.WhereCastable<IAComponentGetter, IAssetLinkContainerGetter>()
+                .SelectMany((f) => f.EnumerateAssetLinks(queryCategories: queryCategories, linkCache: linkCache, assetType: assetType)))
+            {
+                yield return item;
             }
             yield break;
         }
@@ -1347,6 +1537,30 @@ namespace Mutagen.Bethesda.Starfield
                 errorMask,
                 copyMask,
                 deepCopy: deepCopy);
+            if ((copyMask?.GetShouldTranslate((int)AmbienceSet_FieldIndex.Components) ?? true))
+            {
+                errorMask?.PushIndex((int)AmbienceSet_FieldIndex.Components);
+                try
+                {
+                    item.Components.SetTo(
+                        rhs.Components
+                        .Select(r =>
+                        {
+                            return r.DeepCopy(
+                                errorMask: errorMask,
+                                default(TranslationCrystal));
+                        }));
+                }
+                catch (Exception ex)
+                when (errorMask != null)
+                {
+                    errorMask.ReportException(ex);
+                }
+                finally
+                {
+                    errorMask?.PopIndex();
+                }
+            }
             if ((copyMask?.GetShouldTranslate((int)AmbienceSet_FieldIndex.Sounds) ?? true))
             {
                 errorMask?.PushIndex((int)AmbienceSet_FieldIndex.Sounds);
@@ -1578,6 +1792,17 @@ namespace Mutagen.Bethesda.Starfield
                 item: item,
                 writer: writer,
                 translationParams: translationParams);
+            Mutagen.Bethesda.Plugins.Binary.Translations.ListBinaryTranslation<IAComponentGetter>.Instance.Write(
+                writer: writer,
+                items: item.Components,
+                transl: (MutagenWriter subWriter, IAComponentGetter subItem, TypedWriteParams conv) =>
+                {
+                    var Item = subItem;
+                    ((AComponentBinaryWriteTranslation)((IBinaryItem)Item).BinaryWriteTranslator).Write(
+                        item: Item,
+                        writer: subWriter,
+                        translationParams: conv);
+                });
             Mutagen.Bethesda.Plugins.Binary.Translations.ListBinaryTranslation<IAmbientSoundEventGetter>.Instance.WriteWithCounter(
                 writer: writer,
                 items: item.Sounds,
@@ -1674,6 +1899,16 @@ namespace Mutagen.Bethesda.Starfield
             nextRecordType = translationParams.ConvertToStandard(nextRecordType);
             switch (nextRecordType.TypeInt)
             {
+                case RecordTypeInts.BFCB:
+                {
+                    item.Components.SetTo(
+                        Mutagen.Bethesda.Plugins.Binary.Translations.ListBinaryTranslation<AComponent>.Instance.Parse(
+                            reader: frame,
+                            triggeringRecord: AComponent_Registration.TriggerSpecs,
+                            translationParams: translationParams,
+                            transl: AComponent.TryCreateFromBinary));
+                    return (int)AmbienceSet_FieldIndex.Components;
+                }
                 case RecordTypeInts.ASAE:
                 case RecordTypeInts.ASAS:
                 {
@@ -1747,6 +1982,7 @@ namespace Mutagen.Bethesda.Starfield
         void IPrintable.Print(StructuredStringBuilder sb, string? name) => this.Print(sb, name);
 
         public override IEnumerable<IFormLinkGetter> EnumerateFormLinks(bool iterateNestedRecords = true) => AmbienceSetCommon.Instance.EnumerateFormLinks(this, iterateNestedRecords);
+        public override IEnumerable<IAssetLinkGetter> EnumerateAssetLinks(AssetLinkQuery queryCategories, IAssetLinkCache? linkCache, Type? assetType) => AmbienceSetCommon.Instance.EnumerateAssetLinks(this, queryCategories, linkCache, assetType);
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         protected override object BinaryWriteTranslator => AmbienceSetBinaryWriteTranslation.Instance;
         void IBinaryItem.WriteToBinary(
@@ -1761,6 +1997,7 @@ namespace Mutagen.Bethesda.Starfield
         protected override Type LinkType => typeof(IAmbienceSetGetter);
 
 
+        public IReadOnlyList<IAComponentGetter> Components { get; private set; } = [];
         public IReadOnlyList<IAmbientSoundEventGetter>? Sounds { get; private set; }
         #region MergeBehavior
         private int? _MergeBehaviorLocation;
@@ -1836,6 +2073,15 @@ namespace Mutagen.Bethesda.Starfield
             type = translationParams.ConvertToStandard(type);
             switch (type.TypeInt)
             {
+                case RecordTypeInts.BFCB:
+                {
+                    this.Components = this.ParseRepeatedTypelessSubrecord<IAComponentGetter>(
+                        stream: stream,
+                        translationParams: translationParams,
+                        trigger: AComponent_Registration.TriggerSpecs,
+                        factory: AComponentBinaryOverlay.AComponentFactory);
+                    return (int)AmbienceSet_FieldIndex.Components;
+                }
                 case RecordTypeInts.ASAE:
                 case RecordTypeInts.ASAS:
                 {

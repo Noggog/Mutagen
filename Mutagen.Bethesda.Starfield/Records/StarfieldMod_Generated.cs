@@ -10681,6 +10681,7 @@ namespace Mutagen.Bethesda.Starfield
             obj.Colors.RemapLinks(mapping);
             obj.ReverbParameters.RemapLinks(mapping);
             obj.ReferenceGroups.RemapLinks(mapping);
+            obj.AimModels.RemapLinks(mapping);
             obj.AimAssistModels.RemapLinks(mapping);
             obj.Layers.RemapLinks(mapping);
             obj.ConstructibleObjects.RemapLinks(mapping);
@@ -13327,6 +13328,13 @@ namespace Mutagen.Bethesda.Starfield
                     yield return item;
                 }
             }
+            if (obj.AimModels is IAssetLinkContainer AimModelslinkCont)
+            {
+                foreach (var item in AimModelslinkCont.EnumerateListedAssetLinks())
+                {
+                    yield return item;
+                }
+            }
             if (obj.AimAssistModels is IAssetLinkContainer AimAssistModelslinkCont)
             {
                 foreach (var item in AimAssistModelslinkCont.EnumerateListedAssetLinks())
@@ -13459,6 +13467,13 @@ namespace Mutagen.Bethesda.Starfield
                     yield return item;
                 }
             }
+            if (obj.AmbienceSets is IAssetLinkContainer AmbienceSetslinkCont)
+            {
+                foreach (var item in AmbienceSetslinkCont.EnumerateListedAssetLinks())
+                {
+                    yield return item;
+                }
+            }
             if (obj.LayeredMaterialSwaps is IAssetLinkContainer LayeredMaterialSwapslinkCont)
             {
                 foreach (var item in LayeredMaterialSwapslinkCont.EnumerateListedAssetLinks())
@@ -13569,6 +13584,7 @@ namespace Mutagen.Bethesda.Starfield
             obj.ArmorAddons.RemapAssetLinks(mapping, queryCategories, linkCache);
             obj.ArtObjects.RemapAssetLinks(mapping, queryCategories, linkCache);
             obj.ReferenceGroups.RemapAssetLinks(mapping, queryCategories, linkCache);
+            obj.AimModels.RemapAssetLinks(mapping, queryCategories, linkCache);
             obj.AimAssistModels.RemapAssetLinks(mapping, queryCategories, linkCache);
             obj.Layers.RemapAssetLinks(mapping, queryCategories, linkCache);
             obj.ConstructibleObjects.RemapAssetLinks(mapping, queryCategories, linkCache);
@@ -13588,6 +13604,7 @@ namespace Mutagen.Bethesda.Starfield
             obj.PlanetContentManagerContentNodes.RemapAssetLinks(mapping, queryCategories, linkCache);
             obj.Stars.RemapAssetLinks(mapping, queryCategories, linkCache);
             obj.AimOpticalSightMarkers.RemapAssetLinks(mapping, queryCategories, linkCache);
+            obj.AmbienceSets.RemapAssetLinks(mapping, queryCategories, linkCache);
             obj.LayeredMaterialSwaps.RemapAssetLinks(mapping, queryCategories, linkCache);
             obj.LegendaryItems.RemapAssetLinks(mapping, queryCategories, linkCache);
             obj.TimeOfDays.RemapAssetLinks(mapping, queryCategories, linkCache);
@@ -18012,6 +18029,13 @@ namespace Mutagen.Bethesda.Starfield
             {
                 yield return item;
             }
+            if (obj.AimModels is IFormLinkContainerGetter AimModelslinkCont)
+            {
+                foreach (var item in AimModelslinkCont.EnumerateFormLinks(iterateNestedRecords))
+                {
+                    yield return item;
+                }
+            }
             if (obj.AimAssistModels is IFormLinkContainerGetter AimAssistModelslinkCont)
             {
                 foreach (var item in AimAssistModelslinkCont.EnumerateFormLinks(iterateNestedRecords))
@@ -18205,9 +18229,12 @@ namespace Mutagen.Bethesda.Starfield
             {
                 yield return item;
             }
-            foreach (var item in obj.AmbienceSets.EnumerateFormLinks(iterateNestedRecords))
+            if (obj.AmbienceSets is IFormLinkContainerGetter AmbienceSetslinkCont)
             {
-                yield return item;
+                foreach (var item in AmbienceSetslinkCont.EnumerateFormLinks(iterateNestedRecords))
+                {
+                    yield return item;
+                }
             }
             if (obj.LayeredMaterialSwaps is IFormLinkContainerGetter LayeredMaterialSwapslinkCont)
             {
@@ -25524,6 +25551,13 @@ namespace Mutagen.Bethesda.Starfield
                     yield return item;
                 }
             }
+            if (obj.AimModels is IAssetLinkContainerGetter AimModelslinkCont)
+            {
+                foreach (var item in AimModelslinkCont.EnumerateAssetLinks(queryCategories: queryCategories, linkCache: linkCache, assetType: assetType))
+                {
+                    yield return item;
+                }
+            }
             if (obj.AimAssistModels is IAssetLinkContainerGetter AimAssistModelslinkCont)
             {
                 foreach (var item in AimAssistModelslinkCont.EnumerateAssetLinks(queryCategories: queryCategories, linkCache: linkCache, assetType: assetType))
@@ -25650,6 +25684,13 @@ namespace Mutagen.Bethesda.Starfield
             if (obj.AimOpticalSightMarkers is IAssetLinkContainerGetter AimOpticalSightMarkerslinkCont)
             {
                 foreach (var item in AimOpticalSightMarkerslinkCont.EnumerateAssetLinks(queryCategories: queryCategories, linkCache: linkCache, assetType: assetType))
+                {
+                    yield return item;
+                }
+            }
+            if (obj.AmbienceSets is IAssetLinkContainerGetter AmbienceSetslinkCont)
+            {
+                foreach (var item in AmbienceSetslinkCont.EnumerateAssetLinks(queryCategories: queryCategories, linkCache: linkCache, assetType: assetType))
                 {
                     yield return item;
                 }

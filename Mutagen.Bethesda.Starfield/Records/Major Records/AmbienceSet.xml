@@ -2,6 +2,7 @@
 <Loqui xmlns="http://tempuri.org/LoquiSource.xsd">
   <Object name="AmbienceSet" recordType="AMBS" objType="Record" baseClass="StarfieldMajorRecord">
     <Fields>
+      <RefList name="Components" refName="AComponent" />
       <RefList name="Sounds" refName="AmbientSoundEvent" counterRecType="ASAS" />
       <Enum name="MergeBehavior" recordType="ASMB" byteLength="1" enumName="AmbienceSet.MergeBehaviorEnum" />
       <RefDirect name="WallaExterior" refName="SoundReference" recordType="WED0" />

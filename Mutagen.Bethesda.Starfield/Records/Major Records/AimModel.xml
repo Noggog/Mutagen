@@ -2,12 +2,13 @@
 <Loqui xmlns="http://tempuri.org/LoquiSource.xsd">
   <Object name="AimModel" recordType="AMDL" objType="Record" baseClass="StarfieldMajorRecord">
     <Fields>
+      <RefList name="Components" refName="AComponent" />
       <Data recordType="ANAM">
         <Fields>
           <Float name="ConeOfFireDegreesX" />
           <Float name="ConeOfFireDegreesY" />
           <Float name="ConeOfFireIncreasePerShot" />
-          <Float name="ConeOfFireIncreasePerSec" />
+          <Float name="ConeOfFireDecreasePerSec" />
           <Float name="ConeOfFireDecreaseDelaySeconds" />
           <Float name="ConeOfFireSneakMult" />
           <Float name="RecoilDiminishSpringForce" />

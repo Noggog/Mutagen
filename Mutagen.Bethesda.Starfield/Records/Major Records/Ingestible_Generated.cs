@@ -280,8 +280,9 @@ namespace Mutagen.Bethesda.Starfield
         ISoundReferenceGetter? IIngestibleGetter.CraftingSound => this.CraftingSound;
         #endregion
         #region Description
-        public TranslatedString Description { get; set; } = string.Empty;
-        ITranslatedStringGetter IIngestibleGetter.Description => this.Description;
+        public TranslatedString? Description { get; set; }
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        ITranslatedStringGetter? IIngestibleGetter.Description => this.Description;
         #endregion
         #region Resources
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -1967,7 +1968,7 @@ namespace Mutagen.Bethesda.Starfield
         new SoundReference? DropdownSound { get; set; }
         new IFormLinkNullable<IEquipTypeGetter> EquipmentType { get; set; }
         new SoundReference? CraftingSound { get; set; }
-        new TranslatedString Description { get; set; }
+        new TranslatedString? Description { get; set; }
         new ExtendedList<ItemResource>? Resources { get; set; }
         new ExtendedList<Byte>? ComponentDisplayIndices { get; set; }
         new Single Weight { get; set; }
@@ -2063,7 +2064,7 @@ namespace Mutagen.Bethesda.Starfield
         ISoundReferenceGetter? DropdownSound { get; }
         IFormLinkNullableGetter<IEquipTypeGetter> EquipmentType { get; }
         ISoundReferenceGetter? CraftingSound { get; }
-        ITranslatedStringGetter Description { get; }
+        ITranslatedStringGetter? Description { get; }
         IReadOnlyList<IItemResourceGetter>? Resources { get; }
         IReadOnlyList<Byte>? ComponentDisplayIndices { get; }
         Single Weight { get; }
@@ -2429,7 +2430,7 @@ namespace Mutagen.Bethesda.Starfield
             item.DropdownSound = null;
             item.EquipmentType.Clear();
             item.CraftingSound = null;
-            item.Description.Clear();
+            item.Description = default;
             item.Resources = null;
             item.ComponentDisplayIndices = null;
             item.Weight = default(Single);
@@ -2791,9 +2792,10 @@ namespace Mutagen.Bethesda.Starfield
             {
                 CraftingSoundItem?.Print(sb, "CraftingSound");
             }
-            if (printMask?.Description ?? true)
+            if ((printMask?.Description ?? true)
+                && item.Description is {} DescriptionItem)
             {
-                sb.AppendItem(item.Description, "Description");
+                sb.AppendItem(DescriptionItem, "Description");
             }
             if ((printMask?.Resources?.Overall ?? true)
                 && item.Resources is {} ResourcesItem)
@@ -3135,7 +3137,10 @@ namespace Mutagen.Bethesda.Starfield
             {
                 hash.Add(CraftingSounditem);
             }
-            hash.Add(item.Description);
+            if (item.Description is {} Descriptionitem)
+            {
+                hash.Add(Descriptionitem);
+            }
             hash.Add(item.Resources);
             hash.Add(item.ComponentDisplayIndices);
             hash.Add(item.Weight);
@@ -3682,7 +3687,7 @@ namespace Mutagen.Bethesda.Starfield
             }
             if ((copyMask?.GetShouldTranslate((int)Ingestible_FieldIndex.Description) ?? true))
             {
-                item.Description = rhs.Description.DeepCopy();
+                item.Description = rhs.Description?.DeepCopy();
             }
             if ((copyMask?.GetShouldTranslate((int)Ingestible_FieldIndex.Resources) ?? true))
             {
@@ -4093,7 +4098,7 @@ namespace Mutagen.Bethesda.Starfield
                         translationParams: translationParams);
                 }
             }
-            StringBinaryTranslation.Instance.Write(
+            StringBinaryTranslation.Instance.WriteNullable(
                 writer: writer,
                 item: item.Description,
                 header: translationParams.ConvertToCustom(RecordTypes.DESC),
@@ -4546,7 +4551,7 @@ namespace Mutagen.Bethesda.Starfield
         public ISoundReferenceGetter? CraftingSound { get; private set; }
         #region Description
         private int? _DescriptionLocation;
-        public ITranslatedStringGetter Description => _DescriptionLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _DescriptionLocation.Value, _package.MetaData.Constants), StringsSource.DL, parsingBundle: _package.MetaData, eager: false) : TranslatedString.Empty;
+        public ITranslatedStringGetter? Description => _DescriptionLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _DescriptionLocation.Value, _package.MetaData.Constants), StringsSource.DL, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
         #endregion
         public IReadOnlyList<IItemResourceGetter>? Resources { get; private set; }
         public IReadOnlyList<Byte>? ComponentDisplayIndices { get; private set; }
