@@ -30,7 +30,6 @@ internal sealed class ModHeaderWriteLogic
     private GameConstants _constants;
     private readonly IModGetter _mod;
     private readonly HashSet<FormKey> _overriddenForms = new();
-    private RangeUInt32? _recordRange;
 
     private ModHeaderWriteLogic(
         BinaryWriteParameters param,
@@ -55,7 +54,7 @@ internal sealed class ModHeaderWriteLogic
         var modHeaderWriter = new ModHeaderWriteLogic(
             param: param,
             mod: mod);
-        modHeaderWriter.AddProcessors(mod, modHeader);
+        modHeaderWriter.AddProcessors(mod);
         modHeaderWriter.RunProcessors(mod);
         modHeaderWriter.PostProcessAdjustments(writer, mod, modHeader, 
             modHeaderWriter._constants.SeparateMasterLoadOrders
@@ -64,9 +63,7 @@ internal sealed class ModHeaderWriteLogic
         modHeader.WriteToBinary(writer);
     }
 
-    private void AddProcessors(
-        IModGetter mod, 
-        IModHeaderCommon modHeader)
+    private void AddProcessors(IModGetter mod)
     {
         AddNullFormKeyCheck();
         AddMasterCollectionActions(mod);
@@ -74,7 +71,6 @@ internal sealed class ModHeaderWriteLogic
         AddNextFormIDActions();
         AddFormIDUniqueness();
         AddFormIDCompactionLogic();
-        AddCompactionTracking(modHeader);
         AddDisallowedLowerFormIDs();
         RegisterOverriddenFormsFishing();
     }
@@ -377,30 +373,6 @@ internal sealed class ModHeaderWriteLogic
             default:
                 throw new NotImplementedException();
         }
-    }
-    #endregion
-
-    #region Compaction
-    private void AddCompactionTracking(IModHeaderCommon header)
-    {
-        _recordIterationActions.Add(maj =>
-        {
-            if (maj.FormKey.ModKey == _modKey)
-            {
-                if (_recordRange == null)
-                {
-                    _recordRange = new RangeUInt32(maj.FormKey.ID);
-                }
-                else if (maj.FormKey.ID > _recordRange.Value.Max)
-                {
-                    _recordRange = new RangeUInt32(_recordRange.Value.Min, maj.FormKey.ID);
-                }
-                else if (maj.FormKey.ID < _recordRange.Value.Min)
-                {
-                    _recordRange = new RangeUInt32(maj.FormKey.ID, _recordRange.Value.Max);
-                }
-            }
-        });
     }
     #endregion
 

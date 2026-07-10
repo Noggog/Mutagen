@@ -669,6 +669,8 @@ public abstract class PassthroughTest
             .NoNextFormIDProcessing()
             .NoFormIDUniquenessCheck()
             .NoFormIDCompactnessCheck()
+            .NoNullFormKeyCheck()
+            .NoCheckIfLowerRangeDisallowed()
             .SingleThread();
     }
 
