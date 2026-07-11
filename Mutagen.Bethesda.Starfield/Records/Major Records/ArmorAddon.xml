@@ -60,7 +60,7 @@
         </Fields>
       </Gendered>
       <List name="ExtraLightLayers">
-        <UInt32 recordType="FLLD" />
+        <Enum enumName="LightLayer" byteLength="4" recordType="FLLD" />
       </List>
       <Gendered name="SkinTexture" shortCircuit="false" parseNonConvertedItems="false">
         <FemaleTypeOverrides>

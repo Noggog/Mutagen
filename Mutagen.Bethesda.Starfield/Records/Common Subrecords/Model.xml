@@ -7,7 +7,7 @@
       <List name="MaterialSwaps" recordType="MOLM" counterLength="2"  >
         <FormLink refName="LayeredMaterialSwap" />
       </List>
-      <UInt32 name="LightLayer" recordType="FLLD" />
+      <Enum name="LightLayer" enumName="LightLayer" byteLength="4" recordType="FLLD" />
       <Enum name="Flags" recordType="XFLG" enumName="Model.Flag" byteLength="1" />
       <Float name="ColorRemappingIndex" recordType="MODC" />
       <Enum name="FlagsVestigial" enumName="Model.Flag" byteLength="1" recordType="MODF" />
@@ -16,7 +16,7 @@
   <Object name="FirstPersonModel" objType="Subrecord">
     <Fields>
       <AssetLink name="File" recordType="MOD4" assetType="StarfieldModel" />
-      <UInt32 name="LightLayer" recordType="FLLD" />
+      <Enum name="LightLayer" enumName="LightLayer" byteLength="4" recordType="FLLD" />
       <FormLink name="MaterialSwap" refName="LayeredMaterialSwap" recordType="MO4S" />
       <Float name="ColorRemappingIndex" recordType="MO4C" />
     </Fields>

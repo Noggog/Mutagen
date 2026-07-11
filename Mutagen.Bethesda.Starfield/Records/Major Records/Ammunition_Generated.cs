@@ -250,9 +250,9 @@ namespace Mutagen.Bethesda.Starfield
         String? IAmmunitionGetter.CasingModel => this.CasingModel;
         #endregion
         #region LightLayer
-        public UInt32? LightLayer { get; set; }
+        public LightLayer? LightLayer { get; set; }
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        UInt32? IAmmunitionGetter.LightLayer => this.LightLayer;
+        LightLayer? IAmmunitionGetter.LightLayer => this.LightLayer;
         #endregion
 
         #region To String
@@ -1370,7 +1370,7 @@ namespace Mutagen.Bethesda.Starfield
         new UInt32 Health { get; set; }
         new TranslatedString? ShortName { get; set; }
         new String? CasingModel { get; set; }
-        new UInt32? LightLayer { get; set; }
+        new LightLayer? LightLayer { get; set; }
         #region Mutagen
         new Ammunition.MajorFlag MajorFlags { get; set; }
         #endregion
@@ -1452,7 +1452,7 @@ namespace Mutagen.Bethesda.Starfield
         UInt32 Health { get; }
         ITranslatedStringGetter? ShortName { get; }
         String? CasingModel { get; }
-        UInt32? LightLayer { get; }
+        LightLayer? LightLayer { get; }
 
         #region Mutagen
         Ammunition.MajorFlag MajorFlags { get; }
@@ -2997,9 +2997,10 @@ namespace Mutagen.Bethesda.Starfield
                 item: item.CasingModel,
                 header: translationParams.ConvertToCustom(RecordTypes.NAM1),
                 binaryType: StringBinaryType.NullTerminate);
-            UInt32BinaryTranslation<MutagenFrame, MutagenWriter>.Instance.WriteNullable(
-                writer: writer,
-                item: item.LightLayer,
+            EnumBinaryTranslation<LightLayer, MutagenFrame, MutagenWriter>.Instance.WriteNullable(
+                writer,
+                item.LightLayer,
+                length: 4,
                 header: translationParams.ConvertToCustom(RecordTypes.FLLD));
         }
 
@@ -3124,7 +3125,9 @@ namespace Mutagen.Bethesda.Starfield
                     else if (lastParsed.ParsedIndex.Value <= (int)Ammunition_FieldIndex.CasingModel)
                     {
                         frame.Position += frame.MetaData.Constants.SubConstants.HeaderLength;
-                        item.LightLayer = frame.ReadUInt32();
+                        item.LightLayer = EnumBinaryTranslation<LightLayer, MutagenFrame, MutagenWriter>.Instance.Parse(
+                            reader: frame,
+                            length: contentLength);
                         return new ParseResult((int)Ammunition_FieldIndex.LightLayer, nextRecordType);
                     }
                     else
@@ -3138,7 +3141,9 @@ namespace Mutagen.Bethesda.Starfield
                                 return new ParseResult((int)Ammunition_FieldIndex.Model, nextRecordType);
                             case 1:
                                 frame.Position += frame.MetaData.Constants.SubConstants.HeaderLength;
-                                item.LightLayer = frame.ReadUInt32();
+                                item.LightLayer = EnumBinaryTranslation<LightLayer, MutagenFrame, MutagenWriter>.Instance.Parse(
+                                    reader: frame,
+                                    length: contentLength);
                                 return new ParseResult((int)Ammunition_FieldIndex.LightLayer, nextRecordType);
                             default:
                                 throw new NotImplementedException();
@@ -3377,7 +3382,7 @@ namespace Mutagen.Bethesda.Starfield
         #endregion
         #region LightLayer
         private int? _LightLayerLocation;
-        public UInt32? LightLayer => _LightLayerLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _LightLayerLocation.Value, _package.MetaData.Constants)) : default(UInt32?);
+        public LightLayer? LightLayer => EnumBinaryTranslation<LightLayer, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(_LightLayerLocation, _recordData, _package, 4);
         #endregion
         partial void CustomFactoryEnd(
             OverlayStream stream,

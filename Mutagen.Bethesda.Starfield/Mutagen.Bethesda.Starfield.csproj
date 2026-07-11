@@ -133,6 +133,7 @@
     <Compile Include="Enums\GroupTypeEnum.cs" />
     <Compile Include="Enums\HitBehavior.cs" />
     <Compile Include="Enums\Level.cs" />
+    <Compile Include="Enums\LightLayer.cs" />
     <Compile Include="Enums\LockLevel.cs" />
     <Compile Include="Enums\PerkCategory.cs" />
     <Compile Include="Enums\PerkSkillGroup.cs" />

@@ -30,7 +30,7 @@
       </Data>
       <String name="ShortName" recordType="ONAM" translated="Normal" />
       <String name="CasingModel" recordType="NAM1" />
-      <UInt32 name="LightLayer" recordType="FLLD" />
+      <Enum name="LightLayer" enumName="LightLayer" byteLength="4" recordType="FLLD" />
     </Fields>
     <LinkInterface>IStaticTarget</LinkInterface>
     <LinkInterface>IItem</LinkInterface>

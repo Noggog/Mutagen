@@ -61,9 +61,9 @@ namespace Mutagen.Bethesda.Starfield
         AssetLinkGetter<StarfieldModelAssetType>? IFirstPersonModelGetter.File => this.File;
         #endregion
         #region LightLayer
-        public UInt32? LightLayer { get; set; }
+        public LightLayer? LightLayer { get; set; }
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        UInt32? IFirstPersonModelGetter.LightLayer => this.LightLayer;
+        LightLayer? IFirstPersonModelGetter.LightLayer => this.LightLayer;
         #endregion
         #region MaterialSwap
         private readonly IFormLinkNullable<ILayeredMaterialSwapGetter> _MaterialSwap = new FormLinkNullable<ILayeredMaterialSwapGetter>();
@@ -542,7 +542,7 @@ namespace Mutagen.Bethesda.Starfield
         ILoquiObjectSetter<IFirstPersonModel>
     {
         new AssetLink<StarfieldModelAssetType>? File { get; set; }
-        new UInt32? LightLayer { get; set; }
+        new LightLayer? LightLayer { get; set; }
         new IFormLinkNullable<ILayeredMaterialSwapGetter> MaterialSwap { get; set; }
         new Single? ColorRemappingIndex { get; set; }
     }
@@ -562,7 +562,7 @@ namespace Mutagen.Bethesda.Starfield
         object CommonSetterTranslationInstance();
         static ILoquiRegistration StaticRegistration => FirstPersonModel_Registration.Instance;
         AssetLinkGetter<StarfieldModelAssetType>? File { get; }
-        UInt32? LightLayer { get; }
+        LightLayer? LightLayer { get; }
         IFormLinkNullableGetter<ILayeredMaterialSwapGetter> MaterialSwap { get; }
         Single? ColorRemappingIndex { get; }
 
@@ -1187,9 +1187,10 @@ namespace Mutagen.Bethesda.Starfield
                 item: item.File?.GivenPath,
                 header: translationParams.ConvertToCustom(RecordTypes.MOD4),
                 binaryType: StringBinaryType.NullTerminate);
-            UInt32BinaryTranslation<MutagenFrame, MutagenWriter>.Instance.WriteNullable(
-                writer: writer,
-                item: item.LightLayer,
+            EnumBinaryTranslation<LightLayer, MutagenFrame, MutagenWriter>.Instance.WriteNullable(
+                writer,
+                item.LightLayer,
+                length: 4,
                 header: translationParams.ConvertToCustom(RecordTypes.FLLD));
             FormLinkBinaryTranslation.Instance.WriteNullable(
                 writer: writer,
@@ -1252,7 +1253,9 @@ namespace Mutagen.Bethesda.Starfield
                 {
                     if (lastParsed.ShortCircuit((int)FirstPersonModel_FieldIndex.LightLayer, translationParams)) return ParseResult.Stop;
                     frame.Position += frame.MetaData.Constants.SubConstants.HeaderLength;
-                    item.LightLayer = frame.ReadUInt32();
+                    item.LightLayer = EnumBinaryTranslation<LightLayer, MutagenFrame, MutagenWriter>.Instance.Parse(
+                        reader: frame,
+                        length: contentLength);
                     return (int)FirstPersonModel_FieldIndex.LightLayer;
                 }
                 case RecordTypeInts.MO4S:
@@ -1345,7 +1348,7 @@ namespace Mutagen.Bethesda.Starfield
         #endregion
         #region LightLayer
         private int? _LightLayerLocation;
-        public UInt32? LightLayer => _LightLayerLocation.HasValue ? BinaryPrimitives.ReadUInt32LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _LightLayerLocation.Value, _package.MetaData.Constants)) : default(UInt32?);
+        public LightLayer? LightLayer => EnumBinaryTranslation<LightLayer, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(_LightLayerLocation, _recordData, _package, 4);
         #endregion
         #region MaterialSwap
         private int? _MaterialSwapLocation;

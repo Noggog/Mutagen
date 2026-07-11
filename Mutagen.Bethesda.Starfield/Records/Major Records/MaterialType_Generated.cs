@@ -135,16 +135,10 @@ namespace Mutagen.Bethesda.Starfield
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         String? IMaterialTypeGetter.BreakableFX => this.BreakableFX;
         #endregion
-        #region ModelData
+        #region LightLayer
+        public LightLayer? LightLayer { get; set; }
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        protected MemorySlice<Byte>? _ModelData;
-        public MemorySlice<Byte>? ModelData
-        {
-            get => this._ModelData;
-            set => this._ModelData = value;
-        }
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        ReadOnlyMemorySlice<Byte>? IMaterialTypeGetter.ModelData => this.ModelData;
+        LightLayer? IMaterialTypeGetter.LightLayer => this.LightLayer;
         #endregion
 
         #region To String
@@ -179,7 +173,7 @@ namespace Mutagen.Bethesda.Starfield
                 this.HavokImpactDataSet = initialValue;
                 this.Model = new MaskItem<TItem, Model.Mask<TItem>?>(initialValue, new Model.Mask<TItem>(initialValue));
                 this.BreakableFX = initialValue;
-                this.ModelData = initialValue;
+                this.LightLayer = initialValue;
             }
 
             public Mask(
@@ -198,7 +192,7 @@ namespace Mutagen.Bethesda.Starfield
                 TItem HavokImpactDataSet,
                 TItem Model,
                 TItem BreakableFX,
-                TItem ModelData)
+                TItem LightLayer)
             : base(
                 MajorRecordFlagsRaw: MajorRecordFlagsRaw,
                 FormKey: FormKey,
@@ -216,7 +210,7 @@ namespace Mutagen.Bethesda.Starfield
                 this.HavokImpactDataSet = HavokImpactDataSet;
                 this.Model = new MaskItem<TItem, Model.Mask<TItem>?>(Model, new Model.Mask<TItem>(Model));
                 this.BreakableFX = BreakableFX;
-                this.ModelData = ModelData;
+                this.LightLayer = LightLayer;
             }
 
             #pragma warning disable CS8618
@@ -236,7 +230,7 @@ namespace Mutagen.Bethesda.Starfield
             public TItem HavokImpactDataSet;
             public MaskItem<TItem, Model.Mask<TItem>?>? Model { get; set; }
             public TItem BreakableFX;
-            public TItem ModelData;
+            public TItem LightLayer;
             #endregion
 
             #region Equals
@@ -258,7 +252,7 @@ namespace Mutagen.Bethesda.Starfield
                 if (!object.Equals(this.HavokImpactDataSet, rhs.HavokImpactDataSet)) return false;
                 if (!object.Equals(this.Model, rhs.Model)) return false;
                 if (!object.Equals(this.BreakableFX, rhs.BreakableFX)) return false;
-                if (!object.Equals(this.ModelData, rhs.ModelData)) return false;
+                if (!object.Equals(this.LightLayer, rhs.LightLayer)) return false;
                 return true;
             }
             public override int GetHashCode()
@@ -272,7 +266,7 @@ namespace Mutagen.Bethesda.Starfield
                 hash.Add(this.HavokImpactDataSet);
                 hash.Add(this.Model);
                 hash.Add(this.BreakableFX);
-                hash.Add(this.ModelData);
+                hash.Add(this.LightLayer);
                 hash.Add(base.GetHashCode());
                 return hash.ToHashCode();
             }
@@ -295,7 +289,7 @@ namespace Mutagen.Bethesda.Starfield
                     if (this.Model.Specific != null && !this.Model.Specific.All(eval)) return false;
                 }
                 if (!eval(this.BreakableFX)) return false;
-                if (!eval(this.ModelData)) return false;
+                if (!eval(this.LightLayer)) return false;
                 return true;
             }
             #endregion
@@ -316,7 +310,7 @@ namespace Mutagen.Bethesda.Starfield
                     if (this.Model.Specific != null && this.Model.Specific.Any(eval)) return true;
                 }
                 if (eval(this.BreakableFX)) return true;
-                if (eval(this.ModelData)) return true;
+                if (eval(this.LightLayer)) return true;
                 return false;
             }
             #endregion
@@ -340,7 +334,7 @@ namespace Mutagen.Bethesda.Starfield
                 obj.HavokImpactDataSet = eval(this.HavokImpactDataSet);
                 obj.Model = this.Model == null ? null : new MaskItem<R, Model.Mask<R>?>(eval(this.Model.Overall), this.Model.Specific?.Translate(eval));
                 obj.BreakableFX = eval(this.BreakableFX);
-                obj.ModelData = eval(this.ModelData);
+                obj.LightLayer = eval(this.LightLayer);
             }
             #endregion
 
@@ -391,9 +385,9 @@ namespace Mutagen.Bethesda.Starfield
                     {
                         sb.AppendItem(BreakableFX, "BreakableFX");
                     }
-                    if (printMask?.ModelData ?? true)
+                    if (printMask?.LightLayer ?? true)
                     {
-                        sb.AppendItem(ModelData, "ModelData");
+                        sb.AppendItem(LightLayer, "LightLayer");
                     }
                 }
             }
@@ -414,7 +408,7 @@ namespace Mutagen.Bethesda.Starfield
             public Exception? HavokImpactDataSet;
             public MaskItem<Exception?, Model.ErrorMask?>? Model;
             public Exception? BreakableFX;
-            public Exception? ModelData;
+            public Exception? LightLayer;
             #endregion
 
             #region IErrorMask
@@ -439,8 +433,8 @@ namespace Mutagen.Bethesda.Starfield
                         return Model;
                     case MaterialType_FieldIndex.BreakableFX:
                         return BreakableFX;
-                    case MaterialType_FieldIndex.ModelData:
-                        return ModelData;
+                    case MaterialType_FieldIndex.LightLayer:
+                        return LightLayer;
                     default:
                         return base.GetNthMask(index);
                 }
@@ -475,8 +469,8 @@ namespace Mutagen.Bethesda.Starfield
                     case MaterialType_FieldIndex.BreakableFX:
                         this.BreakableFX = ex;
                         break;
-                    case MaterialType_FieldIndex.ModelData:
-                        this.ModelData = ex;
+                    case MaterialType_FieldIndex.LightLayer:
+                        this.LightLayer = ex;
                         break;
                     default:
                         base.SetNthException(index, ex);
@@ -513,8 +507,8 @@ namespace Mutagen.Bethesda.Starfield
                     case MaterialType_FieldIndex.BreakableFX:
                         this.BreakableFX = (Exception?)obj;
                         break;
-                    case MaterialType_FieldIndex.ModelData:
-                        this.ModelData = (Exception?)obj;
+                    case MaterialType_FieldIndex.LightLayer:
+                        this.LightLayer = (Exception?)obj;
                         break;
                     default:
                         base.SetNthMask(index, obj);
@@ -533,7 +527,7 @@ namespace Mutagen.Bethesda.Starfield
                 if (HavokImpactDataSet != null) return true;
                 if (Model != null) return true;
                 if (BreakableFX != null) return true;
-                if (ModelData != null) return true;
+                if (LightLayer != null) return true;
                 return false;
             }
             #endregion
@@ -583,7 +577,7 @@ namespace Mutagen.Bethesda.Starfield
                     sb.AppendItem(BreakableFX, "BreakableFX");
                 }
                 {
-                    sb.AppendItem(ModelData, "ModelData");
+                    sb.AppendItem(LightLayer, "LightLayer");
                 }
             }
             #endregion
@@ -601,7 +595,7 @@ namespace Mutagen.Bethesda.Starfield
                 ret.HavokImpactDataSet = this.HavokImpactDataSet.Combine(rhs.HavokImpactDataSet);
                 ret.Model = this.Model.Combine(rhs.Model, (l, r) => l.Combine(r));
                 ret.BreakableFX = this.BreakableFX.Combine(rhs.BreakableFX);
-                ret.ModelData = this.ModelData.Combine(rhs.ModelData);
+                ret.LightLayer = this.LightLayer.Combine(rhs.LightLayer);
                 return ret;
             }
             public static ErrorMask? Combine(ErrorMask? lhs, ErrorMask? rhs)
@@ -632,7 +626,7 @@ namespace Mutagen.Bethesda.Starfield
             public bool HavokImpactDataSet;
             public Model.TranslationMask? Model;
             public bool BreakableFX;
-            public bool ModelData;
+            public bool LightLayer;
             #endregion
 
             #region Ctors
@@ -648,7 +642,7 @@ namespace Mutagen.Bethesda.Starfield
                 this.Flags = defaultOn;
                 this.HavokImpactDataSet = defaultOn;
                 this.BreakableFX = defaultOn;
-                this.ModelData = defaultOn;
+                this.LightLayer = defaultOn;
             }
 
             #endregion
@@ -664,7 +658,7 @@ namespace Mutagen.Bethesda.Starfield
                 ret.Add((HavokImpactDataSet, null));
                 ret.Add((Model != null ? Model.OnOverall : DefaultOn, Model?.GetCrystal()));
                 ret.Add((BreakableFX, null));
-                ret.Add((ModelData, null));
+                ret.Add((LightLayer, null));
             }
 
             public static implicit operator TranslationMask(bool defaultOn)
@@ -834,7 +828,7 @@ namespace Mutagen.Bethesda.Starfield
         /// </summary>
         new Model? Model { get; set; }
         new String? BreakableFX { get; set; }
-        new MemorySlice<Byte>? ModelData { get; set; }
+        new LightLayer? LightLayer { get; set; }
     }
 
     public partial interface IMaterialTypeInternal :
@@ -875,7 +869,7 @@ namespace Mutagen.Bethesda.Starfield
         IModelGetter? Model { get; }
         #endregion
         String? BreakableFX { get; }
-        ReadOnlyMemorySlice<Byte>? ModelData { get; }
+        LightLayer? LightLayer { get; }
 
     }
 
@@ -1060,7 +1054,7 @@ namespace Mutagen.Bethesda.Starfield
         HavokImpactDataSet = 12,
         Model = 13,
         BreakableFX = 14,
-        ModelData = 15,
+        LightLayer = 15,
     }
     #endregion
 
@@ -1172,7 +1166,7 @@ namespace Mutagen.Bethesda.Starfield
             item.HavokImpactDataSet.Clear();
             item.Model = null;
             item.BreakableFX = default;
-            item.ModelData = default;
+            item.LightLayer = default;
             base.Clear(item);
         }
         
@@ -1298,7 +1292,7 @@ namespace Mutagen.Bethesda.Starfield
                 (loqLhs, loqRhs, incl) => loqLhs.GetEqualsMask(loqRhs, incl),
                 include);
             ret.BreakableFX = string.Equals(item.BreakableFX, rhs.BreakableFX);
-            ret.ModelData = MemorySliceExt.SequenceEqual(item.ModelData, rhs.ModelData);
+            ret.LightLayer = item.LightLayer == rhs.LightLayer;
             base.FillEqualsMask(item, rhs, ret, include);
         }
         
@@ -1386,10 +1380,10 @@ namespace Mutagen.Bethesda.Starfield
             {
                 sb.AppendItem(BreakableFXItem, "BreakableFX");
             }
-            if ((printMask?.ModelData ?? true)
-                && item.ModelData is {} ModelDataItem)
+            if ((printMask?.LightLayer ?? true)
+                && item.LightLayer is {} LightLayerItem)
             {
-                sb.AppendLine($"ModelData => {SpanExt.ToHexString(ModelDataItem)}");
+                sb.AppendItem(LightLayerItem, "LightLayer");
             }
         }
         
@@ -1477,9 +1471,9 @@ namespace Mutagen.Bethesda.Starfield
             {
                 if (!string.Equals(lhs.BreakableFX, rhs.BreakableFX)) return false;
             }
-            if ((equalsMask?.GetShouldTranslate((int)MaterialType_FieldIndex.ModelData) ?? true))
+            if ((equalsMask?.GetShouldTranslate((int)MaterialType_FieldIndex.LightLayer) ?? true))
             {
-                if (!MemorySliceExt.SequenceEqual(lhs.ModelData, rhs.ModelData)) return false;
+                if (lhs.LightLayer != rhs.LightLayer) return false;
             }
             return true;
         }
@@ -1535,9 +1529,9 @@ namespace Mutagen.Bethesda.Starfield
             {
                 hash.Add(BreakableFXitem);
             }
-            if (item.ModelData is {} ModelDataItem)
+            if (item.LightLayer is {} LightLayeritem)
             {
-                hash.Add(ModelDataItem);
+                hash.Add(LightLayeritem);
             }
             hash.Add(base.GetHashCode());
             return hash.ToHashCode();
@@ -1749,16 +1743,9 @@ namespace Mutagen.Bethesda.Starfield
             {
                 item.BreakableFX = rhs.BreakableFX;
             }
-            if ((copyMask?.GetShouldTranslate((int)MaterialType_FieldIndex.ModelData) ?? true))
+            if ((copyMask?.GetShouldTranslate((int)MaterialType_FieldIndex.LightLayer) ?? true))
             {
-                if(rhs.ModelData is {} ModelDatarhs)
-                {
-                    item.ModelData = ModelDatarhs.ToArray();
-                }
-                else
-                {
-                    item.ModelData = default;
-                }
+                item.LightLayer = rhs.LightLayer;
             }
             DeepCopyInCustom(
                 item: item,
@@ -1968,9 +1955,10 @@ namespace Mutagen.Bethesda.Starfield
                 item: item.BreakableFX,
                 header: translationParams.ConvertToCustom(RecordTypes.ANAM),
                 binaryType: StringBinaryType.NullTerminate);
-            ByteArrayBinaryTranslation<MutagenFrame, MutagenWriter>.Instance.Write(
-                writer: writer,
-                item: item.ModelData,
+            EnumBinaryTranslation<LightLayer, MutagenFrame, MutagenWriter>.Instance.WriteNullable(
+                writer,
+                item.LightLayer,
+                length: 4,
                 header: translationParams.ConvertToCustom(RecordTypes.FLLD));
         }
 
@@ -2100,8 +2088,10 @@ namespace Mutagen.Bethesda.Starfield
                     else if (lastParsed.ParsedIndex.Value <= (int)MaterialType_FieldIndex.BreakableFX)
                     {
                         frame.Position += frame.MetaData.Constants.SubConstants.HeaderLength;
-                        item.ModelData = ByteArrayBinaryTranslation<MutagenFrame, MutagenWriter>.Instance.Parse(reader: frame.SpawnWithLength(contentLength));
-                        return new ParseResult((int)MaterialType_FieldIndex.ModelData, nextRecordType);
+                        item.LightLayer = EnumBinaryTranslation<LightLayer, MutagenFrame, MutagenWriter>.Instance.Parse(
+                            reader: frame,
+                            length: contentLength);
+                        return new ParseResult((int)MaterialType_FieldIndex.LightLayer, nextRecordType);
                     }
                     else
                     {
@@ -2114,8 +2104,10 @@ namespace Mutagen.Bethesda.Starfield
                                 return new ParseResult((int)MaterialType_FieldIndex.Model, nextRecordType);
                             case 1:
                                 frame.Position += frame.MetaData.Constants.SubConstants.HeaderLength;
-                                item.ModelData = ByteArrayBinaryTranslation<MutagenFrame, MutagenWriter>.Instance.Parse(reader: frame.SpawnWithLength(contentLength));
-                                return new ParseResult((int)MaterialType_FieldIndex.ModelData, nextRecordType);
+                                item.LightLayer = EnumBinaryTranslation<LightLayer, MutagenFrame, MutagenWriter>.Instance.Parse(
+                                    reader: frame,
+                                    length: contentLength);
+                                return new ParseResult((int)MaterialType_FieldIndex.LightLayer, nextRecordType);
                             default:
                                 throw new NotImplementedException();
                         }
@@ -2223,9 +2215,9 @@ namespace Mutagen.Bethesda.Starfield
         private int? _BreakableFXLocation;
         public String? BreakableFX => _BreakableFXLocation.HasValue ? BinaryStringUtility.ProcessWholeToZString(HeaderTranslation.ExtractSubrecordMemory(_recordData, _BreakableFXLocation.Value, _package.MetaData.Constants), encoding: _package.MetaData.Encodings.NonTranslated) : default(string?);
         #endregion
-        #region ModelData
-        private int? _ModelDataLocation;
-        public ReadOnlyMemorySlice<Byte>? ModelData => _ModelDataLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _ModelDataLocation.Value, _package.MetaData.Constants) : default(ReadOnlyMemorySlice<byte>?);
+        #region LightLayer
+        private int? _LightLayerLocation;
+        public LightLayer? LightLayer => EnumBinaryTranslation<LightLayer, MutagenFrame, MutagenWriter>.Instance.ParseRecordNullable(_LightLayerLocation, _recordData, _package, 4);
         #endregion
         partial void CustomFactoryEnd(
             OverlayStream stream,
@@ -2345,8 +2337,8 @@ namespace Mutagen.Bethesda.Starfield
                     }
                     else if (lastParsed.ParsedIndex.Value <= (int)MaterialType_FieldIndex.BreakableFX)
                     {
-                        _ModelDataLocation = (stream.Position - offset);
-                        return new ParseResult((int)MaterialType_FieldIndex.ModelData, type);
+                        _LightLayerLocation = (stream.Position - offset);
+                        return new ParseResult((int)MaterialType_FieldIndex.LightLayer, type);
                     }
                     else
                     {
@@ -2362,8 +2354,8 @@ namespace Mutagen.Bethesda.Starfield
                             }
                             case 1:
                             {
-                                _ModelDataLocation = (stream.Position - offset);
-                                return new ParseResult((int)MaterialType_FieldIndex.ModelData, type);
+                                _LightLayerLocation = (stream.Position - offset);
+                                return new ParseResult((int)MaterialType_FieldIndex.LightLayer, type);
                             }
                             default:
                                 throw new NotImplementedException();

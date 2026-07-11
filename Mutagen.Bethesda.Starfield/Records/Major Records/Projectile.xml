@@ -49,7 +49,7 @@
       </Data>
       <String name="MuzzleFlashModel" recordType="NAM1" nullable="False" />
       <ByteArray name="TextureFilesHashes" recordType="NAM2" />
-      <ByteArray name="FLLD" recordType="FLLD" unknown="true" />
+      <Enum name="LightLayer" enumName="LightLayer" byteLength="4" recordType="FLLD" />
       <RefDirect name="ActiveSound" refName="SoundReference" recordType="PRAS" />
       <RefDirect name="CountdownEndSound" refName="SoundReference" recordType="PRCS" />
       <RefDirect name="DisableSound" refName="SoundReference" recordType="PRDS" />

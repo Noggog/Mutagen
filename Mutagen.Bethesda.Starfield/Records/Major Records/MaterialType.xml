@@ -10,7 +10,7 @@
       <FormLink name="HavokImpactDataSet" recordType="HNAM" refName="ImpactDataSet" />
       <RefDirect name="Model" refName="Model" />
       <String name="BreakableFX" recordType="ANAM" />
-      <ByteArray name="ModelData" recordType="FLLD" />
+      <Enum name="LightLayer" enumName="LightLayer" byteLength="4" recordType="FLLD" />
     </Fields>
   </Object>
 </Loqui>
