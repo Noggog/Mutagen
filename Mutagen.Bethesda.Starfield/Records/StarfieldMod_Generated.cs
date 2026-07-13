@@ -10597,6 +10597,7 @@ namespace Mutagen.Bethesda.Starfield
             obj.SoundMarkers.RemapLinks(mapping);
             obj.SoundEchoMarkers.RemapLinks(mapping);
             obj.AcousticSpaces.RemapLinks(mapping);
+            obj.AudioOcclusionPrimitives.RemapLinks(mapping);
             obj.MagicEffects.RemapLinks(mapping);
             obj.LandscapeTextures.RemapLinks(mapping);
             obj.ProjectedDecals.RemapLinks(mapping);
@@ -12966,6 +12967,13 @@ namespace Mutagen.Bethesda.Starfield
                     yield return item;
                 }
             }
+            if (obj.AudioOcclusionPrimitives is IAssetLinkContainer AudioOcclusionPrimitiveslinkCont)
+            {
+                foreach (var item in AudioOcclusionPrimitiveslinkCont.EnumerateListedAssetLinks())
+                {
+                    yield return item;
+                }
+            }
             if (obj.MagicEffects is IAssetLinkContainer MagicEffectslinkCont)
             {
                 foreach (var item in MagicEffectslinkCont.EnumerateListedAssetLinks())
@@ -13098,8 +13106,9 @@ namespace Mutagen.Bethesda.Starfield
                     yield return item;
                 }
             }
+            if (obj.Ammunitions is IAssetLinkContainer AmmunitionslinkCont)
             {
-                foreach (var item in obj.Ammunitions.EnumerateListedAssetLinks())
+                foreach (var item in AmmunitionslinkCont.EnumerateListedAssetLinks())
                 {
                     yield return item;
                 }
@@ -13531,6 +13540,7 @@ namespace Mutagen.Bethesda.Starfield
             obj.Factions.RemapAssetLinks(mapping, queryCategories, linkCache);
             obj.HeadParts.RemapAssetLinks(mapping, queryCategories, linkCache);
             obj.Races.RemapAssetLinks(mapping, queryCategories, linkCache);
+            obj.AudioOcclusionPrimitives.RemapAssetLinks(mapping, queryCategories, linkCache);
             obj.MagicEffects.RemapAssetLinks(mapping, queryCategories, linkCache);
             obj.LandscapeTextures.RemapAssetLinks(mapping, queryCategories, linkCache);
             obj.ProjectedDecals.RemapAssetLinks(mapping, queryCategories, linkCache);
@@ -17657,6 +17667,10 @@ namespace Mutagen.Bethesda.Starfield
                 }
             }
             foreach (var item in obj.AcousticSpaces.EnumerateFormLinks(iterateNestedRecords))
+            {
+                yield return item;
+            }
+            foreach (var item in obj.AudioOcclusionPrimitives.EnumerateFormLinks(iterateNestedRecords))
             {
                 yield return item;
             }
@@ -25207,6 +25221,13 @@ namespace Mutagen.Bethesda.Starfield
                     yield return item;
                 }
             }
+            if (obj.AudioOcclusionPrimitives is IAssetLinkContainerGetter AudioOcclusionPrimitiveslinkCont)
+            {
+                foreach (var item in AudioOcclusionPrimitiveslinkCont.EnumerateAssetLinks(queryCategories: queryCategories, linkCache: linkCache, assetType: assetType))
+                {
+                    yield return item;
+                }
+            }
             if (obj.MagicEffects is IAssetLinkContainerGetter MagicEffectslinkCont)
             {
                 foreach (var item in MagicEffectslinkCont.EnumerateAssetLinks(queryCategories: queryCategories, linkCache: linkCache, assetType: assetType))
@@ -25337,9 +25358,12 @@ namespace Mutagen.Bethesda.Starfield
                     yield return item;
                 }
             }
-            foreach (var item in obj.Ammunitions.EnumerateAssetLinks(queryCategories: queryCategories, linkCache: linkCache, assetType: assetType))
+            if (obj.Ammunitions is IAssetLinkContainerGetter AmmunitionslinkCont)
             {
-                yield return item;
+                foreach (var item in AmmunitionslinkCont.EnumerateAssetLinks(queryCategories: queryCategories, linkCache: linkCache, assetType: assetType))
+                {
+                    yield return item;
+                }
             }
             if (obj.Npcs is IAssetLinkContainerGetter NpcslinkCont)
             {

@@ -4,6 +4,13 @@
     <Fields>
       <RefDirect name="ObjectBounds" refName="ObjectBounds" nullable="False" />
       <Percent name="DirtinessScale" recordType="ODTY" integerType="Float" nullable="False" />
+      <RefDirect name="ObjectPaletteDefaults" refName="ObjectPaletteDefaults" />
+      <RefDirect name="Transforms" refName="Transforms" />
+      <FormLink name="SnapTemplate" refName="SnapTemplate" recordType="SNTP" />
+      <FormLink name="SnapBehavior" refName="SnapTemplate" recordType="SNBH" />
+      <FormLink name="DefaultLayer" refName="Layer" recordType="DEFL" />
+      <UInt64 name="XALG" recordType="XALG" unknown="true" />
+      <RefList name="Components" refName="AComponent" />
       <Float name="Obstruction" recordType="OBSV" />
       <Float name="Occlusion" recordType="OCCV" />
     </Fields>

@@ -102,6 +102,41 @@ namespace Mutagen.Bethesda.Starfield
         #region DirtinessScale
         public Percent DirtinessScale { get; set; } = default(Percent);
         #endregion
+        #region SnapTemplate
+        private readonly IFormLinkNullable<ISnapTemplateGetter> _SnapTemplate = new FormLinkNullable<ISnapTemplateGetter>();
+        public IFormLinkNullable<ISnapTemplateGetter> SnapTemplate
+        {
+            get => _SnapTemplate;
+            set => _SnapTemplate.SetTo(value);
+        }
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        IFormLinkNullableGetter<ISnapTemplateGetter> IAmmunitionGetter.SnapTemplate => this.SnapTemplate;
+        #endregion
+        #region SnapBehavior
+        private readonly IFormLinkNullable<ISnapTemplateBehaviorGetter> _SnapBehavior = new FormLinkNullable<ISnapTemplateBehaviorGetter>();
+        public IFormLinkNullable<ISnapTemplateBehaviorGetter> SnapBehavior
+        {
+            get => _SnapBehavior;
+            set => _SnapBehavior.SetTo(value);
+        }
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        IFormLinkNullableGetter<ISnapTemplateBehaviorGetter> IAmmunitionGetter.SnapBehavior => this.SnapBehavior;
+        #endregion
+        #region DefaultLayer
+        private readonly IFormLinkNullable<ILayerGetter> _DefaultLayer = new FormLinkNullable<ILayerGetter>();
+        public IFormLinkNullable<ILayerGetter> DefaultLayer
+        {
+            get => _DefaultLayer;
+            set => _DefaultLayer.SetTo(value);
+        }
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        IFormLinkNullableGetter<ILayerGetter> IAmmunitionGetter.DefaultLayer => this.DefaultLayer;
+        #endregion
+        #region XALG
+        public UInt64? XALG { get; set; }
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        UInt64? IAmmunitionGetter.XALG => this.XALG;
+        #endregion
         #region Transforms
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private Transforms? _Transforms;
@@ -112,6 +147,20 @@ namespace Mutagen.Bethesda.Starfield
         }
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         ITransformsGetter? IAmmunitionGetter.Transforms => this.Transforms;
+        #endregion
+        #region Components
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private ExtendedList<AComponent> _Components = new ExtendedList<AComponent>();
+        public ExtendedList<AComponent> Components
+        {
+            get => this._Components;
+            init => this._Components = value;
+        }
+        #region Interface Members
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        IReadOnlyList<IAComponentGetter> IAmmunitionGetter.Components => _Components;
+        #endregion
+
         #endregion
         #region Name
         /// <summary>
@@ -165,6 +214,24 @@ namespace Mutagen.Bethesda.Starfield
         #region Aspects
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         IModelGetter? IModeledGetter.Model => this.Model;
+        #endregion
+        #endregion
+        #region Destructible
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private Destructible? _Destructible;
+        /// <summary>
+        /// Aspects: IHasDestructible
+        /// </summary>
+        public Destructible? Destructible
+        {
+            get => _Destructible;
+            set => _Destructible = value;
+        }
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        IDestructibleGetter? IAmmunitionGetter.Destructible => this.Destructible;
+        #region Aspects
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        IDestructibleGetter? IHasDestructibleGetter.Destructible => this.Destructible;
         #endregion
         #endregion
         #region PickupSound
@@ -282,9 +349,15 @@ namespace Mutagen.Bethesda.Starfield
                 this.VirtualMachineAdapter = new MaskItem<TItem, VirtualMachineAdapter.Mask<TItem>?>(initialValue, new VirtualMachineAdapter.Mask<TItem>(initialValue));
                 this.ObjectBounds = new MaskItem<TItem, ObjectBounds.Mask<TItem>?>(initialValue, new ObjectBounds.Mask<TItem>(initialValue));
                 this.DirtinessScale = initialValue;
+                this.SnapTemplate = initialValue;
+                this.SnapBehavior = initialValue;
+                this.DefaultLayer = initialValue;
+                this.XALG = initialValue;
                 this.Transforms = new MaskItem<TItem, Transforms.Mask<TItem>?>(initialValue, new Transforms.Mask<TItem>(initialValue));
+                this.Components = new MaskItem<TItem, IEnumerable<MaskItemIndexed<TItem, AComponent.Mask<TItem>?>>?>(initialValue, []);
                 this.Name = initialValue;
                 this.Model = new MaskItem<TItem, Model.Mask<TItem>?>(initialValue, new Model.Mask<TItem>(initialValue));
+                this.Destructible = new MaskItem<TItem, Destructible.Mask<TItem>?>(initialValue, new Destructible.Mask<TItem>(initialValue));
                 this.PickupSound = new MaskItem<TItem, SoundReference.Mask<TItem>?>(initialValue, new SoundReference.Mask<TItem>(initialValue));
                 this.DropdownSound = new MaskItem<TItem, SoundReference.Mask<TItem>?>(initialValue, new SoundReference.Mask<TItem>(initialValue));
                 this.Description = initialValue;
@@ -311,9 +384,15 @@ namespace Mutagen.Bethesda.Starfield
                 TItem VirtualMachineAdapter,
                 TItem ObjectBounds,
                 TItem DirtinessScale,
+                TItem SnapTemplate,
+                TItem SnapBehavior,
+                TItem DefaultLayer,
+                TItem XALG,
                 TItem Transforms,
+                TItem Components,
                 TItem Name,
                 TItem Model,
+                TItem Destructible,
                 TItem PickupSound,
                 TItem DropdownSound,
                 TItem Description,
@@ -339,9 +418,15 @@ namespace Mutagen.Bethesda.Starfield
                 this.VirtualMachineAdapter = new MaskItem<TItem, VirtualMachineAdapter.Mask<TItem>?>(VirtualMachineAdapter, new VirtualMachineAdapter.Mask<TItem>(VirtualMachineAdapter));
                 this.ObjectBounds = new MaskItem<TItem, ObjectBounds.Mask<TItem>?>(ObjectBounds, new ObjectBounds.Mask<TItem>(ObjectBounds));
                 this.DirtinessScale = DirtinessScale;
+                this.SnapTemplate = SnapTemplate;
+                this.SnapBehavior = SnapBehavior;
+                this.DefaultLayer = DefaultLayer;
+                this.XALG = XALG;
                 this.Transforms = new MaskItem<TItem, Transforms.Mask<TItem>?>(Transforms, new Transforms.Mask<TItem>(Transforms));
+                this.Components = new MaskItem<TItem, IEnumerable<MaskItemIndexed<TItem, AComponent.Mask<TItem>?>>?>(Components, []);
                 this.Name = Name;
                 this.Model = new MaskItem<TItem, Model.Mask<TItem>?>(Model, new Model.Mask<TItem>(Model));
+                this.Destructible = new MaskItem<TItem, Destructible.Mask<TItem>?>(Destructible, new Destructible.Mask<TItem>(Destructible));
                 this.PickupSound = new MaskItem<TItem, SoundReference.Mask<TItem>?>(PickupSound, new SoundReference.Mask<TItem>(PickupSound));
                 this.DropdownSound = new MaskItem<TItem, SoundReference.Mask<TItem>?>(DropdownSound, new SoundReference.Mask<TItem>(DropdownSound));
                 this.Description = Description;
@@ -369,9 +454,15 @@ namespace Mutagen.Bethesda.Starfield
             public MaskItem<TItem, VirtualMachineAdapter.Mask<TItem>?>? VirtualMachineAdapter { get; set; }
             public MaskItem<TItem, ObjectBounds.Mask<TItem>?>? ObjectBounds { get; set; }
             public TItem DirtinessScale;
+            public TItem SnapTemplate;
+            public TItem SnapBehavior;
+            public TItem DefaultLayer;
+            public TItem XALG;
             public MaskItem<TItem, Transforms.Mask<TItem>?>? Transforms { get; set; }
+            public MaskItem<TItem, IEnumerable<MaskItemIndexed<TItem, AComponent.Mask<TItem>?>>?>? Components;
             public TItem Name;
             public MaskItem<TItem, Model.Mask<TItem>?>? Model { get; set; }
+            public MaskItem<TItem, Destructible.Mask<TItem>?>? Destructible { get; set; }
             public MaskItem<TItem, SoundReference.Mask<TItem>?>? PickupSound { get; set; }
             public MaskItem<TItem, SoundReference.Mask<TItem>?>? DropdownSound { get; set; }
             public TItem Description;
@@ -401,9 +492,15 @@ namespace Mutagen.Bethesda.Starfield
                 if (!object.Equals(this.VirtualMachineAdapter, rhs.VirtualMachineAdapter)) return false;
                 if (!object.Equals(this.ObjectBounds, rhs.ObjectBounds)) return false;
                 if (!object.Equals(this.DirtinessScale, rhs.DirtinessScale)) return false;
+                if (!object.Equals(this.SnapTemplate, rhs.SnapTemplate)) return false;
+                if (!object.Equals(this.SnapBehavior, rhs.SnapBehavior)) return false;
+                if (!object.Equals(this.DefaultLayer, rhs.DefaultLayer)) return false;
+                if (!object.Equals(this.XALG, rhs.XALG)) return false;
                 if (!object.Equals(this.Transforms, rhs.Transforms)) return false;
+                if (!object.Equals(this.Components, rhs.Components)) return false;
                 if (!object.Equals(this.Name, rhs.Name)) return false;
                 if (!object.Equals(this.Model, rhs.Model)) return false;
+                if (!object.Equals(this.Destructible, rhs.Destructible)) return false;
                 if (!object.Equals(this.PickupSound, rhs.PickupSound)) return false;
                 if (!object.Equals(this.DropdownSound, rhs.DropdownSound)) return false;
                 if (!object.Equals(this.Description, rhs.Description)) return false;
@@ -425,9 +522,15 @@ namespace Mutagen.Bethesda.Starfield
                 hash.Add(this.VirtualMachineAdapter);
                 hash.Add(this.ObjectBounds);
                 hash.Add(this.DirtinessScale);
+                hash.Add(this.SnapTemplate);
+                hash.Add(this.SnapBehavior);
+                hash.Add(this.DefaultLayer);
+                hash.Add(this.XALG);
                 hash.Add(this.Transforms);
+                hash.Add(this.Components);
                 hash.Add(this.Name);
                 hash.Add(this.Model);
+                hash.Add(this.Destructible);
                 hash.Add(this.PickupSound);
                 hash.Add(this.DropdownSound);
                 hash.Add(this.Description);
@@ -462,16 +565,37 @@ namespace Mutagen.Bethesda.Starfield
                     if (this.ObjectBounds.Specific != null && !this.ObjectBounds.Specific.All(eval)) return false;
                 }
                 if (!eval(this.DirtinessScale)) return false;
+                if (!eval(this.SnapTemplate)) return false;
+                if (!eval(this.SnapBehavior)) return false;
+                if (!eval(this.DefaultLayer)) return false;
+                if (!eval(this.XALG)) return false;
                 if (Transforms != null)
                 {
                     if (!eval(this.Transforms.Overall)) return false;
                     if (this.Transforms.Specific != null && !this.Transforms.Specific.All(eval)) return false;
+                }
+                if (this.Components != null)
+                {
+                    if (!eval(this.Components.Overall)) return false;
+                    if (this.Components.Specific != null)
+                    {
+                        foreach (var item in this.Components.Specific)
+                        {
+                            if (!eval(item.Overall)) return false;
+                            if (item.Specific != null && !item.Specific.All(eval)) return false;
+                        }
+                    }
                 }
                 if (!eval(this.Name)) return false;
                 if (Model != null)
                 {
                     if (!eval(this.Model.Overall)) return false;
                     if (this.Model.Specific != null && !this.Model.Specific.All(eval)) return false;
+                }
+                if (Destructible != null)
+                {
+                    if (!eval(this.Destructible.Overall)) return false;
+                    if (this.Destructible.Specific != null && !this.Destructible.Specific.All(eval)) return false;
                 }
                 if (PickupSound != null)
                 {
@@ -523,16 +647,37 @@ namespace Mutagen.Bethesda.Starfield
                     if (this.ObjectBounds.Specific != null && this.ObjectBounds.Specific.Any(eval)) return true;
                 }
                 if (eval(this.DirtinessScale)) return true;
+                if (eval(this.SnapTemplate)) return true;
+                if (eval(this.SnapBehavior)) return true;
+                if (eval(this.DefaultLayer)) return true;
+                if (eval(this.XALG)) return true;
                 if (Transforms != null)
                 {
                     if (eval(this.Transforms.Overall)) return true;
                     if (this.Transforms.Specific != null && this.Transforms.Specific.Any(eval)) return true;
+                }
+                if (this.Components != null)
+                {
+                    if (eval(this.Components.Overall)) return true;
+                    if (this.Components.Specific != null)
+                    {
+                        foreach (var item in this.Components.Specific)
+                        {
+                            if (!eval(item.Overall)) return false;
+                            if (item.Specific != null && !item.Specific.All(eval)) return false;
+                        }
+                    }
                 }
                 if (eval(this.Name)) return true;
                 if (Model != null)
                 {
                     if (eval(this.Model.Overall)) return true;
                     if (this.Model.Specific != null && this.Model.Specific.Any(eval)) return true;
+                }
+                if (Destructible != null)
+                {
+                    if (eval(this.Destructible.Overall)) return true;
+                    if (this.Destructible.Specific != null && this.Destructible.Specific.Any(eval)) return true;
                 }
                 if (PickupSound != null)
                 {
@@ -583,9 +728,29 @@ namespace Mutagen.Bethesda.Starfield
                 obj.VirtualMachineAdapter = this.VirtualMachineAdapter == null ? null : new MaskItem<R, VirtualMachineAdapter.Mask<R>?>(eval(this.VirtualMachineAdapter.Overall), this.VirtualMachineAdapter.Specific?.Translate(eval));
                 obj.ObjectBounds = this.ObjectBounds == null ? null : new MaskItem<R, ObjectBounds.Mask<R>?>(eval(this.ObjectBounds.Overall), this.ObjectBounds.Specific?.Translate(eval));
                 obj.DirtinessScale = eval(this.DirtinessScale);
+                obj.SnapTemplate = eval(this.SnapTemplate);
+                obj.SnapBehavior = eval(this.SnapBehavior);
+                obj.DefaultLayer = eval(this.DefaultLayer);
+                obj.XALG = eval(this.XALG);
                 obj.Transforms = this.Transforms == null ? null : new MaskItem<R, Transforms.Mask<R>?>(eval(this.Transforms.Overall), this.Transforms.Specific?.Translate(eval));
+                if (Components != null)
+                {
+                    obj.Components = new MaskItem<R, IEnumerable<MaskItemIndexed<R, AComponent.Mask<R>?>>?>(eval(this.Components.Overall), []);
+                    if (Components.Specific != null)
+                    {
+                        var l = new List<MaskItemIndexed<R, AComponent.Mask<R>?>>();
+                        obj.Components.Specific = l;
+                        foreach (var item in Components.Specific)
+                        {
+                            MaskItemIndexed<R, AComponent.Mask<R>?>? mask = item == null ? null : new MaskItemIndexed<R, AComponent.Mask<R>?>(item.Index, eval(item.Overall), item.Specific?.Translate(eval));
+                            if (mask == null) continue;
+                            l.Add(mask);
+                        }
+                    }
+                }
                 obj.Name = eval(this.Name);
                 obj.Model = this.Model == null ? null : new MaskItem<R, Model.Mask<R>?>(eval(this.Model.Overall), this.Model.Specific?.Translate(eval));
+                obj.Destructible = this.Destructible == null ? null : new MaskItem<R, Destructible.Mask<R>?>(eval(this.Destructible.Overall), this.Destructible.Specific?.Translate(eval));
                 obj.PickupSound = this.PickupSound == null ? null : new MaskItem<R, SoundReference.Mask<R>?>(eval(this.PickupSound.Overall), this.PickupSound.Specific?.Translate(eval));
                 obj.DropdownSound = this.DropdownSound == null ? null : new MaskItem<R, SoundReference.Mask<R>?>(eval(this.DropdownSound.Overall), this.DropdownSound.Specific?.Translate(eval));
                 obj.Description = eval(this.Description);
@@ -642,9 +807,44 @@ namespace Mutagen.Bethesda.Starfield
                     {
                         sb.AppendItem(DirtinessScale, "DirtinessScale");
                     }
+                    if (printMask?.SnapTemplate ?? true)
+                    {
+                        sb.AppendItem(SnapTemplate, "SnapTemplate");
+                    }
+                    if (printMask?.SnapBehavior ?? true)
+                    {
+                        sb.AppendItem(SnapBehavior, "SnapBehavior");
+                    }
+                    if (printMask?.DefaultLayer ?? true)
+                    {
+                        sb.AppendItem(DefaultLayer, "DefaultLayer");
+                    }
+                    if (printMask?.XALG ?? true)
+                    {
+                        sb.AppendItem(XALG, "XALG");
+                    }
                     if (printMask?.Transforms?.Overall ?? true)
                     {
                         Transforms?.Print(sb);
+                    }
+                    if ((printMask?.Components?.Overall ?? true)
+                        && Components is {} ComponentsItem)
+                    {
+                        sb.AppendLine("Components =>");
+                        using (sb.Brace())
+                        {
+                            sb.AppendItem(ComponentsItem.Overall);
+                            if (ComponentsItem.Specific != null)
+                            {
+                                foreach (var subItem in ComponentsItem.Specific)
+                                {
+                                    using (sb.Brace())
+                                    {
+                                        subItem?.Print(sb);
+                                    }
+                                }
+                            }
+                        }
                     }
                     if (printMask?.Name ?? true)
                     {
@@ -653,6 +853,10 @@ namespace Mutagen.Bethesda.Starfield
                     if (printMask?.Model?.Overall ?? true)
                     {
                         Model?.Print(sb);
+                    }
+                    if (printMask?.Destructible?.Overall ?? true)
+                    {
+                        Destructible?.Print(sb);
                     }
                     if (printMask?.PickupSound?.Overall ?? true)
                     {
@@ -737,9 +941,15 @@ namespace Mutagen.Bethesda.Starfield
             public MaskItem<Exception?, VirtualMachineAdapter.ErrorMask?>? VirtualMachineAdapter;
             public MaskItem<Exception?, ObjectBounds.ErrorMask?>? ObjectBounds;
             public Exception? DirtinessScale;
+            public Exception? SnapTemplate;
+            public Exception? SnapBehavior;
+            public Exception? DefaultLayer;
+            public Exception? XALG;
             public MaskItem<Exception?, Transforms.ErrorMask?>? Transforms;
+            public MaskItem<Exception?, IEnumerable<MaskItem<Exception?, AComponent.ErrorMask?>>?>? Components;
             public Exception? Name;
             public MaskItem<Exception?, Model.ErrorMask?>? Model;
+            public MaskItem<Exception?, Destructible.ErrorMask?>? Destructible;
             public MaskItem<Exception?, SoundReference.ErrorMask?>? PickupSound;
             public MaskItem<Exception?, SoundReference.ErrorMask?>? DropdownSound;
             public Exception? Description;
@@ -767,12 +977,24 @@ namespace Mutagen.Bethesda.Starfield
                         return ObjectBounds;
                     case Ammunition_FieldIndex.DirtinessScale:
                         return DirtinessScale;
+                    case Ammunition_FieldIndex.SnapTemplate:
+                        return SnapTemplate;
+                    case Ammunition_FieldIndex.SnapBehavior:
+                        return SnapBehavior;
+                    case Ammunition_FieldIndex.DefaultLayer:
+                        return DefaultLayer;
+                    case Ammunition_FieldIndex.XALG:
+                        return XALG;
                     case Ammunition_FieldIndex.Transforms:
                         return Transforms;
+                    case Ammunition_FieldIndex.Components:
+                        return Components;
                     case Ammunition_FieldIndex.Name:
                         return Name;
                     case Ammunition_FieldIndex.Model:
                         return Model;
+                    case Ammunition_FieldIndex.Destructible:
+                        return Destructible;
                     case Ammunition_FieldIndex.PickupSound:
                         return PickupSound;
                     case Ammunition_FieldIndex.DropdownSound:
@@ -818,14 +1040,32 @@ namespace Mutagen.Bethesda.Starfield
                     case Ammunition_FieldIndex.DirtinessScale:
                         this.DirtinessScale = ex;
                         break;
+                    case Ammunition_FieldIndex.SnapTemplate:
+                        this.SnapTemplate = ex;
+                        break;
+                    case Ammunition_FieldIndex.SnapBehavior:
+                        this.SnapBehavior = ex;
+                        break;
+                    case Ammunition_FieldIndex.DefaultLayer:
+                        this.DefaultLayer = ex;
+                        break;
+                    case Ammunition_FieldIndex.XALG:
+                        this.XALG = ex;
+                        break;
                     case Ammunition_FieldIndex.Transforms:
                         this.Transforms = new MaskItem<Exception?, Transforms.ErrorMask?>(ex, null);
+                        break;
+                    case Ammunition_FieldIndex.Components:
+                        this.Components = new MaskItem<Exception?, IEnumerable<MaskItem<Exception?, AComponent.ErrorMask?>>?>(ex, null);
                         break;
                     case Ammunition_FieldIndex.Name:
                         this.Name = ex;
                         break;
                     case Ammunition_FieldIndex.Model:
                         this.Model = new MaskItem<Exception?, Model.ErrorMask?>(ex, null);
+                        break;
+                    case Ammunition_FieldIndex.Destructible:
+                        this.Destructible = new MaskItem<Exception?, Destructible.ErrorMask?>(ex, null);
                         break;
                     case Ammunition_FieldIndex.PickupSound:
                         this.PickupSound = new MaskItem<Exception?, SoundReference.ErrorMask?>(ex, null);
@@ -886,14 +1126,32 @@ namespace Mutagen.Bethesda.Starfield
                     case Ammunition_FieldIndex.DirtinessScale:
                         this.DirtinessScale = (Exception?)obj;
                         break;
+                    case Ammunition_FieldIndex.SnapTemplate:
+                        this.SnapTemplate = (Exception?)obj;
+                        break;
+                    case Ammunition_FieldIndex.SnapBehavior:
+                        this.SnapBehavior = (Exception?)obj;
+                        break;
+                    case Ammunition_FieldIndex.DefaultLayer:
+                        this.DefaultLayer = (Exception?)obj;
+                        break;
+                    case Ammunition_FieldIndex.XALG:
+                        this.XALG = (Exception?)obj;
+                        break;
                     case Ammunition_FieldIndex.Transforms:
                         this.Transforms = (MaskItem<Exception?, Transforms.ErrorMask?>?)obj;
+                        break;
+                    case Ammunition_FieldIndex.Components:
+                        this.Components = (MaskItem<Exception?, IEnumerable<MaskItem<Exception?, AComponent.ErrorMask?>>?>)obj;
                         break;
                     case Ammunition_FieldIndex.Name:
                         this.Name = (Exception?)obj;
                         break;
                     case Ammunition_FieldIndex.Model:
                         this.Model = (MaskItem<Exception?, Model.ErrorMask?>?)obj;
+                        break;
+                    case Ammunition_FieldIndex.Destructible:
+                        this.Destructible = (MaskItem<Exception?, Destructible.ErrorMask?>?)obj;
                         break;
                     case Ammunition_FieldIndex.PickupSound:
                         this.PickupSound = (MaskItem<Exception?, SoundReference.ErrorMask?>?)obj;
@@ -946,9 +1204,15 @@ namespace Mutagen.Bethesda.Starfield
                 if (VirtualMachineAdapter != null) return true;
                 if (ObjectBounds != null) return true;
                 if (DirtinessScale != null) return true;
+                if (SnapTemplate != null) return true;
+                if (SnapBehavior != null) return true;
+                if (DefaultLayer != null) return true;
+                if (XALG != null) return true;
                 if (Transforms != null) return true;
+                if (Components != null) return true;
                 if (Name != null) return true;
                 if (Model != null) return true;
+                if (Destructible != null) return true;
                 if (PickupSound != null) return true;
                 if (DropdownSound != null) return true;
                 if (Description != null) return true;
@@ -993,11 +1257,42 @@ namespace Mutagen.Bethesda.Starfield
                 {
                     sb.AppendItem(DirtinessScale, "DirtinessScale");
                 }
+                {
+                    sb.AppendItem(SnapTemplate, "SnapTemplate");
+                }
+                {
+                    sb.AppendItem(SnapBehavior, "SnapBehavior");
+                }
+                {
+                    sb.AppendItem(DefaultLayer, "DefaultLayer");
+                }
+                {
+                    sb.AppendItem(XALG, "XALG");
+                }
                 Transforms?.Print(sb);
+                if (Components is {} ComponentsItem)
+                {
+                    sb.AppendLine("Components =>");
+                    using (sb.Brace())
+                    {
+                        sb.AppendItem(ComponentsItem.Overall);
+                        if (ComponentsItem.Specific != null)
+                        {
+                            foreach (var subItem in ComponentsItem.Specific)
+                            {
+                                using (sb.Brace())
+                                {
+                                    subItem?.Print(sb);
+                                }
+                            }
+                        }
+                    }
+                }
                 {
                     sb.AppendItem(Name, "Name");
                 }
                 Model?.Print(sb);
+                Destructible?.Print(sb);
                 PickupSound?.Print(sb);
                 DropdownSound?.Print(sb);
                 {
@@ -1061,9 +1356,15 @@ namespace Mutagen.Bethesda.Starfield
                 ret.VirtualMachineAdapter = this.VirtualMachineAdapter.Combine(rhs.VirtualMachineAdapter, (l, r) => l.Combine(r));
                 ret.ObjectBounds = this.ObjectBounds.Combine(rhs.ObjectBounds, (l, r) => l.Combine(r));
                 ret.DirtinessScale = this.DirtinessScale.Combine(rhs.DirtinessScale);
+                ret.SnapTemplate = this.SnapTemplate.Combine(rhs.SnapTemplate);
+                ret.SnapBehavior = this.SnapBehavior.Combine(rhs.SnapBehavior);
+                ret.DefaultLayer = this.DefaultLayer.Combine(rhs.DefaultLayer);
+                ret.XALG = this.XALG.Combine(rhs.XALG);
                 ret.Transforms = this.Transforms.Combine(rhs.Transforms, (l, r) => l.Combine(r));
+                ret.Components = new MaskItem<Exception?, IEnumerable<MaskItem<Exception?, AComponent.ErrorMask?>>?>(Noggog.ExceptionExt.Combine(this.Components?.Overall, rhs.Components?.Overall), Noggog.ExceptionExt.Combine(this.Components?.Specific, rhs.Components?.Specific));
                 ret.Name = this.Name.Combine(rhs.Name);
                 ret.Model = this.Model.Combine(rhs.Model, (l, r) => l.Combine(r));
+                ret.Destructible = this.Destructible.Combine(rhs.Destructible, (l, r) => l.Combine(r));
                 ret.PickupSound = this.PickupSound.Combine(rhs.PickupSound, (l, r) => l.Combine(r));
                 ret.DropdownSound = this.DropdownSound.Combine(rhs.DropdownSound, (l, r) => l.Combine(r));
                 ret.Description = this.Description.Combine(rhs.Description);
@@ -1102,9 +1403,15 @@ namespace Mutagen.Bethesda.Starfield
             public VirtualMachineAdapter.TranslationMask? VirtualMachineAdapter;
             public ObjectBounds.TranslationMask? ObjectBounds;
             public bool DirtinessScale;
+            public bool SnapTemplate;
+            public bool SnapBehavior;
+            public bool DefaultLayer;
+            public bool XALG;
             public Transforms.TranslationMask? Transforms;
+            public AComponent.TranslationMask? Components;
             public bool Name;
             public Model.TranslationMask? Model;
+            public Destructible.TranslationMask? Destructible;
             public SoundReference.TranslationMask? PickupSound;
             public SoundReference.TranslationMask? DropdownSound;
             public bool Description;
@@ -1127,6 +1434,10 @@ namespace Mutagen.Bethesda.Starfield
                 : base(defaultOn, onOverall)
             {
                 this.DirtinessScale = defaultOn;
+                this.SnapTemplate = defaultOn;
+                this.SnapBehavior = defaultOn;
+                this.DefaultLayer = defaultOn;
+                this.XALG = defaultOn;
                 this.Name = defaultOn;
                 this.Description = defaultOn;
                 this.Keywords = defaultOn;
@@ -1149,9 +1460,15 @@ namespace Mutagen.Bethesda.Starfield
                 ret.Add((VirtualMachineAdapter != null ? VirtualMachineAdapter.OnOverall : DefaultOn, VirtualMachineAdapter?.GetCrystal()));
                 ret.Add((ObjectBounds != null ? ObjectBounds.OnOverall : DefaultOn, ObjectBounds?.GetCrystal()));
                 ret.Add((DirtinessScale, null));
+                ret.Add((SnapTemplate, null));
+                ret.Add((SnapBehavior, null));
+                ret.Add((DefaultLayer, null));
+                ret.Add((XALG, null));
                 ret.Add((Transforms != null ? Transforms.OnOverall : DefaultOn, Transforms?.GetCrystal()));
+                ret.Add((Components == null ? DefaultOn : !Components.GetCrystal().CopyNothing, Components?.GetCrystal()));
                 ret.Add((Name, null));
                 ret.Add((Model != null ? Model.OnOverall : DefaultOn, Model?.GetCrystal()));
+                ret.Add((Destructible != null ? Destructible.OnOverall : DefaultOn, Destructible?.GetCrystal()));
                 ret.Add((PickupSound != null ? PickupSound.OnOverall : DefaultOn, PickupSound?.GetCrystal()));
                 ret.Add((DropdownSound != null ? DropdownSound.OnOverall : DefaultOn, DropdownSound?.GetCrystal()));
                 ret.Add((Description, null));
@@ -1321,6 +1638,7 @@ namespace Mutagen.Bethesda.Starfield
         IBaseObject,
         IConstructibleObjectTarget,
         IFormLinkContainer,
+        IHasDestructible,
         IHaveVirtualMachineAdapter,
         IItem,
         IKeyworded<IKeywordGetter>,
@@ -1346,7 +1664,12 @@ namespace Mutagen.Bethesda.Starfield
         /// </summary>
         new ObjectBounds ObjectBounds { get; set; }
         new Percent DirtinessScale { get; set; }
+        new IFormLinkNullable<ISnapTemplateGetter> SnapTemplate { get; set; }
+        new IFormLinkNullable<ISnapTemplateBehaviorGetter> SnapBehavior { get; set; }
+        new IFormLinkNullable<ILayerGetter> DefaultLayer { get; set; }
+        new UInt64? XALG { get; set; }
         new Transforms? Transforms { get; set; }
+        new ExtendedList<AComponent> Components { get; }
         /// <summary>
         /// Aspects: INamed, INamedRequired, ITranslatedNamed, ITranslatedNamedRequired
         /// </summary>
@@ -1355,6 +1678,10 @@ namespace Mutagen.Bethesda.Starfield
         /// Aspects: IModeled
         /// </summary>
         new Model? Model { get; set; }
+        /// <summary>
+        /// Aspects: IHasDestructible
+        /// </summary>
+        new Destructible? Destructible { get; set; }
         new SoundReference? PickupSound { get; set; }
         new SoundReference? DropdownSound { get; set; }
         new TranslatedString Description { get; set; }
@@ -1392,6 +1719,7 @@ namespace Mutagen.Bethesda.Starfield
         IBinaryItem,
         IConstructibleObjectTargetGetter,
         IFormLinkContainerGetter,
+        IHasDestructibleGetter,
         IHaveVirtualMachineAdapterGetter,
         IItemGetter,
         IKeywordedGetter<IKeywordGetter>,
@@ -1422,7 +1750,12 @@ namespace Mutagen.Bethesda.Starfield
         IObjectBoundsGetter ObjectBounds { get; }
         #endregion
         Percent DirtinessScale { get; }
+        IFormLinkNullableGetter<ISnapTemplateGetter> SnapTemplate { get; }
+        IFormLinkNullableGetter<ISnapTemplateBehaviorGetter> SnapBehavior { get; }
+        IFormLinkNullableGetter<ILayerGetter> DefaultLayer { get; }
+        UInt64? XALG { get; }
         ITransformsGetter? Transforms { get; }
+        IReadOnlyList<IAComponentGetter> Components { get; }
         #region Name
         /// <summary>
         /// Aspects: INamedGetter, INamedRequiredGetter, ITranslatedNamedGetter, ITranslatedNamedRequiredGetter
@@ -1434,6 +1767,12 @@ namespace Mutagen.Bethesda.Starfield
         /// Aspects: IModeledGetter
         /// </summary>
         IModelGetter? Model { get; }
+        #endregion
+        #region Destructible
+        /// <summary>
+        /// Aspects: IHasDestructibleGetter
+        /// </summary>
+        IDestructibleGetter? Destructible { get; }
         #endregion
         ISoundReferenceGetter? PickupSound { get; }
         ISoundReferenceGetter? DropdownSound { get; }
@@ -1636,22 +1975,28 @@ namespace Mutagen.Bethesda.Starfield
         VirtualMachineAdapter = 7,
         ObjectBounds = 8,
         DirtinessScale = 9,
-        Transforms = 10,
-        Name = 11,
-        Model = 12,
-        PickupSound = 13,
-        DropdownSound = 14,
-        Description = 15,
-        Keywords = 16,
-        Value = 17,
-        Weight = 18,
-        Projectile = 19,
-        Flags = 20,
-        Damage = 21,
-        Health = 22,
-        ShortName = 23,
-        CasingModel = 24,
-        LightLayer = 25,
+        SnapTemplate = 10,
+        SnapBehavior = 11,
+        DefaultLayer = 12,
+        XALG = 13,
+        Transforms = 14,
+        Components = 15,
+        Name = 16,
+        Model = 17,
+        Destructible = 18,
+        PickupSound = 19,
+        DropdownSound = 20,
+        Description = 21,
+        Keywords = 22,
+        Value = 23,
+        Weight = 24,
+        Projectile = 25,
+        Flags = 26,
+        Damage = 27,
+        Health = 28,
+        ShortName = 29,
+        CasingModel = 30,
+        LightLayer = 31,
     }
     #endregion
 
@@ -1662,9 +2007,9 @@ namespace Mutagen.Bethesda.Starfield
 
         public static ProtocolKey ProtocolKey => ProtocolDefinition_Starfield.ProtocolKey;
 
-        public const ushort AdditionalFieldCount = 19;
+        public const ushort AdditionalFieldCount = 25;
 
-        public const ushort FieldCount = 26;
+        public const ushort FieldCount = 32;
 
         public static readonly Type MaskType = typeof(Ammunition.Mask<>);
 
@@ -1701,7 +2046,13 @@ namespace Mutagen.Bethesda.Starfield
                 RecordTypes.XXXX,
                 RecordTypes.OBND,
                 RecordTypes.ODTY,
+                RecordTypes.SNTP,
+                RecordTypes.SNBH,
+                RecordTypes.DEFL,
+                RecordTypes.XALG,
                 RecordTypes.PTT2,
+                RecordTypes.BFCB,
+                RecordTypes.BFCE,
                 RecordTypes.FULL,
                 RecordTypes.MODL,
                 RecordTypes.MODT,
@@ -1710,6 +2061,10 @@ namespace Mutagen.Bethesda.Starfield
                 RecordTypes.XFLG,
                 RecordTypes.MODC,
                 RecordTypes.MODF,
+                RecordTypes.DEST,
+                RecordTypes.DAMC,
+                RecordTypes.DSDL,
+                RecordTypes.DSTD,
                 RecordTypes.PUSH,
                 RecordTypes.PDSH,
                 RecordTypes.DESC,
@@ -1766,9 +2121,15 @@ namespace Mutagen.Bethesda.Starfield
             item.VirtualMachineAdapter = null;
             item.ObjectBounds.Clear();
             item.DirtinessScale = default(Percent);
+            item.SnapTemplate.Clear();
+            item.SnapBehavior.Clear();
+            item.DefaultLayer.Clear();
+            item.XALG = default;
             item.Transforms = null;
+            item.Components.Clear();
             item.Name = default;
             item.Model = null;
+            item.Destructible = null;
             item.PickupSound = null;
             item.DropdownSound = null;
             item.Description.Clear();
@@ -1800,8 +2161,13 @@ namespace Mutagen.Bethesda.Starfield
         {
             base.RemapLinks(obj, mapping);
             obj.VirtualMachineAdapter?.RemapLinks(mapping);
+            obj.SnapTemplate.Relink(mapping);
+            obj.SnapBehavior.Relink(mapping);
+            obj.DefaultLayer.Relink(mapping);
             obj.Transforms?.RemapLinks(mapping);
+            obj.Components.RemapLinks(mapping);
             obj.Model?.RemapLinks(mapping);
+            obj.Destructible?.RemapLinks(mapping);
             obj.PickupSound?.RemapLinks(mapping);
             obj.DropdownSound?.RemapLinks(mapping);
             obj.Keywords?.RemapLinks(mapping);
@@ -1814,9 +2180,21 @@ namespace Mutagen.Bethesda.Starfield
             {
                 yield return item;
             }
+            foreach (var item in obj.Components.WhereCastable<IAComponentGetter, IAssetLinkContainer>()
+                .SelectMany((f) => f.EnumerateListedAssetLinks()))
+            {
+                yield return item;
+            }
             if (obj.Model is {} ModelItems)
             {
                 foreach (var item in ModelItems.EnumerateListedAssetLinks())
+                {
+                    yield return item;
+                }
+            }
+            if (obj.Destructible is {} DestructibleItems)
+            {
+                foreach (var item in DestructibleItems.EnumerateListedAssetLinks())
                 {
                     yield return item;
                 }
@@ -1831,7 +2209,9 @@ namespace Mutagen.Bethesda.Starfield
             AssetLinkQuery queryCategories)
         {
             base.RemapAssetLinks(obj, mapping, linkCache, queryCategories);
+            obj.Components.ForEach(x => x.RemapAssetLinks(mapping, queryCategories, linkCache));
             obj.Model?.RemapAssetLinks(mapping, queryCategories, linkCache);
+            obj.Destructible?.RemapAssetLinks(mapping, queryCategories, linkCache);
         }
         
         #endregion
@@ -1906,15 +2286,28 @@ namespace Mutagen.Bethesda.Starfield
                 include);
             ret.ObjectBounds = MaskItemExt.Factory(item.ObjectBounds.GetEqualsMask(rhs.ObjectBounds, include), include);
             ret.DirtinessScale = item.DirtinessScale.Equals(rhs.DirtinessScale);
+            ret.SnapTemplate = item.SnapTemplate.Equals(rhs.SnapTemplate);
+            ret.SnapBehavior = item.SnapBehavior.Equals(rhs.SnapBehavior);
+            ret.DefaultLayer = item.DefaultLayer.Equals(rhs.DefaultLayer);
+            ret.XALG = item.XALG == rhs.XALG;
             ret.Transforms = EqualsMaskHelper.EqualsHelper(
                 item.Transforms,
                 rhs.Transforms,
                 (loqLhs, loqRhs, incl) => loqLhs.GetEqualsMask(loqRhs, incl),
                 include);
+            ret.Components = item.Components.CollectionEqualsHelper(
+                rhs.Components,
+                (loqLhs, loqRhs) => loqLhs.GetEqualsMask(loqRhs, include),
+                include);
             ret.Name = object.Equals(item.Name, rhs.Name);
             ret.Model = EqualsMaskHelper.EqualsHelper(
                 item.Model,
                 rhs.Model,
+                (loqLhs, loqRhs, incl) => loqLhs.GetEqualsMask(loqRhs, incl),
+                include);
+            ret.Destructible = EqualsMaskHelper.EqualsHelper(
+                item.Destructible,
+                rhs.Destructible,
                 (loqLhs, loqRhs, incl) => loqLhs.GetEqualsMask(loqRhs, incl),
                 include);
             ret.PickupSound = EqualsMaskHelper.EqualsHelper(
@@ -2003,10 +2396,41 @@ namespace Mutagen.Bethesda.Starfield
             {
                 sb.AppendItem(item.DirtinessScale, "DirtinessScale");
             }
+            if (printMask?.SnapTemplate ?? true)
+            {
+                sb.AppendItem(item.SnapTemplate.FormKeyNullable, "SnapTemplate");
+            }
+            if (printMask?.SnapBehavior ?? true)
+            {
+                sb.AppendItem(item.SnapBehavior.FormKeyNullable, "SnapBehavior");
+            }
+            if (printMask?.DefaultLayer ?? true)
+            {
+                sb.AppendItem(item.DefaultLayer.FormKeyNullable, "DefaultLayer");
+            }
+            if ((printMask?.XALG ?? true)
+                && item.XALG is {} XALGItem)
+            {
+                sb.AppendItem(XALGItem, "XALG");
+            }
             if ((printMask?.Transforms?.Overall ?? true)
                 && item.Transforms is {} TransformsItem)
             {
                 TransformsItem?.Print(sb, "Transforms");
+            }
+            if (printMask?.Components?.Overall ?? true)
+            {
+                sb.AppendLine("Components =>");
+                using (sb.Brace())
+                {
+                    foreach (var subItem in item.Components)
+                    {
+                        using (sb.Brace())
+                        {
+                            subItem?.Print(sb, "Item");
+                        }
+                    }
+                }
             }
             if ((printMask?.Name ?? true)
                 && item.Name is {} NameItem)
@@ -2017,6 +2441,11 @@ namespace Mutagen.Bethesda.Starfield
                 && item.Model is {} ModelItem)
             {
                 ModelItem?.Print(sb, "Model");
+            }
+            if ((printMask?.Destructible?.Overall ?? true)
+                && item.Destructible is {} DestructibleItem)
+            {
+                DestructibleItem?.Print(sb, "Destructible");
             }
             if ((printMask?.PickupSound?.Overall ?? true)
                 && item.PickupSound is {} PickupSoundItem)
@@ -2156,6 +2585,22 @@ namespace Mutagen.Bethesda.Starfield
             {
                 if (!lhs.DirtinessScale.Equals(rhs.DirtinessScale)) return false;
             }
+            if ((equalsMask?.GetShouldTranslate((int)Ammunition_FieldIndex.SnapTemplate) ?? true))
+            {
+                if (!lhs.SnapTemplate.Equals(rhs.SnapTemplate)) return false;
+            }
+            if ((equalsMask?.GetShouldTranslate((int)Ammunition_FieldIndex.SnapBehavior) ?? true))
+            {
+                if (!lhs.SnapBehavior.Equals(rhs.SnapBehavior)) return false;
+            }
+            if ((equalsMask?.GetShouldTranslate((int)Ammunition_FieldIndex.DefaultLayer) ?? true))
+            {
+                if (!lhs.DefaultLayer.Equals(rhs.DefaultLayer)) return false;
+            }
+            if ((equalsMask?.GetShouldTranslate((int)Ammunition_FieldIndex.XALG) ?? true))
+            {
+                if (lhs.XALG != rhs.XALG) return false;
+            }
             if ((equalsMask?.GetShouldTranslate((int)Ammunition_FieldIndex.Transforms) ?? true))
             {
                 if (EqualsMaskHelper.RefEquality(lhs.Transforms, rhs.Transforms, out var lhsTransforms, out var rhsTransforms, out var isTransformsEqual))
@@ -2163,6 +2608,10 @@ namespace Mutagen.Bethesda.Starfield
                     if (!((TransformsCommon)((ITransformsGetter)lhsTransforms).CommonInstance()!).Equals(lhsTransforms, rhsTransforms, equalsMask?.GetSubCrystal((int)Ammunition_FieldIndex.Transforms))) return false;
                 }
                 else if (!isTransformsEqual) return false;
+            }
+            if ((equalsMask?.GetShouldTranslate((int)Ammunition_FieldIndex.Components) ?? true))
+            {
+                if (!lhs.Components.SequenceEqual(rhs.Components, (l, r) => ((AComponentCommon)((IAComponentGetter)l).CommonInstance()!).Equals(l, r, equalsMask?.GetSubCrystal((int)Ammunition_FieldIndex.Components)))) return false;
             }
             if ((equalsMask?.GetShouldTranslate((int)Ammunition_FieldIndex.Name) ?? true))
             {
@@ -2175,6 +2624,14 @@ namespace Mutagen.Bethesda.Starfield
                     if (!((ModelCommon)((IModelGetter)lhsModel).CommonInstance()!).Equals(lhsModel, rhsModel, equalsMask?.GetSubCrystal((int)Ammunition_FieldIndex.Model))) return false;
                 }
                 else if (!isModelEqual) return false;
+            }
+            if ((equalsMask?.GetShouldTranslate((int)Ammunition_FieldIndex.Destructible) ?? true))
+            {
+                if (EqualsMaskHelper.RefEquality(lhs.Destructible, rhs.Destructible, out var lhsDestructible, out var rhsDestructible, out var isDestructibleEqual))
+                {
+                    if (!((DestructibleCommon)((IDestructibleGetter)lhsDestructible).CommonInstance()!).Equals(lhsDestructible, rhsDestructible, equalsMask?.GetSubCrystal((int)Ammunition_FieldIndex.Destructible))) return false;
+                }
+                else if (!isDestructibleEqual) return false;
             }
             if ((equalsMask?.GetShouldTranslate((int)Ammunition_FieldIndex.PickupSound) ?? true))
             {
@@ -2270,10 +2727,18 @@ namespace Mutagen.Bethesda.Starfield
             }
             hash.Add(item.ObjectBounds);
             hash.Add(item.DirtinessScale);
+            hash.Add(item.SnapTemplate);
+            hash.Add(item.SnapBehavior);
+            hash.Add(item.DefaultLayer);
+            if (item.XALG is {} XALGitem)
+            {
+                hash.Add(XALGitem);
+            }
             if (item.Transforms is {} Transformsitem)
             {
                 hash.Add(Transformsitem);
             }
+            hash.Add(item.Components);
             if (item.Name is {} Nameitem)
             {
                 hash.Add(Nameitem);
@@ -2281,6 +2746,10 @@ namespace Mutagen.Bethesda.Starfield
             if (item.Model is {} Modelitem)
             {
                 hash.Add(Modelitem);
+            }
+            if (item.Destructible is {} Destructibleitem)
+            {
+                hash.Add(Destructibleitem);
             }
             if (item.PickupSound is {} PickupSounditem)
             {
@@ -2346,6 +2815,18 @@ namespace Mutagen.Bethesda.Starfield
                     yield return item;
                 }
             }
+            if (FormLinkInformation.TryFactory(obj.SnapTemplate, out var SnapTemplateInfo))
+            {
+                yield return SnapTemplateInfo;
+            }
+            if (FormLinkInformation.TryFactory(obj.SnapBehavior, out var SnapBehaviorInfo))
+            {
+                yield return SnapBehaviorInfo;
+            }
+            if (FormLinkInformation.TryFactory(obj.DefaultLayer, out var DefaultLayerInfo))
+            {
+                yield return DefaultLayerInfo;
+            }
             if (obj.Transforms is {} TransformsItems)
             {
                 foreach (var item in TransformsItems.EnumerateFormLinks(iterateNestedRecords))
@@ -2353,9 +2834,21 @@ namespace Mutagen.Bethesda.Starfield
                     yield return item;
                 }
             }
+            foreach (var item in obj.Components.WhereCastable<IAComponentGetter, IFormLinkContainerGetter>()
+                .SelectMany((f) => f.EnumerateFormLinks(iterateNestedRecords)))
+            {
+                yield return FormLinkInformation.Factory(item);
+            }
             if (obj.Model is {} ModelItems)
             {
                 foreach (var item in ModelItems.EnumerateFormLinks(iterateNestedRecords))
+                {
+                    yield return item;
+                }
+            }
+            if (obj.Destructible is {} DestructibleItems)
+            {
+                foreach (var item in DestructibleItems.EnumerateFormLinks(iterateNestedRecords))
                 {
                     yield return item;
                 }
@@ -2391,9 +2884,21 @@ namespace Mutagen.Bethesda.Starfield
             {
                 yield return item;
             }
+            foreach (var item in obj.Components.WhereCastable<IAComponentGetter, IAssetLinkContainerGetter>()
+                .SelectMany((f) => f.EnumerateAssetLinks(queryCategories: queryCategories, linkCache: linkCache, assetType: assetType)))
+            {
+                yield return item;
+            }
             if (obj.Model is {} ModelItems)
             {
                 foreach (var item in ModelItems.EnumerateAssetLinks(queryCategories: queryCategories, linkCache: linkCache, assetType: assetType))
+                {
+                    yield return item;
+                }
+            }
+            if (obj.Destructible is {} DestructibleItems)
+            {
+                foreach (var item in DestructibleItems.EnumerateAssetLinks(queryCategories: queryCategories, linkCache: linkCache, assetType: assetType))
                 {
                     yield return item;
                 }
@@ -2546,6 +3051,22 @@ namespace Mutagen.Bethesda.Starfield
             {
                 item.DirtinessScale = rhs.DirtinessScale;
             }
+            if ((copyMask?.GetShouldTranslate((int)Ammunition_FieldIndex.SnapTemplate) ?? true))
+            {
+                item.SnapTemplate.SetTo(rhs.SnapTemplate.FormKeyNullable);
+            }
+            if ((copyMask?.GetShouldTranslate((int)Ammunition_FieldIndex.SnapBehavior) ?? true))
+            {
+                item.SnapBehavior.SetTo(rhs.SnapBehavior.FormKeyNullable);
+            }
+            if ((copyMask?.GetShouldTranslate((int)Ammunition_FieldIndex.DefaultLayer) ?? true))
+            {
+                item.DefaultLayer.SetTo(rhs.DefaultLayer.FormKeyNullable);
+            }
+            if ((copyMask?.GetShouldTranslate((int)Ammunition_FieldIndex.XALG) ?? true))
+            {
+                item.XALG = rhs.XALG;
+            }
             if ((copyMask?.GetShouldTranslate((int)Ammunition_FieldIndex.Transforms) ?? true))
             {
                 errorMask?.PushIndex((int)Ammunition_FieldIndex.Transforms);
@@ -2561,6 +3082,30 @@ namespace Mutagen.Bethesda.Starfield
                     {
                         item.Transforms = default;
                     }
+                }
+                catch (Exception ex)
+                when (errorMask != null)
+                {
+                    errorMask.ReportException(ex);
+                }
+                finally
+                {
+                    errorMask?.PopIndex();
+                }
+            }
+            if ((copyMask?.GetShouldTranslate((int)Ammunition_FieldIndex.Components) ?? true))
+            {
+                errorMask?.PushIndex((int)Ammunition_FieldIndex.Components);
+                try
+                {
+                    item.Components.SetTo(
+                        rhs.Components
+                        .Select(r =>
+                        {
+                            return r.DeepCopy(
+                                errorMask: errorMask,
+                                default(TranslationCrystal));
+                        }));
                 }
                 catch (Exception ex)
                 when (errorMask != null)
@@ -2590,6 +3135,32 @@ namespace Mutagen.Bethesda.Starfield
                     else
                     {
                         item.Model = default;
+                    }
+                }
+                catch (Exception ex)
+                when (errorMask != null)
+                {
+                    errorMask.ReportException(ex);
+                }
+                finally
+                {
+                    errorMask?.PopIndex();
+                }
+            }
+            if ((copyMask?.GetShouldTranslate((int)Ammunition_FieldIndex.Destructible) ?? true))
+            {
+                errorMask?.PushIndex((int)Ammunition_FieldIndex.Destructible);
+                try
+                {
+                    if(rhs.Destructible is {} rhsDestructible)
+                    {
+                        item.Destructible = rhsDestructible.DeepCopy(
+                            errorMask: errorMask,
+                            copyMask?.GetSubCrystal((int)Ammunition_FieldIndex.Destructible));
+                    }
+                    else
+                    {
+                        item.Destructible = default;
                     }
                 }
                 catch (Exception ex)
@@ -2907,6 +3478,22 @@ namespace Mutagen.Bethesda.Starfield
                 item: item.DirtinessScale,
                 integerType: FloatIntegerType.Float,
                 header: translationParams.ConvertToCustom(RecordTypes.ODTY));
+            FormLinkBinaryTranslation.Instance.WriteNullable(
+                writer: writer,
+                item: item.SnapTemplate,
+                header: translationParams.ConvertToCustom(RecordTypes.SNTP));
+            FormLinkBinaryTranslation.Instance.WriteNullable(
+                writer: writer,
+                item: item.SnapBehavior,
+                header: translationParams.ConvertToCustom(RecordTypes.SNBH));
+            FormLinkBinaryTranslation.Instance.WriteNullable(
+                writer: writer,
+                item: item.DefaultLayer,
+                header: translationParams.ConvertToCustom(RecordTypes.DEFL));
+            UInt64BinaryTranslation<MutagenFrame, MutagenWriter>.Instance.WriteNullable(
+                writer: writer,
+                item: item.XALG,
+                header: translationParams.ConvertToCustom(RecordTypes.XALG));
             if (item.Transforms is {} TransformsItem)
             {
                 ((TransformsBinaryWriteTranslation)((IBinaryItem)TransformsItem).BinaryWriteTranslator).Write(
@@ -2914,6 +3501,17 @@ namespace Mutagen.Bethesda.Starfield
                     writer: writer,
                     translationParams: translationParams);
             }
+            Mutagen.Bethesda.Plugins.Binary.Translations.ListBinaryTranslation<IAComponentGetter>.Instance.Write(
+                writer: writer,
+                items: item.Components,
+                transl: (MutagenWriter subWriter, IAComponentGetter subItem, TypedWriteParams conv) =>
+                {
+                    var Item = subItem;
+                    ((AComponentBinaryWriteTranslation)((IBinaryItem)Item).BinaryWriteTranslator).Write(
+                        item: Item,
+                        writer: subWriter,
+                        translationParams: conv);
+                });
             StringBinaryTranslation.Instance.WriteNullable(
                 writer: writer,
                 item: item.Name,
@@ -2924,6 +3522,13 @@ namespace Mutagen.Bethesda.Starfield
             {
                 ((ModelBinaryWriteTranslation)((IBinaryItem)ModelItem).BinaryWriteTranslator).Write(
                     item: ModelItem,
+                    writer: writer,
+                    translationParams: translationParams);
+            }
+            if (item.Destructible is {} DestructibleItem)
+            {
+                ((DestructibleBinaryWriteTranslation)((IBinaryItem)DestructibleItem).BinaryWriteTranslator).Write(
+                    item: DestructibleItem,
                     writer: writer,
                     translationParams: translationParams);
             }
@@ -3090,10 +3695,44 @@ namespace Mutagen.Bethesda.Starfield
                         integerType: FloatIntegerType.Float);
                     return (int)Ammunition_FieldIndex.DirtinessScale;
                 }
+                case RecordTypeInts.SNTP:
+                {
+                    frame.Position += frame.MetaData.Constants.SubConstants.HeaderLength;
+                    item.SnapTemplate.SetTo(FormLinkBinaryTranslation.Instance.Parse(reader: frame));
+                    return (int)Ammunition_FieldIndex.SnapTemplate;
+                }
+                case RecordTypeInts.SNBH:
+                {
+                    frame.Position += frame.MetaData.Constants.SubConstants.HeaderLength;
+                    item.SnapBehavior.SetTo(FormLinkBinaryTranslation.Instance.Parse(reader: frame));
+                    return (int)Ammunition_FieldIndex.SnapBehavior;
+                }
+                case RecordTypeInts.DEFL:
+                {
+                    frame.Position += frame.MetaData.Constants.SubConstants.HeaderLength;
+                    item.DefaultLayer.SetTo(FormLinkBinaryTranslation.Instance.Parse(reader: frame));
+                    return (int)Ammunition_FieldIndex.DefaultLayer;
+                }
+                case RecordTypeInts.XALG:
+                {
+                    frame.Position += frame.MetaData.Constants.SubConstants.HeaderLength;
+                    item.XALG = frame.ReadUInt64();
+                    return (int)Ammunition_FieldIndex.XALG;
+                }
                 case RecordTypeInts.PTT2:
                 {
                     item.Transforms = Mutagen.Bethesda.Starfield.Transforms.CreateFromBinary(frame: frame);
                     return (int)Ammunition_FieldIndex.Transforms;
+                }
+                case RecordTypeInts.BFCB:
+                {
+                    item.Components.SetTo(
+                        Mutagen.Bethesda.Plugins.Binary.Translations.ListBinaryTranslation<AComponent>.Instance.Parse(
+                            reader: frame,
+                            triggeringRecord: AComponent_Registration.TriggerSpecs,
+                            translationParams: translationParams,
+                            transl: AComponent.TryCreateFromBinary));
+                    return (int)Ammunition_FieldIndex.Components;
                 }
                 case RecordTypeInts.FULL:
                 {
@@ -3149,6 +3788,16 @@ namespace Mutagen.Bethesda.Starfield
                                 throw new NotImplementedException();
                         }
                     }
+                }
+                case RecordTypeInts.DEST:
+                case RecordTypeInts.DAMC:
+                case RecordTypeInts.DSDL:
+                case RecordTypeInts.DSTD:
+                {
+                    item.Destructible = Mutagen.Bethesda.Starfield.Destructible.CreateFromBinary(
+                        frame: frame,
+                        translationParams: translationParams.DoNotShortCircuit());
+                    return (int)Ammunition_FieldIndex.Destructible;
                 }
                 case RecordTypeInts.PUSH:
                 {
@@ -3313,10 +3962,27 @@ namespace Mutagen.Bethesda.Starfield
         private int? _DirtinessScaleLocation;
         public Percent DirtinessScale => _DirtinessScaleLocation.HasValue ? PercentBinaryTranslation.GetPercent(HeaderTranslation.ExtractSubrecordMemory(_recordData, _DirtinessScaleLocation.Value, _package.MetaData.Constants), FloatIntegerType.Float) : default(Percent);
         #endregion
+        #region SnapTemplate
+        private int? _SnapTemplateLocation;
+        public IFormLinkNullableGetter<ISnapTemplateGetter> SnapTemplate => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ISnapTemplateGetter>(_package, _recordData, _SnapTemplateLocation);
+        #endregion
+        #region SnapBehavior
+        private int? _SnapBehaviorLocation;
+        public IFormLinkNullableGetter<ISnapTemplateBehaviorGetter> SnapBehavior => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ISnapTemplateBehaviorGetter>(_package, _recordData, _SnapBehaviorLocation);
+        #endregion
+        #region DefaultLayer
+        private int? _DefaultLayerLocation;
+        public IFormLinkNullableGetter<ILayerGetter> DefaultLayer => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ILayerGetter>(_package, _recordData, _DefaultLayerLocation);
+        #endregion
+        #region XALG
+        private int? _XALGLocation;
+        public UInt64? XALG => _XALGLocation.HasValue ? BinaryPrimitives.ReadUInt64LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _XALGLocation.Value, _package.MetaData.Constants)) : default(UInt64?);
+        #endregion
         #region Transforms
         private RangeInt32? _TransformsLocation;
         public ITransformsGetter? Transforms => _TransformsLocation.HasValue ? TransformsBinaryOverlay.TransformsFactory(_recordData.Slice(_TransformsLocation!.Value.Min), _package) : default;
         #endregion
+        public IReadOnlyList<IAComponentGetter> Components { get; private set; } = [];
         #region Name
         private int? _NameLocation;
         public ITranslatedStringGetter? Name => _NameLocation.HasValue ? StringBinaryTranslation.Instance.Parse(HeaderTranslation.ExtractSubrecordMemory(_recordData, _NameLocation.Value, _package.MetaData.Constants), StringsSource.Normal, parsingBundle: _package.MetaData, eager: false) : default(TranslatedString?);
@@ -3330,6 +3996,7 @@ namespace Mutagen.Bethesda.Starfield
         #endregion
         #endregion
         public IModelGetter? Model { get; private set; }
+        public IDestructibleGetter? Destructible { get; private set; }
         public ISoundReferenceGetter? PickupSound { get; private set; }
         public ISoundReferenceGetter? DropdownSound { get; private set; }
         #region Description
@@ -3473,10 +4140,39 @@ namespace Mutagen.Bethesda.Starfield
                     _DirtinessScaleLocation = (stream.Position - offset);
                     return (int)Ammunition_FieldIndex.DirtinessScale;
                 }
+                case RecordTypeInts.SNTP:
+                {
+                    _SnapTemplateLocation = (stream.Position - offset);
+                    return (int)Ammunition_FieldIndex.SnapTemplate;
+                }
+                case RecordTypeInts.SNBH:
+                {
+                    _SnapBehaviorLocation = (stream.Position - offset);
+                    return (int)Ammunition_FieldIndex.SnapBehavior;
+                }
+                case RecordTypeInts.DEFL:
+                {
+                    _DefaultLayerLocation = (stream.Position - offset);
+                    return (int)Ammunition_FieldIndex.DefaultLayer;
+                }
+                case RecordTypeInts.XALG:
+                {
+                    _XALGLocation = (stream.Position - offset);
+                    return (int)Ammunition_FieldIndex.XALG;
+                }
                 case RecordTypeInts.PTT2:
                 {
                     _TransformsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
                     return (int)Ammunition_FieldIndex.Transforms;
+                }
+                case RecordTypeInts.BFCB:
+                {
+                    this.Components = this.ParseRepeatedTypelessSubrecord<IAComponentGetter>(
+                        stream: stream,
+                        translationParams: translationParams,
+                        trigger: AComponent_Registration.TriggerSpecs,
+                        factory: AComponentBinaryOverlay.AComponentFactory);
+                    return (int)Ammunition_FieldIndex.Components;
                 }
                 case RecordTypeInts.FULL:
                 {
@@ -3526,6 +4222,17 @@ namespace Mutagen.Bethesda.Starfield
                                 throw new NotImplementedException();
                         }
                     }
+                }
+                case RecordTypeInts.DEST:
+                case RecordTypeInts.DAMC:
+                case RecordTypeInts.DSDL:
+                case RecordTypeInts.DSTD:
+                {
+                    this.Destructible = DestructibleBinaryOverlay.DestructibleFactory(
+                        stream: stream,
+                        package: _package,
+                        translationParams: translationParams.DoNotShortCircuit());
+                    return (int)Ammunition_FieldIndex.Destructible;
                 }
                 case RecordTypeInts.PUSH:
                 {

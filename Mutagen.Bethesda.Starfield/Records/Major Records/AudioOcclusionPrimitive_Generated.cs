@@ -8,13 +8,16 @@
 using Loqui;
 using Loqui.Interfaces;
 using Loqui.Internal;
+using Mutagen.Bethesda.Assets;
 using Mutagen.Bethesda.Binary;
 using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Plugins.Aspects;
+using Mutagen.Bethesda.Plugins.Assets;
 using Mutagen.Bethesda.Plugins.Binary.Headers;
 using Mutagen.Bethesda.Plugins.Binary.Overlay;
 using Mutagen.Bethesda.Plugins.Binary.Streams;
 using Mutagen.Bethesda.Plugins.Binary.Translations;
+using Mutagen.Bethesda.Plugins.Cache;
 using Mutagen.Bethesda.Plugins.Exceptions;
 using Mutagen.Bethesda.Plugins.Internals;
 using Mutagen.Bethesda.Plugins.Meta;
@@ -78,6 +81,77 @@ namespace Mutagen.Bethesda.Starfield
         #region DirtinessScale
         public Percent DirtinessScale { get; set; } = default(Percent);
         #endregion
+        #region ObjectPaletteDefaults
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private ObjectPaletteDefaults? _ObjectPaletteDefaults;
+        public ObjectPaletteDefaults? ObjectPaletteDefaults
+        {
+            get => _ObjectPaletteDefaults;
+            set => _ObjectPaletteDefaults = value;
+        }
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        IObjectPaletteDefaultsGetter? IAudioOcclusionPrimitiveGetter.ObjectPaletteDefaults => this.ObjectPaletteDefaults;
+        #endregion
+        #region Transforms
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private Transforms? _Transforms;
+        public Transforms? Transforms
+        {
+            get => _Transforms;
+            set => _Transforms = value;
+        }
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        ITransformsGetter? IAudioOcclusionPrimitiveGetter.Transforms => this.Transforms;
+        #endregion
+        #region SnapTemplate
+        private readonly IFormLinkNullable<ISnapTemplateGetter> _SnapTemplate = new FormLinkNullable<ISnapTemplateGetter>();
+        public IFormLinkNullable<ISnapTemplateGetter> SnapTemplate
+        {
+            get => _SnapTemplate;
+            set => _SnapTemplate.SetTo(value);
+        }
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        IFormLinkNullableGetter<ISnapTemplateGetter> IAudioOcclusionPrimitiveGetter.SnapTemplate => this.SnapTemplate;
+        #endregion
+        #region SnapBehavior
+        private readonly IFormLinkNullable<ISnapTemplateGetter> _SnapBehavior = new FormLinkNullable<ISnapTemplateGetter>();
+        public IFormLinkNullable<ISnapTemplateGetter> SnapBehavior
+        {
+            get => _SnapBehavior;
+            set => _SnapBehavior.SetTo(value);
+        }
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        IFormLinkNullableGetter<ISnapTemplateGetter> IAudioOcclusionPrimitiveGetter.SnapBehavior => this.SnapBehavior;
+        #endregion
+        #region DefaultLayer
+        private readonly IFormLinkNullable<ILayerGetter> _DefaultLayer = new FormLinkNullable<ILayerGetter>();
+        public IFormLinkNullable<ILayerGetter> DefaultLayer
+        {
+            get => _DefaultLayer;
+            set => _DefaultLayer.SetTo(value);
+        }
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        IFormLinkNullableGetter<ILayerGetter> IAudioOcclusionPrimitiveGetter.DefaultLayer => this.DefaultLayer;
+        #endregion
+        #region XALG
+        public UInt64? XALG { get; set; }
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        UInt64? IAudioOcclusionPrimitiveGetter.XALG => this.XALG;
+        #endregion
+        #region Components
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private ExtendedList<AComponent> _Components = new ExtendedList<AComponent>();
+        public ExtendedList<AComponent> Components
+        {
+            get => this._Components;
+            init => this._Components = value;
+        }
+        #region Interface Members
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        IReadOnlyList<IAComponentGetter> IAudioOcclusionPrimitiveGetter.Components => _Components;
+        #endregion
+
+        #endregion
         #region Obstruction
         public Single? Obstruction { get; set; }
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -115,6 +189,13 @@ namespace Mutagen.Bethesda.Starfield
             {
                 this.ObjectBounds = new MaskItem<TItem, ObjectBounds.Mask<TItem>?>(initialValue, new ObjectBounds.Mask<TItem>(initialValue));
                 this.DirtinessScale = initialValue;
+                this.ObjectPaletteDefaults = new MaskItem<TItem, ObjectPaletteDefaults.Mask<TItem>?>(initialValue, new ObjectPaletteDefaults.Mask<TItem>(initialValue));
+                this.Transforms = new MaskItem<TItem, Transforms.Mask<TItem>?>(initialValue, new Transforms.Mask<TItem>(initialValue));
+                this.SnapTemplate = initialValue;
+                this.SnapBehavior = initialValue;
+                this.DefaultLayer = initialValue;
+                this.XALG = initialValue;
+                this.Components = new MaskItem<TItem, IEnumerable<MaskItemIndexed<TItem, AComponent.Mask<TItem>?>>?>(initialValue, []);
                 this.Obstruction = initialValue;
                 this.Occlusion = initialValue;
             }
@@ -129,6 +210,13 @@ namespace Mutagen.Bethesda.Starfield
                 TItem StarfieldMajorRecordFlags,
                 TItem ObjectBounds,
                 TItem DirtinessScale,
+                TItem ObjectPaletteDefaults,
+                TItem Transforms,
+                TItem SnapTemplate,
+                TItem SnapBehavior,
+                TItem DefaultLayer,
+                TItem XALG,
+                TItem Components,
                 TItem Obstruction,
                 TItem Occlusion)
             : base(
@@ -142,6 +230,13 @@ namespace Mutagen.Bethesda.Starfield
             {
                 this.ObjectBounds = new MaskItem<TItem, ObjectBounds.Mask<TItem>?>(ObjectBounds, new ObjectBounds.Mask<TItem>(ObjectBounds));
                 this.DirtinessScale = DirtinessScale;
+                this.ObjectPaletteDefaults = new MaskItem<TItem, ObjectPaletteDefaults.Mask<TItem>?>(ObjectPaletteDefaults, new ObjectPaletteDefaults.Mask<TItem>(ObjectPaletteDefaults));
+                this.Transforms = new MaskItem<TItem, Transforms.Mask<TItem>?>(Transforms, new Transforms.Mask<TItem>(Transforms));
+                this.SnapTemplate = SnapTemplate;
+                this.SnapBehavior = SnapBehavior;
+                this.DefaultLayer = DefaultLayer;
+                this.XALG = XALG;
+                this.Components = new MaskItem<TItem, IEnumerable<MaskItemIndexed<TItem, AComponent.Mask<TItem>?>>?>(Components, []);
                 this.Obstruction = Obstruction;
                 this.Occlusion = Occlusion;
             }
@@ -157,6 +252,13 @@ namespace Mutagen.Bethesda.Starfield
             #region Members
             public MaskItem<TItem, ObjectBounds.Mask<TItem>?>? ObjectBounds { get; set; }
             public TItem DirtinessScale;
+            public MaskItem<TItem, ObjectPaletteDefaults.Mask<TItem>?>? ObjectPaletteDefaults { get; set; }
+            public MaskItem<TItem, Transforms.Mask<TItem>?>? Transforms { get; set; }
+            public TItem SnapTemplate;
+            public TItem SnapBehavior;
+            public TItem DefaultLayer;
+            public TItem XALG;
+            public MaskItem<TItem, IEnumerable<MaskItemIndexed<TItem, AComponent.Mask<TItem>?>>?>? Components;
             public TItem Obstruction;
             public TItem Occlusion;
             #endregion
@@ -174,6 +276,13 @@ namespace Mutagen.Bethesda.Starfield
                 if (!base.Equals(rhs)) return false;
                 if (!object.Equals(this.ObjectBounds, rhs.ObjectBounds)) return false;
                 if (!object.Equals(this.DirtinessScale, rhs.DirtinessScale)) return false;
+                if (!object.Equals(this.ObjectPaletteDefaults, rhs.ObjectPaletteDefaults)) return false;
+                if (!object.Equals(this.Transforms, rhs.Transforms)) return false;
+                if (!object.Equals(this.SnapTemplate, rhs.SnapTemplate)) return false;
+                if (!object.Equals(this.SnapBehavior, rhs.SnapBehavior)) return false;
+                if (!object.Equals(this.DefaultLayer, rhs.DefaultLayer)) return false;
+                if (!object.Equals(this.XALG, rhs.XALG)) return false;
+                if (!object.Equals(this.Components, rhs.Components)) return false;
                 if (!object.Equals(this.Obstruction, rhs.Obstruction)) return false;
                 if (!object.Equals(this.Occlusion, rhs.Occlusion)) return false;
                 return true;
@@ -183,6 +292,13 @@ namespace Mutagen.Bethesda.Starfield
                 var hash = new HashCode();
                 hash.Add(this.ObjectBounds);
                 hash.Add(this.DirtinessScale);
+                hash.Add(this.ObjectPaletteDefaults);
+                hash.Add(this.Transforms);
+                hash.Add(this.SnapTemplate);
+                hash.Add(this.SnapBehavior);
+                hash.Add(this.DefaultLayer);
+                hash.Add(this.XALG);
+                hash.Add(this.Components);
                 hash.Add(this.Obstruction);
                 hash.Add(this.Occlusion);
                 hash.Add(base.GetHashCode());
@@ -201,6 +317,32 @@ namespace Mutagen.Bethesda.Starfield
                     if (this.ObjectBounds.Specific != null && !this.ObjectBounds.Specific.All(eval)) return false;
                 }
                 if (!eval(this.DirtinessScale)) return false;
+                if (ObjectPaletteDefaults != null)
+                {
+                    if (!eval(this.ObjectPaletteDefaults.Overall)) return false;
+                    if (this.ObjectPaletteDefaults.Specific != null && !this.ObjectPaletteDefaults.Specific.All(eval)) return false;
+                }
+                if (Transforms != null)
+                {
+                    if (!eval(this.Transforms.Overall)) return false;
+                    if (this.Transforms.Specific != null && !this.Transforms.Specific.All(eval)) return false;
+                }
+                if (!eval(this.SnapTemplate)) return false;
+                if (!eval(this.SnapBehavior)) return false;
+                if (!eval(this.DefaultLayer)) return false;
+                if (!eval(this.XALG)) return false;
+                if (this.Components != null)
+                {
+                    if (!eval(this.Components.Overall)) return false;
+                    if (this.Components.Specific != null)
+                    {
+                        foreach (var item in this.Components.Specific)
+                        {
+                            if (!eval(item.Overall)) return false;
+                            if (item.Specific != null && !item.Specific.All(eval)) return false;
+                        }
+                    }
+                }
                 if (!eval(this.Obstruction)) return false;
                 if (!eval(this.Occlusion)) return false;
                 return true;
@@ -217,6 +359,32 @@ namespace Mutagen.Bethesda.Starfield
                     if (this.ObjectBounds.Specific != null && this.ObjectBounds.Specific.Any(eval)) return true;
                 }
                 if (eval(this.DirtinessScale)) return true;
+                if (ObjectPaletteDefaults != null)
+                {
+                    if (eval(this.ObjectPaletteDefaults.Overall)) return true;
+                    if (this.ObjectPaletteDefaults.Specific != null && this.ObjectPaletteDefaults.Specific.Any(eval)) return true;
+                }
+                if (Transforms != null)
+                {
+                    if (eval(this.Transforms.Overall)) return true;
+                    if (this.Transforms.Specific != null && this.Transforms.Specific.Any(eval)) return true;
+                }
+                if (eval(this.SnapTemplate)) return true;
+                if (eval(this.SnapBehavior)) return true;
+                if (eval(this.DefaultLayer)) return true;
+                if (eval(this.XALG)) return true;
+                if (this.Components != null)
+                {
+                    if (eval(this.Components.Overall)) return true;
+                    if (this.Components.Specific != null)
+                    {
+                        foreach (var item in this.Components.Specific)
+                        {
+                            if (!eval(item.Overall)) return false;
+                            if (item.Specific != null && !item.Specific.All(eval)) return false;
+                        }
+                    }
+                }
                 if (eval(this.Obstruction)) return true;
                 if (eval(this.Occlusion)) return true;
                 return false;
@@ -236,6 +404,27 @@ namespace Mutagen.Bethesda.Starfield
                 base.Translate_InternalFill(obj, eval);
                 obj.ObjectBounds = this.ObjectBounds == null ? null : new MaskItem<R, ObjectBounds.Mask<R>?>(eval(this.ObjectBounds.Overall), this.ObjectBounds.Specific?.Translate(eval));
                 obj.DirtinessScale = eval(this.DirtinessScale);
+                obj.ObjectPaletteDefaults = this.ObjectPaletteDefaults == null ? null : new MaskItem<R, ObjectPaletteDefaults.Mask<R>?>(eval(this.ObjectPaletteDefaults.Overall), this.ObjectPaletteDefaults.Specific?.Translate(eval));
+                obj.Transforms = this.Transforms == null ? null : new MaskItem<R, Transforms.Mask<R>?>(eval(this.Transforms.Overall), this.Transforms.Specific?.Translate(eval));
+                obj.SnapTemplate = eval(this.SnapTemplate);
+                obj.SnapBehavior = eval(this.SnapBehavior);
+                obj.DefaultLayer = eval(this.DefaultLayer);
+                obj.XALG = eval(this.XALG);
+                if (Components != null)
+                {
+                    obj.Components = new MaskItem<R, IEnumerable<MaskItemIndexed<R, AComponent.Mask<R>?>>?>(eval(this.Components.Overall), []);
+                    if (Components.Specific != null)
+                    {
+                        var l = new List<MaskItemIndexed<R, AComponent.Mask<R>?>>();
+                        obj.Components.Specific = l;
+                        foreach (var item in Components.Specific)
+                        {
+                            MaskItemIndexed<R, AComponent.Mask<R>?>? mask = item == null ? null : new MaskItemIndexed<R, AComponent.Mask<R>?>(item.Index, eval(item.Overall), item.Specific?.Translate(eval));
+                            if (mask == null) continue;
+                            l.Add(mask);
+                        }
+                    }
+                }
                 obj.Obstruction = eval(this.Obstruction);
                 obj.Occlusion = eval(this.Occlusion);
             }
@@ -264,6 +453,49 @@ namespace Mutagen.Bethesda.Starfield
                     {
                         sb.AppendItem(DirtinessScale, "DirtinessScale");
                     }
+                    if (printMask?.ObjectPaletteDefaults?.Overall ?? true)
+                    {
+                        ObjectPaletteDefaults?.Print(sb);
+                    }
+                    if (printMask?.Transforms?.Overall ?? true)
+                    {
+                        Transforms?.Print(sb);
+                    }
+                    if (printMask?.SnapTemplate ?? true)
+                    {
+                        sb.AppendItem(SnapTemplate, "SnapTemplate");
+                    }
+                    if (printMask?.SnapBehavior ?? true)
+                    {
+                        sb.AppendItem(SnapBehavior, "SnapBehavior");
+                    }
+                    if (printMask?.DefaultLayer ?? true)
+                    {
+                        sb.AppendItem(DefaultLayer, "DefaultLayer");
+                    }
+                    if (printMask?.XALG ?? true)
+                    {
+                        sb.AppendItem(XALG, "XALG");
+                    }
+                    if ((printMask?.Components?.Overall ?? true)
+                        && Components is {} ComponentsItem)
+                    {
+                        sb.AppendLine("Components =>");
+                        using (sb.Brace())
+                        {
+                            sb.AppendItem(ComponentsItem.Overall);
+                            if (ComponentsItem.Specific != null)
+                            {
+                                foreach (var subItem in ComponentsItem.Specific)
+                                {
+                                    using (sb.Brace())
+                                    {
+                                        subItem?.Print(sb);
+                                    }
+                                }
+                            }
+                        }
+                    }
                     if (printMask?.Obstruction ?? true)
                     {
                         sb.AppendItem(Obstruction, "Obstruction");
@@ -285,6 +517,13 @@ namespace Mutagen.Bethesda.Starfield
             #region Members
             public MaskItem<Exception?, ObjectBounds.ErrorMask?>? ObjectBounds;
             public Exception? DirtinessScale;
+            public MaskItem<Exception?, ObjectPaletteDefaults.ErrorMask?>? ObjectPaletteDefaults;
+            public MaskItem<Exception?, Transforms.ErrorMask?>? Transforms;
+            public Exception? SnapTemplate;
+            public Exception? SnapBehavior;
+            public Exception? DefaultLayer;
+            public Exception? XALG;
+            public MaskItem<Exception?, IEnumerable<MaskItem<Exception?, AComponent.ErrorMask?>>?>? Components;
             public Exception? Obstruction;
             public Exception? Occlusion;
             #endregion
@@ -299,6 +538,20 @@ namespace Mutagen.Bethesda.Starfield
                         return ObjectBounds;
                     case AudioOcclusionPrimitive_FieldIndex.DirtinessScale:
                         return DirtinessScale;
+                    case AudioOcclusionPrimitive_FieldIndex.ObjectPaletteDefaults:
+                        return ObjectPaletteDefaults;
+                    case AudioOcclusionPrimitive_FieldIndex.Transforms:
+                        return Transforms;
+                    case AudioOcclusionPrimitive_FieldIndex.SnapTemplate:
+                        return SnapTemplate;
+                    case AudioOcclusionPrimitive_FieldIndex.SnapBehavior:
+                        return SnapBehavior;
+                    case AudioOcclusionPrimitive_FieldIndex.DefaultLayer:
+                        return DefaultLayer;
+                    case AudioOcclusionPrimitive_FieldIndex.XALG:
+                        return XALG;
+                    case AudioOcclusionPrimitive_FieldIndex.Components:
+                        return Components;
                     case AudioOcclusionPrimitive_FieldIndex.Obstruction:
                         return Obstruction;
                     case AudioOcclusionPrimitive_FieldIndex.Occlusion:
@@ -318,6 +571,27 @@ namespace Mutagen.Bethesda.Starfield
                         break;
                     case AudioOcclusionPrimitive_FieldIndex.DirtinessScale:
                         this.DirtinessScale = ex;
+                        break;
+                    case AudioOcclusionPrimitive_FieldIndex.ObjectPaletteDefaults:
+                        this.ObjectPaletteDefaults = new MaskItem<Exception?, ObjectPaletteDefaults.ErrorMask?>(ex, null);
+                        break;
+                    case AudioOcclusionPrimitive_FieldIndex.Transforms:
+                        this.Transforms = new MaskItem<Exception?, Transforms.ErrorMask?>(ex, null);
+                        break;
+                    case AudioOcclusionPrimitive_FieldIndex.SnapTemplate:
+                        this.SnapTemplate = ex;
+                        break;
+                    case AudioOcclusionPrimitive_FieldIndex.SnapBehavior:
+                        this.SnapBehavior = ex;
+                        break;
+                    case AudioOcclusionPrimitive_FieldIndex.DefaultLayer:
+                        this.DefaultLayer = ex;
+                        break;
+                    case AudioOcclusionPrimitive_FieldIndex.XALG:
+                        this.XALG = ex;
+                        break;
+                    case AudioOcclusionPrimitive_FieldIndex.Components:
+                        this.Components = new MaskItem<Exception?, IEnumerable<MaskItem<Exception?, AComponent.ErrorMask?>>?>(ex, null);
                         break;
                     case AudioOcclusionPrimitive_FieldIndex.Obstruction:
                         this.Obstruction = ex;
@@ -342,6 +616,27 @@ namespace Mutagen.Bethesda.Starfield
                     case AudioOcclusionPrimitive_FieldIndex.DirtinessScale:
                         this.DirtinessScale = (Exception?)obj;
                         break;
+                    case AudioOcclusionPrimitive_FieldIndex.ObjectPaletteDefaults:
+                        this.ObjectPaletteDefaults = (MaskItem<Exception?, ObjectPaletteDefaults.ErrorMask?>?)obj;
+                        break;
+                    case AudioOcclusionPrimitive_FieldIndex.Transforms:
+                        this.Transforms = (MaskItem<Exception?, Transforms.ErrorMask?>?)obj;
+                        break;
+                    case AudioOcclusionPrimitive_FieldIndex.SnapTemplate:
+                        this.SnapTemplate = (Exception?)obj;
+                        break;
+                    case AudioOcclusionPrimitive_FieldIndex.SnapBehavior:
+                        this.SnapBehavior = (Exception?)obj;
+                        break;
+                    case AudioOcclusionPrimitive_FieldIndex.DefaultLayer:
+                        this.DefaultLayer = (Exception?)obj;
+                        break;
+                    case AudioOcclusionPrimitive_FieldIndex.XALG:
+                        this.XALG = (Exception?)obj;
+                        break;
+                    case AudioOcclusionPrimitive_FieldIndex.Components:
+                        this.Components = (MaskItem<Exception?, IEnumerable<MaskItem<Exception?, AComponent.ErrorMask?>>?>)obj;
+                        break;
                     case AudioOcclusionPrimitive_FieldIndex.Obstruction:
                         this.Obstruction = (Exception?)obj;
                         break;
@@ -359,6 +654,13 @@ namespace Mutagen.Bethesda.Starfield
                 if (Overall != null) return true;
                 if (ObjectBounds != null) return true;
                 if (DirtinessScale != null) return true;
+                if (ObjectPaletteDefaults != null) return true;
+                if (Transforms != null) return true;
+                if (SnapTemplate != null) return true;
+                if (SnapBehavior != null) return true;
+                if (DefaultLayer != null) return true;
+                if (XALG != null) return true;
+                if (Components != null) return true;
                 if (Obstruction != null) return true;
                 if (Occlusion != null) return true;
                 return false;
@@ -391,6 +693,38 @@ namespace Mutagen.Bethesda.Starfield
                 {
                     sb.AppendItem(DirtinessScale, "DirtinessScale");
                 }
+                ObjectPaletteDefaults?.Print(sb);
+                Transforms?.Print(sb);
+                {
+                    sb.AppendItem(SnapTemplate, "SnapTemplate");
+                }
+                {
+                    sb.AppendItem(SnapBehavior, "SnapBehavior");
+                }
+                {
+                    sb.AppendItem(DefaultLayer, "DefaultLayer");
+                }
+                {
+                    sb.AppendItem(XALG, "XALG");
+                }
+                if (Components is {} ComponentsItem)
+                {
+                    sb.AppendLine("Components =>");
+                    using (sb.Brace())
+                    {
+                        sb.AppendItem(ComponentsItem.Overall);
+                        if (ComponentsItem.Specific != null)
+                        {
+                            foreach (var subItem in ComponentsItem.Specific)
+                            {
+                                using (sb.Brace())
+                                {
+                                    subItem?.Print(sb);
+                                }
+                            }
+                        }
+                    }
+                }
                 {
                     sb.AppendItem(Obstruction, "Obstruction");
                 }
@@ -407,6 +741,13 @@ namespace Mutagen.Bethesda.Starfield
                 var ret = new ErrorMask();
                 ret.ObjectBounds = this.ObjectBounds.Combine(rhs.ObjectBounds, (l, r) => l.Combine(r));
                 ret.DirtinessScale = this.DirtinessScale.Combine(rhs.DirtinessScale);
+                ret.ObjectPaletteDefaults = this.ObjectPaletteDefaults.Combine(rhs.ObjectPaletteDefaults, (l, r) => l.Combine(r));
+                ret.Transforms = this.Transforms.Combine(rhs.Transforms, (l, r) => l.Combine(r));
+                ret.SnapTemplate = this.SnapTemplate.Combine(rhs.SnapTemplate);
+                ret.SnapBehavior = this.SnapBehavior.Combine(rhs.SnapBehavior);
+                ret.DefaultLayer = this.DefaultLayer.Combine(rhs.DefaultLayer);
+                ret.XALG = this.XALG.Combine(rhs.XALG);
+                ret.Components = new MaskItem<Exception?, IEnumerable<MaskItem<Exception?, AComponent.ErrorMask?>>?>(Noggog.ExceptionExt.Combine(this.Components?.Overall, rhs.Components?.Overall), Noggog.ExceptionExt.Combine(this.Components?.Specific, rhs.Components?.Specific));
                 ret.Obstruction = this.Obstruction.Combine(rhs.Obstruction);
                 ret.Occlusion = this.Occlusion.Combine(rhs.Occlusion);
                 return ret;
@@ -433,6 +774,13 @@ namespace Mutagen.Bethesda.Starfield
             #region Members
             public ObjectBounds.TranslationMask? ObjectBounds;
             public bool DirtinessScale;
+            public ObjectPaletteDefaults.TranslationMask? ObjectPaletteDefaults;
+            public Transforms.TranslationMask? Transforms;
+            public bool SnapTemplate;
+            public bool SnapBehavior;
+            public bool DefaultLayer;
+            public bool XALG;
+            public AComponent.TranslationMask? Components;
             public bool Obstruction;
             public bool Occlusion;
             #endregion
@@ -444,6 +792,10 @@ namespace Mutagen.Bethesda.Starfield
                 : base(defaultOn, onOverall)
             {
                 this.DirtinessScale = defaultOn;
+                this.SnapTemplate = defaultOn;
+                this.SnapBehavior = defaultOn;
+                this.DefaultLayer = defaultOn;
+                this.XALG = defaultOn;
                 this.Obstruction = defaultOn;
                 this.Occlusion = defaultOn;
             }
@@ -455,6 +807,13 @@ namespace Mutagen.Bethesda.Starfield
                 base.GetCrystal(ret);
                 ret.Add((ObjectBounds != null ? ObjectBounds.OnOverall : DefaultOn, ObjectBounds?.GetCrystal()));
                 ret.Add((DirtinessScale, null));
+                ret.Add((ObjectPaletteDefaults != null ? ObjectPaletteDefaults.OnOverall : DefaultOn, ObjectPaletteDefaults?.GetCrystal()));
+                ret.Add((Transforms != null ? Transforms.OnOverall : DefaultOn, Transforms?.GetCrystal()));
+                ret.Add((SnapTemplate, null));
+                ret.Add((SnapBehavior, null));
+                ret.Add((DefaultLayer, null));
+                ret.Add((XALG, null));
+                ret.Add((Components == null ? DefaultOn : !Components.GetCrystal().CopyNothing, Components?.GetCrystal()));
                 ret.Add((Obstruction, null));
                 ret.Add((Occlusion, null));
             }
@@ -469,6 +828,8 @@ namespace Mutagen.Bethesda.Starfield
 
         #region Mutagen
         public static readonly RecordType GrupRecordType = AudioOcclusionPrimitive_Registration.TriggeringRecordType;
+        public override IEnumerable<IFormLinkGetter> EnumerateFormLinks(bool iterateNestedRecords = true) => AudioOcclusionPrimitiveCommon.Instance.EnumerateFormLinks(this, iterateNestedRecords);
+        public override void RemapLinks(IReadOnlyDictionary<FormKey, FormKey> mapping) => AudioOcclusionPrimitiveSetterCommon.Instance.RemapLinks(this, mapping);
         public AudioOcclusionPrimitive(
             FormKey formKey,
             StarfieldRelease gameRelease)
@@ -518,6 +879,10 @@ namespace Mutagen.Bethesda.Starfield
 
         protected override Type LinkType => typeof(IAudioOcclusionPrimitive);
 
+        public override IEnumerable<IAssetLinkGetter> EnumerateAssetLinks(AssetLinkQuery queryCategories, IAssetLinkCache? linkCache, Type? assetType) => AudioOcclusionPrimitiveCommon.Instance.EnumerateAssetLinks(this, queryCategories, linkCache, assetType);
+        public override IEnumerable<IAssetLink> EnumerateListedAssetLinks() => AudioOcclusionPrimitiveSetterCommon.Instance.EnumerateListedAssetLinks(this);
+        public override void RemapAssetLinks(IReadOnlyDictionary<IAssetLinkGetter, string> mapping, AssetLinkQuery queryCategories, IAssetLinkCache? linkCache) => AudioOcclusionPrimitiveSetterCommon.Instance.RemapAssetLinks(this, mapping, linkCache, queryCategories);
+        public override void RemapListedAssetLinks(IReadOnlyDictionary<IAssetLinkGetter, string> mapping) => AudioOcclusionPrimitiveSetterCommon.Instance.RemapAssetLinks(this, mapping, null, AssetLinkQuery.Listed);
         #region Equals and Hash
         public override bool Equals(object? obj)
         {
@@ -597,8 +962,10 @@ namespace Mutagen.Bethesda.Starfield
 
     #region Interface
     public partial interface IAudioOcclusionPrimitive :
+        IAssetLinkContainer,
         IAudioOcclusionPrimitiveGetter,
         IBaseObject,
+        IFormLinkContainer,
         ILoquiObjectSetter<IAudioOcclusionPrimitiveInternal>,
         IObjectBounded,
         IStarfieldMajorRecordInternal
@@ -608,6 +975,13 @@ namespace Mutagen.Bethesda.Starfield
         /// </summary>
         new ObjectBounds ObjectBounds { get; set; }
         new Percent DirtinessScale { get; set; }
+        new ObjectPaletteDefaults? ObjectPaletteDefaults { get; set; }
+        new Transforms? Transforms { get; set; }
+        new IFormLinkNullable<ISnapTemplateGetter> SnapTemplate { get; set; }
+        new IFormLinkNullable<ISnapTemplateGetter> SnapBehavior { get; set; }
+        new IFormLinkNullable<ILayerGetter> DefaultLayer { get; set; }
+        new UInt64? XALG { get; set; }
+        new ExtendedList<AComponent> Components { get; }
         new Single? Obstruction { get; set; }
         new Single? Occlusion { get; set; }
     }
@@ -622,8 +996,10 @@ namespace Mutagen.Bethesda.Starfield
     [AssociatedRecordTypesAttribute(Mutagen.Bethesda.Starfield.Internals.RecordTypeInts.AOPF)]
     public partial interface IAudioOcclusionPrimitiveGetter :
         IStarfieldMajorRecordGetter,
+        IAssetLinkContainerGetter,
         IBaseObjectGetter,
         IBinaryItem,
+        IFormLinkContainerGetter,
         ILoquiObject<IAudioOcclusionPrimitiveGetter>,
         IMapsToGetter<IAudioOcclusionPrimitiveGetter>,
         IObjectBoundedGetter
@@ -636,6 +1012,13 @@ namespace Mutagen.Bethesda.Starfield
         IObjectBoundsGetter ObjectBounds { get; }
         #endregion
         Percent DirtinessScale { get; }
+        IObjectPaletteDefaultsGetter? ObjectPaletteDefaults { get; }
+        ITransformsGetter? Transforms { get; }
+        IFormLinkNullableGetter<ISnapTemplateGetter> SnapTemplate { get; }
+        IFormLinkNullableGetter<ISnapTemplateGetter> SnapBehavior { get; }
+        IFormLinkNullableGetter<ILayerGetter> DefaultLayer { get; }
+        UInt64? XALG { get; }
+        IReadOnlyList<IAComponentGetter> Components { get; }
         Single? Obstruction { get; }
         Single? Occlusion { get; }
 
@@ -816,8 +1199,15 @@ namespace Mutagen.Bethesda.Starfield
         StarfieldMajorRecordFlags = 6,
         ObjectBounds = 7,
         DirtinessScale = 8,
-        Obstruction = 9,
-        Occlusion = 10,
+        ObjectPaletteDefaults = 9,
+        Transforms = 10,
+        SnapTemplate = 11,
+        SnapBehavior = 12,
+        DefaultLayer = 13,
+        XALG = 14,
+        Components = 15,
+        Obstruction = 16,
+        Occlusion = 17,
     }
     #endregion
 
@@ -828,9 +1218,9 @@ namespace Mutagen.Bethesda.Starfield
 
         public static ProtocolKey ProtocolKey => ProtocolDefinition_Starfield.ProtocolKey;
 
-        public const ushort AdditionalFieldCount = 4;
+        public const ushort AdditionalFieldCount = 11;
 
-        public const ushort FieldCount = 11;
+        public const ushort FieldCount = 18;
 
         public static readonly Type MaskType = typeof(AudioOcclusionPrimitive.Mask<>);
 
@@ -865,6 +1255,14 @@ namespace Mutagen.Bethesda.Starfield
                 RecordTypes.AOPF,
                 RecordTypes.OBND,
                 RecordTypes.ODTY,
+                RecordTypes.OPDS,
+                RecordTypes.PTT2,
+                RecordTypes.SNTP,
+                RecordTypes.SNBH,
+                RecordTypes.DEFL,
+                RecordTypes.XALG,
+                RecordTypes.BFCB,
+                RecordTypes.BFCE,
                 RecordTypes.OBSV,
                 RecordTypes.OCCV);
             return new RecordTriggerSpecs(
@@ -913,6 +1311,13 @@ namespace Mutagen.Bethesda.Starfield
             ClearPartial();
             item.ObjectBounds.Clear();
             item.DirtinessScale = default(Percent);
+            item.ObjectPaletteDefaults = null;
+            item.Transforms = null;
+            item.SnapTemplate.Clear();
+            item.SnapBehavior.Clear();
+            item.DefaultLayer.Clear();
+            item.XALG = default;
+            item.Components.Clear();
             item.Obstruction = default;
             item.Occlusion = default;
             base.Clear(item);
@@ -932,6 +1337,35 @@ namespace Mutagen.Bethesda.Starfield
         public void RemapLinks(IAudioOcclusionPrimitive obj, IReadOnlyDictionary<FormKey, FormKey> mapping)
         {
             base.RemapLinks(obj, mapping);
+            obj.Transforms?.RemapLinks(mapping);
+            obj.SnapTemplate.Relink(mapping);
+            obj.SnapBehavior.Relink(mapping);
+            obj.DefaultLayer.Relink(mapping);
+            obj.Components.RemapLinks(mapping);
+        }
+        
+        public IEnumerable<IAssetLink> EnumerateListedAssetLinks(IAudioOcclusionPrimitive obj)
+        {
+            foreach (var item in base.EnumerateListedAssetLinks(obj))
+            {
+                yield return item;
+            }
+            foreach (var item in obj.Components.WhereCastable<IAComponentGetter, IAssetLinkContainer>()
+                .SelectMany((f) => f.EnumerateListedAssetLinks()))
+            {
+                yield return item;
+            }
+            yield break;
+        }
+        
+        public void RemapAssetLinks(
+            IAudioOcclusionPrimitive obj,
+            IReadOnlyDictionary<IAssetLinkGetter, string> mapping,
+            IAssetLinkCache? linkCache,
+            AssetLinkQuery queryCategories)
+        {
+            base.RemapAssetLinks(obj, mapping, linkCache, queryCategories);
+            obj.Components.ForEach(x => x.RemapAssetLinks(mapping, queryCategories, linkCache));
         }
         
         #endregion
@@ -1001,6 +1435,24 @@ namespace Mutagen.Bethesda.Starfield
         {
             ret.ObjectBounds = MaskItemExt.Factory(item.ObjectBounds.GetEqualsMask(rhs.ObjectBounds, include), include);
             ret.DirtinessScale = item.DirtinessScale.Equals(rhs.DirtinessScale);
+            ret.ObjectPaletteDefaults = EqualsMaskHelper.EqualsHelper(
+                item.ObjectPaletteDefaults,
+                rhs.ObjectPaletteDefaults,
+                (loqLhs, loqRhs, incl) => loqLhs.GetEqualsMask(loqRhs, incl),
+                include);
+            ret.Transforms = EqualsMaskHelper.EqualsHelper(
+                item.Transforms,
+                rhs.Transforms,
+                (loqLhs, loqRhs, incl) => loqLhs.GetEqualsMask(loqRhs, incl),
+                include);
+            ret.SnapTemplate = item.SnapTemplate.Equals(rhs.SnapTemplate);
+            ret.SnapBehavior = item.SnapBehavior.Equals(rhs.SnapBehavior);
+            ret.DefaultLayer = item.DefaultLayer.Equals(rhs.DefaultLayer);
+            ret.XALG = item.XALG == rhs.XALG;
+            ret.Components = item.Components.CollectionEqualsHelper(
+                rhs.Components,
+                (loqLhs, loqRhs) => loqLhs.GetEqualsMask(loqRhs, include),
+                include);
             ret.Obstruction = item.Obstruction.EqualsWithin(rhs.Obstruction);
             ret.Occlusion = item.Occlusion.EqualsWithin(rhs.Occlusion);
             base.FillEqualsMask(item, rhs, ret, include);
@@ -1059,6 +1511,47 @@ namespace Mutagen.Bethesda.Starfield
             if (printMask?.DirtinessScale ?? true)
             {
                 sb.AppendItem(item.DirtinessScale, "DirtinessScale");
+            }
+            if ((printMask?.ObjectPaletteDefaults?.Overall ?? true)
+                && item.ObjectPaletteDefaults is {} ObjectPaletteDefaultsItem)
+            {
+                ObjectPaletteDefaultsItem?.Print(sb, "ObjectPaletteDefaults");
+            }
+            if ((printMask?.Transforms?.Overall ?? true)
+                && item.Transforms is {} TransformsItem)
+            {
+                TransformsItem?.Print(sb, "Transforms");
+            }
+            if (printMask?.SnapTemplate ?? true)
+            {
+                sb.AppendItem(item.SnapTemplate.FormKeyNullable, "SnapTemplate");
+            }
+            if (printMask?.SnapBehavior ?? true)
+            {
+                sb.AppendItem(item.SnapBehavior.FormKeyNullable, "SnapBehavior");
+            }
+            if (printMask?.DefaultLayer ?? true)
+            {
+                sb.AppendItem(item.DefaultLayer.FormKeyNullable, "DefaultLayer");
+            }
+            if ((printMask?.XALG ?? true)
+                && item.XALG is {} XALGItem)
+            {
+                sb.AppendItem(XALGItem, "XALG");
+            }
+            if (printMask?.Components?.Overall ?? true)
+            {
+                sb.AppendLine("Components =>");
+                using (sb.Brace())
+                {
+                    foreach (var subItem in item.Components)
+                    {
+                        using (sb.Brace())
+                        {
+                            subItem?.Print(sb, "Item");
+                        }
+                    }
+                }
             }
             if ((printMask?.Obstruction ?? true)
                 && item.Obstruction is {} ObstructionItem)
@@ -1132,6 +1625,42 @@ namespace Mutagen.Bethesda.Starfield
             {
                 if (!lhs.DirtinessScale.Equals(rhs.DirtinessScale)) return false;
             }
+            if ((equalsMask?.GetShouldTranslate((int)AudioOcclusionPrimitive_FieldIndex.ObjectPaletteDefaults) ?? true))
+            {
+                if (EqualsMaskHelper.RefEquality(lhs.ObjectPaletteDefaults, rhs.ObjectPaletteDefaults, out var lhsObjectPaletteDefaults, out var rhsObjectPaletteDefaults, out var isObjectPaletteDefaultsEqual))
+                {
+                    if (!((ObjectPaletteDefaultsCommon)((IObjectPaletteDefaultsGetter)lhsObjectPaletteDefaults).CommonInstance()!).Equals(lhsObjectPaletteDefaults, rhsObjectPaletteDefaults, equalsMask?.GetSubCrystal((int)AudioOcclusionPrimitive_FieldIndex.ObjectPaletteDefaults))) return false;
+                }
+                else if (!isObjectPaletteDefaultsEqual) return false;
+            }
+            if ((equalsMask?.GetShouldTranslate((int)AudioOcclusionPrimitive_FieldIndex.Transforms) ?? true))
+            {
+                if (EqualsMaskHelper.RefEquality(lhs.Transforms, rhs.Transforms, out var lhsTransforms, out var rhsTransforms, out var isTransformsEqual))
+                {
+                    if (!((TransformsCommon)((ITransformsGetter)lhsTransforms).CommonInstance()!).Equals(lhsTransforms, rhsTransforms, equalsMask?.GetSubCrystal((int)AudioOcclusionPrimitive_FieldIndex.Transforms))) return false;
+                }
+                else if (!isTransformsEqual) return false;
+            }
+            if ((equalsMask?.GetShouldTranslate((int)AudioOcclusionPrimitive_FieldIndex.SnapTemplate) ?? true))
+            {
+                if (!lhs.SnapTemplate.Equals(rhs.SnapTemplate)) return false;
+            }
+            if ((equalsMask?.GetShouldTranslate((int)AudioOcclusionPrimitive_FieldIndex.SnapBehavior) ?? true))
+            {
+                if (!lhs.SnapBehavior.Equals(rhs.SnapBehavior)) return false;
+            }
+            if ((equalsMask?.GetShouldTranslate((int)AudioOcclusionPrimitive_FieldIndex.DefaultLayer) ?? true))
+            {
+                if (!lhs.DefaultLayer.Equals(rhs.DefaultLayer)) return false;
+            }
+            if ((equalsMask?.GetShouldTranslate((int)AudioOcclusionPrimitive_FieldIndex.XALG) ?? true))
+            {
+                if (lhs.XALG != rhs.XALG) return false;
+            }
+            if ((equalsMask?.GetShouldTranslate((int)AudioOcclusionPrimitive_FieldIndex.Components) ?? true))
+            {
+                if (!lhs.Components.SequenceEqual(rhs.Components, (l, r) => ((AComponentCommon)((IAComponentGetter)l).CommonInstance()!).Equals(l, r, equalsMask?.GetSubCrystal((int)AudioOcclusionPrimitive_FieldIndex.Components)))) return false;
+            }
             if ((equalsMask?.GetShouldTranslate((int)AudioOcclusionPrimitive_FieldIndex.Obstruction) ?? true))
             {
                 if (!lhs.Obstruction.EqualsWithin(rhs.Obstruction)) return false;
@@ -1170,6 +1699,22 @@ namespace Mutagen.Bethesda.Starfield
             var hash = new HashCode();
             hash.Add(item.ObjectBounds);
             hash.Add(item.DirtinessScale);
+            if (item.ObjectPaletteDefaults is {} ObjectPaletteDefaultsitem)
+            {
+                hash.Add(ObjectPaletteDefaultsitem);
+            }
+            if (item.Transforms is {} Transformsitem)
+            {
+                hash.Add(Transformsitem);
+            }
+            hash.Add(item.SnapTemplate);
+            hash.Add(item.SnapBehavior);
+            hash.Add(item.DefaultLayer);
+            if (item.XALG is {} XALGitem)
+            {
+                hash.Add(XALGitem);
+            }
+            hash.Add(item.Components);
             if (item.Obstruction is {} Obstructionitem)
             {
                 hash.Add(Obstructionitem);
@@ -1204,6 +1749,44 @@ namespace Mutagen.Bethesda.Starfield
         public IEnumerable<IFormLinkGetter> EnumerateFormLinks(IAudioOcclusionPrimitiveGetter obj, bool iterateNestedRecords = true)
         {
             foreach (var item in base.EnumerateFormLinks(obj, iterateNestedRecords))
+            {
+                yield return item;
+            }
+            if (obj.Transforms is {} TransformsItems)
+            {
+                foreach (var item in TransformsItems.EnumerateFormLinks(iterateNestedRecords))
+                {
+                    yield return item;
+                }
+            }
+            if (FormLinkInformation.TryFactory(obj.SnapTemplate, out var SnapTemplateInfo))
+            {
+                yield return SnapTemplateInfo;
+            }
+            if (FormLinkInformation.TryFactory(obj.SnapBehavior, out var SnapBehaviorInfo))
+            {
+                yield return SnapBehaviorInfo;
+            }
+            if (FormLinkInformation.TryFactory(obj.DefaultLayer, out var DefaultLayerInfo))
+            {
+                yield return DefaultLayerInfo;
+            }
+            foreach (var item in obj.Components.WhereCastable<IAComponentGetter, IFormLinkContainerGetter>()
+                .SelectMany((f) => f.EnumerateFormLinks(iterateNestedRecords)))
+            {
+                yield return FormLinkInformation.Factory(item);
+            }
+            yield break;
+        }
+        
+        public IEnumerable<IAssetLinkGetter> EnumerateAssetLinks(IAudioOcclusionPrimitiveGetter obj, AssetLinkQuery queryCategories, IAssetLinkCache? linkCache, Type? assetType)
+        {
+            foreach (var item in base.EnumerateAssetLinks(obj, queryCategories, linkCache, assetType))
+            {
+                yield return item;
+            }
+            foreach (var item in obj.Components.WhereCastable<IAComponentGetter, IAssetLinkContainerGetter>()
+                .SelectMany((f) => f.EnumerateAssetLinks(queryCategories: queryCategories, linkCache: linkCache, assetType: assetType)))
             {
                 yield return item;
             }
@@ -1328,6 +1911,98 @@ namespace Mutagen.Bethesda.Starfield
             if ((copyMask?.GetShouldTranslate((int)AudioOcclusionPrimitive_FieldIndex.DirtinessScale) ?? true))
             {
                 item.DirtinessScale = rhs.DirtinessScale;
+            }
+            if ((copyMask?.GetShouldTranslate((int)AudioOcclusionPrimitive_FieldIndex.ObjectPaletteDefaults) ?? true))
+            {
+                errorMask?.PushIndex((int)AudioOcclusionPrimitive_FieldIndex.ObjectPaletteDefaults);
+                try
+                {
+                    if(rhs.ObjectPaletteDefaults is {} rhsObjectPaletteDefaults)
+                    {
+                        item.ObjectPaletteDefaults = rhsObjectPaletteDefaults.DeepCopy(
+                            errorMask: errorMask,
+                            copyMask?.GetSubCrystal((int)AudioOcclusionPrimitive_FieldIndex.ObjectPaletteDefaults));
+                    }
+                    else
+                    {
+                        item.ObjectPaletteDefaults = default;
+                    }
+                }
+                catch (Exception ex)
+                when (errorMask != null)
+                {
+                    errorMask.ReportException(ex);
+                }
+                finally
+                {
+                    errorMask?.PopIndex();
+                }
+            }
+            if ((copyMask?.GetShouldTranslate((int)AudioOcclusionPrimitive_FieldIndex.Transforms) ?? true))
+            {
+                errorMask?.PushIndex((int)AudioOcclusionPrimitive_FieldIndex.Transforms);
+                try
+                {
+                    if(rhs.Transforms is {} rhsTransforms)
+                    {
+                        item.Transforms = rhsTransforms.DeepCopy(
+                            errorMask: errorMask,
+                            copyMask?.GetSubCrystal((int)AudioOcclusionPrimitive_FieldIndex.Transforms));
+                    }
+                    else
+                    {
+                        item.Transforms = default;
+                    }
+                }
+                catch (Exception ex)
+                when (errorMask != null)
+                {
+                    errorMask.ReportException(ex);
+                }
+                finally
+                {
+                    errorMask?.PopIndex();
+                }
+            }
+            if ((copyMask?.GetShouldTranslate((int)AudioOcclusionPrimitive_FieldIndex.SnapTemplate) ?? true))
+            {
+                item.SnapTemplate.SetTo(rhs.SnapTemplate.FormKeyNullable);
+            }
+            if ((copyMask?.GetShouldTranslate((int)AudioOcclusionPrimitive_FieldIndex.SnapBehavior) ?? true))
+            {
+                item.SnapBehavior.SetTo(rhs.SnapBehavior.FormKeyNullable);
+            }
+            if ((copyMask?.GetShouldTranslate((int)AudioOcclusionPrimitive_FieldIndex.DefaultLayer) ?? true))
+            {
+                item.DefaultLayer.SetTo(rhs.DefaultLayer.FormKeyNullable);
+            }
+            if ((copyMask?.GetShouldTranslate((int)AudioOcclusionPrimitive_FieldIndex.XALG) ?? true))
+            {
+                item.XALG = rhs.XALG;
+            }
+            if ((copyMask?.GetShouldTranslate((int)AudioOcclusionPrimitive_FieldIndex.Components) ?? true))
+            {
+                errorMask?.PushIndex((int)AudioOcclusionPrimitive_FieldIndex.Components);
+                try
+                {
+                    item.Components.SetTo(
+                        rhs.Components
+                        .Select(r =>
+                        {
+                            return r.DeepCopy(
+                                errorMask: errorMask,
+                                default(TranslationCrystal));
+                        }));
+                }
+                catch (Exception ex)
+                when (errorMask != null)
+                {
+                    errorMask.ReportException(ex);
+                }
+                finally
+                {
+                    errorMask?.PopIndex();
+                }
             }
             if ((copyMask?.GetShouldTranslate((int)AudioOcclusionPrimitive_FieldIndex.Obstruction) ?? true))
             {
@@ -1516,6 +2191,47 @@ namespace Mutagen.Bethesda.Starfield
                 item: item.DirtinessScale,
                 integerType: FloatIntegerType.Float,
                 header: translationParams.ConvertToCustom(RecordTypes.ODTY));
+            if (item.ObjectPaletteDefaults is {} ObjectPaletteDefaultsItem)
+            {
+                ((ObjectPaletteDefaultsBinaryWriteTranslation)((IBinaryItem)ObjectPaletteDefaultsItem).BinaryWriteTranslator).Write(
+                    item: ObjectPaletteDefaultsItem,
+                    writer: writer,
+                    translationParams: translationParams);
+            }
+            if (item.Transforms is {} TransformsItem)
+            {
+                ((TransformsBinaryWriteTranslation)((IBinaryItem)TransformsItem).BinaryWriteTranslator).Write(
+                    item: TransformsItem,
+                    writer: writer,
+                    translationParams: translationParams);
+            }
+            FormLinkBinaryTranslation.Instance.WriteNullable(
+                writer: writer,
+                item: item.SnapTemplate,
+                header: translationParams.ConvertToCustom(RecordTypes.SNTP));
+            FormLinkBinaryTranslation.Instance.WriteNullable(
+                writer: writer,
+                item: item.SnapBehavior,
+                header: translationParams.ConvertToCustom(RecordTypes.SNBH));
+            FormLinkBinaryTranslation.Instance.WriteNullable(
+                writer: writer,
+                item: item.DefaultLayer,
+                header: translationParams.ConvertToCustom(RecordTypes.DEFL));
+            UInt64BinaryTranslation<MutagenFrame, MutagenWriter>.Instance.WriteNullable(
+                writer: writer,
+                item: item.XALG,
+                header: translationParams.ConvertToCustom(RecordTypes.XALG));
+            Mutagen.Bethesda.Plugins.Binary.Translations.ListBinaryTranslation<IAComponentGetter>.Instance.Write(
+                writer: writer,
+                items: item.Components,
+                transl: (MutagenWriter subWriter, IAComponentGetter subItem, TypedWriteParams conv) =>
+                {
+                    var Item = subItem;
+                    ((AComponentBinaryWriteTranslation)((IBinaryItem)Item).BinaryWriteTranslator).Write(
+                        item: Item,
+                        writer: subWriter,
+                        translationParams: conv);
+                });
             FloatBinaryTranslation<MutagenFrame, MutagenWriter>.Instance.WriteNullable(
                 writer: writer,
                 item: item.Obstruction,
@@ -1605,6 +2321,50 @@ namespace Mutagen.Bethesda.Starfield
                         integerType: FloatIntegerType.Float);
                     return (int)AudioOcclusionPrimitive_FieldIndex.DirtinessScale;
                 }
+                case RecordTypeInts.OPDS:
+                {
+                    item.ObjectPaletteDefaults = Mutagen.Bethesda.Starfield.ObjectPaletteDefaults.CreateFromBinary(frame: frame);
+                    return (int)AudioOcclusionPrimitive_FieldIndex.ObjectPaletteDefaults;
+                }
+                case RecordTypeInts.PTT2:
+                {
+                    item.Transforms = Mutagen.Bethesda.Starfield.Transforms.CreateFromBinary(frame: frame);
+                    return (int)AudioOcclusionPrimitive_FieldIndex.Transforms;
+                }
+                case RecordTypeInts.SNTP:
+                {
+                    frame.Position += frame.MetaData.Constants.SubConstants.HeaderLength;
+                    item.SnapTemplate.SetTo(FormLinkBinaryTranslation.Instance.Parse(reader: frame));
+                    return (int)AudioOcclusionPrimitive_FieldIndex.SnapTemplate;
+                }
+                case RecordTypeInts.SNBH:
+                {
+                    frame.Position += frame.MetaData.Constants.SubConstants.HeaderLength;
+                    item.SnapBehavior.SetTo(FormLinkBinaryTranslation.Instance.Parse(reader: frame));
+                    return (int)AudioOcclusionPrimitive_FieldIndex.SnapBehavior;
+                }
+                case RecordTypeInts.DEFL:
+                {
+                    frame.Position += frame.MetaData.Constants.SubConstants.HeaderLength;
+                    item.DefaultLayer.SetTo(FormLinkBinaryTranslation.Instance.Parse(reader: frame));
+                    return (int)AudioOcclusionPrimitive_FieldIndex.DefaultLayer;
+                }
+                case RecordTypeInts.XALG:
+                {
+                    frame.Position += frame.MetaData.Constants.SubConstants.HeaderLength;
+                    item.XALG = frame.ReadUInt64();
+                    return (int)AudioOcclusionPrimitive_FieldIndex.XALG;
+                }
+                case RecordTypeInts.BFCB:
+                {
+                    item.Components.SetTo(
+                        Mutagen.Bethesda.Plugins.Binary.Translations.ListBinaryTranslation<AComponent>.Instance.Parse(
+                            reader: frame,
+                            triggeringRecord: AComponent_Registration.TriggerSpecs,
+                            translationParams: translationParams,
+                            transl: AComponent.TryCreateFromBinary));
+                    return (int)AudioOcclusionPrimitive_FieldIndex.Components;
+                }
                 case RecordTypeInts.OBSV:
                 {
                     frame.Position += frame.MetaData.Constants.SubConstants.HeaderLength;
@@ -1661,6 +2421,8 @@ namespace Mutagen.Bethesda.Starfield
 
         void IPrintable.Print(StructuredStringBuilder sb, string? name) => this.Print(sb, name);
 
+        public override IEnumerable<IFormLinkGetter> EnumerateFormLinks(bool iterateNestedRecords = true) => AudioOcclusionPrimitiveCommon.Instance.EnumerateFormLinks(this, iterateNestedRecords);
+        public override IEnumerable<IAssetLinkGetter> EnumerateAssetLinks(AssetLinkQuery queryCategories, IAssetLinkCache? linkCache, Type? assetType) => AudioOcclusionPrimitiveCommon.Instance.EnumerateAssetLinks(this, queryCategories, linkCache, assetType);
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         protected override object BinaryWriteTranslator => AudioOcclusionPrimitiveBinaryWriteTranslation.Instance;
         void IBinaryItem.WriteToBinary(
@@ -1684,6 +2446,31 @@ namespace Mutagen.Bethesda.Starfield
         private int? _DirtinessScaleLocation;
         public Percent DirtinessScale => _DirtinessScaleLocation.HasValue ? PercentBinaryTranslation.GetPercent(HeaderTranslation.ExtractSubrecordMemory(_recordData, _DirtinessScaleLocation.Value, _package.MetaData.Constants), FloatIntegerType.Float) : default(Percent);
         #endregion
+        #region ObjectPaletteDefaults
+        private RangeInt32? _ObjectPaletteDefaultsLocation;
+        public IObjectPaletteDefaultsGetter? ObjectPaletteDefaults => _ObjectPaletteDefaultsLocation.HasValue ? ObjectPaletteDefaultsBinaryOverlay.ObjectPaletteDefaultsFactory(_recordData.Slice(_ObjectPaletteDefaultsLocation!.Value.Min), _package) : default;
+        #endregion
+        #region Transforms
+        private RangeInt32? _TransformsLocation;
+        public ITransformsGetter? Transforms => _TransformsLocation.HasValue ? TransformsBinaryOverlay.TransformsFactory(_recordData.Slice(_TransformsLocation!.Value.Min), _package) : default;
+        #endregion
+        #region SnapTemplate
+        private int? _SnapTemplateLocation;
+        public IFormLinkNullableGetter<ISnapTemplateGetter> SnapTemplate => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ISnapTemplateGetter>(_package, _recordData, _SnapTemplateLocation);
+        #endregion
+        #region SnapBehavior
+        private int? _SnapBehaviorLocation;
+        public IFormLinkNullableGetter<ISnapTemplateGetter> SnapBehavior => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ISnapTemplateGetter>(_package, _recordData, _SnapBehaviorLocation);
+        #endregion
+        #region DefaultLayer
+        private int? _DefaultLayerLocation;
+        public IFormLinkNullableGetter<ILayerGetter> DefaultLayer => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ILayerGetter>(_package, _recordData, _DefaultLayerLocation);
+        #endregion
+        #region XALG
+        private int? _XALGLocation;
+        public UInt64? XALG => _XALGLocation.HasValue ? BinaryPrimitives.ReadUInt64LittleEndian(HeaderTranslation.ExtractSubrecordMemory(_recordData, _XALGLocation.Value, _package.MetaData.Constants)) : default(UInt64?);
+        #endregion
+        public IReadOnlyList<IAComponentGetter> Components { get; private set; } = [];
         #region Obstruction
         private int? _ObstructionLocation;
         public Single? Obstruction => _ObstructionLocation.HasValue ? HeaderTranslation.ExtractSubrecordMemory(_recordData, _ObstructionLocation.Value, _package.MetaData.Constants).Float() : default(Single?);
@@ -1770,6 +2557,45 @@ namespace Mutagen.Bethesda.Starfield
                 {
                     _DirtinessScaleLocation = (stream.Position - offset);
                     return (int)AudioOcclusionPrimitive_FieldIndex.DirtinessScale;
+                }
+                case RecordTypeInts.OPDS:
+                {
+                    _ObjectPaletteDefaultsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    return (int)AudioOcclusionPrimitive_FieldIndex.ObjectPaletteDefaults;
+                }
+                case RecordTypeInts.PTT2:
+                {
+                    _TransformsLocation = new RangeInt32((stream.Position - offset), finalPos - offset);
+                    return (int)AudioOcclusionPrimitive_FieldIndex.Transforms;
+                }
+                case RecordTypeInts.SNTP:
+                {
+                    _SnapTemplateLocation = (stream.Position - offset);
+                    return (int)AudioOcclusionPrimitive_FieldIndex.SnapTemplate;
+                }
+                case RecordTypeInts.SNBH:
+                {
+                    _SnapBehaviorLocation = (stream.Position - offset);
+                    return (int)AudioOcclusionPrimitive_FieldIndex.SnapBehavior;
+                }
+                case RecordTypeInts.DEFL:
+                {
+                    _DefaultLayerLocation = (stream.Position - offset);
+                    return (int)AudioOcclusionPrimitive_FieldIndex.DefaultLayer;
+                }
+                case RecordTypeInts.XALG:
+                {
+                    _XALGLocation = (stream.Position - offset);
+                    return (int)AudioOcclusionPrimitive_FieldIndex.XALG;
+                }
+                case RecordTypeInts.BFCB:
+                {
+                    this.Components = this.ParseRepeatedTypelessSubrecord<IAComponentGetter>(
+                        stream: stream,
+                        translationParams: translationParams,
+                        trigger: AComponent_Registration.TriggerSpecs,
+                        factory: AComponentBinaryOverlay.AComponentFactory);
+                    return (int)AudioOcclusionPrimitive_FieldIndex.Components;
                 }
                 case RecordTypeInts.OBSV:
                 {

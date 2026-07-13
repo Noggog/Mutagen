@@ -37,6 +37,7 @@ namespace Mutagen.Bethesda.Starfield
                 new ILoquiRegistration[]
                 {
                     Activator_Registration.Instance,
+                    Ammunition_Registration.Instance,
                     Armor_Registration.Instance,
                     Book_Registration.Instance,
                     Container_Registration.Instance,

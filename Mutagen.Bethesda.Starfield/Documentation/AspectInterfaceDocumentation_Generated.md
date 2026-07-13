@@ -7,6 +7,7 @@ Functions can then be written that take in `INamed`, allowing any record that ha
 - Weapon
 ### IHasDestructible
 - Activator
+- Ammunition
 - Armor
 - Book
 - Container
@@ -568,6 +569,7 @@ Functions can then be written that take in `INamed`, allowing any record that ha
 - IObjectBounded
 - IScripted
 ### Ammunition
+- IHasDestructible
 - IHaveVirtualMachineAdapter
 - IKeyworded
 - IModeled
