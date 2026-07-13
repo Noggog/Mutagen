@@ -9,7 +9,7 @@
       <RefDirect name="ObjectPaletteDefaults" refName="ObjectPaletteDefaults" />
       <RefDirect name="Transforms" refName="Transforms" />
       <FormLink name="SnapTemplate" refName="SnapTemplate" recordType="SNTP" />
-      <FormLink name="SnapBehavior" refName="SnapTemplate" recordType="SNBH" />
+      <FormLink name="SnapBehavior" refName="SnapTemplateBehavior" recordType="SNBH" />
       <UInt64 name="XALG" recordType="XALG" unknown="true" />
       <FormLink name="DefaultLayer" refName="Layer" recordType="DEFL" />
       <RefList name="Components" refName="AComponent" />

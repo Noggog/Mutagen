@@ -136,14 +136,14 @@ namespace Mutagen.Bethesda.Starfield
         IFormLinkNullableGetter<ISnapTemplateGetter> IActivatorGetter.SnapTemplate => this.SnapTemplate;
         #endregion
         #region SnapBehavior
-        private readonly IFormLinkNullable<ISnapTemplateGetter> _SnapBehavior = new FormLinkNullable<ISnapTemplateGetter>();
-        public IFormLinkNullable<ISnapTemplateGetter> SnapBehavior
+        private readonly IFormLinkNullable<ISnapTemplateBehaviorGetter> _SnapBehavior = new FormLinkNullable<ISnapTemplateBehaviorGetter>();
+        public IFormLinkNullable<ISnapTemplateBehaviorGetter> SnapBehavior
         {
             get => _SnapBehavior;
             set => _SnapBehavior.SetTo(value);
         }
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        IFormLinkNullableGetter<ISnapTemplateGetter> IActivatorGetter.SnapBehavior => this.SnapBehavior;
+        IFormLinkNullableGetter<ISnapTemplateBehaviorGetter> IActivatorGetter.SnapBehavior => this.SnapBehavior;
         #endregion
         #region DefaultLayer
         private readonly IFormLinkNullable<ILayerGetter> _DefaultLayer = new FormLinkNullable<ILayerGetter>();
@@ -2077,7 +2077,7 @@ namespace Mutagen.Bethesda.Starfield
         new ObjectPaletteDefaults? ObjectPaletteDefaults { get; set; }
         new Transforms? Transforms { get; set; }
         new IFormLinkNullable<ISnapTemplateGetter> SnapTemplate { get; set; }
-        new IFormLinkNullable<ISnapTemplateGetter> SnapBehavior { get; set; }
+        new IFormLinkNullable<ISnapTemplateBehaviorGetter> SnapBehavior { get; set; }
         new IFormLinkNullable<ILayerGetter> DefaultLayer { get; set; }
         new UInt64? XALG { get; set; }
         new ExtendedList<AComponent> Components { get; }
@@ -2165,7 +2165,7 @@ namespace Mutagen.Bethesda.Starfield
         IObjectPaletteDefaultsGetter? ObjectPaletteDefaults { get; }
         ITransformsGetter? Transforms { get; }
         IFormLinkNullableGetter<ISnapTemplateGetter> SnapTemplate { get; }
-        IFormLinkNullableGetter<ISnapTemplateGetter> SnapBehavior { get; }
+        IFormLinkNullableGetter<ISnapTemplateBehaviorGetter> SnapBehavior { get; }
         IFormLinkNullableGetter<ILayerGetter> DefaultLayer { get; }
         UInt64? XALG { get; }
         IReadOnlyList<IAComponentGetter> Components { get; }
@@ -4806,7 +4806,7 @@ namespace Mutagen.Bethesda.Starfield
         #endregion
         #region SnapBehavior
         private int? _SnapBehaviorLocation;
-        public IFormLinkNullableGetter<ISnapTemplateGetter> SnapBehavior => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ISnapTemplateGetter>(_package, _recordData, _SnapBehaviorLocation);
+        public IFormLinkNullableGetter<ISnapTemplateBehaviorGetter> SnapBehavior => FormLinkBinaryTranslation.Instance.NullableRecordOverlayFactory<ISnapTemplateBehaviorGetter>(_package, _recordData, _SnapBehaviorLocation);
         #endregion
         #region DefaultLayer
         private int? _DefaultLayerLocation;
