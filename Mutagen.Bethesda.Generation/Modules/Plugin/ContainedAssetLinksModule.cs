@@ -14,11 +14,11 @@ public class ContainedAssetLinksModule : AContainedLinksModule<AssetLinkType>
 {
     public static ContainedAssetLinksModule Instance = new();
 
-    public override async Task<Case> HasLinks(ObjectGeneration obj, bool includeBaseClass, GenericSpecification specifications = null)
+    protected override async Task<Case> HasLinks(ObjectGeneration obj, bool includeBaseClass, GenericSpecification? specifications, HashSet<ObjectGeneration>? inProgress)
     {
         if (obj.GetObjectData().HasInferredAssets) return Case.Yes;
         if (obj.GetObjectData().HasResolvedAssets) return Case.Yes;
-        return await base.HasLinks(obj, includeBaseClass, specifications);
+        return await base.HasLinks(obj, includeBaseClass, specifications, inProgress);
     }
 
     public override async IAsyncEnumerable<string> RequiredUsingStatements(ObjectGeneration obj)
